@@ -43,22 +43,39 @@ final class TranscriptionService: ObservableObject {
     private var isReconnecting = false
     private var reconnectAttempts = 0
     private let maxReconnectAttempts = 5
+    private var intentionalDisconnect = false  // Track if disconnect was user-initiated
 
     // Deepgram configuration
     private let baseURL = "wss://api.deepgram.com/v1/listen"
     private let model = "nova-3"
-    private let language = "en"
+    private let language = "fr"  // French for user's language
 
     // MARK: - Initialization
 
     init() {}
 
+    // Keepalive timer
+    private var keepaliveTimer: Timer?
+
     // MARK: - Connection Management
 
     func connect() async throws {
+        // Clean up existing connection without triggering reconnect
+        if webSocketTask != nil {
+            print("[Transcription] Cleaning up existing connection...")
+            stopKeepalive()
+            webSocketTask?.cancel(with: .goingAway, reason: nil)
+            webSocketTask = nil
+            // Small delay to ensure clean disconnect
+            try? await Task.sleep(nanoseconds: 100_000_000) // 100ms
+        }
+
         guard let apiKey = keychain.getAPIKey(for: .deepgram) else {
+            print("[Transcription] No Deepgram API key found!")
             throw TranscriptionError.noAPIKey
         }
+
+        print("[Transcription] Connecting to Deepgram with API key: \(apiKey.prefix(10))...")
 
         // Build WebSocket URL with parameters
         var components = URLComponents(string: baseURL)!
@@ -68,7 +85,6 @@ final class TranscriptionService: ObservableObject {
             URLQueryItem(name: "smart_format", value: "true"),
             URLQueryItem(name: "interim_results", value: "true"),
             URLQueryItem(name: "punctuate", value: "true"),
-            URLQueryItem(name: "diarize", value: "true"),
             URLQueryItem(name: "encoding", value: "linear16"),
             URLQueryItem(name: "sample_rate", value: "16000"),
             URLQueryItem(name: "channels", value: "1")
@@ -81,30 +97,83 @@ final class TranscriptionService: ObservableObject {
         var request = URLRequest(url: url)
         request.setValue("Token \(apiKey)", forHTTPHeaderField: "Authorization")
 
-        let session = URLSession(configuration: .default)
+        let config = URLSessionConfiguration.default
+        config.timeoutIntervalForRequest = 30
+        config.timeoutIntervalForResource = 300
+
+        let session = URLSession(configuration: config)
         webSocketTask = session.webSocketTask(with: request)
         webSocketTask?.resume()
 
         isConnected = true
         errorMessage = nil
         reconnectAttempts = 0
+        intentionalDisconnect = false  // Reset flag for new connection
+
+        print("[Transcription] WebSocket connected successfully!")
 
         // Start receiving messages
         receiveMessages()
+
+        // Start keepalive timer
+        startKeepalive()
     }
 
+    private func startKeepalive() {
+        stopKeepalive()
+        keepaliveTimer = Timer.scheduledTimer(withTimeInterval: 8.0, repeats: true) { [weak self] _ in
+            self?.sendKeepalive()
+        }
+    }
+
+    private func stopKeepalive() {
+        keepaliveTimer?.invalidate()
+        keepaliveTimer = nil
+    }
+
+    private func sendKeepalive() {
+        guard isConnected, let task = webSocketTask else { return }
+
+        // Send a keepalive message (empty JSON object)
+        let keepaliveMessage = "{\"type\": \"KeepAlive\"}"
+        let message = URLSessionWebSocketTask.Message.string(keepaliveMessage)
+        task.send(message) { error in
+            if let error {
+                print("[Transcription] Keepalive error: \(error)")
+            }
+        }
+    }
+
+    private var audioBytesSent = 0
+
     func disconnect() {
+        print("[Transcription] Disconnecting...")
+        intentionalDisconnect = true  // Mark as intentional to prevent auto-reconnect
+        stopKeepalive()
         webSocketTask?.cancel(with: .normalClosure, reason: nil)
         webSocketTask = nil
         isConnected = false
+        isReconnecting = false
+        audioBytesSent = 0
     }
 
     func sendAudio(_ data: Data) {
-        guard isConnected, let task = webSocketTask else { return }
+        guard isConnected, let task = webSocketTask else {
+            if !isConnected {
+                print("[Transcription] Cannot send audio - not connected")
+            }
+            return
+        }
+
+        audioBytesSent += data.count
+        if audioBytesSent % 50000 < data.count {
+            print("[Transcription] Sent \(audioBytesSent / 1000)KB of audio to Deepgram")
+        }
 
         let message = URLSessionWebSocketTask.Message.data(data)
         task.send(message) { [weak self] error in
             if let error {
+                print("[Transcription] Error sending audio: \(error)")
                 Task { @MainActor in
                     self?.handleError(error)
                 }
@@ -115,15 +184,34 @@ final class TranscriptionService: ObservableObject {
     // MARK: - Private Methods
 
     private func receiveMessages() {
-        webSocketTask?.receive { [weak self] result in
-            Task { @MainActor in
-                switch result {
-                case .success(let message):
-                    self?.handleMessage(message)
-                    // Continue receiving
-                    self?.receiveMessages()
-                case .failure(let error):
-                    self?.handleError(error)
+        guard let task = webSocketTask else {
+            print("[Transcription] No WebSocket task available for receiving")
+            return
+        }
+
+        task.receive { [weak self] result in
+            guard let self = self else { return }
+
+            switch result {
+            case .success(let message):
+                Task { @MainActor in
+                    self.handleMessage(message)
+                }
+                // Continue receiving only if still connected
+                if self.isConnected {
+                    self.receiveMessages()
+                }
+            case .failure(let error):
+                let nsError = error as NSError
+                print("[Transcription] Receive error: \(nsError.domain) code: \(nsError.code)")
+
+                // Check if it's a normal close or an error
+                if nsError.code == 57 || nsError.domain == "NSPOSIXErrorDomain" {
+                    print("[Transcription] Connection closed by server")
+                }
+
+                Task { @MainActor in
+                    self.handleError(error)
                 }
             }
         }
@@ -132,13 +220,21 @@ final class TranscriptionService: ObservableObject {
     private func handleMessage(_ message: URLSessionWebSocketTask.Message) {
         switch message {
         case .string(let text):
+            // Check for Deepgram metadata or error messages
+            if text.contains("\"type\":\"Metadata\"") {
+                print("[Transcription] Received metadata from Deepgram")
+            } else if text.contains("\"type\":\"Error\"") || text.contains("\"error\"") {
+                print("[Transcription] Deepgram error: \(text)")
+            } else if text.contains("\"type\":\"CloseStream\"") {
+                print("[Transcription] Deepgram requested stream close")
+            }
             parseTranscriptionResponse(text)
         case .data(let data):
             if let text = String(data: data, encoding: .utf8) {
                 parseTranscriptionResponse(text)
             }
         @unknown default:
-            break
+            print("[Transcription] Unknown message type received")
         }
     }
 
@@ -155,37 +251,54 @@ final class TranscriptionService: ObservableObject {
             if response.isFinal == true {
                 // Final transcript
                 if !transcript.isEmpty {
+                    print("[Transcription] FINAL: \"\(transcript)\"")
                     currentTranscript += transcript + " "
                     onTranscript?(transcript)
                 }
                 interimTranscript = ""
             } else {
                 // Interim transcript
+                if !transcript.isEmpty {
+                    print("[Transcription] interim: \"\(transcript)\"")
+                }
                 interimTranscript = transcript
                 onInterimTranscript?(transcript)
             }
         } catch {
             // Ignore parsing errors for non-transcript messages (e.g., metadata)
-            print("Parse error (non-critical): \(error)")
+            // Only log if it looks like it might be a transcript
+            if jsonString.contains("transcript") {
+                print("[Transcription] Parse error: \(error)")
+            }
         }
     }
 
     private func handleError(_ error: Error) {
+        print("[Transcription] Error: \(error.localizedDescription)")
         errorMessage = error.localizedDescription
+        stopKeepalive()
         isConnected = false
         onError?(error)
 
-        // Attempt reconnection
-        if !isReconnecting && reconnectAttempts < maxReconnectAttempts {
+        // Only attempt reconnection if not intentional and not already reconnecting
+        if !intentionalDisconnect && !isReconnecting && reconnectAttempts < maxReconnectAttempts {
             attemptReconnect()
+        } else if intentionalDisconnect {
+            print("[Transcription] Intentional disconnect - not reconnecting")
         }
     }
 
     private func attemptReconnect() {
+        guard !isReconnecting else {
+            print("[Transcription] Already reconnecting, skipping")
+            return
+        }
+
         isReconnecting = true
         reconnectAttempts += 1
 
-        let delay = Double(reconnectAttempts) * 2.0 // Exponential backoff
+        let delay = Double(reconnectAttempts) * 3.0 // Exponential backoff (3s, 6s, 9s...)
+        print("[Transcription] Will reconnect in \(delay)s (attempt \(reconnectAttempts)/\(maxReconnectAttempts))")
 
         Task {
             try? await Task.sleep(nanoseconds: UInt64(delay * 1_000_000_000))
@@ -193,10 +306,14 @@ final class TranscriptionService: ObservableObject {
             do {
                 try await connect()
                 isReconnecting = false
+                print("[Transcription] Reconnected successfully!")
             } catch {
+                print("[Transcription] Reconnection failed: \(error)")
                 isReconnecting = false
                 if reconnectAttempts < maxReconnectAttempts {
                     attemptReconnect()
+                } else {
+                    print("[Transcription] Max reconnection attempts reached")
                 }
             }
         }

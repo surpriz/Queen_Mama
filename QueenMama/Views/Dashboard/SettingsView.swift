@@ -18,6 +18,12 @@ struct SettingsView: View {
                 }
                 .tag(SettingsTab.apiKeys)
 
+            ModelsSettingsView()
+                .tabItem {
+                    Label("Models", systemImage: "cpu")
+                }
+                .tag(SettingsTab.models)
+
             AudioSettingsView()
                 .tabItem {
                     Label("Audio", systemImage: "speaker.wave.2")
@@ -38,6 +44,7 @@ struct SettingsView: View {
 enum SettingsTab {
     case general
     case apiKeys
+    case models
     case audio
     case shortcuts
 }
@@ -245,6 +252,114 @@ struct AudioSettingsView: View {
             }
         }
         .formStyle(.grouped)
+    }
+}
+
+// MARK: - Models Settings
+
+struct ModelsSettingsView: View {
+    private let keychain = KeychainManager.shared
+
+    var body: some View {
+        Form {
+            Section("AI Models Currently Used") {
+                ModelRow(
+                    provider: "OpenAI",
+                    model: "gpt-4o",
+                    description: "GPT-4o with vision capabilities",
+                    isConfigured: keychain.hasAPIKey(for: .openai)
+                )
+
+                ModelRow(
+                    provider: "Anthropic",
+                    model: "claude-sonnet-4-20250514",
+                    description: "Claude Sonnet 4 with vision capabilities",
+                    isConfigured: keychain.hasAPIKey(for: .anthropic)
+                )
+
+                ModelRow(
+                    provider: "Google Gemini",
+                    model: "gemini-2.0-flash",
+                    description: "Gemini 2.0 Flash with vision capabilities",
+                    isConfigured: keychain.hasAPIKey(for: .gemini)
+                )
+            }
+
+            Section("Speech-to-Text") {
+                ModelRow(
+                    provider: "Deepgram",
+                    model: "nova-3",
+                    description: "Real-time speech recognition (French)",
+                    isConfigured: keychain.hasAPIKey(for: .deepgram)
+                )
+            }
+
+            Section("Fallback Order") {
+                Text("When a provider fails, Queen Mama automatically tries the next one:")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+
+                HStack(spacing: 8) {
+                    ProviderBadge(name: "1. OpenAI", isConfigured: keychain.hasAPIKey(for: .openai))
+                    Image(systemName: "arrow.right")
+                        .foregroundColor(.secondary)
+                    ProviderBadge(name: "2. Anthropic", isConfigured: keychain.hasAPIKey(for: .anthropic))
+                    Image(systemName: "arrow.right")
+                        .foregroundColor(.secondary)
+                    ProviderBadge(name: "3. Gemini", isConfigured: keychain.hasAPIKey(for: .gemini))
+                }
+            }
+        }
+        .formStyle(.grouped)
+    }
+}
+
+struct ModelRow: View {
+    let provider: String
+    let model: String
+    let description: String
+    let isConfigured: Bool
+
+    var body: some View {
+        HStack {
+            VStack(alignment: .leading, spacing: 4) {
+                HStack {
+                    Text(provider)
+                        .fontWeight(.medium)
+                    if isConfigured {
+                        Image(systemName: "checkmark.circle.fill")
+                            .foregroundColor(.green)
+                            .font(.caption)
+                    } else {
+                        Image(systemName: "xmark.circle.fill")
+                            .foregroundColor(.red)
+                            .font(.caption)
+                    }
+                }
+                Text(model)
+                    .font(.system(.body, design: .monospaced))
+                    .foregroundColor(.blue)
+                Text(description)
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+            }
+            Spacer()
+        }
+    }
+}
+
+struct ProviderBadge: View {
+    let name: String
+    let isConfigured: Bool
+
+    var body: some View {
+        Text(name)
+            .font(.caption)
+            .padding(.horizontal, 8)
+            .padding(.vertical, 4)
+            .background(isConfigured ? Color.green.opacity(0.2) : Color.gray.opacity(0.2))
+            .foregroundColor(isConfigured ? .green : .secondary)
+            .clipShape(RoundedRectangle(cornerRadius: 4))
     }
 }
 

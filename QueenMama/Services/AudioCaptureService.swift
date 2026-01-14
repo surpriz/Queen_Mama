@@ -69,25 +69,37 @@ final class AudioCaptureService: ObservableObject {
     // MARK: - Capture Control
 
     func startCapture() async throws {
-        guard !isCapturing else { return }
+        guard !isCapturing else {
+            print("[AudioCapture] Already capturing, skipping start")
+            return
+        }
+
+        print("[AudioCapture] Starting capture...")
 
         // Check permission
         let status = checkMicrophonePermission()
+        print("[AudioCapture] Permission status: \(status.rawValue)")
+
         switch status {
         case .authorized:
-            break
+            print("[AudioCapture] Microphone authorized")
         case .notDetermined:
+            print("[AudioCapture] Requesting microphone permission...")
             let granted = await requestMicrophonePermission()
             guard granted else {
+                print("[AudioCapture] Permission denied by user")
                 throw AudioCaptureError.microphonePermissionDenied
             }
+            print("[AudioCapture] Permission granted")
         case .denied, .restricted:
+            print("[AudioCapture] Permission denied or restricted")
             throw AudioCaptureError.microphonePermissionDenied
         @unknown default:
             throw AudioCaptureError.microphonePermissionDenied
         }
 
         // Setup audio engine
+        print("[AudioCapture] Setting up audio engine...")
         try setupAudioEngine()
 
         // Start engine
@@ -95,7 +107,9 @@ final class AudioCaptureService: ObservableObject {
             try audioEngine.start()
             isCapturing = true
             errorMessage = nil
+            print("[AudioCapture] Audio engine started successfully!")
         } catch {
+            print("[AudioCapture] Failed to start engine: \(error)")
             throw AudioCaptureError.engineStartFailed(error)
         }
     }
@@ -116,66 +130,123 @@ final class AudioCaptureService: ObservableObject {
         let inputNode = audioEngine.inputNode
         let inputFormat = inputNode.outputFormat(forBus: 0)
 
-        // Target format for Deepgram
-        guard let targetFormat = AVAudioFormat(
-            commonFormat: .pcmFormatInt16,
+        print("[AudioCapture] Input format: \(inputFormat)")
+
+        // First convert to float format at target sample rate
+        guard let floatFormat = AVAudioFormat(
+            commonFormat: .pcmFormatFloat32,
             sampleRate: targetSampleRate,
             channels: targetChannelCount,
-            interleaved: true
+            interleaved: false
         ) else {
             throw AudioCaptureError.formatMismatch
         }
 
-        // Create converter
-        audioConverter = AVAudioConverter(from: inputFormat, to: targetFormat)
+        // Create converter to float format first
+        audioConverter = AVAudioConverter(from: inputFormat, to: floatFormat)
 
-        // Calculate buffer sizes
-        let bufferSize: AVAudioFrameCount = 1024
+        if audioConverter == nil {
+            print("[AudioCapture] Failed to create audio converter")
+            throw AudioCaptureError.formatMismatch
+        }
+
+        print("[AudioCapture] Audio converter created successfully")
+
+        // Calculate buffer sizes - use larger buffer for stability
+        let bufferSize: AVAudioFrameCount = 4096
 
         // Install tap on input node
         inputNode.installTap(onBus: 0, bufferSize: bufferSize, format: inputFormat) { [weak self] buffer, _ in
-            Task { @MainActor in
-                self?.processAudioBuffer(buffer, inputFormat: inputFormat, targetFormat: targetFormat)
-            }
+            self?.processAudioBufferSync(buffer, inputFormat: inputFormat, floatFormat: floatFormat)
         }
+
+        print("[AudioCapture] Tap installed on input node")
     }
 
-    private func processAudioBuffer(_ buffer: AVAudioPCMBuffer, inputFormat: AVAudioFormat, targetFormat: AVAudioFormat) {
+    private var audioBufferCount = 0
+
+    // Synchronous processing to avoid threading issues
+    private func processAudioBufferSync(_ buffer: AVAudioPCMBuffer, inputFormat: AVAudioFormat, floatFormat: AVAudioFormat) {
         // Calculate audio level for visualization
-        updateAudioLevel(from: buffer)
+        updateAudioLevelSync(from: buffer)
+
+        audioBufferCount += 1
 
         // Convert to target format
-        guard let converter = audioConverter else { return }
+        guard let converter = audioConverter else {
+            return
+        }
 
-        let frameCount = AVAudioFrameCount(Double(buffer.frameLength) * targetSampleRate / inputFormat.sampleRate)
+        // Calculate output frame count based on sample rate ratio
+        let ratio = floatFormat.sampleRate / inputFormat.sampleRate
+        let frameCount = AVAudioFrameCount(Double(buffer.frameLength) * ratio)
 
-        guard let convertedBuffer = AVAudioPCMBuffer(pcmFormat: targetFormat, frameCapacity: frameCount) else {
+        guard let convertedBuffer = AVAudioPCMBuffer(pcmFormat: floatFormat, frameCapacity: frameCount) else {
             return
         }
 
         var error: NSError?
-        var inputConsumed = false
 
-        converter.convert(to: convertedBuffer, error: &error) { _, outStatus in
-            if inputConsumed {
-                outStatus.pointee = .noDataNow
-                return nil
-            }
-            inputConsumed = true
+        let inputBlock: AVAudioConverterInputBlock = { _, outStatus in
             outStatus.pointee = .haveData
             return buffer
         }
 
+        converter.convert(to: convertedBuffer, error: &error, withInputFrom: inputBlock)
+
         if let error {
-            print("Audio conversion error: \(error)")
+            if audioBufferCount % 100 == 0 {
+                print("[AudioCapture] Conversion error: \(error.localizedDescription)")
+            }
             return
         }
 
-        // Convert to Data and send to callback
-        if let channelData = convertedBuffer.int16ChannelData {
-            let data = Data(bytes: channelData[0], count: Int(convertedBuffer.frameLength) * 2)
-            onAudioBuffer?(data)
+        // Convert float buffer to 16-bit PCM for Deepgram
+        guard let floatData = convertedBuffer.floatChannelData else { return }
+
+        let frameLength = Int(convertedBuffer.frameLength)
+        var int16Data = [Int16](repeating: 0, count: frameLength)
+
+        for i in 0..<frameLength {
+            let sample = floatData[0][i]
+            // Clamp and convert to Int16
+            let clampedSample = max(-1.0, min(1.0, sample))
+            int16Data[i] = Int16(clampedSample * Float(Int16.max))
         }
+
+        let data = Data(bytes: &int16Data, count: frameLength * 2)
+
+        // Send on main thread
+        DispatchQueue.main.async { [weak self] in
+            if self?.audioBufferCount ?? 0 % 100 == 0 {
+                print("[AudioCapture] Processed \(self?.audioBufferCount ?? 0) buffers, sending \(data.count) bytes")
+            }
+            self?.onAudioBuffer?(data)
+        }
+    }
+
+    private func updateAudioLevelSync(from buffer: AVAudioPCMBuffer) {
+        guard let channelData = buffer.floatChannelData else { return }
+
+        let channelDataValue = channelData.pointee
+        let channelDataValueArray = stride(
+            from: 0,
+            to: Int(buffer.frameLength),
+            by: buffer.stride
+        ).map { channelDataValue[$0] }
+
+        let rms = sqrt(channelDataValueArray.map { $0 * $0 }.reduce(0, +) / Float(buffer.frameLength))
+        let avgPower = 20 * log10(rms)
+        let meterLevel = scalePower(avgPower)
+
+        DispatchQueue.main.async { [weak self] in
+            self?.microphoneLevel = meterLevel
+        }
+    }
+
+    // Keep old method for compatibility but unused
+    private func processAudioBuffer(_ buffer: AVAudioPCMBuffer, inputFormat: AVAudioFormat, targetFormat: AVAudioFormat) {
+        // Deprecated - use processAudioBufferSync instead
     }
 
     private func updateAudioLevel(from buffer: AVAudioPCMBuffer) {

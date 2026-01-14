@@ -84,6 +84,10 @@ final class AIService: ObservableObject {
     ) -> AsyncThrowingStream<String, Error> {
         AsyncThrowingStream { continuation in
             Task { @MainActor in
+                print("[AIService] Starting streaming response for type: \(type.rawValue)")
+                print("[AIService] Configured providers: \(self.configuredProviders.map { $0.providerType.displayName })")
+                print("[AIService] Transcript length: \(transcript.count) chars")
+
                 self.isProcessing = true
                 self.currentResponse = ""
                 self.errorMessage = nil
@@ -99,6 +103,7 @@ final class AIService: ObservableObject {
                 var succeeded = false
 
                 for provider in self.configuredProviders {
+                    print("[AIService] Trying provider: \(provider.providerType.displayName)")
                     do {
                         for try await chunk in provider.generateStreamingResponse(context: context) {
                             self.currentResponse += chunk
@@ -106,6 +111,9 @@ final class AIService: ObservableObject {
                         }
                         self.lastProvider = provider.providerType
                         succeeded = true
+                        print("[AIService] Successfully completed with \(provider.providerType.displayName)")
+                        print("[AIService] Response length: \(self.currentResponse.count) chars")
+                        print("[AIService] Response preview: \(self.currentResponse.prefix(200))...")
 
                         // Save completed response
                         let response = AIResponse(
@@ -116,7 +124,7 @@ final class AIService: ObservableObject {
                         self.responses.insert(response, at: 0)
                         break
                     } catch {
-                        print("Streaming provider \(provider.providerType.displayName) failed: \(error)")
+                        print("[AIService] Streaming provider \(provider.providerType.displayName) failed: \(error)")
                         self.currentResponse = ""
                         continue
                     }

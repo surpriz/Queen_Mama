@@ -47,15 +47,21 @@ final class KeychainManager {
     }
 
     func saveAPIKey(_ key: String, for type: APIKeyType) throws {
-        let data = Data(key.utf8)
+        let trimmedKey = key.trimmingCharacters(in: .whitespacesAndNewlines)
+        print("[Keychain] Saving \(type.displayName) key: \(trimmedKey.prefix(15))... (length: \(trimmedKey.count))")
+        let data = Data(trimmedKey.utf8)
         try save(data: data, account: type.rawValue)
+        print("[Keychain] \(type.displayName) key saved successfully")
     }
 
     func getAPIKey(for type: APIKeyType) -> String? {
         guard let data = try? retrieve(account: type.rawValue) else {
+            print("[Keychain] No key found for \(type.displayName)")
             return nil
         }
-        return String(data: data, encoding: .utf8)
+        let key = String(data: data, encoding: .utf8)?.trimmingCharacters(in: .whitespacesAndNewlines)
+        print("[Keychain] Retrieved \(type.displayName) key: \(key?.prefix(15) ?? "nil")...")
+        return key
     }
 
     func deleteAPIKey(for type: APIKeyType) throws {

@@ -24,6 +24,7 @@ struct OverlayContentView: View {
             if overlayController.isExpanded {
                 ExpandedContentView(
                     appState: appState,
+                    aiService: appState.aiService,
                     selectedTab: $selectedTab,
                     inputText: $inputText,
                     isSmartModeEnabled: $isSmartModeEnabled,
@@ -39,7 +40,14 @@ struct OverlayContentView: View {
     }
 
     private func handleSubmit() {
-        guard !inputText.isEmpty || selectedTab != .assist else { return }
+        // Assist, Recap, and Follow-up don't require input text
+        // What to Say can work with or without input
+        let requiresInput = false  // All tabs can work without input using transcript
+        if requiresInput && inputText.isEmpty {
+            return
+        }
+
+        print("[Overlay] Submitting request for tab: \(selectedTab.rawValue)")
 
         Task {
             do {
@@ -56,25 +64,30 @@ struct OverlayContentView: View {
                         _ = chunk
                     }
                 case .whatToSay:
-                    _ = try await appState.aiService.whatToSay(
+                    let response = try await appState.aiService.whatToSay(
                         transcript: appState.currentTranscript,
                         screenshot: screenshot,
                         mode: appState.selectedMode
                     )
+                    appState.aiService.currentResponse = response.content
                 case .followUp:
-                    _ = try await appState.aiService.followUpQuestions(
+                    let response = try await appState.aiService.followUpQuestions(
                         transcript: appState.currentTranscript,
                         mode: appState.selectedMode
                     )
+                    appState.aiService.currentResponse = response.content
                 case .recap:
-                    _ = try await appState.aiService.recap(
+                    let response = try await appState.aiService.recap(
                         transcript: appState.currentTranscript,
                         mode: appState.selectedMode
                     )
+                    appState.aiService.currentResponse = response.content
                 }
 
                 inputText = ""
+                print("[Overlay] Request completed successfully")
             } catch {
+                print("[Overlay] Error: \(error)")
                 appState.errorMessage = error.localizedDescription
             }
         }
@@ -154,6 +167,7 @@ struct PillHeaderView: View {
 
 struct ExpandedContentView: View {
     @ObservedObject var appState: AppState
+    @ObservedObject var aiService: AIService  // Observe AIService directly for updates
     @Binding var selectedTab: TabItem
     @Binding var inputText: String
     @Binding var isSmartModeEnabled: Bool
@@ -161,16 +175,30 @@ struct ExpandedContentView: View {
 
     var body: some View {
         VStack(spacing: 12) {
-            // Tab Bar
-            TabBarView(selectedTab: $selectedTab)
+            // Tab Bar - clicking a tab triggers the request immediately
+            TabBarView(selectedTab: $selectedTab) { tab in
+                // Trigger request when tab is clicked
+                onSubmit()
+            }
 
             // Response Area
             ResponseAreaView(
-                response: appState.aiService.currentResponse,
-                isProcessing: appState.aiService.isProcessing
+                response: aiService.currentResponse,
+                isProcessing: aiService.isProcessing
             )
 
-            // Input Area
+            // Screen-only mode hint
+            if !appState.isSessionActive {
+                HStack {
+                    Image(systemName: "display")
+                        .foregroundColor(.orange)
+                    Text("Mode écran seul - Pas de session audio active")
+                        .font(.caption)
+                        .foregroundColor(.orange)
+                }
+            }
+
+            // Input Area (for custom questions)
             InputAreaView(
                 inputText: $inputText,
                 isSmartModeEnabled: $isSmartModeEnabled,
@@ -187,6 +215,7 @@ struct ExpandedContentView: View {
 
 struct TabBarView: View {
     @Binding var selectedTab: TabItem
+    let onTabSelected: (TabItem) -> Void  // Callback when tab is clicked
 
     var body: some View {
         HStack(spacing: 4) {
@@ -197,6 +226,7 @@ struct TabBarView: View {
                     isSelected: selectedTab == tab
                 ) {
                     selectedTab = tab
+                    onTabSelected(tab)  // Trigger request immediately
                 }
             }
         }

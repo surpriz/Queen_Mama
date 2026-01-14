@@ -12,9 +12,11 @@ final class OpenAIProvider: BaseAIProvider, AIProvider {
 
     func generateResponse(context: AIContext) async throws -> AIResponse {
         guard let apiKey = keychain.getAPIKey(for: .openai) else {
+            print("[OpenAI] No API key found in keychain!")
             throw AIProviderError.noAPIKey
         }
 
+        print("[OpenAI] Using API key: \(apiKey.prefix(20))...")
         let startTime = Date()
 
         let requestBody = try buildRequestBody(context: context, stream: false)
@@ -66,9 +68,22 @@ final class OpenAIProvider: BaseAIProvider, AIProvider {
 
                     let (asyncBytes, response) = try await URLSession.shared.bytes(for: request)
 
-                    guard let httpResponse = response as? HTTPURLResponse,
-                          httpResponse.statusCode == 200 else {
+                    guard let httpResponse = response as? HTTPURLResponse else {
+                        print("[OpenAI] Invalid response type")
                         continuation.finish(throwing: AIProviderError.invalidResponse)
+                        return
+                    }
+
+                    if httpResponse.statusCode != 200 {
+                        // Try to read the error response
+                        var errorBody = ""
+                        for try await line in asyncBytes.lines {
+                            errorBody += line
+                        }
+                        print("[OpenAI] Streaming error \(httpResponse.statusCode): \(errorBody.prefix(500))")
+                        continuation.finish(throwing: AIProviderError.requestFailed(
+                            NSError(domain: "HTTP", code: httpResponse.statusCode, userInfo: [NSLocalizedDescriptionKey: errorBody])
+                        ))
                         return
                     }
 

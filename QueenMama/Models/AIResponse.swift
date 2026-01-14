@@ -42,39 +42,41 @@ struct AIResponse: Identifiable, Equatable {
         }
 
         var systemPromptAddition: String {
+            let languageInstruction = "\n\nIMPORTANT: Respond in the SAME LANGUAGE as the transcript or screen content. If French, respond in French."
+
             switch self {
             case .assist:
                 return """
-                Provide general guidance and help understanding the current conversation.
-                Analyze both the transcript and screen content to give contextual advice.
+                Provide general guidance and help understanding the current conversation or screen content.
+                Analyze both the transcript (if available) and screen content to give contextual advice.
                 Be helpful but concise.
-                """
+                """ + languageInstruction
             case .whatToSay:
                 return """
                 Generate specific phrases the user can say right now.
                 Provide 2-3 natural, conversational options.
                 Each suggestion should be ready to use verbatim.
                 Format as a numbered list.
-                """
+                """ + languageInstruction
             case .followUp:
                 return """
                 Suggest 3-5 follow-up questions the user could ask.
-                Questions should be relevant to the current conversation.
+                Questions should be relevant to the current conversation or screen content.
                 Make them open-ended to encourage discussion.
                 Format as a numbered list.
-                """
+                """ + languageInstruction
             case .recap:
                 return """
-                Provide a concise summary of the conversation so far.
+                Provide a concise summary of the conversation or screen content so far.
                 Include:
-                - Key points discussed
+                - Key points discussed or visible
                 - Decisions made
                 - Action items identified
                 - Any important details mentioned
                 Format with clear sections.
-                """
+                """ + languageInstruction
             case .custom:
-                return ""
+                return languageInstruction
             }
         }
     }
@@ -117,13 +119,17 @@ struct AIContext {
         }
 
         if screenshot != nil {
-            message += "[Screenshot of current screen is attached]\n\n"
+            message += "[Screenshot of current screen is attached - analyze it carefully]\n\n"
         }
 
         if let customPrompt, !customPrompt.isEmpty {
             message += "## User's Question:\n\(customPrompt)"
         } else {
-            message += "Based on the above context, please provide \(responseType.rawValue.lowercased())."
+            if transcript.isEmpty && screenshot != nil {
+                message += "Analyze the screenshot and provide \(responseType.rawValue.lowercased()) based on what you see."
+            } else {
+                message += "Based on the above context, please provide \(responseType.rawValue.lowercased())."
+            }
         }
 
         return message

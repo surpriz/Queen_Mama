@@ -12,7 +12,7 @@ struct DashboardView: View {
     var body: some View {
         NavigationSplitView {
             // Sidebar
-            SidebarView(selectedSection: $selectedSection)
+            SidebarView(selectedSection: $selectedSection, audioService: appState.audioService)
                 .frame(minWidth: 200)
         } detail: {
             // Main Content
@@ -92,6 +92,7 @@ enum DashboardSection: String, CaseIterable {
 struct SidebarView: View {
     @Binding var selectedSection: DashboardSection
     @EnvironmentObject var appState: AppState
+    @ObservedObject var audioService: AudioCaptureService
 
     var body: some View {
         List(selection: $selectedSection) {
@@ -117,7 +118,7 @@ struct SidebarView: View {
                     HStack {
                         Image(systemName: "mic.fill")
                             .foregroundColor(.blue)
-                        AudioLevelIndicator(level: appState.audioLevel)
+                        AudioLevelIndicator(level: audioService.microphoneLevel)
                     }
                 }
             }
