@@ -7,6 +7,20 @@ final class AnthropicHaikuProvider: BaseAIProvider, AIProvider {
     private let baseURL = "https://api.anthropic.com/v1/messages"
     private let model = "claude-haiku-4-5-20251001"  // Haiku 4.5 for fast, cost-effective responses
     private let apiVersion = "2023-06-01"
+    private let promptCachingBetaHeader = "prompt-caching-2024-07-31"  // Prompt caching for cost optimization
+
+    /// Get optimized max_tokens based on response type
+    private func getMaxTokens(for context: AIContext) -> Int {
+        let baseTokens: Int
+        switch context.responseType {
+        case .assist:     baseTokens = 1024
+        case .whatToSay:  baseTokens = 512
+        case .followUp:   baseTokens = 512
+        case .recap:      baseTokens = 1536
+        case .custom:     baseTokens = 1024
+        }
+        return baseTokens  // Haiku doesn't use Smart Mode
+    }
 
     var isConfigured: Bool {
         keychain.hasAPIKey(for: .anthropic)
@@ -26,7 +40,8 @@ final class AnthropicHaikuProvider: BaseAIProvider, AIProvider {
             headers: [
                 "x-api-key": apiKey,
                 "anthropic-version": apiVersion,
-                "Content-Type": "application/json"
+                "Content-Type": "application/json",
+                "anthropic-beta": promptCachingBetaHeader
             ],
             body: requestBody
         )
@@ -63,7 +78,8 @@ final class AnthropicHaikuProvider: BaseAIProvider, AIProvider {
                         headers: [
                             "x-api-key": apiKey,
                             "anthropic-version": self.apiVersion,
-                            "Content-Type": "application/json"
+                            "Content-Type": "application/json",
+                            "anthropic-beta": self.promptCachingBetaHeader
                         ],
                         body: requestBody
                     )
@@ -126,10 +142,20 @@ final class AnthropicHaikuProvider: BaseAIProvider, AIProvider {
             ], at: 0) // Image should come before text for Claude
         }
 
+        // System prompt as array with cache_control for prompt caching
+        // This enables 90% cost reduction on cached tokens (5 min TTL)
+        let systemContent: [[String: Any]] = [
+            [
+                "type": "text",
+                "text": context.systemPrompt,
+                "cache_control": ["type": "ephemeral"]
+            ]
+        ]
+
         let requestDict: [String: Any] = [
             "model": model,
-            "max_tokens": 2048,  // Haiku uses standard token limit
-            "system": context.systemPrompt,
+            "max_tokens": getMaxTokens(for: context),
+            "system": systemContent,
             "messages": [
                 ["role": "user", "content": content]
             ],

@@ -159,7 +159,18 @@ SMART MODE ENABLED: Please provide enhanced, thorough analysis:
         var message = ""
 
         if !transcript.isEmpty {
-            message += "## Current Conversation Transcript:\n\(transcript)\n\n"
+            // Limit transcript to ~8000 chars (~2000 tokens) for cost optimization
+            let maxTranscriptLength = 8000
+            let truncatedTranscript: String
+
+            if transcript.count > maxTranscriptLength {
+                truncatedTranscript = "[...conversation précédente tronquée...]\n\n" +
+                    String(transcript.suffix(maxTranscriptLength))
+            } else {
+                truncatedTranscript = transcript
+            }
+
+            message += "## Current Conversation Transcript:\n\(truncatedTranscript)\n\n"
         }
 
         if screenshot != nil {

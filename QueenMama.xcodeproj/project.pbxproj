@@ -40,6 +40,8 @@
 		00000000000000000000001E /* GrokProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 100000000000000000000020 /* GrokProvider.swift */; };
 		00000000000000000000001F /* AnthropicHaikuProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 100000000000000000000021 /* AnthropicHaikuProvider.swift */; };
 		000000000000000000000020 /* OpenAIGPT5Provider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 100000000000000000000022 /* OpenAIGPT5Provider.swift */; };
+		000000000000000000000021 /* ResponseCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = 100000000000000000000023 /* ResponseCache.swift */; };
+		000000000000000000000022 /* TokenUsageTracker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 100000000000000000000024 /* TokenUsageTracker.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -79,6 +81,8 @@
 		100000000000000000000020 /* GrokProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GrokProvider.swift; sourceTree = "<group>"; };
 		100000000000000000000021 /* AnthropicHaikuProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnthropicHaikuProvider.swift; sourceTree = "<group>"; };
 		100000000000000000000022 /* OpenAIGPT5Provider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OpenAIGPT5Provider.swift; sourceTree = "<group>"; };
+		100000000000000000000023 /* ResponseCache.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ResponseCache.swift; sourceTree = "<group>"; };
+		100000000000000000000024 /* TokenUsageTracker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TokenUsageTracker.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -145,6 +149,8 @@
 				10000000000000000000000A /* AIService.swift */,
 				10000000000000000000000B /* SessionManager.swift */,
 				10000000000000000000001D /* AutoAnswerService.swift */,
+				100000000000000000000023 /* ResponseCache.swift */,
+				100000000000000000000024 /* TokenUsageTracker.swift */,
 				400000000000000000000008 /* Providers */,
 			);
 			path = Services;
@@ -303,6 +309,8 @@
 				000000000000000000000009 /* TranscriptionService.swift in Sources */,
 				00000000000000000000000A /* AIService.swift in Sources */,
 				00000000000000000000000B /* SessionManager.swift in Sources */,
+				000000000000000000000021 /* ResponseCache.swift in Sources */,
+				000000000000000000000022 /* TokenUsageTracker.swift in Sources */,
 				00000000000000000000000C /* AIProvider.swift in Sources */,
 				00000000000000000000000D /* OpenAIProvider.swift in Sources */,
 				00000000000000000000000E /* AnthropicProvider.swift in Sources */,

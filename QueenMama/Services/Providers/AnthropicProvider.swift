@@ -152,10 +152,20 @@ final class AnthropicProvider: BaseAIProvider, AIProvider {
             ], at: 0) // Image should come before text for Claude
         }
 
+        // System prompt as array with cache_control for prompt caching
+        // This enables 90% cost reduction on cached tokens (5 min TTL)
+        let systemContent: [[String: Any]] = [
+            [
+                "type": "text",
+                "text": context.systemPrompt,
+                "cache_control": ["type": "ephemeral"]
+            ]
+        ]
+
         let requestDict: [String: Any] = [
             "model": getModel(for: context),
-            "max_tokens": context.smartMode ? 4096 : 2048,  // More tokens for Smart Mode
-            "system": context.systemPrompt,
+            "max_tokens": getMaxTokens(for: context),
+            "system": systemContent,
             "messages": [
                 ["role": "user", "content": content]
             ],

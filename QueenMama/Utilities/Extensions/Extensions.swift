@@ -1,5 +1,6 @@
 import Foundation
 import SwiftUI
+import CryptoKit
 
 // MARK: - String Extensions
 
@@ -74,6 +75,12 @@ extension Data {
             return nil
         }
         return string
+    }
+
+    /// Compute SHA256 hash of data (used for screenshot deduplication)
+    func sha256Hash() -> String {
+        let hash = SHA256.hash(data: self)
+        return hash.compactMap { String(format: "%02x", $0) }.joined()
     }
 }
 

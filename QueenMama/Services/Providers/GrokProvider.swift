@@ -11,6 +11,20 @@ final class GrokProvider: BaseAIProvider, AIProvider {
         context.smartMode ? smartModel : standardModel
     }
 
+    /// Get optimized max_tokens based on response type
+    private func getMaxTokens(for context: AIContext) -> Int {
+        let baseTokens: Int
+        switch context.responseType {
+        case .assist:     baseTokens = 1024
+        case .whatToSay:  baseTokens = 512
+        case .followUp:   baseTokens = 512
+        case .recap:      baseTokens = 1536
+        case .custom:     baseTokens = 1024
+        }
+        // Smart mode gets 50% more (not 2x) for cost efficiency
+        return context.smartMode ? Int(Double(baseTokens) * 1.5) : baseTokens
+    }
+
     var isConfigured: Bool {
         keychain.hasAPIKey(for: .xai)
     }
@@ -143,7 +157,7 @@ final class GrokProvider: BaseAIProvider, AIProvider {
         let requestDict: [String: Any] = [
             "model": getModel(for: context),
             "messages": messages,
-            "max_tokens": context.smartMode ? 4096 : 2048,
+            "max_tokens": getMaxTokens(for: context),
             "temperature": context.smartMode ? 0.5 : 0.7,
             "stream": stream
         ]

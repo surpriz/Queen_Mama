@@ -44,6 +44,9 @@ final class ScreenCaptureService: NSObject, ObservableObject {
     // Screenshot timer
     private var screenshotTimer: Timer?
 
+    // Screenshot deduplication for cost optimization
+    private var lastScreenshotHash: String?
+
     // MARK: - Initialization
 
     override init() {
@@ -189,14 +192,49 @@ final class ScreenCaptureService: NSObject, ObservableObject {
         let nsImage = NSImage(cgImage: image, size: NSSize(width: image.width, height: image.height))
         latestScreenshot = nsImage
 
-        // Convert to JPEG data (compressed for API)
-        guard let tiffData = nsImage.tiffRepresentation,
+        // COST OPTIMIZATION: Resize to max 1280x720 for AI (sufficient for analysis)
+        let maxWidth: CGFloat = 1280
+        let maxHeight: CGFloat = 720
+        let scaleFactor = min(
+            maxWidth / CGFloat(image.width),
+            maxHeight / CGFloat(image.height),
+            1.0  // Don't upscale
+        )
+
+        let newWidth = Int(CGFloat(image.width) * scaleFactor)
+        let newHeight = Int(CGFloat(image.height) * scaleFactor)
+
+        let resizedImage = NSImage(size: NSSize(width: newWidth, height: newHeight))
+        resizedImage.lockFocus()
+        nsImage.draw(
+            in: NSRect(x: 0, y: 0, width: newWidth, height: newHeight),
+            from: NSRect(origin: .zero, size: nsImage.size),
+            operation: .copy,
+            fraction: 1.0
+        )
+        resizedImage.unlockFocus()
+
+        // COST OPTIMIZATION: Compress to 60% (reduced from 70%)
+        guard let tiffData = resizedImage.tiffRepresentation,
               let bitmap = NSBitmapImageRep(data: tiffData),
-              let jpegData = bitmap.representation(using: .jpeg, properties: [.compressionFactor: 0.7]) else {
+              let jpegData = bitmap.representation(using: .jpeg, properties: [.compressionFactor: 0.6]) else {
             throw ScreenCaptureError.screenshotFailed
         }
 
         return jpegData
+    }
+
+    /// Capture screenshot only if it has changed (deduplication for cost optimization)
+    func captureScreenshotIfChanged() async throws -> Data? {
+        let screenshot = try await captureScreenshot()
+        let hash = screenshot.sha256Hash()
+
+        if hash == lastScreenshotHash {
+            return nil  // Same screenshot, don't send again
+        }
+
+        lastScreenshotHash = hash
+        return screenshot
     }
 
     // MARK: - Private Methods

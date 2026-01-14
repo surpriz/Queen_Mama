@@ -7,6 +7,20 @@ final class OpenAIGPT5Provider: BaseAIProvider, AIProvider {
     private let baseURL = "https://api.openai.com/v1/chat/completions"
     private let model = "gpt-5.2"  // GPT-5.2 flagship model
 
+    /// Get optimized max_tokens based on response type (Smart mode fallback)
+    private func getMaxTokens(for context: AIContext) -> Int {
+        let baseTokens: Int
+        switch context.responseType {
+        case .assist:     baseTokens = 1024
+        case .whatToSay:  baseTokens = 512
+        case .followUp:   baseTokens = 512
+        case .recap:      baseTokens = 1536
+        case .custom:     baseTokens = 1024
+        }
+        // GPT-5 is used in Smart mode, so apply 1.5x
+        return Int(Double(baseTokens) * 1.5)
+    }
+
     var isConfigured: Bool {
         keychain.hasAPIKey(for: .openai)
     }
@@ -139,7 +153,7 @@ final class OpenAIGPT5Provider: BaseAIProvider, AIProvider {
         let requestDict: [String: Any] = [
             "model": model,
             "messages": messages,
-            "max_tokens": 4096,  // Smart mode uses more tokens
+            "max_tokens": getMaxTokens(for: context),
             "temperature": 0.5,
             "stream": stream
         ]
