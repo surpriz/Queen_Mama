@@ -115,10 +115,41 @@ struct AIContext {
     let mode: Mode?
     let responseType: AIResponse.ResponseType
     let customPrompt: String?
+    let smartMode: Bool
+
+    init(
+        transcript: String,
+        screenshot: Data? = nil,
+        mode: Mode? = nil,
+        responseType: AIResponse.ResponseType,
+        customPrompt: String? = nil,
+        smartMode: Bool = false
+    ) {
+        self.transcript = transcript
+        self.screenshot = screenshot
+        self.mode = mode
+        self.responseType = responseType
+        self.customPrompt = customPrompt
+        self.smartMode = smartMode
+    }
 
     var systemPrompt: String {
         var prompt = mode?.systemPrompt ?? Mode.defaultMode.systemPrompt
         prompt += "\n\n" + responseType.systemPromptAddition
+
+        // Smart Mode: Add enhanced reasoning instructions
+        if smartMode {
+            prompt += """
+
+
+SMART MODE ENABLED: Please provide enhanced, thorough analysis:
+- Think step-by-step before responding
+- Consider multiple perspectives and implications
+- Provide deeper insights and more nuanced recommendations
+- Be more comprehensive in your response
+"""
+        }
+
         return prompt
     }
 

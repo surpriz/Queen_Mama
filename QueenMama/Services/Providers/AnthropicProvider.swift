@@ -4,8 +4,13 @@ final class AnthropicProvider: BaseAIProvider, AIProvider {
     let providerType: AIProviderType = .anthropic
 
     private let baseURL = "https://api.anthropic.com/v1/messages"
-    private let model = "claude-sonnet-4-20250514"
+    private let standardModel = "claude-sonnet-4-20250514"
+    private let smartModel = "claude-opus-4-20250514"  // More powerful model for Smart Mode
     private let apiVersion = "2023-06-01"
+
+    private func getModel(for context: AIContext) -> String {
+        context.smartMode ? smartModel : standardModel
+    }
 
     var isConfigured: Bool {
         keychain.hasAPIKey(for: .anthropic)
@@ -126,8 +131,8 @@ final class AnthropicProvider: BaseAIProvider, AIProvider {
         }
 
         let requestDict: [String: Any] = [
-            "model": model,
-            "max_tokens": 2048,
+            "model": getModel(for: context),
+            "max_tokens": context.smartMode ? 4096 : 2048,  // More tokens for Smart Mode
             "system": context.systemPrompt,
             "messages": [
                 ["role": "user", "content": content]

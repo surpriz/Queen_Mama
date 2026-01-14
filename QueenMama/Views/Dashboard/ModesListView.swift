@@ -10,6 +10,7 @@ import SwiftData
 
 struct ModesListView: View {
     @Environment(\.modelContext) private var modelContext
+    @EnvironmentObject var appState: AppState
     @Query(sort: \Mode.createdAt) private var modes: [Mode]
 
     @State private var selectedMode: Mode?
@@ -22,10 +23,14 @@ struct ModesListView: View {
             ModernModesSidebar(
                 modes: modes,
                 selectedMode: $selectedMode,
+                activeMode: appState.selectedMode,
                 showingNewModeSheet: $showingNewModeSheet,
                 onSelect: { mode in
                     selectedMode = mode
                     isEditing = false
+                },
+                onActivate: { mode in
+                    appState.selectedMode = mode
                 },
                 onDelete: deleteMode,
                 onDuplicate: duplicateMode
@@ -36,8 +41,15 @@ struct ModesListView: View {
 
             // Mode Detail
             if let mode = selectedMode {
-                ModernModeDetailView(mode: mode, isEditing: $isEditing)
-                    .frame(maxWidth: .infinity)
+                ModernModeDetailView(
+                    mode: mode,
+                    isEditing: $isEditing,
+                    isActive: appState.selectedMode?.name == mode.name,
+                    onActivate: {
+                        appState.selectedMode = mode
+                    }
+                )
+                .frame(maxWidth: .infinity)
             } else {
                 ModernEmptyModeView()
                     .frame(maxWidth: .infinity)
@@ -52,6 +64,10 @@ struct ModesListView: View {
         }
         .onAppear {
             ensureDefaultModesExist()
+            // Set default mode if none selected
+            if appState.selectedMode == nil {
+                appState.selectedMode = .defaultMode
+            }
         }
     }
 
@@ -89,8 +105,10 @@ struct ModesListView: View {
 struct ModernModesSidebar: View {
     let modes: [Mode]
     @Binding var selectedMode: Mode?
+    let activeMode: Mode?
     @Binding var showingNewModeSheet: Bool
     let onSelect: (Mode) -> Void
+    let onActivate: (Mode) -> Void
     let onDelete: (Mode) -> Void
     let onDuplicate: (Mode) -> Void
 
@@ -146,22 +164,30 @@ struct ModernModesSidebar: View {
                         ModernModeRow(
                             mode: .defaultMode,
                             isSelected: selectedMode?.name == "Default",
-                            onSelect: { onSelect(.defaultMode) }
+                            isActive: activeMode?.name == "Default",
+                            onSelect: { onSelect(.defaultMode) },
+                            onActivate: { onActivate(.defaultMode) }
                         )
                         ModernModeRow(
                             mode: .professionalMode,
                             isSelected: selectedMode?.name == "Professional",
-                            onSelect: { onSelect(.professionalMode) }
+                            isActive: activeMode?.name == "Professional",
+                            onSelect: { onSelect(.professionalMode) },
+                            onActivate: { onActivate(.professionalMode) }
                         )
                         ModernModeRow(
                             mode: .interviewMode,
                             isSelected: selectedMode?.name == "Interview",
-                            onSelect: { onSelect(.interviewMode) }
+                            isActive: activeMode?.name == "Interview",
+                            onSelect: { onSelect(.interviewMode) },
+                            onActivate: { onActivate(.interviewMode) }
                         )
                         ModernModeRow(
                             mode: .salesMode,
                             isSelected: selectedMode?.name == "Sales",
-                            onSelect: { onSelect(.salesMode) }
+                            isActive: activeMode?.name == "Sales",
+                            onSelect: { onSelect(.salesMode) },
+                            onActivate: { onActivate(.salesMode) }
                         )
                     }
 
@@ -173,8 +199,10 @@ struct ModernModesSidebar: View {
                                 ModernModeRow(
                                     mode: mode,
                                     isSelected: selectedMode?.id == mode.id,
+                                    isActive: activeMode?.id == mode.id,
                                     isCustom: true,
                                     onSelect: { onSelect(mode) },
+                                    onActivate: { onActivate(mode) },
                                     onEdit: { onSelect(mode) },
                                     onDuplicate: { onDuplicate(mode) },
                                     onDelete: { onDelete(mode) }
@@ -214,8 +242,10 @@ struct ModernModeSection<Content: View>: View {
 struct ModernModeRow: View {
     let mode: Mode
     let isSelected: Bool
+    var isActive: Bool = false
     var isCustom: Bool = false
     let onSelect: () -> Void
+    var onActivate: (() -> Void)? = nil
     var onEdit: (() -> Void)? = nil
     var onDuplicate: (() -> Void)? = nil
     var onDelete: (() -> Void)? = nil
@@ -225,9 +255,13 @@ struct ModernModeRow: View {
     var body: some View {
         Button(action: onSelect) {
             HStack(spacing: QMDesign.Spacing.sm) {
-                // Icon with gradient when selected
+                // Icon with gradient when selected or active
                 ZStack {
-                    if isSelected {
+                    if isActive {
+                        Circle()
+                            .fill(QMDesign.Colors.success)
+                            .frame(width: 32, height: 32)
+                    } else if isSelected {
                         Circle()
                             .fill(QMDesign.Colors.primaryGradient)
                             .frame(width: 32, height: 32)
@@ -238,8 +272,8 @@ struct ModernModeRow: View {
                     }
 
                     Image(systemName: iconForMode(mode.name))
-                        .font(.system(size: 14, weight: isSelected ? .semibold : .regular))
-                        .foregroundColor(isSelected ? .white : QMDesign.Colors.textSecondary)
+                        .font(.system(size: 14, weight: (isSelected || isActive) ? .semibold : .regular))
+                        .foregroundColor((isSelected || isActive) ? .white : QMDesign.Colors.textSecondary)
                 }
 
                 // Labels
@@ -250,15 +284,16 @@ struct ModernModeRow: View {
                             .fontWeight(isSelected ? .semibold : .regular)
                             .foregroundColor(isSelected ? QMDesign.Colors.textPrimary : QMDesign.Colors.textSecondary)
 
-                        if mode.isDefault {
-                            Text("Default")
+                        // Active badge (replaces Default badge)
+                        if isActive {
+                            Text("Active")
                                 .font(QMDesign.Typography.captionSmall)
                                 .foregroundColor(.white)
                                 .padding(.horizontal, 6)
                                 .padding(.vertical, 2)
                                 .background(
                                     Capsule()
-                                        .fill(QMDesign.Colors.primaryGradient)
+                                        .fill(QMDesign.Colors.success)
                                 )
                         }
                     }
@@ -283,15 +318,17 @@ struct ModernModeRow: View {
             .background(
                 RoundedRectangle(cornerRadius: QMDesign.Radius.md)
                     .fill(
-                        isSelected
-                            ? QMDesign.Colors.accent.opacity(0.1)
-                            : (isHovered ? QMDesign.Colors.surfaceHover : Color.clear)
+                        isActive
+                            ? QMDesign.Colors.success.opacity(0.1)
+                            : (isSelected
+                                ? QMDesign.Colors.accent.opacity(0.1)
+                                : (isHovered ? QMDesign.Colors.surfaceHover : Color.clear))
                     )
             )
             .overlay(
                 RoundedRectangle(cornerRadius: QMDesign.Radius.md)
                     .stroke(
-                        isSelected ? QMDesign.Colors.accent.opacity(0.3) : Color.clear,
+                        isActive ? QMDesign.Colors.success.opacity(0.3) : (isSelected ? QMDesign.Colors.accent.opacity(0.3) : Color.clear),
                         lineWidth: 1
                     )
             )
@@ -300,7 +337,12 @@ struct ModernModeRow: View {
         .onHover { isHovered = $0 }
         .animation(QMDesign.Animation.quick, value: isHovered)
         .animation(QMDesign.Animation.quick, value: isSelected)
+        .animation(QMDesign.Animation.quick, value: isActive)
         .contextMenu {
+            if let onActivate = onActivate, !isActive {
+                Button("Set as Active") { onActivate() }
+                Divider()
+            }
             if isCustom {
                 if let onEdit = onEdit {
                     Button("Edit") { onEdit() }
@@ -332,6 +374,8 @@ struct ModernModeRow: View {
 struct ModernModeDetailView: View {
     let mode: Mode
     @Binding var isEditing: Bool
+    var isActive: Bool = false
+    var onActivate: (() -> Void)? = nil
 
     @State private var editedName: String = ""
     @State private var editedPrompt: String = ""
@@ -344,7 +388,9 @@ struct ModernModeDetailView: View {
                     mode: mode,
                     isEditing: $isEditing,
                     editedName: $editedName,
-                    onSave: saveChanges
+                    isActive: isActive,
+                    onSave: saveChanges,
+                    onActivate: onActivate
                 )
 
                 // System Prompt Card
@@ -388,15 +434,23 @@ struct ModernModeDetailHeader: View {
     let mode: Mode
     @Binding var isEditing: Bool
     @Binding var editedName: String
+    var isActive: Bool = false
     let onSave: () -> Void
+    var onActivate: (() -> Void)? = nil
 
     var body: some View {
         HStack(spacing: QMDesign.Spacing.md) {
             // Icon
             ZStack {
-                Circle()
-                    .fill(QMDesign.Colors.primaryGradient)
-                    .frame(width: 48, height: 48)
+                if isActive {
+                    Circle()
+                        .fill(QMDesign.Colors.success)
+                        .frame(width: 48, height: 48)
+                } else {
+                    Circle()
+                        .fill(QMDesign.Colors.primaryGradient)
+                        .frame(width: 48, height: 48)
+                }
                 Image(systemName: iconForMode(mode.name))
                     .font(.system(size: 22, weight: .semibold))
                     .foregroundColor(.white)
@@ -404,19 +458,33 @@ struct ModernModeDetailHeader: View {
 
             // Title
             VStack(alignment: .leading, spacing: 4) {
-                if isEditing {
-                    TextField("Mode Name", text: $editedName)
-                        .font(QMDesign.Typography.titleMedium)
-                        .textFieldStyle(.plain)
-                        .padding(QMDesign.Spacing.sm)
-                        .background(
-                            RoundedRectangle(cornerRadius: QMDesign.Radius.md)
-                                .fill(QMDesign.Colors.surfaceLight)
-                        )
-                } else {
-                    Text(mode.name)
-                        .font(QMDesign.Typography.titleMedium)
-                        .foregroundStyle(QMDesign.Colors.primaryGradient)
+                HStack(spacing: QMDesign.Spacing.sm) {
+                    if isEditing {
+                        TextField("Mode Name", text: $editedName)
+                            .font(QMDesign.Typography.titleMedium)
+                            .textFieldStyle(.plain)
+                            .padding(QMDesign.Spacing.sm)
+                            .background(
+                                RoundedRectangle(cornerRadius: QMDesign.Radius.md)
+                                    .fill(QMDesign.Colors.surfaceLight)
+                            )
+                    } else {
+                        Text(mode.name)
+                            .font(QMDesign.Typography.titleMedium)
+                            .foregroundStyle(isActive ? AnyShapeStyle(QMDesign.Colors.success) : AnyShapeStyle(QMDesign.Colors.primaryGradient))
+                    }
+
+                    if isActive {
+                        Text("Active")
+                            .font(QMDesign.Typography.captionSmall)
+                            .foregroundColor(.white)
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 3)
+                            .background(
+                                Capsule()
+                                    .fill(QMDesign.Colors.success)
+                            )
+                    }
                 }
 
                 Text(mode.isDefault ? "Built-in mode" : "Custom mode")
@@ -425,6 +493,26 @@ struct ModernModeDetailHeader: View {
             }
 
             Spacer()
+
+            // Activate Button
+            if !isActive, let onActivate = onActivate {
+                Button(action: onActivate) {
+                    HStack(spacing: QMDesign.Spacing.xs) {
+                        Image(systemName: "bolt.fill")
+                            .font(.system(size: 12, weight: .semibold))
+                        Text("Activate")
+                            .font(QMDesign.Typography.labelSmall)
+                    }
+                    .foregroundColor(.white)
+                    .padding(.horizontal, QMDesign.Spacing.md)
+                    .padding(.vertical, QMDesign.Spacing.sm)
+                    .background(
+                        Capsule()
+                            .fill(QMDesign.Colors.success)
+                    )
+                }
+                .buttonStyle(.plain)
+            }
 
             // Edit/Save Button
             if !mode.isDefault {

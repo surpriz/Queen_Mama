@@ -1,5 +1,6 @@
 import AppKit
 import SwiftUI
+import Combine
 
 // MARK: - Overlay Panel
 
@@ -37,8 +38,8 @@ class OverlayPanel: NSPanel {
         isMovableByWindowBackground = true
         acceptsMouseMovedEvents = true
 
-        // Undetectability - hidden from screen capture
-        sharingType = .none
+        // Undetectability - apply based on setting
+        updateUndetectability(ConfigurationManager.shared.isUndetectabilityEnabled)
 
         // Don't show in mission control or expose
         collectionBehavior.insert(.stationary)
@@ -50,6 +51,12 @@ class OverlayPanel: NSPanel {
             let y = screenFrame.maxY - frame.height - 100
             setFrameOrigin(NSPoint(x: x, y: y))
         }
+    }
+
+    /// Update the sharing type based on undetectability setting
+    /// - Parameter enabled: If true, widget is hidden from screen capture/sharing
+    func updateUndetectability(_ enabled: Bool) {
+        sharingType = enabled ? .none : .readOnly
     }
 
     // Allow dragging
@@ -74,9 +81,20 @@ class OverlayWindowController: NSObject, ObservableObject {
 
     private var panel: OverlayPanel?
     private var hostingView: NSHostingView<OverlayContentView>?
+    private var configObserver: AnyCancellable?
 
     private override init() {
         super.init()
+        setupConfigObserver()
+    }
+
+    private func setupConfigObserver() {
+        // Observe undetectability setting changes
+        configObserver = ConfigurationManager.shared.$isUndetectabilityEnabled
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] enabled in
+                self?.panel?.updateUndetectability(enabled)
+            }
     }
 
     func showOverlay(appState: AppState, sessionManager: SessionManager) {

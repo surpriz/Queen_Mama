@@ -13,15 +13,23 @@ struct OverlayContentView: View {
     @ObservedObject var appState: AppState
     @ObservedObject var sessionManager: SessionManager
     @ObservedObject var overlayController: OverlayWindowController
+    @ObservedObject private var config = ConfigurationManager.shared
 
     @State private var inputText = ""
     @State private var selectedTab: TabItem = .assist
-    @State private var isSmartModeEnabled = false
     @State private var lastScreenshotTime: Date?
     @State private var hasScreenshot = false
     @State private var showPopupMenu = false
     @State private var isAutoAnswerEnabled = false
     @AppStorage("enableScreenCapture") private var enableScreenCapture = true
+
+    // Computed binding to sync Smart Mode with ConfigurationManager
+    private var isSmartModeEnabled: Binding<Bool> {
+        Binding(
+            get: { config.smartModeEnabled },
+            set: { config.smartModeEnabled = $0 }
+        )
+    }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -31,6 +39,7 @@ struct OverlayContentView: View {
                 isSessionActive: appState.isSessionActive,
                 enableScreenCapture: $enableScreenCapture,
                 isAutoAnswerEnabled: $isAutoAnswerEnabled,
+                isSmartModeEnabled: isSmartModeEnabled,
                 showPopupMenu: $showPopupMenu,
                 onToggleExpand: { overlayController.toggleExpanded() },
                 onStop: { Task { await appState.stopSession() } }
@@ -43,7 +52,7 @@ struct OverlayContentView: View {
                     aiService: appState.aiService,
                     selectedTab: $selectedTab,
                     inputText: $inputText,
-                    isSmartModeEnabled: $isSmartModeEnabled,
+                    isSmartModeEnabled: isSmartModeEnabled,
                     hasScreenshot: hasScreenshot,
                     lastScreenshotTime: lastScreenshotTime,
                     enableScreenCapture: enableScreenCapture,
@@ -68,8 +77,9 @@ struct OverlayContentView: View {
             if showPopupMenu {
                 OverlayPopupMenu(
                     isAutoAnswerEnabled: $isAutoAnswerEnabled,
-                    isSmartModeEnabled: $isSmartModeEnabled,
+                    isSmartModeEnabled: isSmartModeEnabled,
                     enableScreenCapture: $enableScreenCapture,
+                    selectedMode: $appState.selectedMode,
                     isVisible: $showPopupMenu,
                     onClearContext: { appState.clearContext() },
                     onMovePosition: { position in overlayController.moveToPosition(position) }
@@ -169,6 +179,31 @@ enum TabItem: String, CaseIterable {
     }
 }
 
+// MARK: - Status Badge
+
+struct StatusBadge: View {
+    let icon: String
+    let label: String
+    let color: Color
+    let isActive: Bool
+
+    var body: some View {
+        HStack(spacing: 3) {
+            Image(systemName: icon)
+                .font(.system(size: 9, weight: .semibold))
+            Text(label)
+                .font(.system(size: 9, weight: .medium))
+        }
+        .padding(.horizontal, 6)
+        .padding(.vertical, 3)
+        .background(
+            Capsule()
+                .fill(color.opacity(0.2))
+        )
+        .foregroundColor(color)
+    }
+}
+
 // MARK: - Modern Pill Header View
 
 struct ModernPillHeaderView: View {
@@ -176,6 +211,7 @@ struct ModernPillHeaderView: View {
     let isSessionActive: Bool
     @Binding var enableScreenCapture: Bool
     @Binding var isAutoAnswerEnabled: Bool
+    @Binding var isSmartModeEnabled: Bool
     @Binding var showPopupMenu: Bool
     let onToggleExpand: () -> Void
     let onStop: () -> Void
@@ -184,6 +220,9 @@ struct ModernPillHeaderView: View {
     @State private var isHoveringMore = false
     @State private var isHoveringDashboard = false
     @Environment(\.openWindow) private var openWindow
+
+    // Observe ConfigurationManager for undetectability
+    @ObservedObject private var config = ConfigurationManager.shared
 
     var body: some View {
         HStack(spacing: QMDesign.Spacing.xs) {
@@ -233,6 +272,31 @@ struct ModernPillHeaderView: View {
             .animation(QMDesign.Animation.quick, value: isHoveringExpand)
 
             Spacer()
+
+            // Status Indicators
+            HStack(spacing: 4) {
+                // Undetectability Mode Indicator
+                if config.isUndetectabilityEnabled {
+                    StatusBadge(
+                        icon: "eye.slash.fill",
+                        label: "Hidden",
+                        color: QMDesign.Colors.success,
+                        isActive: true
+                    )
+                    .help("Undetectable Mode: Widget hidden from screen capture")
+                }
+
+                // Smart Mode Indicator
+                if isSmartModeEnabled {
+                    StatusBadge(
+                        icon: "brain.head.profile",
+                        label: "Smart",
+                        color: QMDesign.Colors.accent,
+                        isActive: true
+                    )
+                    .help("Smart Mode: Using enhanced AI reasoning")
+                }
+            }
 
             // Auto-Answer Toggle
             Button(action: { isAutoAnswerEnabled.toggle() }) {

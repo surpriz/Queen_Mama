@@ -35,16 +35,32 @@ struct OverlayPopupMenu: View {
     @Binding var isAutoAnswerEnabled: Bool
     @Binding var isSmartModeEnabled: Bool
     @Binding var enableScreenCapture: Bool
+    @Binding var selectedMode: Mode?
     @Binding var isVisible: Bool
 
     let onClearContext: () -> Void
     let onMovePosition: (OverlayPosition) -> Void
 
     @State private var showPositionSubmenu = false
+    @State private var showModeSubmenu = false
     @State private var hoveredItem: String?
 
     var body: some View {
         VStack(spacing: 0) {
+            // Mode Selector (at the top for prominence)
+            ModeMenuItem(
+                selectedMode: $selectedMode,
+                isExpanded: $showModeSubmenu,
+                isHovered: hoveredItem == "mode",
+                onSelect: { mode in
+                    selectedMode = mode
+                    showModeSubmenu = false
+                }
+            )
+            .onHover { if $0 { hoveredItem = "mode" } }
+
+            MenuDivider()
+
             // Toggle Items
             MenuToggleItem(
                 title: "Auto-Answer",
@@ -136,6 +152,134 @@ struct OverlayPopupMenu: View {
             if !isHovering {
                 hoveredItem = nil
             }
+        }
+    }
+}
+
+// MARK: - Mode Menu Item
+
+struct ModeMenuItem: View {
+    @Binding var selectedMode: Mode?
+    @Binding var isExpanded: Bool
+    let isHovered: Bool
+    let onSelect: (Mode) -> Void
+
+    private let builtInModes: [Mode] = [.defaultMode, .professionalMode, .interviewMode, .salesMode]
+
+    var body: some View {
+        VStack(spacing: 0) {
+            // Main row showing current mode
+            Button(action: { withAnimation(QMDesign.Animation.quick) { isExpanded.toggle() } }) {
+                HStack(spacing: QMDesign.Spacing.sm) {
+                    // Icon
+                    Image(systemName: QMDesign.Icons.modes)
+                        .font(.system(size: 13))
+                        .foregroundStyle(QMDesign.Colors.primaryGradient)
+                        .frame(width: 20)
+
+                    // Title and current mode
+                    VStack(alignment: .leading, spacing: 1) {
+                        Text("Mode")
+                            .font(QMDesign.Typography.captionSmall)
+                            .foregroundColor(QMDesign.Colors.textTertiary)
+                        Text(selectedMode?.name ?? "Default")
+                            .font(QMDesign.Typography.bodySmall)
+                            .foregroundColor(QMDesign.Colors.textPrimary)
+                    }
+
+                    Spacer()
+
+                    // Expand chevron
+                    Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
+                        .font(.system(size: 10, weight: .semibold))
+                        .foregroundColor(QMDesign.Colors.textTertiary)
+                }
+                .padding(.horizontal, QMDesign.Spacing.sm)
+                .padding(.vertical, QMDesign.Spacing.xs)
+                .background(
+                    RoundedRectangle(cornerRadius: QMDesign.Radius.sm)
+                        .fill(isHovered || isExpanded ? QMDesign.Colors.surfaceHover : Color.clear)
+                )
+            }
+            .buttonStyle(.plain)
+
+            // Submenu with mode options
+            if isExpanded {
+                VStack(spacing: 2) {
+                    ForEach(builtInModes, id: \.name) { mode in
+                        ModeOptionButton(
+                            mode: mode,
+                            isSelected: selectedMode?.name == mode.name,
+                            onSelect: { onSelect(mode) }
+                        )
+                    }
+                }
+                .padding(QMDesign.Spacing.xs)
+                .background(
+                    RoundedRectangle(cornerRadius: QMDesign.Radius.sm)
+                        .fill(QMDesign.Colors.surfaceLight)
+                )
+                .padding(.horizontal, QMDesign.Spacing.xs)
+                .padding(.top, QMDesign.Spacing.xxs)
+            }
+        }
+    }
+}
+
+// MARK: - Mode Option Button
+
+struct ModeOptionButton: View {
+    let mode: Mode
+    let isSelected: Bool
+    let onSelect: () -> Void
+
+    @State private var isHovered = false
+
+    var body: some View {
+        Button(action: onSelect) {
+            HStack(spacing: QMDesign.Spacing.sm) {
+                // Icon
+                Image(systemName: iconForMode(mode.name))
+                    .font(.system(size: 12))
+                    .foregroundColor(isSelected ? .white : QMDesign.Colors.textSecondary)
+                    .frame(width: 24, height: 24)
+                    .background(
+                        Circle()
+                            .fill(isSelected ? QMDesign.Colors.success : QMDesign.Colors.surfaceMedium)
+                    )
+
+                // Name
+                Text(mode.name)
+                    .font(QMDesign.Typography.bodySmall)
+                    .foregroundColor(isSelected ? QMDesign.Colors.textPrimary : QMDesign.Colors.textSecondary)
+
+                Spacer()
+
+                // Checkmark
+                if isSelected {
+                    Image(systemName: "checkmark")
+                        .font(.system(size: 10, weight: .bold))
+                        .foregroundColor(QMDesign.Colors.success)
+                }
+            }
+            .padding(.horizontal, QMDesign.Spacing.sm)
+            .padding(.vertical, QMDesign.Spacing.xs)
+            .background(
+                RoundedRectangle(cornerRadius: QMDesign.Radius.sm)
+                    .fill(isSelected ? QMDesign.Colors.success.opacity(0.15) : (isHovered ? QMDesign.Colors.surfaceHover : Color.clear))
+            )
+        }
+        .buttonStyle(.plain)
+        .onHover { isHovered = $0 }
+    }
+
+    private func iconForMode(_ name: String) -> String {
+        switch name.lowercased() {
+        case "default": return "sparkles"
+        case "professional": return "briefcase"
+        case "interview": return "person.fill.questionmark"
+        case "sales": return "chart.line.uptrend.xyaxis"
+        default: return "person.crop.circle"
         }
     }
 }
@@ -363,6 +507,7 @@ struct MenuDivider: View {
             isAutoAnswerEnabled: .constant(true),
             isSmartModeEnabled: .constant(false),
             enableScreenCapture: .constant(true),
+            selectedMode: .constant(nil),
             isVisible: .constant(true),
             onClearContext: {},
             onMovePosition: { _ in }

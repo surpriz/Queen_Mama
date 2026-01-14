@@ -77,7 +77,8 @@ final class AIService: ObservableObject {
         screenshot: Data? = nil,
         mode: Mode? = nil,
         type: AIResponse.ResponseType,
-        customPrompt: String? = nil
+        customPrompt: String? = nil,
+        smartMode: Bool? = nil
     ) async throws -> AIResponse {
         isProcessing = true
         currentResponse = ""
@@ -90,7 +91,8 @@ final class AIService: ObservableObject {
             screenshot: screenshot,
             mode: mode,
             responseType: type,
-            customPrompt: customPrompt
+            customPrompt: customPrompt,
+            smartMode: smartMode ?? ConfigurationManager.shared.smartModeEnabled
         )
 
         // Try each configured provider in order
@@ -117,11 +119,14 @@ final class AIService: ObservableObject {
         screenshot: Data? = nil,
         mode: Mode? = nil,
         type: AIResponse.ResponseType,
-        customPrompt: String? = nil
+        customPrompt: String? = nil,
+        smartMode: Bool? = nil
     ) -> AsyncThrowingStream<String, Error> {
         AsyncThrowingStream { continuation in
             Task { @MainActor in
+                let isSmartMode = smartMode ?? ConfigurationManager.shared.smartModeEnabled
                 print("[AIService] Starting streaming response for type: \(type.rawValue)")
+                print("[AIService] Smart Mode: \(isSmartMode)")
                 print("[AIService] Configured providers: \(self.configuredProviders.map { $0.providerType.displayName })")
                 print("[AIService] Transcript length: \(transcript.count) chars")
 
@@ -134,7 +139,8 @@ final class AIService: ObservableObject {
                     screenshot: screenshot,
                     mode: mode,
                     responseType: type,
-                    customPrompt: customPrompt
+                    customPrompt: customPrompt,
+                    smartMode: isSmartMode
                 )
 
                 var succeeded = false

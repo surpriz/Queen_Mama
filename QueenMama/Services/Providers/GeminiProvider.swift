@@ -4,7 +4,12 @@ final class GeminiProvider: BaseAIProvider, AIProvider {
     let providerType: AIProviderType = .gemini
 
     private let baseURL = "https://generativelanguage.googleapis.com/v1beta/models"
-    private let model = "gemini-2.0-flash"
+    private let standardModel = "gemini-2.0-flash"
+    private let smartModel = "gemini-2.0-flash-thinking-exp"  // Experimental thinking model for Smart Mode
+
+    private func getModel(for context: AIContext) -> String {
+        context.smartMode ? smartModel : standardModel
+    }
 
     var isConfigured: Bool {
         keychain.hasAPIKey(for: .gemini)
@@ -18,7 +23,7 @@ final class GeminiProvider: BaseAIProvider, AIProvider {
         let startTime = Date()
 
         let requestBody = try buildRequestBody(context: context)
-        let url = URL(string: "\(baseURL)/\(model):generateContent?key=\(apiKey)")!
+        let url = URL(string: "\(baseURL)/\(getModel(for: context)):generateContent?key=\(apiKey)")!
 
         let data = try await makeRequest(
             url: url,
@@ -54,7 +59,7 @@ final class GeminiProvider: BaseAIProvider, AIProvider {
 
                 do {
                     let requestBody = try self.buildRequestBody(context: context)
-                    let url = URL(string: "\(self.baseURL)/\(self.model):streamGenerateContent?key=\(apiKey)&alt=sse")!
+                    let url = URL(string: "\(self.baseURL)/\(self.getModel(for: context)):streamGenerateContent?key=\(apiKey)&alt=sse")!
 
                     let request = self.createStreamingRequest(
                         url: url,
@@ -116,8 +121,8 @@ final class GeminiProvider: BaseAIProvider, AIProvider {
                 ["parts": parts]
             ],
             "generationConfig": [
-                "maxOutputTokens": 2048,
-                "temperature": 0.7
+                "maxOutputTokens": context.smartMode ? 4096 : 2048,  // More tokens for Smart Mode
+                "temperature": context.smartMode ? 0.5 : 0.7  // More deterministic for Smart Mode
             ],
             "safetySettings": [
                 ["category": "HARM_CATEGORY_HARASSMENT", "threshold": "BLOCK_NONE"],

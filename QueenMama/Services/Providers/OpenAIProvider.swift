@@ -4,7 +4,12 @@ final class OpenAIProvider: BaseAIProvider, AIProvider {
     let providerType: AIProviderType = .openai
 
     private let baseURL = "https://api.openai.com/v1/chat/completions"
-    private let model = "gpt-4o"
+    private let standardModel = "gpt-4o-mini"
+    private let smartModel = "gpt-4o"  // More powerful model for Smart Mode
+
+    private func getModel(for context: AIContext) -> String {
+        context.smartMode ? smartModel : standardModel
+    }
 
     var isConfigured: Bool {
         keychain.hasAPIKey(for: .openai)
@@ -137,10 +142,10 @@ final class OpenAIProvider: BaseAIProvider, AIProvider {
         }
 
         let requestDict: [String: Any] = [
-            "model": model,
+            "model": getModel(for: context),
             "messages": messages,
-            "max_tokens": 2048,
-            "temperature": 0.7,
+            "max_tokens": context.smartMode ? 4096 : 2048,  // More tokens for Smart Mode
+            "temperature": context.smartMode ? 0.5 : 0.7,  // Slightly more deterministic for Smart Mode
             "stream": stream
         ]
 
