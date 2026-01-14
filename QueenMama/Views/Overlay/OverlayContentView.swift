@@ -193,9 +193,10 @@ struct ExpandedContentView: View {
                 onSubmit()
             }
 
-            // Response Area
-            ResponseAreaView(
-                response: aiService.currentResponse,
+            // Response Area - showing history of all responses
+            ResponseHistoryView(
+                responses: aiService.responses,
+                currentResponse: aiService.currentResponse,
                 isProcessing: aiService.isProcessing,
                 hasScreenshot: hasScreenshot,
                 lastScreenshotTime: lastScreenshotTime
@@ -274,7 +275,183 @@ struct TabButton: View {
     }
 }
 
-// MARK: - Response Area View
+// MARK: - Response History View
+
+struct ResponseHistoryView: View {
+    let responses: [AIResponse]
+    let currentResponse: String
+    let isProcessing: Bool
+    let hasScreenshot: Bool
+    let lastScreenshotTime: Date?
+
+    @State private var scrollProxy: ScrollViewProxy?
+
+    var body: some View {
+        VStack(spacing: 0) {
+            // Screenshot indicator
+            if hasScreenshot, let time = lastScreenshotTime {
+                HStack(spacing: 6) {
+                    Image(systemName: "camera.fill")
+                        .font(.system(size: 11))
+                        .foregroundColor(.green)
+                    Text("Screen captured and analyzed")
+                        .font(.system(size: 11))
+                        .foregroundColor(.green)
+                    Spacer()
+                    Text(timeAgoString(from: time))
+                        .font(.system(size: 10))
+                        .foregroundColor(.secondary)
+                }
+                .padding(.horizontal, 12)
+                .padding(.vertical, 6)
+                .background(Color.green.opacity(0.1))
+            }
+
+            ScrollViewReader { proxy in
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 16) {
+                        // Show processing state
+                        if isProcessing && currentResponse.isEmpty {
+                            HStack(spacing: 8) {
+                                ProgressView()
+                                    .scaleEffect(0.8)
+                                Text("Analyzing...")
+                                    .font(.system(size: 13))
+                                    .foregroundColor(.secondary)
+                            }
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .id("processing")
+                        }
+
+                        // Show current streaming response
+                        if !currentResponse.isEmpty && isProcessing {
+                            ResponseItemView(
+                                type: responses.first?.type ?? .assist,
+                                content: currentResponse,
+                                timestamp: Date(),
+                                provider: responses.first?.provider ?? .openai,
+                                isStreaming: true
+                            )
+                            .id("current")
+                        }
+
+                        // Show history of completed responses (most recent first)
+                        ForEach(responses) { response in
+                            ResponseItemView(
+                                type: response.type,
+                                content: response.content,
+                                timestamp: response.timestamp,
+                                provider: response.provider,
+                                isStreaming: false
+                            )
+                            .id(response.id)
+                        }
+
+                        // Empty state
+                        if responses.isEmpty && !isProcessing {
+                            Text("Ask about your screen or conversation, or press Cmd+Enter for Assist")
+                                .font(.system(size: 13))
+                                .foregroundColor(.secondary)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                        }
+                    }
+                    .padding(12)
+                }
+                .onAppear {
+                    scrollProxy = proxy
+                }
+                .onChange(of: responses.count) { _ in
+                    // Auto-scroll to top when new response arrives
+                    if let firstResponse = responses.first {
+                        withAnimation {
+                            proxy.scrollTo(firstResponse.id, anchor: .top)
+                        }
+                    }
+                }
+                .onChange(of: currentResponse) { _ in
+                    // Auto-scroll during streaming
+                    if isProcessing {
+                        withAnimation {
+                            proxy.scrollTo("current", anchor: .top)
+                        }
+                    }
+                }
+            }
+        }
+        .frame(maxWidth: .infinity, minHeight: 120, maxHeight: 200)
+        .background(Color.gray.opacity(0.1))
+        .clipShape(RoundedRectangle(cornerRadius: 8))
+    }
+
+    private func timeAgoString(from date: Date) -> String {
+        let seconds = Int(Date().timeIntervalSince(date))
+        if seconds < 5 {
+            return "now"
+        } else if seconds < 60 {
+            return "\(seconds)s ago"
+        } else {
+            return "\(seconds / 60)m ago"
+        }
+    }
+}
+
+// MARK: - Response Item View
+
+struct ResponseItemView: View {
+    let type: AIResponse.ResponseType
+    let content: String
+    let timestamp: Date
+    let provider: AIProviderType
+    let isStreaming: Bool
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            // Header with type, provider, and timestamp
+            HStack(spacing: 8) {
+                Image(systemName: type.icon)
+                    .font(.system(size: 11))
+                    .foregroundColor(.blue)
+
+                Text(type.rawValue)
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundColor(.blue)
+
+                Spacer()
+
+                Image(systemName: provider.icon)
+                    .font(.system(size: 10))
+                    .foregroundColor(.secondary)
+
+                Text(formatTimestamp(timestamp))
+                    .font(.system(size: 10))
+                    .foregroundColor(.secondary)
+
+                if isStreaming {
+                    ProgressView()
+                        .scaleEffect(0.6)
+                }
+            }
+
+            // Content
+            Text(content)
+                .font(.system(size: 13))
+                .foregroundColor(.primary)
+                .textSelection(.enabled)
+                .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .padding(10)
+        .background(Color.white.opacity(0.05))
+        .clipShape(RoundedRectangle(cornerRadius: 6))
+    }
+
+    private func formatTimestamp(_ date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "HH:mm:ss"
+        return formatter.string(from: date)
+    }
+}
+
+// MARK: - Response Area View (Legacy - kept for reference)
 
 struct ResponseAreaView: View {
     let response: String

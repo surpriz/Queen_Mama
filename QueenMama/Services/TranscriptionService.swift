@@ -48,7 +48,7 @@ final class TranscriptionService: ObservableObject {
     // Deepgram configuration
     private let baseURL = "wss://api.deepgram.com/v1/listen"
     private let model = "nova-3"
-    private let language = "fr"  // French for user's language
+    private let language = "multi"  // Multi-language auto-detection (supports French, English, etc.)
 
     // MARK: - Initialization
 
