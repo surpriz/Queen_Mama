@@ -1,9 +1,11 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useSession } from "next-auth/react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Container, GradientButton } from "@/components/ui";
+import { Container, GradientButton, Avatar } from "@/components/ui";
 import { cn } from "@/lib/utils";
+import Link from "next/link";
 
 const navLinks = [
   { href: "#features", label: "Features" },
@@ -13,6 +15,7 @@ const navLinks = [
 ];
 
 export function Navbar() {
+  const { data: session, status } = useSession();
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
@@ -23,6 +26,8 @@ export function Navbar() {
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
+
+  const isAuthenticated = status === "authenticated" && session?.user;
 
   return (
     <motion.header
@@ -39,7 +44,7 @@ export function Navbar() {
       <Container>
         <nav className="flex items-center justify-between h-16 md:h-20">
           {/* Logo */}
-          <a href="/" className="flex items-center gap-2 group">
+          <Link href="/" className="flex items-center gap-2 group">
             <div className="w-8 h-8 rounded-full gradient-bg flex items-center justify-center shadow-[var(--qm-shadow-glow)]">
               <svg
                 className="w-4 h-4 text-white"
@@ -58,7 +63,7 @@ export function Navbar() {
             <span className="text-xl font-bold gradient-text group-hover:opacity-80 transition-opacity">
               Queen Mama
             </span>
-          </a>
+          </Link>
 
           {/* Desktop Navigation */}
           <div className="hidden md:flex items-center gap-8">
@@ -75,15 +80,36 @@ export function Navbar() {
 
           {/* CTA Buttons */}
           <div className="hidden md:flex items-center gap-3">
-            <a
-              href="/signin"
-              className="text-[var(--qm-text-secondary)] hover:text-white transition-colors text-sm font-medium px-3 py-2"
-            >
-              Sign In
-            </a>
-            <GradientButton size="sm" variant="secondary">
-              Sign Up
-            </GradientButton>
+            {isAuthenticated ? (
+              <>
+                <Link href="/dashboard">
+                  <GradientButton size="sm" variant="secondary">
+                    Dashboard
+                  </GradientButton>
+                </Link>
+                <Link href="/dashboard" className="flex items-center gap-2">
+                  <Avatar
+                    src={session.user.image}
+                    fallback={session.user.name || session.user.email || "U"}
+                    size="sm"
+                  />
+                </Link>
+              </>
+            ) : (
+              <>
+                <Link
+                  href="/signin"
+                  className="text-[var(--qm-text-secondary)] hover:text-white transition-colors text-sm font-medium px-3 py-2"
+                >
+                  Sign In
+                </Link>
+                <Link href="/signup">
+                  <GradientButton size="sm" variant="secondary">
+                    Sign Up
+                  </GradientButton>
+                </Link>
+              </>
+            )}
             <GradientButton size="sm">
               <svg
                 className="w-4 h-4"
@@ -156,17 +182,30 @@ export function Navbar() {
                   </a>
                 ))}
                 <div className="pt-4 border-t border-[var(--qm-border-subtle)] space-y-3">
-                  <div className="grid grid-cols-2 gap-3">
-                    <a
-                      href="/signin"
-                      className="flex items-center justify-center px-4 py-2.5 rounded-full text-sm font-medium text-[var(--qm-text-secondary)] hover:text-white bg-[var(--qm-surface-medium)] hover:bg-[var(--qm-surface-hover)] transition-colors"
-                    >
-                      Sign In
-                    </a>
-                    <GradientButton size="sm" variant="secondary" className="w-full">
-                      Sign Up
-                    </GradientButton>
-                  </div>
+                  {isAuthenticated ? (
+                    <Link href="/dashboard" onClick={() => setIsMobileMenuOpen(false)}>
+                      <GradientButton className="w-full" size="md">
+                        Go to Dashboard
+                      </GradientButton>
+                    </Link>
+                  ) : (
+                    <>
+                      <div className="grid grid-cols-2 gap-3">
+                        <Link
+                          href="/signin"
+                          onClick={() => setIsMobileMenuOpen(false)}
+                          className="flex items-center justify-center px-4 py-2.5 rounded-full text-sm font-medium text-[var(--qm-text-secondary)] hover:text-white bg-[var(--qm-surface-medium)] hover:bg-[var(--qm-surface-hover)] transition-colors"
+                        >
+                          Sign In
+                        </Link>
+                        <Link href="/signup" onClick={() => setIsMobileMenuOpen(false)}>
+                          <GradientButton size="sm" variant="secondary" className="w-full">
+                            Sign Up
+                          </GradientButton>
+                        </Link>
+                      </div>
+                    </>
+                  )}
                   <GradientButton className="w-full" size="md">
                     <svg
                       className="w-4 h-4"

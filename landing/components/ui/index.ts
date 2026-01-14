@@ -4,3 +4,7 @@ export { Badge } from "./Badge";
 export { KeyboardShortcut } from "./KeyboardShortcut";
 export { Container } from "./Container";
 export { BackToTop } from "./BackToTop";
+export { Input } from "./Input";
+export { Label } from "./Label";
+export { Avatar } from "./Avatar";
+export { Skeleton } from "./Skeleton";

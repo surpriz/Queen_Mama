@@ -1,0 +1,204 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================
+// AUTHENTICATION MODELS (NextAuth.js compatible)
+// ============================================
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String    @unique
+  emailVerified DateTime?
+  image         String?
+  password      String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  accounts       Account[]
+  sessions       Session[]
+  apiKeys        ApiKey[]
+  subscription   Subscription?
+  usageLogs      UsageLog[]
+  syncedSessions SyncedSession[]
+
+  stripeCustomerId String? @unique
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+// ============================================
+// API KEYS MANAGEMENT
+// ============================================
+
+model ApiKey {
+  id         String         @id @default(cuid())
+  userId     String
+  name       String
+  provider   ApiKeyProvider
+  keyHash    String
+  keyPrefix  String
+  createdAt  DateTime       @default(now())
+  updatedAt  DateTime       @updatedAt
+  lastUsedAt DateTime?
+  isActive   Boolean        @default(true)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, provider])
+}
+
+enum ApiKeyProvider {
+  OPENAI
+  ANTHROPIC
+  GEMINI
+  DEEPGRAM
+  GROK
+}
+
+// ============================================
+// SUBSCRIPTION & BILLING
+// ============================================
+
+model Subscription {
+  id                   String             @id @default(cuid())
+  userId               String             @unique
+  plan                 SubscriptionPlan   @default(FREE)
+  status               SubscriptionStatus @default(ACTIVE)
+  stripeSubscriptionId String?            @unique
+  stripePriceId        String?
+  currentPeriodStart   DateTime?
+  currentPeriodEnd     DateTime?
+  cancelAtPeriodEnd    Boolean            @default(false)
+  createdAt            DateTime           @default(now())
+  updatedAt            DateTime           @updatedAt
+
+  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  invoices Invoice[]
+}
+
+enum SubscriptionPlan {
+  FREE
+  PRO
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  CANCELED
+  PAST_DUE
+  TRIALING
+  INCOMPLETE
+}
+
+model Invoice {
+  id               String   @id @default(cuid())
+  subscriptionId   String
+  stripeInvoiceId  String   @unique
+  amountPaid       Int
+  currency         String   @default("usd")
+  status           String
+  invoicePdfUrl    String?
+  hostedInvoiceUrl String?
+  periodStart      DateTime
+  periodEnd        DateTime
+  createdAt        DateTime @default(now())
+
+  subscription Subscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+}
+
+// ============================================
+// SESSION ANALYTICS (Synced from macOS app)
+// ============================================
+
+model SyncedSession {
+  id          String    @id @default(cuid())
+  userId      String
+  deviceId    String
+  originalId  String
+  title       String
+  startTime   DateTime
+  endTime     DateTime?
+  duration    Int?
+  transcript  String?   @db.Text
+  summary     String?   @db.Text
+  actionItems Json?
+  modeUsed    String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  user        User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  aiResponses SyncedAIResponse[]
+
+  @@unique([userId, deviceId, originalId])
+}
+
+model SyncedAIResponse {
+  id              String   @id @default(cuid())
+  syncedSessionId String
+  originalId      String
+  type            String
+  content         String   @db.Text
+  provider        String
+  latencyMs       Int?
+  timestamp       DateTime
+
+  syncedSession SyncedSession @relation(fields: [syncedSessionId], references: [id], onDelete: Cascade)
+}
+
+// ============================================
+// USAGE TRACKING
+// ============================================
+
+model UsageLog {
+  id         String   @id @default(cuid())
+  userId     String
+  action     String
+  provider   String?
+  tokensUsed Int?
+  cost       Float?
+  metadata   Json?
+  createdAt  DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+}
