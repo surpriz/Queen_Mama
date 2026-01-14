@@ -56,7 +56,7 @@ struct OnboardingView: View {
                 .animation(QMDesign.Animation.smooth, value: currentStep)
             }
         }
-        .frame(minWidth: 700, minHeight: 650)
+        .frame(minWidth: 700, minHeight: 720)
     }
 
     private func goToStep(_ step: OnboardingStep) {
@@ -270,94 +270,105 @@ struct PermissionsStepView: View {
 
     @State private var hasMicPermission = false
     @State private var hasScreenPermission = false
+    @State private var hasAccessibilityPermission = false
     @State private var isButtonHovered = false
 
     var body: some View {
-        VStack(spacing: QMDesign.Spacing.xl) {
-            Spacer()
+        ScrollView {
+            VStack(spacing: QMDesign.Spacing.lg) {
+                // Header
+                VStack(spacing: QMDesign.Spacing.md) {
+                    ZStack {
+                        Circle()
+                            .fill(QMDesign.Colors.primaryGradient.opacity(0.1))
+                            .frame(width: 80, height: 80)
+                        Image(systemName: "shield.checkered")
+                            .font(.system(size: 32))
+                            .foregroundStyle(QMDesign.Colors.primaryGradient)
+                    }
 
-            // Header
-            VStack(spacing: QMDesign.Spacing.md) {
-                ZStack {
-                    Circle()
-                        .fill(QMDesign.Colors.primaryGradient.opacity(0.1))
-                        .frame(width: 80, height: 80)
-                    Image(systemName: "shield.checkered")
-                        .font(.system(size: 32))
-                        .foregroundStyle(QMDesign.Colors.primaryGradient)
+                    Text("Permissions Required")
+                        .font(QMDesign.Typography.titleMedium)
+                        .foregroundColor(QMDesign.Colors.textPrimary)
+
+                    Text("Queen Mama needs access to your microphone and screen to provide real-time assistance.")
+                        .font(QMDesign.Typography.bodySmall)
+                        .foregroundColor(QMDesign.Colors.textSecondary)
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal, QMDesign.Spacing.xl)
                 }
+                .padding(.top, QMDesign.Spacing.lg)
 
-                Text("Permissions Required")
-                    .font(QMDesign.Typography.titleMedium)
-                    .foregroundColor(QMDesign.Colors.textPrimary)
+                // Permission Cards
+                VStack(spacing: QMDesign.Spacing.sm) {
+                    PermissionCard(
+                        icon: "mic.fill",
+                        title: "Microphone Access",
+                        description: "Record your voice during calls and meetings",
+                        isGranted: hasMicPermission,
+                        isOptional: false,
+                        onRequest: requestMicrophonePermission
+                    )
 
-                Text("Queen Mama needs access to your microphone and screen to provide real-time assistance.")
-                    .font(QMDesign.Typography.bodySmall)
-                    .foregroundColor(QMDesign.Colors.textSecondary)
-                    .multilineTextAlignment(.center)
-                    .padding(.horizontal, QMDesign.Spacing.xl)
-            }
+                    PermissionCard(
+                        icon: "rectangle.dashed.badge.record",
+                        title: "Screen Recording",
+                        description: "Capture screen for visual context analysis",
+                        isGranted: hasScreenPermission,
+                        isOptional: false,
+                        onRequest: requestScreenPermission
+                    )
 
-            // Permission Cards
-            VStack(spacing: QMDesign.Spacing.md) {
-                PermissionCard(
-                    icon: "mic.fill",
-                    title: "Microphone Access",
-                    description: "Record your voice during calls and meetings",
-                    isGranted: hasMicPermission,
-                    onRequest: requestMicrophonePermission
-                )
-
-                PermissionCard(
-                    icon: "rectangle.dashed.badge.record",
-                    title: "Screen Recording",
-                    description: "Capture screen for visual context analysis",
-                    isGranted: hasScreenPermission,
-                    onRequest: requestScreenPermission
-                )
-            }
-            .padding(.horizontal, QMDesign.Spacing.xl)
-
-            // Info
-            HStack(alignment: .top, spacing: QMDesign.Spacing.sm) {
-                Image(systemName: "info.circle.fill")
-                    .foregroundStyle(QMDesign.Colors.primaryGradient)
-                Text("You can modify these permissions later in System Preferences.")
-                    .font(QMDesign.Typography.caption)
-                    .foregroundColor(QMDesign.Colors.textTertiary)
-            }
-            .padding(QMDesign.Spacing.md)
-            .background(
-                RoundedRectangle(cornerRadius: QMDesign.Radius.md)
-                    .fill(QMDesign.Colors.accent.opacity(0.05))
-            )
-            .padding(.horizontal, QMDesign.Spacing.xl)
-
-            Spacer()
-
-            // Continue Button
-            Button(action: onContinue) {
-                HStack(spacing: QMDesign.Spacing.sm) {
-                    Text("Continue")
-                        .font(QMDesign.Typography.labelMedium)
-                    Image(systemName: "arrow.right")
-                        .font(.system(size: 14, weight: .semibold))
+                    PermissionCard(
+                        icon: "keyboard",
+                        title: "Accessibility",
+                        description: "Enable global keyboard shortcuts (optional)",
+                        isGranted: hasAccessibilityPermission,
+                        isOptional: true,
+                        onRequest: requestAccessibilityPermission
+                    )
                 }
                 .padding(.horizontal, QMDesign.Spacing.xl)
-                .padding(.vertical, QMDesign.Spacing.md)
+
+                // Info
+                HStack(alignment: .top, spacing: QMDesign.Spacing.sm) {
+                    Image(systemName: "info.circle.fill")
+                        .foregroundStyle(QMDesign.Colors.primaryGradient)
+                    Text("You can modify these permissions later in System Settings.")
+                        .font(QMDesign.Typography.caption)
+                        .foregroundColor(QMDesign.Colors.textTertiary)
+                }
+                .padding(QMDesign.Spacing.md)
                 .background(
-                    Capsule()
-                        .fill(QMDesign.Colors.primaryGradient)
+                    RoundedRectangle(cornerRadius: QMDesign.Radius.md)
+                        .fill(QMDesign.Colors.accent.opacity(0.05))
                 )
-                .foregroundColor(.white)
-                .scaleEffect(isButtonHovered ? 1.05 : 1.0)
+                .padding(.horizontal, QMDesign.Spacing.xl)
+
+                // Continue Button
+                Button(action: onContinue) {
+                    HStack(spacing: QMDesign.Spacing.sm) {
+                        Text("Continue")
+                            .font(QMDesign.Typography.labelMedium)
+                        Image(systemName: "arrow.right")
+                            .font(.system(size: 14, weight: .semibold))
+                    }
+                    .padding(.horizontal, QMDesign.Spacing.xl)
+                    .padding(.vertical, QMDesign.Spacing.md)
+                    .background(
+                        Capsule()
+                            .fill(QMDesign.Colors.primaryGradient)
+                    )
+                    .foregroundColor(.white)
+                    .scaleEffect(isButtonHovered ? 1.05 : 1.0)
+                }
+                .buttonStyle(.plain)
+                .onHover { isButtonHovered = $0 }
+                .animation(QMDesign.Animation.smooth, value: isButtonHovered)
+                .padding(.vertical, QMDesign.Spacing.xl)
             }
-            .buttonStyle(.plain)
-            .onHover { isButtonHovered = $0 }
-            .animation(QMDesign.Animation.smooth, value: isButtonHovered)
-            .padding(.bottom, QMDesign.Spacing.xxl)
+            .padding(.horizontal, QMDesign.Spacing.lg)
         }
-        .padding(.horizontal, QMDesign.Spacing.lg)
         .onAppear {
             checkPermissions()
         }
@@ -372,8 +383,11 @@ struct PermissionsStepView: View {
             hasMicPermission = false
         }
 
-        // Screen recording is harder to check, just assume false initially
+        // Screen recording
         hasScreenPermission = CGPreflightScreenCaptureAccess()
+
+        // Accessibility - check if trusted
+        hasAccessibilityPermission = AXIsProcessTrusted()
     }
 
     private func requestMicrophonePermission() {
@@ -385,11 +399,19 @@ struct PermissionsStepView: View {
     }
 
     private func requestScreenPermission() {
-        // Open System Preferences
         CGRequestScreenCaptureAccess()
-        // Note: This just prompts, we need to check again
         DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
             hasScreenPermission = CGPreflightScreenCaptureAccess()
+        }
+    }
+
+    private func requestAccessibilityPermission() {
+        // Open System Settings to Accessibility
+        let options: NSDictionary = [kAXTrustedCheckOptionPrompt.takeRetainedValue(): true]
+        let _ = AXIsProcessTrustedWithOptions(options)
+        // Check again after a delay
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+            hasAccessibilityPermission = AXIsProcessTrusted()
         }
     }
 }
@@ -401,6 +423,7 @@ struct PermissionCard: View {
     let title: String
     let description: String
     let isGranted: Bool
+    var isOptional: Bool = false
     let onRequest: () -> Void
 
     @State private var isHovered = false
@@ -419,7 +442,7 @@ struct PermissionCard: View {
 
             // Info
             VStack(alignment: .leading, spacing: 4) {
-                HStack {
+                HStack(spacing: QMDesign.Spacing.xs) {
                     Text(title)
                         .font(QMDesign.Typography.bodyMedium)
                         .foregroundColor(QMDesign.Colors.textPrimary)
@@ -428,6 +451,18 @@ struct PermissionCard: View {
                         Image(systemName: "checkmark.circle.fill")
                             .font(.system(size: 14))
                             .foregroundColor(QMDesign.Colors.success)
+                    }
+
+                    if isOptional && !isGranted {
+                        Text("Optional")
+                            .font(QMDesign.Typography.captionSmall)
+                            .foregroundColor(QMDesign.Colors.textTertiary)
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 2)
+                            .background(
+                                Capsule()
+                                    .fill(QMDesign.Colors.surfaceMedium)
+                            )
                     }
                 }
                 Text(description)
@@ -442,12 +477,12 @@ struct PermissionCard: View {
                 Button(action: onRequest) {
                     Text("Grant")
                         .font(QMDesign.Typography.labelSmall)
-                        .foregroundColor(.white)
+                        .foregroundColor(isOptional ? QMDesign.Colors.textPrimary : .white)
                         .padding(.horizontal, QMDesign.Spacing.md)
                         .padding(.vertical, QMDesign.Spacing.sm)
                         .background(
                             Capsule()
-                                .fill(QMDesign.Colors.primaryGradient)
+                                .fill(isOptional ? AnyShapeStyle(QMDesign.Colors.surfaceMedium) : AnyShapeStyle(QMDesign.Colors.primaryGradient))
                         )
                 }
                 .buttonStyle(.plain)

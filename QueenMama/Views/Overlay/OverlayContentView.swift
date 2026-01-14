@@ -182,19 +182,28 @@ struct ModernPillHeaderView: View {
 
     @State private var isHoveringExpand = false
     @State private var isHoveringMore = false
+    @State private var isHoveringDashboard = false
+    @Environment(\.openWindow) private var openWindow
 
     var body: some View {
         HStack(spacing: QMDesign.Spacing.xs) {
-            // Logo with gradient
-            ZStack {
-                Circle()
-                    .fill(QMDesign.Colors.primaryGradient)
-                    .frame(width: 28, height: 28)
+            // Logo with gradient - also opens Dashboard
+            Button(action: toggleDashboard) {
+                ZStack {
+                    Circle()
+                        .fill(QMDesign.Colors.primaryGradient)
+                        .frame(width: 28, height: 28)
 
-                Image(systemName: "waveform")
-                    .font(.system(size: 14, weight: .semibold))
-                    .foregroundColor(.white)
+                    Image(systemName: "waveform")
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundColor(.white)
+                }
+                .scaleEffect(isHoveringDashboard ? 1.1 : 1.0)
             }
+            .buttonStyle(.plain)
+            .onHover { isHoveringDashboard = $0 }
+            .animation(QMDesign.Animation.quick, value: isHoveringDashboard)
+            .help("Open Dashboard (Cmd+D)")
 
             // Expand/Collapse Button
             Button(action: onToggleExpand) {
@@ -294,6 +303,32 @@ struct ModernPillHeaderView: View {
         .padding(.vertical, QMDesign.Spacing.xs)
         .frame(maxWidth: .infinity)
         .frame(height: QMDesign.Dimensions.Overlay.headerHeight)
+    }
+
+    private func toggleDashboard() {
+        // Find existing dashboard window (not overlay, not settings)
+        let dashboardWindow = NSApp.windows.first { window in
+            let isOverlay = window is NSPanel
+            let isSettings = window.title.lowercased().contains("settings")
+            let isMainWindow = window.contentView?.subviews.first != nil &&
+                               !isOverlay &&
+                               !isSettings &&
+                               window.styleMask.contains(.closable)
+            return isMainWindow
+        }
+
+        if let existingWindow = dashboardWindow, existingWindow.isVisible {
+            // Window exists and is visible - close it
+            existingWindow.close()
+        } else if let existingWindow = dashboardWindow {
+            // Window exists but not visible - show it
+            NSApp.activate(ignoringOtherApps: true)
+            existingWindow.makeKeyAndOrderFront(nil)
+        } else {
+            // No window - open new one
+            NSApp.activate(ignoringOtherApps: true)
+            openWindow(id: "dashboard")
+        }
     }
 }
 

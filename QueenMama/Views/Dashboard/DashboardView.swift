@@ -45,20 +45,6 @@ struct DashboardView: View {
         .navigationTitle("")
         .toolbar {
             ToolbarItemGroup(placement: .navigation) {
-                // Sidebar toggle button
-                Button(action: {
-                    withAnimation {
-                        columnVisibility = columnVisibility == .detailOnly ? .all : .detailOnly
-                    }
-                }) {
-                    Image(systemName: "sidebar.left")
-                        .font(.system(size: 14))
-                        .foregroundColor(columnVisibility == .detailOnly ? QMDesign.Colors.accent : QMDesign.Colors.textSecondary)
-                }
-                .buttonStyle(.plain)
-                .help("Toggle Sidebar (Cmd+S)")
-                .keyboardShortcut("b", modifiers: .command)
-
                 // App title with gradient
                 HStack(spacing: QMDesign.Spacing.xs) {
                     ZStack {

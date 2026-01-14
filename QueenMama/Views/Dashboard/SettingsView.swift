@@ -12,14 +12,16 @@ struct SettingsView: View {
     @State private var selectedSection: SettingsSection = .general
 
     var body: some View {
-        NavigationSplitView {
+        HStack(spacing: 0) {
             // Sidebar
             ModernSettingsSidebar(selectedSection: $selectedSection)
-                .frame(minWidth: 200)
-        } detail: {
+                .frame(width: 220)
+
+            Divider()
+
             // Content
             ScrollView {
-                VStack(spacing: QMDesign.Spacing.lg) {
+                VStack(alignment: .leading, spacing: QMDesign.Spacing.lg) {
                     switch selectedSection {
                     case .general:
                         ModernGeneralSettingsView()
@@ -35,11 +37,12 @@ struct SettingsView: View {
                         ModernShortcutsSettingsView()
                     }
                 }
+                .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(QMDesign.Spacing.lg)
             }
+            .frame(maxWidth: .infinity)
             .background(QMDesign.Colors.backgroundPrimary)
         }
-        .frame(minWidth: 700, minHeight: 500)
     }
 }
 
@@ -208,11 +211,13 @@ struct SettingsCard<Content: View>: View {
                 Text(title)
                     .font(QMDesign.Typography.headline)
                     .foregroundColor(QMDesign.Colors.textPrimary)
+                    .fixedSize(horizontal: false, vertical: true)
             }
 
             // Content
             content
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
         .padding(QMDesign.Spacing.lg)
         .background(
             RoundedRectangle(cornerRadius: QMDesign.Radius.lg)
@@ -1064,9 +1069,11 @@ struct SettingsSectionHeader: View {
             Text(title)
                 .font(QMDesign.Typography.titleMedium)
                 .foregroundStyle(QMDesign.Colors.primaryGradient)
+                .fixedSize(horizontal: false, vertical: true)
             Text(subtitle)
                 .font(QMDesign.Typography.bodySmall)
                 .foregroundColor(QMDesign.Colors.textSecondary)
+                .fixedSize(horizontal: false, vertical: true)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
     }
@@ -1089,16 +1096,18 @@ struct ModernToggleRow: View {
                 Text(title)
                     .font(QMDesign.Typography.bodyMedium)
                     .foregroundColor(QMDesign.Colors.textPrimary)
+                    .fixedSize(horizontal: false, vertical: true)
                 Text(description)
                     .font(QMDesign.Typography.caption)
                     .foregroundColor(QMDesign.Colors.textTertiary)
+                    .fixedSize(horizontal: false, vertical: true)
             }
-
-            Spacer()
+            .frame(maxWidth: .infinity, alignment: .leading)
 
             Toggle("", isOn: $isOn)
                 .toggleStyle(.switch)
                 .tint(QMDesign.Colors.accent)
+                .labelsHidden()
         }
     }
 }
