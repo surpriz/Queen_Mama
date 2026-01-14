@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "WebFetch(domain:support.cluely.com)",
+      "WebSearch",
+      "mcp__context7__query-docs"
+    ]
+  }
+}

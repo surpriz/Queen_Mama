@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <!-- Bundle Configuration -->
+    <key>CFBundleDevelopmentRegion</key>
+    <string>en</string>
+    <key>CFBundleExecutable</key>
+    <string>$(EXECUTABLE_NAME)</string>
+    <key>CFBundleIdentifier</key>
+    <string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
+    <key>CFBundleInfoDictionaryVersion</key>
+    <string>6.0</string>
+    <key>CFBundleName</key>
+    <string>Queen Mama</string>
+    <key>CFBundlePackageType</key>
+    <string>APPL</string>
+    <key>CFBundleShortVersionString</key>
+    <string>1.0.0</string>
+    <key>CFBundleVersion</key>
+    <string>1</string>
+
+    <!-- macOS Configuration -->
+    <key>LSMinimumSystemVersion</key>
+    <string>14.2</string>
+    <key>LSApplicationCategoryType</key>
+    <string>public.app-category.productivity</string>
+    <key>LSUIElement</key>
+    <false/>
+
+    <!-- Privacy Descriptions -->
+    <key>NSMicrophoneUsageDescription</key>
+    <string>Queen Mama needs microphone access to transcribe your voice during meetings and calls.</string>
+
+    <key>NSScreenCaptureUsageDescription</key>
+    <string>Queen Mama needs screen recording permission to capture screen context for AI assistance.</string>
+
+    <key>NSAppleEventsUsageDescription</key>
+    <string>Queen Mama needs automation access to detect active applications.</string>
+
+    <!-- Background Modes -->
+    <key>NSSupportsAutomaticTermination</key>
+    <false/>
+    <key>NSSupportsSuddenTermination</key>
+    <false/>
+
+    <!-- High Resolution -->
+    <key>NSHighResolutionCapable</key>
+    <true/>
+    <key>NSSupportsAutomaticGraphicsSwitching</key>
+    <true/>
+</dict>
+</plist>
