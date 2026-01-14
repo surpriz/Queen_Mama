@@ -8,6 +8,8 @@ struct OverlayContentView: View {
     @State private var inputText = ""
     @State private var selectedTab: TabItem = .assist
     @State private var isSmartModeEnabled = false
+    @State private var lastScreenshotTime: Date?
+    @State private var hasScreenshot = false
 
     var body: some View {
         VStack(spacing: 0) {
@@ -28,6 +30,8 @@ struct OverlayContentView: View {
                     selectedTab: $selectedTab,
                     inputText: $inputText,
                     isSmartModeEnabled: $isSmartModeEnabled,
+                    hasScreenshot: hasScreenshot,
+                    lastScreenshotTime: lastScreenshotTime,
                     onSubmit: handleSubmit
                 )
                 .transition(.opacity.combined(with: .move(edge: .top)))
@@ -52,6 +56,10 @@ struct OverlayContentView: View {
         Task {
             do {
                 let screenshot = try? await appState.screenService.captureScreenshot()
+                hasScreenshot = screenshot != nil
+                if hasScreenshot {
+                    lastScreenshotTime = Date()
+                }
 
                 switch selectedTab {
                 case .assist:
@@ -73,12 +81,14 @@ struct OverlayContentView: View {
                 case .followUp:
                     let response = try await appState.aiService.followUpQuestions(
                         transcript: appState.currentTranscript,
+                        screenshot: screenshot,
                         mode: appState.selectedMode
                     )
                     appState.aiService.currentResponse = response.content
                 case .recap:
                     let response = try await appState.aiService.recap(
                         transcript: appState.currentTranscript,
+                        screenshot: screenshot,
                         mode: appState.selectedMode
                     )
                     appState.aiService.currentResponse = response.content
@@ -171,6 +181,8 @@ struct ExpandedContentView: View {
     @Binding var selectedTab: TabItem
     @Binding var inputText: String
     @Binding var isSmartModeEnabled: Bool
+    let hasScreenshot: Bool
+    let lastScreenshotTime: Date?
     let onSubmit: () -> Void
 
     var body: some View {
@@ -184,7 +196,9 @@ struct ExpandedContentView: View {
             // Response Area
             ResponseAreaView(
                 response: aiService.currentResponse,
-                isProcessing: aiService.isProcessing
+                isProcessing: aiService.isProcessing,
+                hasScreenshot: hasScreenshot,
+                lastScreenshotTime: lastScreenshotTime
             )
 
             // Screen-only mode hint
@@ -265,37 +279,71 @@ struct TabButton: View {
 struct ResponseAreaView: View {
     let response: String
     let isProcessing: Bool
+    let hasScreenshot: Bool
+    let lastScreenshotTime: Date?
 
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 8) {
-                if isProcessing && response.isEmpty {
-                    HStack(spacing: 8) {
-                        ProgressView()
-                            .scaleEffect(0.8)
-                        Text("Thinking...")
+        VStack(spacing: 0) {
+            // Screenshot indicator
+            if hasScreenshot, let time = lastScreenshotTime {
+                HStack(spacing: 6) {
+                    Image(systemName: "camera.fill")
+                        .font(.system(size: 11))
+                        .foregroundColor(.green)
+                    Text("Screen captured and analyzed")
+                        .font(.system(size: 11))
+                        .foregroundColor(.green)
+                    Spacer()
+                    Text(timeAgoString(from: time))
+                        .font(.system(size: 10))
+                        .foregroundColor(.secondary)
+                }
+                .padding(.horizontal, 12)
+                .padding(.vertical, 6)
+                .background(Color.green.opacity(0.1))
+            }
+
+            ScrollView {
+                VStack(alignment: .leading, spacing: 8) {
+                    if isProcessing && response.isEmpty {
+                        HStack(spacing: 8) {
+                            ProgressView()
+                                .scaleEffect(0.8)
+                            Text("Analyzing...")
+                                .font(.system(size: 13))
+                                .foregroundColor(.secondary)
+                        }
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                    } else if response.isEmpty {
+                        Text("Ask about your screen or conversation, or press Cmd+Enter for Assist")
                             .font(.system(size: 13))
                             .foregroundColor(.secondary)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                    } else {
+                        Text(response)
+                            .font(.system(size: 13))
+                            .foregroundColor(.primary)
+                            .textSelection(.enabled)
+                            .frame(maxWidth: .infinity, alignment: .leading)
                     }
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                } else if response.isEmpty {
-                    Text("Ask about your screen or conversation, or press Cmd+Enter for Assist")
-                        .font(.system(size: 13))
-                        .foregroundColor(.secondary)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                } else {
-                    Text(response)
-                        .font(.system(size: 13))
-                        .foregroundColor(.primary)
-                        .textSelection(.enabled)
-                        .frame(maxWidth: .infinity, alignment: .leading)
                 }
+                .padding(12)
             }
-            .padding(12)
         }
         .frame(maxWidth: .infinity, minHeight: 120, maxHeight: 200)
         .background(Color.gray.opacity(0.1))
         .clipShape(RoundedRectangle(cornerRadius: 8))
+    }
+
+    private func timeAgoString(from date: Date) -> String {
+        let seconds = Int(Date().timeIntervalSince(date))
+        if seconds < 5 {
+            return "now"
+        } else if seconds < 60 {
+            return "\(seconds)s ago"
+        } else {
+            return "\(seconds / 60)m ago"
+        }
     }
 }
 

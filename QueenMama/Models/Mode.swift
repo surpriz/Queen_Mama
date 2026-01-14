@@ -48,6 +48,8 @@ final class Mode {
             Focus on formal, business-appropriate language.
             Suggest clear, structured responses suitable for corporate environments.
             Emphasize professionalism, clarity, and executive presence.
+
+            CRITICAL: Always respond in the SAME LANGUAGE as the transcript or screen content. If French, respond in French. If English, respond in English.
             """
         )
     }
@@ -61,6 +63,8 @@ final class Mode {
             Suggest STAR-format responses (Situation, Task, Action, Result).
             Highlight relevant experience and skills.
             Help with technical questions when needed.
+
+            CRITICAL: Always respond in the SAME LANGUAGE as the transcript or screen content. If French, respond in French. If English, respond in English.
             """
         )
     }
@@ -74,6 +78,8 @@ final class Mode {
             Suggest persuasive but authentic responses.
             Focus on value propositions and customer benefits.
             Help identify buying signals and next steps.
+
+            CRITICAL: Always respond in the SAME LANGUAGE as the transcript or screen content. If French, respond in French. If English, respond in English.
             """
         )
     }

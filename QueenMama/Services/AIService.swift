@@ -161,19 +161,19 @@ final class AIService: ObservableObject {
         )
     }
 
-    func followUpQuestions(transcript: String, mode: Mode?) async throws -> AIResponse {
+    func followUpQuestions(transcript: String, screenshot: Data?, mode: Mode?) async throws -> AIResponse {
         try await generateResponse(
             transcript: transcript,
-            screenshot: nil,
+            screenshot: screenshot,
             mode: mode,
             type: .followUp
         )
     }
 
-    func recap(transcript: String, mode: Mode?) async throws -> AIResponse {
+    func recap(transcript: String, screenshot: Data?, mode: Mode?) async throws -> AIResponse {
         try await generateResponse(
             transcript: transcript,
-            screenshot: nil,
+            screenshot: screenshot,
             mode: mode,
             type: .recap
         )
