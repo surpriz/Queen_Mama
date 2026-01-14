@@ -1,4 +1,13 @@
+//
+//  OverlayContentView.swift
+//  QueenMama
+//
+//  Modern redesigned overlay widget with gradient accents and improved UX
+//
+
 import SwiftUI
+
+// MARK: - Main Overlay Content View
 
 struct OverlayContentView: View {
     @ObservedObject var appState: AppState
@@ -10,23 +19,26 @@ struct OverlayContentView: View {
     @State private var isSmartModeEnabled = false
     @State private var lastScreenshotTime: Date?
     @State private var hasScreenshot = false
+    @State private var showPopupMenu = false
+    @State private var isAutoAnswerEnabled = false
     @AppStorage("enableScreenCapture") private var enableScreenCapture = true
 
     var body: some View {
         VStack(spacing: 0) {
-            // Pill Header
-            PillHeaderView(
+            // Modern Pill Header
+            ModernPillHeaderView(
                 isExpanded: overlayController.isExpanded,
                 isSessionActive: appState.isSessionActive,
                 enableScreenCapture: $enableScreenCapture,
+                isAutoAnswerEnabled: $isAutoAnswerEnabled,
+                showPopupMenu: $showPopupMenu,
                 onToggleExpand: { overlayController.toggleExpanded() },
-                onHide: { overlayController.hideOverlay() },
                 onStop: { Task { await appState.stopSession() } }
             )
 
             // Expanded Content
             if overlayController.isExpanded {
-                ExpandedContentView(
+                ModernExpandedContentView(
                     appState: appState,
                     aiService: appState.aiService,
                     selectedTab: $selectedTab,
@@ -37,23 +49,39 @@ struct OverlayContentView: View {
                     enableScreenCapture: enableScreenCapture,
                     onSubmit: handleSubmit
                 )
-                .transition(.opacity.combined(with: .move(edge: .top)))
+                .transition(.asymmetric(
+                    insertion: .opacity.combined(with: .move(edge: .top)),
+                    removal: .opacity
+                ))
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(OverlayBackground())
-        .clipShape(RoundedRectangle(cornerRadius: 16))
-        .animation(.spring(response: 0.3, dampingFraction: 0.8), value: overlayController.isExpanded)
+        .background(ModernOverlayBackground())
+        .clipShape(RoundedRectangle(cornerRadius: QMDesign.Radius.xl))
+        .overlay(
+            RoundedRectangle(cornerRadius: QMDesign.Radius.xl)
+                .stroke(QMDesign.Colors.borderSubtle, lineWidth: 1)
+        )
+        .animation(QMDesign.Animation.smooth, value: overlayController.isExpanded)
+        .overlay(alignment: .top) {
+            // Popup Menu
+            if showPopupMenu {
+                OverlayPopupMenu(
+                    isAutoAnswerEnabled: $isAutoAnswerEnabled,
+                    isSmartModeEnabled: $isSmartModeEnabled,
+                    enableScreenCapture: $enableScreenCapture,
+                    isVisible: $showPopupMenu,
+                    onClearContext: { appState.clearContext() },
+                    onMovePosition: { position in overlayController.moveToPosition(position) }
+                )
+                .offset(y: 56)
+                .transition(.opacity.combined(with: .scale(scale: 0.95, anchor: .top)))
+            }
+        }
+        .animation(QMDesign.Animation.quick, value: showPopupMenu)
     }
 
     private func handleSubmit() {
-        // Assist, Recap, and Follow-up don't require input text
-        // What to Say can work with or without input
-        let requiresInput = false  // All tabs can work without input using transcript
-        if requiresInput && inputText.isEmpty {
-            return
-        }
-
         print("[Overlay] Submitting request for tab: \(selectedTab.rawValue)")
 
         Task {
@@ -79,7 +107,6 @@ struct OverlayContentView: View {
                         screenshot: screenshot,
                         mode: appState.selectedMode
                     ) {
-                        // Response is updated automatically via AIService
                         _ = chunk
                     }
                 case .whatToSay:
@@ -119,91 +146,162 @@ struct OverlayContentView: View {
 
 enum TabItem: String, CaseIterable {
     case assist = "Assist"
-    case whatToSay = "What should I say?"
-    case followUp = "Follow-up questions"
+    case whatToSay = "What to say"
+    case followUp = "Follow-up"
     case recap = "Recap"
 
     var icon: String {
         switch self {
-        case .assist: return "sparkles"
-        case .whatToSay: return "text.bubble"
-        case .followUp: return "questionmark.bubble"
-        case .recap: return "arrow.counterclockwise"
+        case .assist: return QMDesign.Icons.assist
+        case .whatToSay: return QMDesign.Icons.whatToSay
+        case .followUp: return QMDesign.Icons.followUp
+        case .recap: return QMDesign.Icons.recap
+        }
+    }
+
+    var shortLabel: String {
+        switch self {
+        case .assist: return "Assist"
+        case .whatToSay: return "Say"
+        case .followUp: return "Ask"
+        case .recap: return "Recap"
         }
     }
 }
 
-// MARK: - Pill Header View
+// MARK: - Modern Pill Header View
 
-struct PillHeaderView: View {
+struct ModernPillHeaderView: View {
     let isExpanded: Bool
     let isSessionActive: Bool
     @Binding var enableScreenCapture: Bool
+    @Binding var isAutoAnswerEnabled: Bool
+    @Binding var showPopupMenu: Bool
     let onToggleExpand: () -> Void
-    let onHide: () -> Void
     let onStop: () -> Void
 
+    @State private var isHoveringExpand = false
+    @State private var isHoveringMore = false
+
     var body: some View {
-        HStack(spacing: 8) {
-            // Logo/Icon
-            Image(systemName: "waveform.circle.fill")
-                .font(.system(size: 20))
-                .foregroundStyle(.blue)
+        HStack(spacing: QMDesign.Spacing.xs) {
+            // Logo with gradient
+            ZStack {
+                Circle()
+                    .fill(QMDesign.Colors.primaryGradient)
+                    .frame(width: 28, height: 28)
+
+                Image(systemName: "waveform")
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundColor(.white)
+            }
 
             // Expand/Collapse Button
             Button(action: onToggleExpand) {
                 HStack(spacing: 4) {
                     Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
-                        .font(.system(size: 12, weight: .semibold))
+                        .font(.system(size: 10, weight: .bold))
                     Text(isExpanded ? "Hide" : "Ask")
-                        .font(.system(size: 13, weight: .medium))
+                        .font(QMDesign.Typography.labelSmall)
                 }
-                .padding(.horizontal, 12)
+                .padding(.horizontal, QMDesign.Spacing.sm)
                 .padding(.vertical, 6)
-                .background(isExpanded ? Color.gray.opacity(0.3) : Color.blue)
-                .foregroundColor(isExpanded ? .primary : .white)
+                .background(
+                    Group {
+                        if isExpanded {
+                            QMDesign.Colors.surfaceMedium
+                        } else {
+                            QMDesign.Colors.primaryGradient
+                        }
+                    }
+                )
+                .foregroundColor(isExpanded ? QMDesign.Colors.textPrimary : .white)
                 .clipShape(Capsule())
+                .scaleEffect(isHoveringExpand ? 1.05 : 1.0)
             }
             .buttonStyle(.plain)
+            .onHover { isHoveringExpand = $0 }
+            .animation(QMDesign.Animation.quick, value: isHoveringExpand)
 
             Spacer()
 
-            // Screen Capture Toggle
-            Button(action: { enableScreenCapture.toggle() }) {
-                Image(systemName: enableScreenCapture ? "camera.fill" : "camera.slash.fill")
-                    .font(.system(size: 14))
-                    .foregroundColor(enableScreenCapture ? .green : .secondary)
-                    .frame(width: 28, height: 28)
-                    .background(Color.gray.opacity(0.2))
-                    .clipShape(Circle())
+            // Auto-Answer Toggle
+            Button(action: { isAutoAnswerEnabled.toggle() }) {
+                HStack(spacing: 4) {
+                    Image(systemName: isAutoAnswerEnabled ? QMDesign.Icons.autoAnswer : QMDesign.Icons.autoAnswerOff)
+                        .font(.system(size: 11))
+                    Text("Auto")
+                        .font(QMDesign.Typography.caption)
+                }
+                .padding(.horizontal, QMDesign.Spacing.xs)
+                .padding(.vertical, 4)
+                .background(
+                    Capsule()
+                        .fill(isAutoAnswerEnabled ? QMDesign.Colors.autoAnswerLight : QMDesign.Colors.surfaceLight)
+                )
+                .foregroundColor(isAutoAnswerEnabled ? QMDesign.Colors.autoAnswer : QMDesign.Colors.textTertiary)
             }
             .buttonStyle(.plain)
-            .help(enableScreenCapture ? "Screen capture enabled (click to disable)" : "Screen capture disabled (click to enable)")
+            .help(isAutoAnswerEnabled ? "Auto-Answer enabled" : "Auto-Answer disabled")
+
+            // Screen Capture Toggle
+            Button(action: { enableScreenCapture.toggle() }) {
+                Image(systemName: enableScreenCapture ? QMDesign.Icons.camera : QMDesign.Icons.cameraOff)
+                    .font(.system(size: 12))
+                    .foregroundColor(enableScreenCapture ? QMDesign.Colors.success : QMDesign.Colors.textTertiary)
+                    .frame(width: 26, height: 26)
+                    .background(
+                        Circle()
+                            .fill(enableScreenCapture ? QMDesign.Colors.successLight : QMDesign.Colors.surfaceLight)
+                    )
+            }
+            .buttonStyle(.plain)
+            .help(enableScreenCapture ? "Screen capture ON" : "Screen capture OFF")
+
+            // More Button (Popup Menu)
+            Button(action: { showPopupMenu.toggle() }) {
+                Image(systemName: QMDesign.Icons.more)
+                    .font(.system(size: 14))
+                    .foregroundColor(showPopupMenu ? QMDesign.Colors.accent : QMDesign.Colors.textSecondary)
+                    .frame(width: 26, height: 26)
+                    .background(
+                        Circle()
+                            .fill(showPopupMenu ? QMDesign.Colors.accent.opacity(0.15) : QMDesign.Colors.surfaceLight)
+                    )
+                    .scaleEffect(isHoveringMore ? 1.1 : 1.0)
+            }
+            .buttonStyle(.plain)
+            .onHover { isHoveringMore = $0 }
+            .animation(QMDesign.Animation.quick, value: isHoveringMore)
 
             // Stop Button (when session active)
             if isSessionActive {
                 Button(action: onStop) {
-                    Image(systemName: "stop.fill")
-                        .font(.system(size: 12))
-                        .foregroundColor(.primary)
-                        .frame(width: 28, height: 28)
-                        .background(Color.gray.opacity(0.3))
-                        .clipShape(Circle())
+                    Image(systemName: QMDesign.Icons.stop)
+                        .font(.system(size: 10))
+                        .foregroundColor(QMDesign.Colors.error)
+                        .frame(width: 26, height: 26)
+                        .background(
+                            Circle()
+                                .fill(QMDesign.Colors.errorLight)
+                        )
                 }
                 .buttonStyle(.plain)
+                .help("Stop session")
             }
         }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 10)
+        .padding(.horizontal, QMDesign.Spacing.sm)
+        .padding(.vertical, QMDesign.Spacing.xs)
         .frame(maxWidth: .infinity)
+        .frame(height: QMDesign.Dimensions.Overlay.headerHeight)
     }
 }
 
-// MARK: - Expanded Content View
+// MARK: - Modern Expanded Content View
 
-struct ExpandedContentView: View {
+struct ModernExpandedContentView: View {
     @ObservedObject var appState: AppState
-    @ObservedObject var aiService: AIService  // Observe AIService directly for updates
+    @ObservedObject var aiService: AIService
     @Binding var selectedTab: TabItem
     @Binding var inputText: String
     @Binding var isSmartModeEnabled: Bool
@@ -213,15 +311,14 @@ struct ExpandedContentView: View {
     let onSubmit: () -> Void
 
     var body: some View {
-        VStack(spacing: 12) {
-            // Tab Bar - clicking a tab triggers the request immediately
-            TabBarView(selectedTab: $selectedTab) { tab in
-                // Trigger request when tab is clicked
+        VStack(spacing: QMDesign.Spacing.sm) {
+            // Modern Tab Bar
+            ModernTabBarView(selectedTab: $selectedTab) { tab in
                 onSubmit()
             }
 
-            // Response Area - showing history of all responses
-            ResponseHistoryView(
+            // Response Area
+            ModernResponseHistoryView(
                 responses: aiService.responses,
                 currentResponse: aiService.currentResponse,
                 isProcessing: aiService.isProcessing,
@@ -229,190 +326,153 @@ struct ExpandedContentView: View {
                 lastScreenshotTime: lastScreenshotTime
             )
 
-            // Status hints
-            VStack(spacing: 4) {
-                // Screen-only mode hint
-                if !appState.isSessionActive {
-                    HStack {
-                        Image(systemName: "display")
-                            .foregroundColor(.orange)
-                        Text("Mode écran seul - Pas de session audio active")
-                            .font(.caption)
-                            .foregroundColor(.orange)
-                    }
+            // Status Section
+            StatusSection(
+                isSessionActive: appState.isSessionActive,
+                enableScreenCapture: enableScreenCapture,
+                responseCount: aiService.responses.count,
+                onExport: {
+                    let markdown = aiService.exportToMarkdown()
+                    NSPasteboard.general.clearContents()
+                    NSPasteboard.general.setString(markdown, forType: .string)
+                },
+                onClear: {
+                    aiService.clearResponses()
                 }
+            )
 
-                // Screen capture status
-                HStack(spacing: 6) {
-                    Image(systemName: enableScreenCapture ? "camera.fill" : "camera.slash.fill")
-                        .font(.system(size: 11))
-                        .foregroundColor(enableScreenCapture ? .green : .secondary)
-                    Text(enableScreenCapture ? "Capture d'écran activée" : "Capture d'écran désactivée")
-                        .font(.caption)
-                        .foregroundColor(enableScreenCapture ? .green : .secondary)
-                }
-            }
-
-            // History management buttons
-            if !aiService.responses.isEmpty {
-                HStack(spacing: 8) {
-                    Button(action: {
-                        let markdown = aiService.exportToMarkdown()
-                        NSPasteboard.general.clearContents()
-                        NSPasteboard.general.setString(markdown, forType: .string)
-                    }) {
-                        HStack(spacing: 4) {
-                            Image(systemName: "square.and.arrow.up")
-                                .font(.system(size: 11))
-                            Text("Export")
-                                .font(.system(size: 11))
-                        }
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 4)
-                        .background(Color.blue.opacity(0.2))
-                        .foregroundColor(.blue)
-                        .clipShape(RoundedRectangle(cornerRadius: 4))
-                    }
-                    .buttonStyle(.plain)
-
-                    Button(action: {
-                        aiService.clearResponses()
-                    }) {
-                        HStack(spacing: 4) {
-                            Image(systemName: "trash")
-                                .font(.system(size: 11))
-                            Text("Clear")
-                                .font(.system(size: 11))
-                        }
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 4)
-                        .background(Color.red.opacity(0.2))
-                        .foregroundColor(.red)
-                        .clipShape(RoundedRectangle(cornerRadius: 4))
-                    }
-                    .buttonStyle(.plain)
-
-                    Spacer()
-
-                    Text("\(aiService.responses.count) responses")
-                        .font(.caption2)
-                        .foregroundColor(.secondary)
-                }
-            }
-
-            // Input Area (for custom questions)
-            InputAreaView(
+            // Modern Input Area
+            ModernInputAreaView(
                 inputText: $inputText,
                 isSmartModeEnabled: $isSmartModeEnabled,
-                placeholder: "Ask about your screen or conversation...",
                 onSubmit: onSubmit
             )
         }
-        .padding(.horizontal, 12)
-        .padding(.bottom, 12)
+        .padding(.horizontal, QMDesign.Spacing.sm)
+        .padding(.bottom, QMDesign.Spacing.sm)
     }
 }
 
-// MARK: - Tab Bar View
+// MARK: - Modern Tab Bar View
 
-struct TabBarView: View {
+struct ModernTabBarView: View {
     @Binding var selectedTab: TabItem
-    let onTabSelected: (TabItem) -> Void  // Callback when tab is clicked
+    let onTabSelected: (TabItem) -> Void
+
+    @Namespace private var tabAnimation
 
     var body: some View {
-        HStack(spacing: 4) {
+        HStack(spacing: 2) {
             ForEach(TabItem.allCases, id: \.self) { tab in
-                TabButton(
-                    title: tab.rawValue,
-                    icon: tab.icon,
-                    isSelected: selectedTab == tab
+                ModernTabButton(
+                    tab: tab,
+                    isSelected: selectedTab == tab,
+                    namespace: tabAnimation
                 ) {
-                    selectedTab = tab
-                    onTabSelected(tab)  // Trigger request immediately
+                    withAnimation(QMDesign.Animation.smooth) {
+                        selectedTab = tab
+                    }
+                    onTabSelected(tab)
                 }
             }
         }
-        .padding(4)
-        .background(Color.gray.opacity(0.15))
-        .clipShape(RoundedRectangle(cornerRadius: 8))
+        .padding(3)
+        .background(
+            RoundedRectangle(cornerRadius: QMDesign.Radius.md)
+                .fill(QMDesign.Colors.surfaceLight)
+        )
+        .frame(height: QMDesign.Dimensions.Overlay.tabBarHeight)
     }
 }
 
-struct TabButton: View {
-    let title: String
-    let icon: String
+struct ModernTabButton: View {
+    let tab: TabItem
     let isSelected: Bool
+    let namespace: Namespace.ID
     let action: () -> Void
+
+    @State private var isHovered = false
 
     var body: some View {
         Button(action: action) {
             HStack(spacing: 4) {
-                Image(systemName: icon)
-                    .font(.system(size: 11))
-                Text(title)
-                    .font(.system(size: 11, weight: isSelected ? .semibold : .regular))
+                Image(systemName: tab.icon)
+                    .font(.system(size: 10, weight: isSelected ? .semibold : .regular))
+                Text(tab.shortLabel)
+                    .font(.system(size: 10, weight: isSelected ? .semibold : .regular))
             }
-            .padding(.horizontal, 8)
-            .padding(.vertical, 6)
-            .background(isSelected ? Color.blue.opacity(0.2) : Color.clear)
-            .foregroundColor(isSelected ? .blue : .secondary)
-            .clipShape(RoundedRectangle(cornerRadius: 6))
+            .padding(.horizontal, QMDesign.Spacing.xs)
+            .padding(.vertical, 5)
+            .frame(maxWidth: .infinity)
+            .background(
+                ZStack {
+                    if isSelected {
+                        RoundedRectangle(cornerRadius: QMDesign.Radius.sm)
+                            .fill(QMDesign.Colors.primaryGradient.opacity(0.2))
+                            .matchedGeometryEffect(id: "tabBackground", in: namespace)
+                    } else if isHovered {
+                        RoundedRectangle(cornerRadius: QMDesign.Radius.sm)
+                            .fill(QMDesign.Colors.surfaceHover)
+                    }
+                }
+            )
+            .foregroundColor(isSelected ? QMDesign.Colors.accent : QMDesign.Colors.textSecondary)
         }
         .buttonStyle(.plain)
+        .onHover { isHovered = $0 }
     }
 }
 
-// MARK: - Response History View
+// MARK: - Modern Response History View
 
-struct ResponseHistoryView: View {
+struct ModernResponseHistoryView: View {
     let responses: [AIResponse]
     let currentResponse: String
     let isProcessing: Bool
     let hasScreenshot: Bool
     let lastScreenshotTime: Date?
 
-    @State private var scrollProxy: ScrollViewProxy?
-
     var body: some View {
         VStack(spacing: 0) {
-            // Screenshot indicator
+            // Screenshot indicator with gradient border
             if hasScreenshot, let time = lastScreenshotTime {
-                HStack(spacing: 6) {
-                    Image(systemName: "camera.fill")
-                        .font(.system(size: 11))
-                        .foregroundColor(.green)
-                    Text("Screen captured and analyzed")
-                        .font(.system(size: 11))
-                        .foregroundColor(.green)
+                HStack(spacing: QMDesign.Spacing.xs) {
+                    Image(systemName: QMDesign.Icons.camera)
+                        .font(.system(size: 11, weight: .medium))
+                        .foregroundColor(QMDesign.Colors.success)
+                    Text("Screen captured")
+                        .font(QMDesign.Typography.caption)
+                        .foregroundColor(QMDesign.Colors.success)
                     Spacer()
                     Text(timeAgoString(from: time))
-                        .font(.system(size: 10))
-                        .foregroundColor(.secondary)
+                        .font(QMDesign.Typography.captionSmall)
+                        .foregroundColor(QMDesign.Colors.textTertiary)
                 }
-                .padding(.horizontal, 12)
-                .padding(.vertical, 6)
-                .background(Color.green.opacity(0.1))
+                .padding(.horizontal, QMDesign.Spacing.sm)
+                .padding(.vertical, QMDesign.Spacing.xs)
+                .background(
+                    RoundedRectangle(cornerRadius: QMDesign.Radius.sm)
+                        .fill(QMDesign.Colors.successLight)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: QMDesign.Radius.sm)
+                                .stroke(QMDesign.Colors.success.opacity(0.3), lineWidth: 1)
+                        )
+                )
+                .padding(.bottom, QMDesign.Spacing.xs)
             }
 
             ScrollViewReader { proxy in
                 ScrollView {
-                    VStack(alignment: .leading, spacing: 16) {
-                        // Show processing state
+                    LazyVStack(alignment: .leading, spacing: QMDesign.Spacing.sm) {
+                        // Processing state
                         if isProcessing && currentResponse.isEmpty {
-                            HStack(spacing: 8) {
-                                ProgressView()
-                                    .scaleEffect(0.8)
-                                Text("Analyzing...")
-                                    .font(.system(size: 13))
-                                    .foregroundColor(.secondary)
-                            }
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .id("processing")
+                            ProcessingIndicator()
+                                .id("processing")
                         }
 
-                        // Show current streaming response
+                        // Current streaming response
                         if !currentResponse.isEmpty && isProcessing {
-                            ResponseItemView(
+                            ModernResponseItemView(
                                 type: responses.first?.type ?? .assist,
                                 content: currentResponse,
                                 timestamp: Date(),
@@ -422,9 +482,9 @@ struct ResponseHistoryView: View {
                             .id("current")
                         }
 
-                        // Show history of completed responses (most recent first)
+                        // History
                         ForEach(responses) { response in
-                            ResponseItemView(
+                            ModernResponseItemView(
                                 type: response.type,
                                 content: response.content,
                                 timestamp: response.timestamp,
@@ -436,19 +496,12 @@ struct ResponseHistoryView: View {
 
                         // Empty state
                         if responses.isEmpty && !isProcessing {
-                            Text("Ask about your screen or conversation, or press Cmd+Enter for Assist")
-                                .font(.system(size: 13))
-                                .foregroundColor(.secondary)
-                                .frame(maxWidth: .infinity, alignment: .leading)
+                            EmptyResponseState()
                         }
                     }
-                    .padding(12)
-                }
-                .onAppear {
-                    scrollProxy = proxy
+                    .padding(QMDesign.Spacing.sm)
                 }
                 .onChange(of: responses.count) { _ in
-                    // Auto-scroll to top when new response arrives
                     if let firstResponse = responses.first {
                         withAnimation {
                             proxy.scrollTo(firstResponse.id, anchor: .top)
@@ -456,7 +509,6 @@ struct ResponseHistoryView: View {
                     }
                 }
                 .onChange(of: currentResponse) { _ in
-                    // Auto-scroll during streaming
                     if isProcessing {
                         withAnimation {
                             proxy.scrollTo("current", anchor: .top)
@@ -465,26 +517,85 @@ struct ResponseHistoryView: View {
                 }
             }
         }
-        .frame(maxWidth: .infinity, minHeight: 120, maxHeight: 200)
-        .background(Color.gray.opacity(0.1))
-        .clipShape(RoundedRectangle(cornerRadius: 8))
+        .frame(maxWidth: .infinity, minHeight: 140, maxHeight: 220)
+        .background(
+            RoundedRectangle(cornerRadius: QMDesign.Radius.md)
+                .fill(QMDesign.Colors.surfaceLight)
+        )
     }
 
     private func timeAgoString(from date: Date) -> String {
         let seconds = Int(Date().timeIntervalSince(date))
-        if seconds < 5 {
-            return "now"
-        } else if seconds < 60 {
-            return "\(seconds)s ago"
-        } else {
-            return "\(seconds / 60)m ago"
-        }
+        if seconds < 5 { return "now" }
+        else if seconds < 60 { return "\(seconds)s" }
+        else { return "\(seconds / 60)m" }
     }
 }
 
-// MARK: - Response Item View
+// MARK: - Processing Indicator
 
-struct ResponseItemView: View {
+struct ProcessingIndicator: View {
+    @State private var isAnimating = false
+
+    var body: some View {
+        HStack(spacing: QMDesign.Spacing.xs) {
+            // Animated dots
+            HStack(spacing: 4) {
+                ForEach(0..<3) { index in
+                    Circle()
+                        .fill(QMDesign.Colors.accent)
+                        .frame(width: 6, height: 6)
+                        .scaleEffect(isAnimating ? 1.0 : 0.5)
+                        .animation(
+                            .easeInOut(duration: 0.6)
+                                .repeatForever()
+                                .delay(Double(index) * 0.2),
+                            value: isAnimating
+                        )
+                }
+            }
+
+            Text("Analyzing...")
+                .font(QMDesign.Typography.bodySmall)
+                .foregroundColor(QMDesign.Colors.textSecondary)
+        }
+        .padding(QMDesign.Spacing.sm)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .onAppear { isAnimating = true }
+    }
+}
+
+// MARK: - Empty Response State
+
+struct EmptyResponseState: View {
+    var body: some View {
+        VStack(spacing: QMDesign.Spacing.xs) {
+            Image(systemName: QMDesign.Icons.assist)
+                .font(.system(size: 24))
+                .foregroundStyle(QMDesign.Colors.primaryGradient)
+
+            Text("Ready to assist")
+                .font(QMDesign.Typography.bodySmall)
+                .foregroundColor(QMDesign.Colors.textSecondary)
+
+            HStack(spacing: 4) {
+                Text("Press")
+                    .font(QMDesign.Typography.caption)
+                    .foregroundColor(QMDesign.Colors.textTertiary)
+                KeyboardShortcutBadge(shortcut: "Cmd+Enter", size: .small)
+                Text("or click a tab")
+                    .font(QMDesign.Typography.caption)
+                    .foregroundColor(QMDesign.Colors.textTertiary)
+            }
+        }
+        .frame(maxWidth: .infinity)
+        .padding(QMDesign.Spacing.lg)
+    }
+}
+
+// MARK: - Modern Response Item View
+
+struct ModernResponseItemView: View {
     let type: AIResponse.ResponseType
     let content: String
     let timestamp: Date
@@ -492,179 +603,221 @@ struct ResponseItemView: View {
     let isStreaming: Bool
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            // Header with type, provider, and timestamp
-            HStack(spacing: 8) {
-                Image(systemName: type.icon)
-                    .font(.system(size: 11))
-                    .foregroundColor(.blue)
-
-                Text(type.rawValue)
-                    .font(.system(size: 11, weight: .semibold))
-                    .foregroundColor(.blue)
+        VStack(alignment: .leading, spacing: QMDesign.Spacing.xs) {
+            // Header
+            HStack(spacing: QMDesign.Spacing.xs) {
+                // Type badge with gradient
+                HStack(spacing: 4) {
+                    Image(systemName: type.icon)
+                        .font(.system(size: 10, weight: .semibold))
+                    Text(type.rawValue)
+                        .font(QMDesign.Typography.caption)
+                }
+                .foregroundStyle(QMDesign.Colors.primaryGradient)
 
                 Spacer()
 
+                // Provider icon
                 Image(systemName: provider.icon)
-                    .font(.system(size: 10))
-                    .foregroundColor(.secondary)
+                    .font(.system(size: 9))
+                    .foregroundColor(QMDesign.Colors.textTertiary)
 
+                // Timestamp
                 Text(formatTimestamp(timestamp))
-                    .font(.system(size: 10))
-                    .foregroundColor(.secondary)
+                    .font(QMDesign.Typography.captionSmall)
+                    .foregroundColor(QMDesign.Colors.textTertiary)
 
+                // Streaming indicator
                 if isStreaming {
                     ProgressView()
-                        .scaleEffect(0.6)
+                        .scaleEffect(0.5)
+                        .frame(width: 12, height: 12)
                 }
             }
 
             // Content
             Text(content)
-                .font(.system(size: 13))
-                .foregroundColor(.primary)
+                .font(QMDesign.Typography.bodySmall)
+                .foregroundColor(QMDesign.Colors.textPrimary)
                 .textSelection(.enabled)
                 .frame(maxWidth: .infinity, alignment: .leading)
         }
-        .padding(10)
-        .background(Color.white.opacity(0.05))
-        .clipShape(RoundedRectangle(cornerRadius: 6))
+        .padding(QMDesign.Spacing.sm)
+        .background(
+            RoundedRectangle(cornerRadius: QMDesign.Radius.sm)
+                .fill(QMDesign.Colors.surfaceMedium)
+                .overlay(
+                    RoundedRectangle(cornerRadius: QMDesign.Radius.sm)
+                        .stroke(
+                            isStreaming ? QMDesign.Colors.accent.opacity(0.3) : Color.clear,
+                            lineWidth: 1
+                        )
+                )
+        )
     }
 
     private func formatTimestamp(_ date: Date) -> String {
         let formatter = DateFormatter()
-        formatter.dateFormat = "HH:mm:ss"
+        formatter.dateFormat = "HH:mm"
         return formatter.string(from: date)
     }
 }
 
-// MARK: - Response Area View (Legacy - kept for reference)
+// MARK: - Status Section
 
-struct ResponseAreaView: View {
-    let response: String
-    let isProcessing: Bool
-    let hasScreenshot: Bool
-    let lastScreenshotTime: Date?
+struct StatusSection: View {
+    let isSessionActive: Bool
+    let enableScreenCapture: Bool
+    let responseCount: Int
+    let onExport: () -> Void
+    let onClear: () -> Void
 
     var body: some View {
-        VStack(spacing: 0) {
-            // Screenshot indicator
-            if hasScreenshot, let time = lastScreenshotTime {
-                HStack(spacing: 6) {
-                    Image(systemName: "camera.fill")
-                        .font(.system(size: 11))
-                        .foregroundColor(.green)
-                    Text("Screen captured and analyzed")
-                        .font(.system(size: 11))
-                        .foregroundColor(.green)
-                    Spacer()
-                    Text(timeAgoString(from: time))
+        HStack(spacing: QMDesign.Spacing.xs) {
+            // Warning if no session
+            if !isSessionActive {
+                HStack(spacing: 4) {
+                    Image(systemName: "display")
                         .font(.system(size: 10))
-                        .foregroundColor(.secondary)
+                    Text("Screen only")
+                        .font(QMDesign.Typography.captionSmall)
                 }
-                .padding(.horizontal, 12)
-                .padding(.vertical, 6)
-                .background(Color.green.opacity(0.1))
+                .foregroundColor(QMDesign.Colors.warning)
+                .padding(.horizontal, QMDesign.Spacing.xs)
+                .padding(.vertical, 3)
+                .background(
+                    Capsule()
+                        .fill(QMDesign.Colors.warningLight)
+                )
             }
 
-            ScrollView {
-                VStack(alignment: .leading, spacing: 8) {
-                    if isProcessing && response.isEmpty {
-                        HStack(spacing: 8) {
-                            ProgressView()
-                                .scaleEffect(0.8)
-                            Text("Analyzing...")
-                                .font(.system(size: 13))
-                                .foregroundColor(.secondary)
-                        }
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                    } else if response.isEmpty {
-                        Text("Ask about your screen or conversation, or press Cmd+Enter for Assist")
-                            .font(.system(size: 13))
-                            .foregroundColor(.secondary)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                    } else {
-                        Text(response)
-                            .font(.system(size: 13))
-                            .foregroundColor(.primary)
-                            .textSelection(.enabled)
-                            .frame(maxWidth: .infinity, alignment: .leading)
+            Spacer()
+
+            // History controls
+            if responseCount > 0 {
+                Button(action: onExport) {
+                    HStack(spacing: 3) {
+                        Image(systemName: QMDesign.Icons.export)
+                            .font(.system(size: 9))
+                        Text("Export")
+                            .font(QMDesign.Typography.captionSmall)
                     }
                 }
-                .padding(12)
-            }
-        }
-        .frame(maxWidth: .infinity, minHeight: 120, maxHeight: 200)
-        .background(Color.gray.opacity(0.1))
-        .clipShape(RoundedRectangle(cornerRadius: 8))
-    }
+                .buttonStyle(.qmGhost)
 
-    private func timeAgoString(from date: Date) -> String {
-        let seconds = Int(Date().timeIntervalSince(date))
-        if seconds < 5 {
-            return "now"
-        } else if seconds < 60 {
-            return "\(seconds)s ago"
-        } else {
-            return "\(seconds / 60)m ago"
+                Button(action: onClear) {
+                    HStack(spacing: 3) {
+                        Image(systemName: QMDesign.Icons.delete)
+                            .font(.system(size: 9))
+                        Text("Clear")
+                            .font(QMDesign.Typography.captionSmall)
+                    }
+                }
+                .buttonStyle(.qmDanger)
+
+                Text("\(responseCount)")
+                    .font(QMDesign.Typography.captionSmall)
+                    .foregroundColor(QMDesign.Colors.textTertiary)
+            }
         }
     }
 }
 
-// MARK: - Input Area View
+// MARK: - Modern Input Area View
 
-struct InputAreaView: View {
+struct ModernInputAreaView: View {
     @Binding var inputText: String
     @Binding var isSmartModeEnabled: Bool
-    let placeholder: String
     let onSubmit: () -> Void
 
+    @State private var isHoveringSend = false
+
     var body: some View {
-        HStack(spacing: 8) {
+        HStack(spacing: QMDesign.Spacing.xs) {
             // Smart Mode Toggle
             Button(action: { isSmartModeEnabled.toggle() }) {
-                Text("Smart")
-                    .font(.system(size: 11, weight: .medium))
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 4)
-                    .background(isSmartModeEnabled ? Color.blue.opacity(0.2) : Color.gray.opacity(0.15))
-                    .foregroundColor(isSmartModeEnabled ? .blue : .secondary)
-                    .clipShape(RoundedRectangle(cornerRadius: 4))
+                HStack(spacing: 4) {
+                    Image(systemName: QMDesign.Icons.smart)
+                        .font(.system(size: 10))
+                    Text("Smart")
+                        .font(QMDesign.Typography.caption)
+                }
+                .padding(.horizontal, QMDesign.Spacing.xs)
+                .padding(.vertical, 5)
+                .background(
+                    Capsule()
+                        .fill(isSmartModeEnabled ? QMDesign.Colors.accent.opacity(0.15) : QMDesign.Colors.surfaceLight)
+                )
+                .foregroundColor(isSmartModeEnabled ? QMDesign.Colors.accent : QMDesign.Colors.textTertiary)
             }
             .buttonStyle(.plain)
 
             // Text Field
-            TextField(placeholder, text: $inputText)
+            TextField("Ask about your screen or conversation...", text: $inputText)
                 .textFieldStyle(.plain)
-                .font(.system(size: 13))
+                .font(QMDesign.Typography.bodySmall)
                 .onSubmit(onSubmit)
 
-            // Submit Button
+            // Keyboard shortcut hint
+            KeyboardShortcutBadge(shortcut: "Cmd+Enter", size: .small)
+                .opacity(inputText.isEmpty ? 1 : 0)
+
+            // Submit Button with gradient
             Button(action: onSubmit) {
-                Image(systemName: "arrow.up.circle.fill")
-                    .font(.system(size: 24))
-                    .foregroundColor(.blue)
+                ZStack {
+                    Circle()
+                        .fill(QMDesign.Colors.primaryGradient)
+                        .frame(width: 28, height: 28)
+
+                    Image(systemName: "arrow.up")
+                        .font(.system(size: 12, weight: .bold))
+                        .foregroundColor(.white)
+                }
+                .scaleEffect(isHoveringSend ? 1.1 : 1.0)
+                .shadow(
+                    color: QMDesign.Colors.accent.opacity(isHoveringSend ? 0.4 : 0),
+                    radius: isHoveringSend ? 8 : 0
+                )
             }
             .buttonStyle(.plain)
+            .onHover { isHoveringSend = $0 }
+            .animation(QMDesign.Animation.quick, value: isHoveringSend)
             .keyboardShortcut(.return, modifiers: .command)
         }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 8)
-        .background(Color.gray.opacity(0.15))
-        .clipShape(RoundedRectangle(cornerRadius: 10))
+        .padding(.horizontal, QMDesign.Spacing.sm)
+        .padding(.vertical, QMDesign.Spacing.xs)
+        .background(
+            RoundedRectangle(cornerRadius: QMDesign.Radius.lg)
+                .fill(QMDesign.Colors.surfaceLight)
+                .overlay(
+                    RoundedRectangle(cornerRadius: QMDesign.Radius.lg)
+                        .stroke(QMDesign.Colors.borderSubtle, lineWidth: 1)
+                )
+        )
+        .frame(height: QMDesign.Dimensions.Overlay.inputHeight)
     }
 }
 
-// MARK: - Overlay Background
+// MARK: - Modern Overlay Background
 
-struct OverlayBackground: View {
+struct ModernOverlayBackground: View {
     var body: some View {
         ZStack {
             // Glass effect
             VisualEffectView(material: .hudWindow, blendingMode: .behindWindow)
 
-            // Slight tint
-            Color.black.opacity(0.3)
+            // Gradient tint
+            LinearGradient(
+                colors: [
+                    QMDesign.Colors.gradientStart.opacity(0.05),
+                    QMDesign.Colors.gradientEnd.opacity(0.02)
+                ],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+
+            // Dark overlay
+            Color.black.opacity(0.35)
         }
     }
 }
@@ -688,3 +841,14 @@ struct VisualEffectView: NSViewRepresentable {
         nsView.blendingMode = blendingMode
     }
 }
+
+// MARK: - Legacy Support
+
+// Keep old names for compatibility
+typealias PillHeaderView = ModernPillHeaderView
+typealias ExpandedContentView = ModernExpandedContentView
+typealias TabBarView = ModernTabBarView
+typealias ResponseHistoryView = ModernResponseHistoryView
+typealias ResponseItemView = ModernResponseItemView
+typealias InputAreaView = ModernInputAreaView
+typealias OverlayBackground = ModernOverlayBackground

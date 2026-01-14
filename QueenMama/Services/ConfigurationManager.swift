@@ -41,6 +41,24 @@ final class ConfigurationManager: ObservableObject {
         didSet { defaults.set(primaryLanguage, forKey: Keys.primaryLanguage) }
     }
 
+    // MARK: - Auto-Answer Settings
+
+    @Published var autoAnswerEnabled: Bool {
+        didSet { defaults.set(autoAnswerEnabled, forKey: Keys.autoAnswerEnabled) }
+    }
+
+    @Published var autoAnswerSilenceThreshold: Double {
+        didSet { defaults.set(autoAnswerSilenceThreshold, forKey: Keys.autoAnswerSilenceThreshold) }
+    }
+
+    @Published var autoAnswerCooldown: Double {
+        didSet { defaults.set(autoAnswerCooldown, forKey: Keys.autoAnswerCooldown) }
+    }
+
+    @Published var autoAnswerResponseType: String {
+        didSet { defaults.set(autoAnswerResponseType, forKey: Keys.autoAnswerResponseType) }
+    }
+
     // MARK: - Keyboard Shortcuts
 
     @Published var shortcutToggleWidget: String {
@@ -70,6 +88,11 @@ final class ConfigurationManager: ObservableObject {
         static let shortcutAssist = "shortcut_assist"
         static let shortcutClearContext = "shortcut_clear_context"
         static let hasCompletedOnboarding = "has_completed_onboarding"
+        // Auto-Answer
+        static let autoAnswerEnabled = "auto_answer_enabled"
+        static let autoAnswerSilenceThreshold = "auto_answer_silence_threshold"
+        static let autoAnswerCooldown = "auto_answer_cooldown"
+        static let autoAnswerResponseType = "auto_answer_response_type"
     }
 
     // MARK: - Initialization
@@ -95,6 +118,12 @@ final class ConfigurationManager: ObservableObject {
         self.shortcutToggleWidget = defaults.string(forKey: Keys.shortcutToggleWidget) ?? "cmd+\\"
         self.shortcutAssist = defaults.string(forKey: Keys.shortcutAssist) ?? "cmd+return"
         self.shortcutClearContext = defaults.string(forKey: Keys.shortcutClearContext) ?? "cmd+r"
+
+        // Auto-Answer settings
+        self.autoAnswerEnabled = defaults.object(forKey: Keys.autoAnswerEnabled) as? Bool ?? false
+        self.autoAnswerSilenceThreshold = defaults.object(forKey: Keys.autoAnswerSilenceThreshold) as? Double ?? 2.5
+        self.autoAnswerCooldown = defaults.object(forKey: Keys.autoAnswerCooldown) as? Double ?? 10.0
+        self.autoAnswerResponseType = defaults.string(forKey: Keys.autoAnswerResponseType) ?? "assist"
     }
 
     // MARK: - Onboarding
@@ -144,5 +173,10 @@ final class ConfigurationManager: ObservableObject {
         shortcutToggleWidget = "cmd+\\"
         shortcutAssist = "cmd+return"
         shortcutClearContext = "cmd+r"
+        // Auto-Answer
+        autoAnswerEnabled = false
+        autoAnswerSilenceThreshold = 2.5
+        autoAnswerCooldown = 10.0
+        autoAnswerResponseType = "assist"
     }
 }

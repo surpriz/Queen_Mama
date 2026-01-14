@@ -9,7 +9,12 @@ class OverlayPanel: NSPanel {
 
     init() {
         super.init(
-            contentRect: NSRect(x: 0, y: 0, width: 400, height: 60),
+            contentRect: NSRect(
+                x: 0,
+                y: 0,
+                width: QMDesign.Dimensions.Overlay.collapsedWidth,
+                height: QMDesign.Dimensions.Overlay.collapsedHeight
+            ),
             styleMask: [.borderless, .nonactivatingPanel],
             backing: .buffered,
             defer: false
@@ -154,8 +159,9 @@ class OverlayWindowController: NSObject, ObservableObject {
     }
 
     private func updatePanelSize() {
-        let width: CGFloat = 420
-        let height: CGFloat = isExpanded ? 400 : 100
+        // Use design system dimensions
+        let width: CGFloat = QMDesign.Dimensions.Overlay.expandedWidth
+        let height: CGFloat = isExpanded ? QMDesign.Dimensions.Overlay.expandedHeight : QMDesign.Dimensions.Overlay.collapsedHeight
 
         NSAnimationContext.runAnimationGroup { context in
             context.duration = 0.25
@@ -165,13 +171,4 @@ class OverlayWindowController: NSObject, ObservableObject {
     }
 }
 
-// MARK: - Overlay Position
-
-enum OverlayPosition: CaseIterable {
-    case topLeft
-    case topCenter
-    case topRight
-    case bottomLeft
-    case bottomCenter
-    case bottomRight
-}
+// Note: OverlayPosition enum is defined in OverlayPopupMenu.swift

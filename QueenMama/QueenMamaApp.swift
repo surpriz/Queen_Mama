@@ -1,10 +1,25 @@
 import SwiftUI
 import SwiftData
 
+// MARK: - App Delegate
+class AppDelegate: NSObject, NSApplicationDelegate {
+    func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
+        // Don't quit when main window is closed - keep running with widget and menu bar
+        return false
+    }
+
+    func applicationDidFinishLaunching(_ notification: Notification) {
+        // App will keep running even without windows
+    }
+}
+
 @main
 struct QueenMamaApp: App {
+    @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
+
     @StateObject private var appState = AppState()
     @StateObject private var sessionManager = SessionManager()
+    @State private var showingOnboarding = !ConfigurationManager.shared.hasCompletedOnboarding
 
     var sharedModelContainer: ModelContainer = {
         let schema = Schema([
@@ -25,13 +40,29 @@ struct QueenMamaApp: App {
     var body: some Scene {
         // Main Dashboard Window
         WindowGroup("Queen Mama", id: "dashboard") {
-            DashboardView()
-                .environmentObject(appState)
-                .environmentObject(sessionManager)
+            Group {
+                if showingOnboarding {
+                    OnboardingView {
+                        showingOnboarding = false
+                    }
+                    .environmentObject(appState)
+                } else {
+                    DashboardView()
+                        .environmentObject(appState)
+                        .environmentObject(sessionManager)
+                        .onAppear {
+                            // Show widget by default
+                            OverlayWindowController.shared.showOverlay(
+                                appState: appState,
+                                sessionManager: sessionManager
+                            )
+                        }
+                }
+            }
         }
         .modelContainer(sharedModelContainer)
         .windowStyle(.hiddenTitleBar)
-        .defaultSize(width: 900, height: 700)
+        .defaultSize(width: showingOnboarding ? 800 : 900, height: showingOnboarding ? 600 : 700)
 
         // Menu Bar Extra
         MenuBarExtra("Queen Mama", systemImage: appState.isSessionActive ? "waveform.circle.fill" : "waveform.circle") {
@@ -109,12 +140,19 @@ class AppState: ObservableObject {
         isOverlayVisible.toggle()
         OverlayWindowController.shared.setVisible(isOverlayVisible)
     }
+
+    func clearContext() {
+        currentTranscript = ""
+        aiResponse = ""
+        aiService.clearHistory()
+    }
 }
 
 // MARK: - Menu Bar View
 struct MenuBarView: View {
     @EnvironmentObject var appState: AppState
     @EnvironmentObject var sessionManager: SessionManager
+    @Environment(\.openWindow) private var openWindow
 
     var body: some View {
         Group {
@@ -140,9 +178,12 @@ struct MenuBarView: View {
             Divider()
 
             Button("Open Dashboard") {
+                // Try to bring existing window to front, or open new one
                 NSApp.activate(ignoringOtherApps: true)
-                if let window = NSApp.windows.first(where: { $0.identifier?.rawValue == "dashboard" }) {
+                if let window = NSApp.windows.first(where: { $0.title.contains("Queen Mama") && !$0.title.contains("Settings") }) {
                     window.makeKeyAndOrderFront(nil)
+                } else {
+                    openWindow(id: "dashboard")
                 }
             }
             .keyboardShortcut("d", modifiers: [.command, .shift])

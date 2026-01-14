@@ -49,6 +49,23 @@ final class AIService: ObservableObject {
         }
     }
 
+    func clearHistory() {
+        // Clear in-memory responses
+        responses.removeAll()
+        currentResponse = ""
+
+        // Clear persisted responses
+        if let context = modelContext {
+            do {
+                try context.delete(model: AIResponse.self)
+                try context.save()
+                print("[AIService] Cleared all response history")
+            } catch {
+                print("[AIService] Failed to clear history: \(error)")
+            }
+        }
+    }
+
     // MARK: - Public Methods
 
     func hasConfiguredProviders() -> Bool {
