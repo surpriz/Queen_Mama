@@ -65,6 +65,8 @@ struct DashboardView: View {
         }
         .onAppear {
             sessionManager.setModelContext(modelContext)
+            // Load AI response history
+            appState.aiService.loadHistory(from: modelContext)
         }
     }
 }

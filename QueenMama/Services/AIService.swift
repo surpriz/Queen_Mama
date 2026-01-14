@@ -1,5 +1,6 @@
 import Foundation
 import Combine
+import SwiftData
 
 @MainActor
 final class AIService: ObservableObject {
@@ -10,6 +11,9 @@ final class AIService: ObservableObject {
     @Published var lastProvider: AIProviderType?
     @Published var errorMessage: String?
     @Published var responses: [AIResponse] = []
+
+    // SwiftData
+    var modelContext: ModelContext?
 
     // MARK: - Providers
 
@@ -28,6 +32,22 @@ final class AIService: ObservableObject {
     // MARK: - Initialization
 
     init() {}
+
+    func loadHistory(from context: ModelContext) {
+        self.modelContext = context
+
+        // Load persisted responses
+        let descriptor = FetchDescriptor<AIResponse>(
+            sortBy: [SortDescriptor(\.timestamp, order: .reverse)]
+        )
+
+        do {
+            responses = try context.fetch(descriptor)
+            print("[AIService] Loaded \(responses.count) responses from history")
+        } catch {
+            print("[AIService] Failed to load history: \(error)")
+        }
+    }
 
     // MARK: - Public Methods
 
@@ -122,6 +142,12 @@ final class AIService: ObservableObject {
                             provider: provider.providerType
                         )
                         self.responses.insert(response, at: 0)
+
+                        // Persist to SwiftData
+                        if let context = self.modelContext {
+                            context.insert(response)
+                            try? context.save()
+                        }
                         break
                     } catch {
                         print("[AIService] Streaming provider \(provider.providerType.displayName) failed: \(error)")
@@ -219,9 +245,46 @@ final class AIService: ObservableObject {
     func clearResponses() {
         responses.removeAll()
         currentResponse = ""
+
+        // Clear from SwiftData
+        if let context = modelContext {
+            do {
+                try context.delete(model: AIResponse.self)
+                try context.save()
+                print("[AIService] Cleared all responses from history")
+            } catch {
+                print("[AIService] Failed to clear history: \(error)")
+            }
+        }
     }
 
     func getResponse(by id: UUID) -> AIResponse? {
         responses.first { $0.id == id }
+    }
+
+    // MARK: - Export
+
+    func exportToMarkdown() -> String {
+        var markdown = "# Queen Mama - AI Response History\n\n"
+        markdown += "Exported on \(Date().formatted(date: .long, time: .shortened))\n\n"
+        markdown += "---\n\n"
+
+        for response in responses.reversed() {
+            let formatter = DateFormatter()
+            formatter.dateStyle = .medium
+            formatter.timeStyle = .short
+
+            markdown += "## \(response.type.rawValue)\n\n"
+            markdown += "**Time:** \(formatter.string(from: response.timestamp))  \n"
+            markdown += "**Provider:** \(response.provider.displayName)  \n"
+            if let latency = response.latencyMs {
+                markdown += "**Latency:** \(latency)ms  \n"
+            }
+            markdown += "\n"
+            markdown += response.content
+            markdown += "\n\n---\n\n"
+        }
+
+        return markdown
     }
 }

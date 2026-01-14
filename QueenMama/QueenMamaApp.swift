@@ -10,7 +10,8 @@ struct QueenMamaApp: App {
         let schema = Schema([
             Session.self,
             TranscriptEntry.self,
-            Mode.self
+            Mode.self,
+            AIResponse.self
         ])
         let modelConfiguration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
 

@@ -32,6 +32,7 @@ final class KeychainManager {
 
     enum APIKeyType: String, CaseIterable {
         case deepgram = "deepgram_api_key"
+        case assemblyai = "assemblyai_api_key"
         case openai = "openai_api_key"
         case anthropic = "anthropic_api_key"
         case gemini = "gemini_api_key"
@@ -39,6 +40,7 @@ final class KeychainManager {
         var displayName: String {
             switch self {
             case .deepgram: return "Deepgram"
+            case .assemblyai: return "AssemblyAI"
             case .openai: return "OpenAI"
             case .anthropic: return "Anthropic"
             case .gemini: return "Google Gemini"

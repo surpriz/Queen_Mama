@@ -99,11 +99,13 @@ struct GeneralSettingsView: View {
 
 struct APIKeysSettingsView: View {
     @State private var deepgramKey = ""
+    @State private var assemblyAIKey = ""
     @State private var openAIKey = ""
     @State private var anthropicKey = ""
     @State private var geminiKey = ""
 
     @State private var showDeepgram = false
+    @State private var showAssemblyAI = false
     @State private var showOpenAI = false
     @State private var showAnthropic = false
     @State private var showGemini = false
@@ -114,13 +116,21 @@ struct APIKeysSettingsView: View {
 
     var body: some View {
         Form {
-            Section("Speech-to-Text") {
+            Section("Speech-to-Text (at least one required)") {
                 APIKeyField(
                     title: "Deepgram",
                     key: $deepgramKey,
                     showKey: $showDeepgram,
                     isConfigured: keychain.hasAPIKey(for: .deepgram),
                     onSave: { saveKey(.deepgram, deepgramKey) }
+                )
+
+                APIKeyField(
+                    title: "AssemblyAI",
+                    key: $assemblyAIKey,
+                    showKey: $showAssemblyAI,
+                    isConfigured: keychain.hasAPIKey(for: .assemblyai),
+                    onSave: { saveKey(.assemblyai, assemblyAIKey) }
                 )
             }
 
@@ -163,6 +173,7 @@ struct APIKeysSettingsView: View {
 
     private func loadKeys() {
         deepgramKey = keychain.getAPIKey(for: .deepgram) ?? ""
+        assemblyAIKey = keychain.getAPIKey(for: .assemblyai) ?? ""
         openAIKey = keychain.getAPIKey(for: .openai) ?? ""
         anthropicKey = keychain.getAPIKey(for: .anthropic) ?? ""
         geminiKey = keychain.getAPIKey(for: .gemini) ?? ""
@@ -289,8 +300,15 @@ struct ModelsSettingsView: View {
                 ModelRow(
                     provider: "Deepgram",
                     model: "nova-3",
-                    description: "Real-time speech recognition (French)",
+                    description: "Real-time speech recognition (multi-language)",
                     isConfigured: keychain.hasAPIKey(for: .deepgram)
+                )
+
+                ModelRow(
+                    provider: "AssemblyAI",
+                    model: "realtime",
+                    description: "Real-time speech recognition (multi-language, fallback)",
+                    isConfigured: keychain.hasAPIKey(for: .assemblyai)
                 )
             }
 

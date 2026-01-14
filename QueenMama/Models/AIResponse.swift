@@ -1,12 +1,14 @@
 import Foundation
+import SwiftData
 
-struct AIResponse: Identifiable, Equatable {
-    let id: UUID
-    let type: ResponseType
-    let content: String
-    let timestamp: Date
-    let provider: AIProviderType
-    let latencyMs: Int?
+@Model
+final class AIResponse: Identifiable {
+    @Attribute(.unique) var id: UUID
+    var typeRaw: String
+    var content: String
+    var timestamp: Date
+    var providerRaw: String
+    var latencyMs: Int?
 
     init(
         id: UUID = UUID(),
@@ -17,11 +19,20 @@ struct AIResponse: Identifiable, Equatable {
         latencyMs: Int? = nil
     ) {
         self.id = id
-        self.type = type
+        self.typeRaw = type.rawValue
         self.content = content
         self.timestamp = timestamp
-        self.provider = provider
+        self.providerRaw = provider.rawValue
         self.latencyMs = latencyMs
+    }
+
+    // Computed properties for easier access
+    var type: ResponseType {
+        ResponseType(rawValue: typeRaw) ?? .assist
+    }
+
+    var provider: AIProviderType {
+        AIProviderType(rawValue: providerRaw) ?? .openai
     }
 
     enum ResponseType: String, CaseIterable {

@@ -10,6 +10,7 @@ struct OverlayContentView: View {
     @State private var isSmartModeEnabled = false
     @State private var lastScreenshotTime: Date?
     @State private var hasScreenshot = false
+    @AppStorage("enableScreenCapture") private var enableScreenCapture = true
 
     var body: some View {
         VStack(spacing: 0) {
@@ -17,6 +18,7 @@ struct OverlayContentView: View {
             PillHeaderView(
                 isExpanded: overlayController.isExpanded,
                 isSessionActive: appState.isSessionActive,
+                enableScreenCapture: $enableScreenCapture,
                 onToggleExpand: { overlayController.toggleExpanded() },
                 onHide: { overlayController.hideOverlay() },
                 onStop: { Task { await appState.stopSession() } }
@@ -32,6 +34,7 @@ struct OverlayContentView: View {
                     isSmartModeEnabled: $isSmartModeEnabled,
                     hasScreenshot: hasScreenshot,
                     lastScreenshotTime: lastScreenshotTime,
+                    enableScreenCapture: enableScreenCapture,
                     onSubmit: handleSubmit
                 )
                 .transition(.opacity.combined(with: .move(edge: .top)))
@@ -55,11 +58,19 @@ struct OverlayContentView: View {
 
         Task {
             do {
-                let screenshot = try? await appState.screenService.captureScreenshot()
+                // Only capture screenshot if enabled
+                let screenshot: Data? = if enableScreenCapture {
+                    try? await appState.screenService.captureScreenshot()
+                } else {
+                    nil
+                }
+
                 hasScreenshot = screenshot != nil
                 if hasScreenshot {
                     lastScreenshotTime = Date()
                 }
+
+                print("[Overlay] Screen capture \(enableScreenCapture ? "enabled" : "disabled") - Screenshot: \(hasScreenshot ? "captured" : "not captured")")
 
                 switch selectedTab {
                 case .assist:
@@ -127,6 +138,7 @@ enum TabItem: String, CaseIterable {
 struct PillHeaderView: View {
     let isExpanded: Bool
     let isSessionActive: Bool
+    @Binding var enableScreenCapture: Bool
     let onToggleExpand: () -> Void
     let onHide: () -> Void
     let onStop: () -> Void
@@ -153,6 +165,20 @@ struct PillHeaderView: View {
                 .clipShape(Capsule())
             }
             .buttonStyle(.plain)
+
+            Spacer()
+
+            // Screen Capture Toggle
+            Button(action: { enableScreenCapture.toggle() }) {
+                Image(systemName: enableScreenCapture ? "camera.fill" : "camera.slash.fill")
+                    .font(.system(size: 14))
+                    .foregroundColor(enableScreenCapture ? .green : .secondary)
+                    .frame(width: 28, height: 28)
+                    .background(Color.gray.opacity(0.2))
+                    .clipShape(Circle())
+            }
+            .buttonStyle(.plain)
+            .help(enableScreenCapture ? "Screen capture enabled (click to disable)" : "Screen capture disabled (click to enable)")
 
             // Stop Button (when session active)
             if isSessionActive {
@@ -183,6 +209,7 @@ struct ExpandedContentView: View {
     @Binding var isSmartModeEnabled: Bool
     let hasScreenshot: Bool
     let lastScreenshotTime: Date?
+    let enableScreenCapture: Bool
     let onSubmit: () -> Void
 
     var body: some View {
@@ -202,14 +229,74 @@ struct ExpandedContentView: View {
                 lastScreenshotTime: lastScreenshotTime
             )
 
-            // Screen-only mode hint
-            if !appState.isSessionActive {
-                HStack {
-                    Image(systemName: "display")
-                        .foregroundColor(.orange)
-                    Text("Mode écran seul - Pas de session audio active")
+            // Status hints
+            VStack(spacing: 4) {
+                // Screen-only mode hint
+                if !appState.isSessionActive {
+                    HStack {
+                        Image(systemName: "display")
+                            .foregroundColor(.orange)
+                        Text("Mode écran seul - Pas de session audio active")
+                            .font(.caption)
+                            .foregroundColor(.orange)
+                    }
+                }
+
+                // Screen capture status
+                HStack(spacing: 6) {
+                    Image(systemName: enableScreenCapture ? "camera.fill" : "camera.slash.fill")
+                        .font(.system(size: 11))
+                        .foregroundColor(enableScreenCapture ? .green : .secondary)
+                    Text(enableScreenCapture ? "Capture d'écran activée" : "Capture d'écran désactivée")
                         .font(.caption)
-                        .foregroundColor(.orange)
+                        .foregroundColor(enableScreenCapture ? .green : .secondary)
+                }
+            }
+
+            // History management buttons
+            if !aiService.responses.isEmpty {
+                HStack(spacing: 8) {
+                    Button(action: {
+                        let markdown = aiService.exportToMarkdown()
+                        NSPasteboard.general.clearContents()
+                        NSPasteboard.general.setString(markdown, forType: .string)
+                    }) {
+                        HStack(spacing: 4) {
+                            Image(systemName: "square.and.arrow.up")
+                                .font(.system(size: 11))
+                            Text("Export")
+                                .font(.system(size: 11))
+                        }
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 4)
+                        .background(Color.blue.opacity(0.2))
+                        .foregroundColor(.blue)
+                        .clipShape(RoundedRectangle(cornerRadius: 4))
+                    }
+                    .buttonStyle(.plain)
+
+                    Button(action: {
+                        aiService.clearResponses()
+                    }) {
+                        HStack(spacing: 4) {
+                            Image(systemName: "trash")
+                                .font(.system(size: 11))
+                            Text("Clear")
+                                .font(.system(size: 11))
+                        }
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 4)
+                        .background(Color.red.opacity(0.2))
+                        .foregroundColor(.red)
+                        .clipShape(RoundedRectangle(cornerRadius: 4))
+                    }
+                    .buttonStyle(.plain)
+
+                    Spacer()
+
+                    Text("\(aiService.responses.count) responses")
+                        .font(.caption2)
+                        .foregroundColor(.secondary)
                 }
             }
 
