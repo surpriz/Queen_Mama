@@ -18,12 +18,14 @@ final class TranscriptionService: ObservableObject {
     var onError: ((Error) -> Void)?
 
     // MARK: - Providers
+    // Fallback order: Deepgram Nova-3 -> AssemblyAI Universal -> Deepgram Flux
 
-    private let deepgramProvider = DeepgramProvider()
-    private let assemblyAIProvider = AssemblyAIProvider()
+    private let deepgramProvider = DeepgramProvider()           // Nova-3 (primary)
+    private let assemblyAIProvider = AssemblyAIProvider()       // Universal-Streaming (fallback)
+    private let deepgramFluxProvider = DeepgramFluxProvider()   // Flux (backup)
 
     private var providers: [TranscriptionProvider] {
-        [deepgramProvider, assemblyAIProvider]
+        [deepgramProvider, assemblyAIProvider, deepgramFluxProvider]
     }
 
     private var configuredProviders: [TranscriptionProvider] {

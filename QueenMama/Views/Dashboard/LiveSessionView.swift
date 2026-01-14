@@ -336,8 +336,9 @@ struct AIProviderStatusBadge: View {
 
     private var providerColor: Color {
         switch provider {
-        case .openai: return Color.green
         case .anthropic: return Color.orange
+        case .grok: return Color.purple
+        case .openai: return Color.green
         case .gemini: return Color.blue
         }
     }

@@ -1,15 +1,11 @@
 import Foundation
 
-final class OpenAIProvider: BaseAIProvider, AIProvider {
+/// Dedicated provider for GPT-5.2 - used as fallback in Smart mode
+final class OpenAIGPT5Provider: BaseAIProvider, AIProvider {
     let providerType: AIProviderType = .openai
 
     private let baseURL = "https://api.openai.com/v1/chat/completions"
-    private let standardModel = "gpt-4o-mini"
-    private let smartModel = "o3"  // OpenAI o3 reasoning model for Smart Mode
-
-    private func getModel(for context: AIContext) -> String {
-        context.smartMode ? smartModel : standardModel
-    }
+    private let model = "gpt-5.2"  // GPT-5.2 flagship model
 
     var isConfigured: Bool {
         keychain.hasAPIKey(for: .openai)
@@ -17,11 +13,11 @@ final class OpenAIProvider: BaseAIProvider, AIProvider {
 
     func generateResponse(context: AIContext) async throws -> AIResponse {
         guard let apiKey = keychain.getAPIKey(for: .openai) else {
-            print("[OpenAI] No API key found in keychain!")
+            print("[GPT-5.2] No API key found in keychain!")
             throw AIProviderError.noAPIKey
         }
 
-        print("[OpenAI] Using API key: \(apiKey.prefix(20))...")
+        print("[GPT-5.2] Using model: \(model)")
         let startTime = Date()
 
         let requestBody = try buildRequestBody(context: context, stream: false)
@@ -35,7 +31,7 @@ final class OpenAIProvider: BaseAIProvider, AIProvider {
             body: requestBody
         )
 
-        let response = try JSONDecoder().decode(OpenAIResponse.self, from: data)
+        let response = try JSONDecoder().decode(GPT5Response.self, from: data)
 
         guard let content = response.choices?.first?.message?.content else {
             throw AIProviderError.invalidResponse
@@ -74,18 +70,17 @@ final class OpenAIProvider: BaseAIProvider, AIProvider {
                     let (asyncBytes, response) = try await URLSession.shared.bytes(for: request)
 
                     guard let httpResponse = response as? HTTPURLResponse else {
-                        print("[OpenAI] Invalid response type")
+                        print("[GPT-5.2] Invalid response type")
                         continuation.finish(throwing: AIProviderError.invalidResponse)
                         return
                     }
 
                     if httpResponse.statusCode != 200 {
-                        // Try to read the error response
                         var errorBody = ""
                         for try await line in asyncBytes.lines {
                             errorBody += line
                         }
-                        print("[OpenAI] Streaming error \(httpResponse.statusCode): \(errorBody.prefix(500))")
+                        print("[GPT-5.2] Streaming error \(httpResponse.statusCode): \(errorBody.prefix(500))")
                         continuation.finish(throwing: AIProviderError.requestFailed(
                             NSError(domain: "HTTP", code: httpResponse.statusCode, userInfo: [NSLocalizedDescriptionKey: errorBody])
                         ))
@@ -101,7 +96,7 @@ final class OpenAIProvider: BaseAIProvider, AIProvider {
                             }
 
                             if let data = jsonString.data(using: .utf8),
-                               let chunk = try? JSONDecoder().decode(OpenAIStreamChunk.self, from: data),
+                               let chunk = try? JSONDecoder().decode(GPT5StreamChunk.self, from: data),
                                let content = chunk.choices?.first?.delta?.content {
                                 continuation.yield(content)
                             }
@@ -142,10 +137,10 @@ final class OpenAIProvider: BaseAIProvider, AIProvider {
         }
 
         let requestDict: [String: Any] = [
-            "model": getModel(for: context),
+            "model": model,
             "messages": messages,
-            "max_tokens": context.smartMode ? 4096 : 2048,  // More tokens for Smart Mode
-            "temperature": context.smartMode ? 0.5 : 0.7,  // Slightly more deterministic for Smart Mode
+            "max_tokens": 4096,  // Smart mode uses more tokens
+            "temperature": 0.5,
             "stream": stream
         ]
 
@@ -155,7 +150,7 @@ final class OpenAIProvider: BaseAIProvider, AIProvider {
 
 // MARK: - Response Models
 
-private struct OpenAIResponse: Codable {
+private struct GPT5Response: Codable {
     let id: String?
     let object: String?
     let created: Int?
@@ -193,7 +188,7 @@ private struct OpenAIResponse: Codable {
     }
 }
 
-private struct OpenAIStreamChunk: Codable {
+private struct GPT5StreamChunk: Codable {
     let id: String?
     let object: String?
     let created: Int?

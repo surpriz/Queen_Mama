@@ -1,8 +1,9 @@
 import Foundation
 
 enum TranscriptionProviderType: String, CaseIterable {
-    case deepgram = "Deepgram"
-    case assemblyai = "AssemblyAI"
+    case deepgram = "Deepgram Nova-3"
+    case assemblyai = "AssemblyAI Universal"
+    case deepgramFlux = "Deepgram Flux"
 
     var displayName: String { rawValue }
 }
@@ -509,4 +510,206 @@ private struct AssemblyAIResponse: Codable {
         case audioEnd = "audio_end"
         case created
     }
+}
+
+// MARK: - Deepgram Flux Provider
+
+@MainActor
+final class DeepgramFluxProvider: TranscriptionProvider {
+    let providerType: TranscriptionProviderType = .deepgramFlux
+
+    var isConnected: Bool = false
+    var onTranscript: ((String) -> Void)?
+    var onInterimTranscript: ((String) -> Void)?
+    var onError: ((Error) -> Void)?
+
+    private let keychain = KeychainManager.shared
+    private var webSocketTask: URLSessionWebSocketTask?
+    private var audioBytesSent = 0
+
+    // Deepgram Flux configuration - uses v2 endpoint
+    private let baseURL = "wss://api.deepgram.com/v2/listen"
+    private let model = "flux-general-en"
+
+    var isConfigured: Bool {
+        // Flux uses the same API key as Nova-3
+        keychain.hasAPIKey(for: .deepgram)
+    }
+
+    func connect() async throws {
+        print("[Deepgram Flux] Connecting...")
+
+        // Clean up existing connection
+        if webSocketTask != nil {
+            webSocketTask?.cancel(with: .goingAway, reason: nil)
+            webSocketTask = nil
+            try? await Task.sleep(nanoseconds: 100_000_000) // 100ms
+        }
+
+        guard let apiKey = keychain.getAPIKey(for: .deepgram) else {
+            print("[Deepgram Flux] No API key found!")
+            throw TranscriptionError.noAPIKey
+        }
+
+        print("[Deepgram Flux] Connecting with API key: \(apiKey.prefix(10))...")
+
+        // Build WebSocket URL with Flux-specific parameters
+        var components = URLComponents(string: baseURL)!
+        components.queryItems = [
+            URLQueryItem(name: "model", value: model),
+            URLQueryItem(name: "smart_format", value: "true"),
+            URLQueryItem(name: "interim_results", value: "true"),
+            URLQueryItem(name: "punctuate", value: "true"),
+            URLQueryItem(name: "encoding", value: "linear16"),
+            URLQueryItem(name: "sample_rate", value: "16000"),
+            URLQueryItem(name: "channels", value: "1")
+        ]
+
+        guard let url = components.url else {
+            throw TranscriptionError.connectionFailed(NSError(domain: "Invalid URL", code: -1))
+        }
+
+        var request = URLRequest(url: url)
+        request.setValue("Token \(apiKey)", forHTTPHeaderField: "Authorization")
+
+        let config = URLSessionConfiguration.default
+        config.timeoutIntervalForRequest = 30
+        config.timeoutIntervalForResource = 300
+
+        let session = URLSession(configuration: config)
+        webSocketTask = session.webSocketTask(with: request)
+        webSocketTask?.resume()
+
+        isConnected = true
+        audioBytesSent = 0
+
+        print("[Deepgram Flux] WebSocket connected successfully!")
+
+        // Start receiving messages
+        receiveMessages()
+    }
+
+    func disconnect() {
+        print("[Deepgram Flux] Disconnecting...")
+        webSocketTask?.cancel(with: .normalClosure, reason: nil)
+        webSocketTask = nil
+        isConnected = false
+        audioBytesSent = 0
+    }
+
+    func sendAudioData(_ data: Data) async throws {
+        guard isConnected, let task = webSocketTask else {
+            throw TranscriptionError.disconnected
+        }
+
+        audioBytesSent += data.count
+        if audioBytesSent % 50000 < data.count {
+            print("[Deepgram Flux] Sent \(audioBytesSent / 1000)KB of audio")
+        }
+
+        let message = URLSessionWebSocketTask.Message.data(data)
+        try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
+            task.send(message) { error in
+                if let error {
+                    continuation.resume(throwing: error)
+                } else {
+                    continuation.resume()
+                }
+            }
+        }
+    }
+
+    // MARK: - Private Methods
+
+    private func receiveMessages() {
+        guard let task = webSocketTask else { return }
+
+        task.receive { [weak self] result in
+            guard let self = self else { return }
+
+            switch result {
+            case .success(let message):
+                Task { @MainActor in
+                    self.handleMessage(message)
+                }
+                if self.isConnected {
+                    self.receiveMessages()
+                }
+            case .failure(let error):
+                Task { @MainActor in
+                    self.handleError(error)
+                }
+            }
+        }
+    }
+
+    private func handleMessage(_ message: URLSessionWebSocketTask.Message) {
+        switch message {
+        case .string(let text):
+            parseTranscriptionResponse(text)
+        case .data(let data):
+            if let text = String(data: data, encoding: .utf8) {
+                parseTranscriptionResponse(text)
+            }
+        @unknown default:
+            print("[Deepgram Flux] Unknown message type received")
+        }
+    }
+
+    private func parseTranscriptionResponse(_ jsonString: String) {
+        guard let data = jsonString.data(using: .utf8) else { return }
+
+        do {
+            let response = try JSONDecoder().decode(DeepgramFluxResponse.self, from: data)
+
+            guard let alternative = response.channel?.alternatives?.first else { return }
+
+            let transcript = alternative.transcript ?? ""
+
+            if response.isFinal == true {
+                if !transcript.isEmpty {
+                    print("[Deepgram Flux] FINAL: \"\(transcript)\"")
+                    onTranscript?(transcript)
+                }
+            } else {
+                if !transcript.isEmpty {
+                    onInterimTranscript?(transcript)
+                }
+            }
+        } catch {
+            // Ignore parsing errors for non-transcript messages
+            if jsonString.contains("transcript") {
+                print("[Deepgram Flux] Parse error: \(error)")
+            }
+        }
+    }
+
+    private func handleError(_ error: Error) {
+        print("[Deepgram Flux] Error: \(error.localizedDescription)")
+        isConnected = false
+        onError?(error)
+    }
+}
+
+// MARK: - Deepgram Flux Response Models
+
+private struct DeepgramFluxResponse: Codable {
+    let type: String?
+    let channel: FluxChannel?
+    let isFinal: Bool?
+
+    enum CodingKeys: String, CodingKey {
+        case type
+        case channel
+        case isFinal = "is_final"
+    }
+}
+
+private struct FluxChannel: Codable {
+    let alternatives: [FluxAlternative]?
+}
+
+private struct FluxAlternative: Codable {
+    let transcript: String?
+    let confidence: Double?
 }

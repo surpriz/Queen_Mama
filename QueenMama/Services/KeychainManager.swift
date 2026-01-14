@@ -36,6 +36,7 @@ final class KeychainManager {
         case openai = "openai_api_key"
         case anthropic = "anthropic_api_key"
         case gemini = "gemini_api_key"
+        case xai = "xai_api_key"
 
         var displayName: String {
             switch self {
@@ -44,6 +45,7 @@ final class KeychainManager {
             case .openai: return "OpenAI"
             case .anthropic: return "Anthropic"
             case .gemini: return "Google Gemini"
+            case .xai: return "xAI (Grok)"
             }
         }
     }

@@ -1,46 +1,12 @@
 import Foundation
 
-final class AnthropicProvider: BaseAIProvider, AIProvider {
+/// Dedicated provider for Claude Haiku 4.5 - used as fallback in Non-Smart mode
+final class AnthropicHaikuProvider: BaseAIProvider, AIProvider {
     let providerType: AIProviderType = .anthropic
 
     private let baseURL = "https://api.anthropic.com/v1/messages"
-    private let model = "claude-sonnet-4-5-20250929"  // Sonnet 4.5 for both modes
+    private let model = "claude-haiku-4-5-20251001"  // Haiku 4.5 for fast, cost-effective responses
     private let apiVersion = "2023-06-01"
-    private let thinkingBetaHeader = "interleaved-thinking-2025-05-14"  // Extended thinking for Smart Mode
-    private let promptCachingBetaHeader = "prompt-caching-2024-07-31"  // Prompt caching for cost optimization
-
-    private func getModel(for context: AIContext) -> String {
-        model  // Same model, Smart Mode uses extended thinking header instead
-    }
-
-    /// Get optimized max_tokens based on response type
-    private func getMaxTokens(for context: AIContext) -> Int {
-        let baseTokens: Int
-        switch context.responseType {
-        case .assist:     baseTokens = 1024  // General help, moderate length
-        case .whatToSay:  baseTokens = 512   // Just 2-3 phrases
-        case .followUp:   baseTokens = 512   // 3-5 questions
-        case .recap:      baseTokens = 1536  // Summaries need more
-        case .custom:     baseTokens = 1024  // Default for custom
-        }
-        // Smart mode gets 50% more (not 2x) for cost efficiency
-        return context.smartMode ? Int(Double(baseTokens) * 1.5) : baseTokens
-    }
-
-    private func buildHeaders(apiKey: String, smartMode: Bool) -> [String: String] {
-        var headers = [
-            "x-api-key": apiKey,
-            "anthropic-version": apiVersion,
-            "Content-Type": "application/json"
-        ]
-        // Always enable prompt caching, combine with thinking header if smart mode
-        var betaHeaders: [String] = [promptCachingBetaHeader]
-        if smartMode {
-            betaHeaders.append(thinkingBetaHeader)
-        }
-        headers["anthropic-beta"] = betaHeaders.joined(separator: ",")
-        return headers
-    }
 
     var isConfigured: Bool {
         keychain.hasAPIKey(for: .anthropic)
@@ -57,11 +23,15 @@ final class AnthropicProvider: BaseAIProvider, AIProvider {
 
         let data = try await makeRequest(
             url: URL(string: baseURL)!,
-            headers: buildHeaders(apiKey: apiKey, smartMode: context.smartMode),
+            headers: [
+                "x-api-key": apiKey,
+                "anthropic-version": apiVersion,
+                "Content-Type": "application/json"
+            ],
             body: requestBody
         )
 
-        let response = try JSONDecoder().decode(AnthropicResponse.self, from: data)
+        let response = try JSONDecoder().decode(AnthropicHaikuResponse.self, from: data)
 
         guard let content = response.content?.first?.text else {
             throw AIProviderError.invalidResponse
@@ -90,7 +60,11 @@ final class AnthropicProvider: BaseAIProvider, AIProvider {
 
                     let request = self.createStreamingRequest(
                         url: URL(string: self.baseURL)!,
-                        headers: self.buildHeaders(apiKey: apiKey, smartMode: context.smartMode),
+                        headers: [
+                            "x-api-key": apiKey,
+                            "anthropic-version": self.apiVersion,
+                            "Content-Type": "application/json"
+                        ],
                         body: requestBody
                     )
 
@@ -107,7 +81,7 @@ final class AnthropicProvider: BaseAIProvider, AIProvider {
                             let jsonString = String(line.dropFirst(6))
 
                             if let data = jsonString.data(using: .utf8),
-                               let event = try? JSONDecoder().decode(AnthropicStreamEvent.self, from: data) {
+                               let event = try? JSONDecoder().decode(AnthropicHaikuStreamEvent.self, from: data) {
                                 if event.type == "content_block_delta",
                                    let delta = event.delta,
                                    delta.type == "text_delta",
@@ -153,8 +127,8 @@ final class AnthropicProvider: BaseAIProvider, AIProvider {
         }
 
         let requestDict: [String: Any] = [
-            "model": getModel(for: context),
-            "max_tokens": context.smartMode ? 4096 : 2048,  // More tokens for Smart Mode
+            "model": model,
+            "max_tokens": 2048,  // Haiku uses standard token limit
             "system": context.systemPrompt,
             "messages": [
                 ["role": "user", "content": content]
@@ -168,7 +142,7 @@ final class AnthropicProvider: BaseAIProvider, AIProvider {
 
 // MARK: - Response Models
 
-private struct AnthropicResponse: Codable {
+private struct AnthropicHaikuResponse: Codable {
     let id: String?
     let type: String?
     let role: String?
@@ -205,12 +179,12 @@ private struct AnthropicResponse: Codable {
     }
 }
 
-private struct AnthropicStreamEvent: Codable {
+private struct AnthropicHaikuStreamEvent: Codable {
     let type: String?
     let index: Int?
     let delta: Delta?
     let contentBlock: ContentBlock?
-    let message: AnthropicResponse?
+    let message: AnthropicHaikuResponse?
 
     enum CodingKeys: String, CodingKey {
         case type

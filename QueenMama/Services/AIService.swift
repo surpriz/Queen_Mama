@@ -17,16 +17,38 @@ final class AIService: ObservableObject {
 
     // MARK: - Providers
 
-    private let openAIProvider = OpenAIProvider()
-    private let anthropicProvider = AnthropicProvider()
-    private let geminiProvider = GeminiProvider()
+    // Primary providers (used in both modes with different models)
+    private let anthropicProvider = AnthropicProvider()      // Sonnet 4.5 / Sonnet 4.5 Thinking
+    private let grokProvider = GrokProvider()                // Grok 4.1 Fast
+    private let openAIProvider = OpenAIProvider()            // GPT-4o mini / o3
 
-    private var providers: [AIProvider] {
-        [openAIProvider, anthropicProvider, geminiProvider]
+    // Mode-specific fallback providers
+    private let anthropicHaikuProvider = AnthropicHaikuProvider()  // Haiku 4.5 (Non-Smart only)
+    private let openAIGPT5Provider = OpenAIGPT5Provider()          // GPT-5.2 (Smart only)
+    private let geminiProvider = GeminiProvider()                   // Backup final
+
+    // Fallback order for NON-Smart mode:
+    // 1. Sonnet 4.5 -> 2. Grok 4.1 Fast -> 3. GPT-4o mini -> 4. Haiku 4.5 -> 5. Gemini (backup)
+    private var standardProviders: [AIProvider] {
+        [anthropicProvider, grokProvider, openAIProvider, anthropicHaikuProvider, geminiProvider]
+            .filter { $0.isConfigured }
+    }
+
+    // Fallback order for SMART mode:
+    // 1. Sonnet 4.5 Thinking -> 2. Grok 4.1 Fast Reasoning -> 3. o3 -> 4. GPT-5.2 -> 5. Gemini (backup)
+    private var smartProviders: [AIProvider] {
+        [anthropicProvider, grokProvider, openAIProvider, openAIGPT5Provider, geminiProvider]
+            .filter { $0.isConfigured }
+    }
+
+    // Dynamic provider selection based on mode
+    private func getProviders(smartMode: Bool) -> [AIProvider] {
+        smartMode ? smartProviders : standardProviders
     }
 
     private var configuredProviders: [AIProvider] {
-        providers.filter { $0.isConfigured }
+        // Default to standard providers for backward compatibility
+        standardProviders
     }
 
     // MARK: - Initialization
@@ -95,18 +117,23 @@ final class AIService: ObservableObject {
             smartMode: smartMode ?? ConfigurationManager.shared.smartModeEnabled
         )
 
-        // Try each configured provider in order
+        // Try each configured provider in order based on mode
         var lastError: Error?
+        let useSmartMode = smartMode ?? ConfigurationManager.shared.smartModeEnabled
+        let providers = getProviders(smartMode: useSmartMode)
 
-        for provider in configuredProviders {
+        print("[AIService] Using \(useSmartMode ? "Smart" : "Standard") mode providers: \(providers.map { $0.providerType.displayName })")
+
+        for provider in providers {
             do {
+                print("[AIService] Trying provider: \(provider.providerType.displayName)")
                 let response = try await provider.generateResponse(context: context)
                 lastProvider = provider.providerType
                 responses.insert(response, at: 0)
                 return response
             } catch {
                 lastError = error
-                print("Provider \(provider.providerType.displayName) failed: \(error)")
+                print("[AIService] Provider \(provider.providerType.displayName) failed: \(error)")
                 continue
             }
         }
@@ -125,9 +152,11 @@ final class AIService: ObservableObject {
         AsyncThrowingStream { continuation in
             Task { @MainActor in
                 let isSmartMode = smartMode ?? ConfigurationManager.shared.smartModeEnabled
+                let providers = self.getProviders(smartMode: isSmartMode)
+
                 print("[AIService] Starting streaming response for type: \(type.rawValue)")
                 print("[AIService] Smart Mode: \(isSmartMode)")
-                print("[AIService] Configured providers: \(self.configuredProviders.map { $0.providerType.displayName })")
+                print("[AIService] Using providers: \(providers.map { $0.providerType.displayName })")
                 print("[AIService] Transcript length: \(transcript.count) chars")
 
                 self.isProcessing = true
@@ -145,7 +174,7 @@ final class AIService: ObservableObject {
 
                 var succeeded = false
 
-                for provider in self.configuredProviders {
+                for provider in providers {
                     print("[AIService] Trying provider: \(provider.providerType.displayName)")
                     do {
                         for try await chunk in provider.generateStreamingResponse(context: context) {

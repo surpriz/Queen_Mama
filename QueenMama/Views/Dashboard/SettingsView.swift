@@ -542,12 +542,14 @@ struct ModernAPIKeysSettingsView: View {
     @State private var assemblyAIKey = ""
     @State private var openAIKey = ""
     @State private var anthropicKey = ""
+    @State private var xaiKey = ""
     @State private var geminiKey = ""
 
     @State private var showDeepgram = false
     @State private var showAssemblyAI = false
     @State private var showOpenAI = false
     @State private var showAnthropic = false
+    @State private var showXAI = false
     @State private var showGemini = false
 
     @State private var saveMessage = ""
@@ -594,7 +596,7 @@ struct ModernAPIKeysSettingsView: View {
                 VStack(spacing: QMDesign.Spacing.md) {
                     ModernAPIKeyField(
                         title: "OpenAI",
-                        subtitle: "GPT-4o with vision",
+                        subtitle: "GPT-4o mini / o3",
                         key: $openAIKey,
                         showKey: $showOpenAI,
                         isConfigured: keychain.hasAPIKey(for: .openai),
@@ -606,7 +608,7 @@ struct ModernAPIKeysSettingsView: View {
 
                     ModernAPIKeyField(
                         title: "Anthropic",
-                        subtitle: "Claude Sonnet 4",
+                        subtitle: "Claude Sonnet 4.5",
                         key: $anthropicKey,
                         showKey: $showAnthropic,
                         isConfigured: keychain.hasAPIKey(for: .anthropic),
@@ -617,8 +619,20 @@ struct ModernAPIKeysSettingsView: View {
                         .background(QMDesign.Colors.borderSubtle)
 
                     ModernAPIKeyField(
+                        title: "xAI (Grok)",
+                        subtitle: "Grok 4.1 Fast",
+                        key: $xaiKey,
+                        showKey: $showXAI,
+                        isConfigured: keychain.hasAPIKey(for: .xai),
+                        onSave: { saveKey(.xai, xaiKey) }
+                    )
+
+                    Divider()
+                        .background(QMDesign.Colors.borderSubtle)
+
+                    ModernAPIKeyField(
                         title: "Google Gemini",
-                        subtitle: "Gemini 2.0 Flash",
+                        subtitle: "Gemini 2.0 Flash (backup)",
                         key: $geminiKey,
                         showKey: $showGemini,
                         isConfigured: keychain.hasAPIKey(for: .gemini),
@@ -651,6 +665,7 @@ struct ModernAPIKeysSettingsView: View {
         assemblyAIKey = keychain.getAPIKey(for: .assemblyai) ?? ""
         openAIKey = keychain.getAPIKey(for: .openai) ?? ""
         anthropicKey = keychain.getAPIKey(for: .anthropic) ?? ""
+        xaiKey = keychain.getAPIKey(for: .xai) ?? ""
         geminiKey = keychain.getAPIKey(for: .gemini) ?? ""
     }
 

@@ -37,6 +37,9 @@
 		00000000000000000000001C /* OverlayPopupMenu.swift in Sources */ = {isa = PBXBuildFile; fileRef = 10000000000000000000001E /* OverlayPopupMenu.swift */; };
 		5C8B7EA42F17D57E00DAE824 /* TranscriptionProviders.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5C8B7EA32F17D57E00DAE824 /* TranscriptionProviders.swift */; };
 		00000000000000000000001D /* OnboardingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 10000000000000000000001F /* OnboardingView.swift */; };
+		00000000000000000000001E /* GrokProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 100000000000000000000020 /* GrokProvider.swift */; };
+		00000000000000000000001F /* AnthropicHaikuProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 100000000000000000000021 /* AnthropicHaikuProvider.swift */; };
+		000000000000000000000020 /* OpenAIGPT5Provider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 100000000000000000000022 /* OpenAIGPT5Provider.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -73,6 +76,9 @@
 		10000000000000000000001D /* AutoAnswerService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AutoAnswerService.swift; sourceTree = "<group>"; };
 		10000000000000000000001E /* OverlayPopupMenu.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OverlayPopupMenu.swift; sourceTree = "<group>"; };
 		10000000000000000000001F /* OnboardingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingView.swift; sourceTree = "<group>"; };
+		100000000000000000000020 /* GrokProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GrokProvider.swift; sourceTree = "<group>"; };
+		100000000000000000000021 /* AnthropicHaikuProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnthropicHaikuProvider.swift; sourceTree = "<group>"; };
+		100000000000000000000022 /* OpenAIGPT5Provider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OpenAIGPT5Provider.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -178,7 +184,10 @@
 				10000000000000000000000C /* AIProvider.swift */,
 				10000000000000000000000D /* OpenAIProvider.swift */,
 				10000000000000000000000E /* AnthropicProvider.swift */,
+				100000000000000000000021 /* AnthropicHaikuProvider.swift */,
 				10000000000000000000000F /* GeminiProvider.swift */,
+				100000000000000000000020 /* GrokProvider.swift */,
+				100000000000000000000022 /* OpenAIGPT5Provider.swift */,
 			);
 			path = Providers;
 			sourceTree = "<group>";
@@ -311,6 +320,9 @@
 				00000000000000000000001B /* AutoAnswerService.swift in Sources */,
 				00000000000000000000001C /* OverlayPopupMenu.swift in Sources */,
 				00000000000000000000001D /* OnboardingView.swift in Sources */,
+				00000000000000000000001E /* GrokProvider.swift in Sources */,
+				00000000000000000000001F /* AnthropicHaikuProvider.swift in Sources */,
+				000000000000000000000020 /* OpenAIGPT5Provider.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

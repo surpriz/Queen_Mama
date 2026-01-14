@@ -94,16 +94,18 @@ final class AIResponse: Identifiable {
 }
 
 enum AIProviderType: String, CaseIterable {
-    case openai = "OpenAI"
     case anthropic = "Anthropic"
+    case grok = "xAI Grok"
+    case openai = "OpenAI"
     case gemini = "Google Gemini"
 
     var displayName: String { rawValue }
 
     var icon: String {
         switch self {
-        case .openai: return "circle.hexagongrid.fill"
         case .anthropic: return "a.circle.fill"
+        case .grok: return "x.circle.fill"
+        case .openai: return "circle.hexagongrid.fill"
         case .gemini: return "g.circle.fill"
         }
     }
