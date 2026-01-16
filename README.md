@@ -2,7 +2,37 @@
 
 AI-powered real-time coaching assistant for meetings, interviews, and sales calls on macOS.
 
-## Features
+## Project Structure
+
+Ce repository contient deux projets distincts :
+
+### 1. **Application macOS** (`QueenMama/`)
+Application Swift native pour macOS avec transcription en temps réel et assistance IA.
+
+### 2. **Landing Page & Dashboard Web** (`landing/`)
+Application Next.js fullstack (React + API routes) pour :
+- Page d'accueil marketing
+- Authentification utilisateurs (credentials + OAuth)
+- Tableau de bord de gestion des API keys
+- Gestion des abonnements (Stripe)
+- Synchronisation des sessions depuis l'app macOS
+
+## Quick Start
+
+### Pour l'Application Web (Landing Page)
+```bash
+cd landing
+npm install
+npm run dev
+```
+Voir [landing/README.md](landing/README.md) pour les instructions complètes.
+
+### Pour l'Application macOS
+Voir les instructions ci-dessous.
+
+---
+
+## Application macOS - Features
 
 - **Real-time Transcription**: Uses Deepgram Nova-3 for low-latency speech-to-text
 - **AI Assistance**: Multi-provider support (OpenAI, Anthropic, Gemini) with automatic fallback
