@@ -42,8 +42,21 @@ export const apiKeySchema = z.object({
   apiKey: z.string().min(10, "API key is too short"),
 });
 
+export const updateUserRoleSchema = z.object({
+  role: z.enum(["USER", "ADMIN", "BLOCKED"]),
+});
+
+export const adminUserQuerySchema = z.object({
+  page: z.coerce.number().min(1).default(1),
+  limit: z.coerce.number().min(1).max(100).default(20),
+  search: z.string().optional(),
+  role: z.enum(["USER", "ADMIN", "BLOCKED"]).optional(),
+});
+
 export type SignUpInput = z.infer<typeof signUpSchema>;
 export type SignInInput = z.infer<typeof signInSchema>;
 export type UpdateProfileInput = z.infer<typeof updateProfileSchema>;
 export type ChangePasswordInput = z.infer<typeof changePasswordSchema>;
 export type ApiKeyInput = z.infer<typeof apiKeySchema>;
+export type UpdateUserRoleInput = z.infer<typeof updateUserRoleSchema>;
+export type AdminUserQueryInput = z.infer<typeof adminUserQuerySchema>;

@@ -35,9 +35,22 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 
         const user = await prisma.user.findUnique({
           where: { email: parsed.data.email },
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            image: true,
+            password: true,
+            role: true,
+          },
         });
 
         if (!user || !user.password) return null;
+
+        // Check if user is blocked
+        if (user.role === "BLOCKED") {
+          throw new Error("Account has been blocked");
+        }
 
         const isValid = await bcrypt.compare(parsed.data.password, user.password);
         if (!isValid) return null;
@@ -47,20 +60,35 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           name: user.name,
           email: user.email,
           image: user.image,
+          role: user.role,
         };
       },
     }),
   ],
   callbacks: {
-    async jwt({ token, user }) {
+    async jwt({ token, user, trigger }) {
       if (user) {
         token.id = user.id;
+        token.role = user.role;
       }
+
+      // Refetch role from DB on update or when token doesn't have role
+      if (trigger === "update" || !token.role) {
+        const dbUser = await prisma.user.findUnique({
+          where: { id: token.id as string },
+          select: { role: true },
+        });
+        if (dbUser) {
+          token.role = dbUser.role;
+        }
+      }
+
       return token;
     },
     async session({ session, token }) {
       if (token && session.user) {
         session.user.id = token.id as string;
+        session.user.role = token.role;
       }
       return session;
     },

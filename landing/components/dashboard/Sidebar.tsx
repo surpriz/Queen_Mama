@@ -3,8 +3,9 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
+import type { UserRole } from "@prisma/client";
 
-const navigation = [
+const baseNavigation = [
   {
     name: "Overview",
     href: "/dashboard",
@@ -61,8 +62,23 @@ const navigation = [
   },
 ];
 
-export function Sidebar() {
+const adminNavigation = {
+  name: "Admin Panel",
+  href: "/dashboard/admin",
+  icon: (
+    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+    </svg>
+  ),
+};
+
+export function Sidebar({ userRole }: { userRole?: UserRole }) {
   const pathname = usePathname();
+
+  // Build navigation based on user role
+  const navigation = userRole === "ADMIN"
+    ? [...baseNavigation, adminNavigation]
+    : baseNavigation;
 
   return (
     <aside className="fixed inset-y-0 left-0 z-50 hidden lg:flex lg:w-64 lg:flex-col">
