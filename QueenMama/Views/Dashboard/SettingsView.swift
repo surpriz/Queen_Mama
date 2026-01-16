@@ -773,6 +773,7 @@ struct ModernAPIKeyField: View {
 // MARK: - Modern Models Settings
 
 struct ModernModelsSettingsView: View {
+    @StateObject private var config = ConfigurationManager.shared
     private let keychain = KeychainManager.shared
 
     var body: some View {
@@ -800,6 +801,15 @@ struct ModernModelsSettingsView: View {
                         model: "claude-sonnet-4-20250514",
                         description: "Claude Sonnet 4 with vision",
                         isConfigured: keychain.hasAPIKey(for: .anthropic)
+                    )
+
+                    Divider().background(QMDesign.Colors.borderSubtle)
+
+                    ModernModelRow(
+                        provider: "xAI Grok",
+                        model: "grok-4.1-fast",
+                        description: "Grok 4.1 Fast with vision",
+                        isConfigured: keychain.hasAPIKey(for: .xai)
                     )
 
                     Divider().background(QMDesign.Colors.borderSubtle)
@@ -837,21 +847,17 @@ struct ModernModelsSettingsView: View {
             // Fallback Order Card
             SettingsCard(title: "Fallback Order", icon: "arrow.triangle.branch") {
                 VStack(alignment: .leading, spacing: QMDesign.Spacing.md) {
-                    Text("When a provider fails, Queen Mama automatically tries the next one:")
-                        .font(QMDesign.Typography.caption)
-                        .foregroundColor(QMDesign.Colors.textSecondary)
+                    HStack(spacing: QMDesign.Spacing.xs) {
+                        Text("When a provider fails, Queen Mama automatically tries the next one.")
+                            .font(QMDesign.Typography.caption)
+                            .foregroundColor(QMDesign.Colors.textSecondary)
 
-                    HStack(spacing: QMDesign.Spacing.sm) {
-                        FallbackBadge(name: "OpenAI", number: 1, isConfigured: keychain.hasAPIKey(for: .openai))
-                        Image(systemName: "chevron.right")
-                            .font(.system(size: 10))
-                            .foregroundColor(QMDesign.Colors.textTertiary)
-                        FallbackBadge(name: "Anthropic", number: 2, isConfigured: keychain.hasAPIKey(for: .anthropic))
-                        Image(systemName: "chevron.right")
-                            .font(.system(size: 10))
-                            .foregroundColor(QMDesign.Colors.textTertiary)
-                        FallbackBadge(name: "Gemini", number: 3, isConfigured: keychain.hasAPIKey(for: .gemini))
+                        Text("Your preferred provider (\(config.selectedAIProvider.displayName)) is always tried first.")
+                            .font(QMDesign.Typography.caption)
+                            .foregroundStyle(QMDesign.Colors.primaryGradient)
                     }
+
+                    DynamicFallbackOrder(preferredProvider: config.selectedAIProvider, keychain: keychain)
                 }
             }
         }
@@ -901,6 +907,7 @@ struct FallbackBadge: View {
     let name: String
     let number: Int
     let isConfigured: Bool
+    let isPreferred: Bool
 
     var body: some View {
         HStack(spacing: 4) {
@@ -910,18 +917,92 @@ struct FallbackBadge: View {
                 .frame(width: 16, height: 16)
                 .background(
                     Circle()
-                        .fill(isConfigured ? QMDesign.Colors.accent : QMDesign.Colors.surfaceMedium)
+                        .fill(isConfigured ? (isPreferred ? QMDesign.Colors.accent : QMDesign.Colors.success) : QMDesign.Colors.surfaceMedium)
                 )
             Text(name)
                 .font(QMDesign.Typography.caption)
+                .fontWeight(isPreferred ? .semibold : .regular)
                 .foregroundColor(isConfigured ? QMDesign.Colors.textPrimary : QMDesign.Colors.textTertiary)
         }
         .padding(.horizontal, QMDesign.Spacing.sm)
         .padding(.vertical, 4)
         .background(
             RoundedRectangle(cornerRadius: QMDesign.Radius.sm)
-                .fill(isConfigured ? QMDesign.Colors.success.opacity(0.1) : QMDesign.Colors.surfaceLight)
+                .fill(isConfigured ? (isPreferred ? QMDesign.Colors.accent.opacity(0.2) : QMDesign.Colors.success.opacity(0.1)) : QMDesign.Colors.surfaceLight)
         )
+    }
+}
+
+struct DynamicFallbackOrder: View {
+    let preferredProvider: AIProviderType
+    let keychain: KeychainManager
+
+    private var providerOrder: [(name: String, keychainType: KeychainManager.APIKeyType, providerType: AIProviderType)] {
+        // Base order of all providers (excluding preferred)
+        let allProviders: [(String, KeychainManager.APIKeyType, AIProviderType)] = [
+            ("Anthropic", .anthropic, .anthropic),
+            ("Grok", .xai, .grok),
+            ("OpenAI", .openai, .openai),
+            ("Haiku", .anthropic, .anthropic),
+            ("Gemini", .gemini, .gemini)
+        ]
+
+        // Get preferred provider info
+        var preferredInfo: (String, KeychainManager.APIKeyType, AIProviderType)
+        switch preferredProvider {
+        case .anthropic:
+            preferredInfo = ("Anthropic", .anthropic, .anthropic)
+        case .grok:
+            preferredInfo = ("Grok", .xai, .grok)
+        case .openai:
+            preferredInfo = ("OpenAI", .openai, .openai)
+        case .gemini:
+            preferredInfo = ("Gemini", .gemini, .gemini)
+        }
+
+        // Build order with preferred first, then others
+        var result: [(String, KeychainManager.APIKeyType, AIProviderType)] = [preferredInfo]
+        result.append(contentsOf: allProviders.filter { $0.2 != preferredProvider })
+
+        return result
+    }
+
+    var body: some View {
+        VStack(spacing: QMDesign.Spacing.sm) {
+            HStack(spacing: QMDesign.Spacing.sm) {
+                ForEach(Array(providerOrder.prefix(3).enumerated()), id: \.offset) { index, provider in
+                    if index > 0 {
+                        Image(systemName: "chevron.right")
+                            .font(.system(size: 10))
+                            .foregroundColor(QMDesign.Colors.textTertiary)
+                    }
+                    FallbackBadge(
+                        name: provider.name,
+                        number: index + 1,
+                        isConfigured: keychain.hasAPIKey(for: provider.keychainType),
+                        isPreferred: index == 0
+                    )
+                }
+            }
+
+            if providerOrder.count > 3 {
+                HStack(spacing: QMDesign.Spacing.sm) {
+                    ForEach(Array(providerOrder.dropFirst(3).enumerated()), id: \.offset) { index, provider in
+                        if index > 0 {
+                            Image(systemName: "chevron.right")
+                                .font(.system(size: 10))
+                                .foregroundColor(QMDesign.Colors.textTertiary)
+                        }
+                        FallbackBadge(
+                            name: provider.name,
+                            number: index + 4,
+                            isConfigured: keychain.hasAPIKey(for: provider.keychainType),
+                            isPreferred: false
+                        )
+                    }
+                }
+            }
+        }
     }
 }
 
