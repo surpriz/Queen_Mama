@@ -1,16 +1,12 @@
 import SwiftUI
 
-/// Onboarding step for account connection
+/// Onboarding step for account connection - Device code flow only
 struct AccountStepView: View {
     let onContinue: () -> Void
 
     @StateObject private var authManager = AuthenticationManager.shared
-    @State private var email = ""
-    @State private var password = ""
-    @State private var showPassword = false
     @State private var isLoading = false
     @State private var errorMessage = ""
-    @State private var showDeviceCode = false
     @State private var deviceCodeResponse: DeviceCodeResponse?
     @State private var isButtonHovered = false
 
@@ -40,149 +36,25 @@ struct AccountStepView: View {
                     .padding(.horizontal, QMDesign.Spacing.xl)
             }
 
-            // Content
-            if showDeviceCode, let response = deviceCodeResponse {
-                DeviceCodeDisplayView(
-                    response: response,
-                    onCancel: cancelDeviceCode
-                )
-                .padding(.horizontal, QMDesign.Spacing.xl)
-            } else if case .authenticated = authManager.authState {
+            // Content based on auth state
+            if case .authenticated = authManager.authState {
                 AuthenticatedView(
                     user: authManager.currentUser,
                     onContinue: onContinue
                 )
                 .padding(.horizontal, QMDesign.Spacing.xl)
+            } else if let response = deviceCodeResponse {
+                DeviceCodeDisplayView(
+                    response: response,
+                    onCancel: cancelDeviceCode
+                )
+                .padding(.horizontal, QMDesign.Spacing.xl)
             } else {
-                // Login Form
-                VStack(spacing: QMDesign.Spacing.md) {
-                    // Email field
-                    VStack(alignment: .leading, spacing: QMDesign.Spacing.xs) {
-                        Text("Email")
-                            .font(QMDesign.Typography.caption)
-                            .foregroundColor(QMDesign.Colors.textSecondary)
-
-                        TextField("you@example.com", text: $email)
-                            .textFieldStyle(.plain)
-                            .font(QMDesign.Typography.bodyMedium)
-                            .padding(QMDesign.Spacing.sm)
-                            .background(
-                                RoundedRectangle(cornerRadius: QMDesign.Radius.md)
-                                    .fill(QMDesign.Colors.backgroundSecondary)
-                            )
-                            .textContentType(.emailAddress)
-                    }
-
-                    // Password field
-                    VStack(alignment: .leading, spacing: QMDesign.Spacing.xs) {
-                        Text("Password")
-                            .font(QMDesign.Typography.caption)
-                            .foregroundColor(QMDesign.Colors.textSecondary)
-
-                        HStack {
-                            if showPassword {
-                                TextField("Password", text: $password)
-                                    .textFieldStyle(.plain)
-                            } else {
-                                SecureField("Password", text: $password)
-                                    .textFieldStyle(.plain)
-                            }
-
-                            Button(action: { showPassword.toggle() }) {
-                                Image(systemName: showPassword ? "eye.slash" : "eye")
-                                    .foregroundColor(QMDesign.Colors.textTertiary)
-                            }
-                            .buttonStyle(.plain)
-                        }
-                        .font(QMDesign.Typography.bodyMedium)
-                        .padding(QMDesign.Spacing.sm)
-                        .background(
-                            RoundedRectangle(cornerRadius: QMDesign.Radius.md)
-                                .fill(QMDesign.Colors.backgroundSecondary)
-                        )
-                    }
-
-                    // Error message
-                    if !errorMessage.isEmpty {
-                        HStack(spacing: QMDesign.Spacing.xs) {
-                            Image(systemName: "exclamationmark.circle.fill")
-                            Text(errorMessage)
-                        }
-                        .font(QMDesign.Typography.caption)
-                        .foregroundColor(QMDesign.Colors.error)
-                        .padding(QMDesign.Spacing.sm)
-                        .background(
-                            RoundedRectangle(cornerRadius: QMDesign.Radius.sm)
-                                .fill(QMDesign.Colors.error.opacity(0.1))
-                        )
-                    }
-
-                    // Login button
-                    Button(action: login) {
-                        HStack(spacing: QMDesign.Spacing.sm) {
-                            if isLoading {
-                                ProgressView()
-                                    .scaleEffect(0.8)
-                                    .progressViewStyle(CircularProgressViewStyle(tint: .white))
-                            }
-                            Text(isLoading ? "Signing in..." : "Sign In")
-                                .font(QMDesign.Typography.labelMedium)
-                        }
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, QMDesign.Spacing.md)
-                        .background(
-                            RoundedRectangle(cornerRadius: QMDesign.Radius.md)
-                                .fill(QMDesign.Colors.primaryGradient)
-                        )
-                        .foregroundColor(.white)
-                    }
-                    .buttonStyle(.plain)
-                    .disabled(isLoading || email.isEmpty || password.isEmpty)
-                    .opacity(email.isEmpty || password.isEmpty ? 0.6 : 1)
-
-                    // Divider
-                    HStack(spacing: QMDesign.Spacing.md) {
-                        Rectangle()
-                            .fill(QMDesign.Colors.borderSubtle)
-                            .frame(height: 1)
-                        Text("or")
-                            .font(QMDesign.Typography.caption)
-                            .foregroundColor(QMDesign.Colors.textTertiary)
-                        Rectangle()
-                            .fill(QMDesign.Colors.borderSubtle)
-                            .frame(height: 1)
-                    }
-
-                    // Device code button
-                    Button(action: startDeviceCodeFlow) {
-                        HStack(spacing: QMDesign.Spacing.sm) {
-                            Image(systemName: "qrcode")
-                            Text("Use Device Code")
-                        }
-                        .font(QMDesign.Typography.labelSmall)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, QMDesign.Spacing.md)
-                        .background(
-                            RoundedRectangle(cornerRadius: QMDesign.Radius.md)
-                                .fill(QMDesign.Colors.surfaceLight)
-                        )
-                        .foregroundColor(QMDesign.Colors.textPrimary)
-                    }
-                    .buttonStyle(.plain)
-                    .disabled(isLoading)
-
-                    Text("Use device code if you signed up with Google or GitHub")
-                        .font(QMDesign.Typography.captionSmall)
-                        .foregroundColor(QMDesign.Colors.textTertiary)
-                }
-                .padding(QMDesign.Spacing.lg)
-                .background(
-                    RoundedRectangle(cornerRadius: QMDesign.Radius.lg)
-                        .fill(QMDesign.Colors.surfaceLight)
-                        .overlay(
-                            RoundedRectangle(cornerRadius: QMDesign.Radius.lg)
-                                .stroke(QMDesign.Colors.borderSubtle, lineWidth: 1)
-                        )
+                // Connect button
+                ConnectAccountView(
+                    isLoading: isLoading,
+                    errorMessage: errorMessage,
+                    onConnect: startDeviceCodeFlow
                 )
                 .padding(.horizontal, QMDesign.Spacing.xl)
             }
@@ -205,22 +77,6 @@ struct AccountStepView: View {
 
     // MARK: - Actions
 
-    private func login() {
-        isLoading = true
-        errorMessage = ""
-
-        Task {
-            do {
-                try await authManager.loginWithCredentials(email: email, password: password)
-            } catch AuthError.oauthUserNeedsDeviceCode {
-                errorMessage = "This account uses social login. Please use the device code option."
-            } catch {
-                errorMessage = error.localizedDescription
-            }
-            isLoading = false
-        }
-    }
-
     private func startDeviceCodeFlow() {
         isLoading = true
         errorMessage = ""
@@ -229,7 +85,11 @@ struct AccountStepView: View {
             do {
                 let response = try await authManager.startDeviceCodeFlow()
                 deviceCodeResponse = response
-                showDeviceCode = true
+
+                // Auto-open browser to authorization page
+                if let url = URL(string: response.verificationUrl) {
+                    NSWorkspace.shared.open(url)
+                }
             } catch {
                 errorMessage = error.localizedDescription
             }
@@ -239,8 +99,93 @@ struct AccountStepView: View {
 
     private func cancelDeviceCode() {
         authManager.cancelDeviceCodeFlow()
-        showDeviceCode = false
         deviceCodeResponse = nil
+    }
+}
+
+// MARK: - Connect Account View
+
+private struct ConnectAccountView: View {
+    let isLoading: Bool
+    let errorMessage: String
+    let onConnect: () -> Void
+
+    @State private var isButtonHovered = false
+
+    var body: some View {
+        VStack(spacing: QMDesign.Spacing.lg) {
+            // Icon
+            ZStack {
+                Circle()
+                    .fill(QMDesign.Colors.surfaceLight)
+                    .frame(width: 64, height: 64)
+                Image(systemName: "link.badge.plus")
+                    .font(.system(size: 28))
+                    .foregroundStyle(QMDesign.Colors.primaryGradient)
+            }
+
+            VStack(spacing: QMDesign.Spacing.sm) {
+                Text("Quick & Secure")
+                    .font(QMDesign.Typography.labelMedium)
+                    .foregroundColor(QMDesign.Colors.textPrimary)
+
+                Text("Your browser will open to complete sign in.\nWorks with email, Google, or GitHub accounts.")
+                    .font(QMDesign.Typography.caption)
+                    .foregroundColor(QMDesign.Colors.textSecondary)
+                    .multilineTextAlignment(.center)
+            }
+
+            // Error message
+            if !errorMessage.isEmpty {
+                HStack(spacing: QMDesign.Spacing.xs) {
+                    Image(systemName: "exclamationmark.circle.fill")
+                    Text(errorMessage)
+                }
+                .font(QMDesign.Typography.caption)
+                .foregroundColor(QMDesign.Colors.error)
+                .padding(QMDesign.Spacing.sm)
+                .background(
+                    RoundedRectangle(cornerRadius: QMDesign.Radius.sm)
+                        .fill(QMDesign.Colors.error.opacity(0.1))
+                )
+            }
+
+            // Connect button
+            Button(action: onConnect) {
+                HStack(spacing: QMDesign.Spacing.sm) {
+                    if isLoading {
+                        ProgressView()
+                            .scaleEffect(0.8)
+                            .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                    } else {
+                        Image(systemName: "arrow.up.right.square")
+                    }
+                    Text(isLoading ? "Opening browser..." : "Connect Account")
+                        .font(QMDesign.Typography.labelMedium)
+                }
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, QMDesign.Spacing.md)
+                .background(
+                    RoundedRectangle(cornerRadius: QMDesign.Radius.md)
+                        .fill(QMDesign.Colors.primaryGradient)
+                )
+                .foregroundColor(.white)
+                .scaleEffect(isButtonHovered ? 1.02 : 1.0)
+            }
+            .buttonStyle(.plain)
+            .disabled(isLoading)
+            .onHover { isButtonHovered = $0 }
+            .animation(QMDesign.Animation.smooth, value: isButtonHovered)
+        }
+        .padding(QMDesign.Spacing.xl)
+        .background(
+            RoundedRectangle(cornerRadius: QMDesign.Radius.lg)
+                .fill(QMDesign.Colors.surfaceLight)
+                .overlay(
+                    RoundedRectangle(cornerRadius: QMDesign.Radius.lg)
+                        .stroke(QMDesign.Colors.borderSubtle, lineWidth: 1)
+                )
+        )
     }
 }
 
@@ -252,6 +197,7 @@ private struct DeviceCodeDisplayView: View {
 
     @StateObject private var authManager = AuthenticationManager.shared
     @State private var timeRemaining: Int
+    @State private var showCopied = false
 
     init(response: DeviceCodeResponse, onCancel: @escaping () -> Void) {
         self.response = response
@@ -261,29 +207,53 @@ private struct DeviceCodeDisplayView: View {
 
     var body: some View {
         VStack(spacing: QMDesign.Spacing.lg) {
-            Text("Enter this code on")
+            // Browser opened indicator
+            HStack(spacing: QMDesign.Spacing.sm) {
+                Image(systemName: "safari")
+                    .foregroundStyle(QMDesign.Colors.primaryGradient)
+                Text("Browser opened")
+                    .foregroundColor(QMDesign.Colors.textSecondary)
+            }
+            .font(QMDesign.Typography.caption)
+
+            Text("Enter this code:")
                 .font(QMDesign.Typography.bodySmall)
                 .foregroundColor(QMDesign.Colors.textSecondary)
 
-            Link(destination: URL(string: response.verificationUrl)!) {
-                Text(response.verificationUrl)
-                    .font(QMDesign.Typography.bodySmall)
-                    .foregroundStyle(QMDesign.Colors.primaryGradient)
+            // Code display with copy button
+            VStack(spacing: QMDesign.Spacing.sm) {
+                HStack(spacing: QMDesign.Spacing.sm) {
+                    ForEach(Array(response.userCode), id: \.self) { char in
+                        CodeCharView(char: char)
+                    }
+                }
+
+                // Copy button
+                Button(action: copyCode) {
+                    HStack(spacing: QMDesign.Spacing.xs) {
+                        Image(systemName: showCopied ? "checkmark" : "doc.on.doc")
+                        Text(showCopied ? "Copied!" : "Copy code")
+                    }
+                    .font(QMDesign.Typography.caption)
+                    .foregroundColor(showCopied ? QMDesign.Colors.success : QMDesign.Colors.textSecondary)
+                    .padding(.horizontal, QMDesign.Spacing.md)
+                    .padding(.vertical, QMDesign.Spacing.xs)
+                    .background(
+                        Capsule()
+                            .fill(showCopied ? QMDesign.Colors.success.opacity(0.1) : QMDesign.Colors.surfaceLight)
+                    )
+                }
+                .buttonStyle(.plain)
             }
 
-            // Code display
-            HStack(spacing: QMDesign.Spacing.sm) {
-                ForEach(Array(response.userCode), id: \.self) { char in
-                    Text(String(char))
-                        .font(.system(size: 32, weight: .bold, design: .monospaced))
-                        .foregroundStyle(char == "-" ? AnyShapeStyle(QMDesign.Colors.textTertiary) : AnyShapeStyle(QMDesign.Colors.primaryGradient))
-                        .frame(width: char == "-" ? 20 : 44, height: 56)
-                        .background(
-                            char == "-" ? Color.clear :
-                            RoundedRectangle(cornerRadius: QMDesign.Radius.md)
-                                .fill(QMDesign.Colors.surfaceLight)
-                        )
+            // Clickable link as backup
+            Link(destination: URL(string: response.verificationUrl)!) {
+                HStack(spacing: QMDesign.Spacing.xs) {
+                    Image(systemName: "arrow.up.right.square")
+                    Text("Open link manually")
                 }
+                .font(QMDesign.Typography.captionSmall)
+                .foregroundStyle(QMDesign.Colors.primaryGradient)
             }
 
             // Status
@@ -325,6 +295,17 @@ private struct DeviceCodeDisplayView: View {
             if timeRemaining > 0 {
                 timeRemaining -= 1
             }
+        }
+    }
+
+    private func copyCode() {
+        NSPasteboard.general.clearContents()
+        NSPasteboard.general.setString(response.userCode, forType: .string)
+        showCopied = true
+
+        // Reset after 2 seconds
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+            showCopied = false
         }
     }
 }
@@ -389,5 +370,30 @@ private struct AuthenticatedView: View {
             RoundedRectangle(cornerRadius: QMDesign.Radius.lg)
                 .fill(QMDesign.Colors.surfaceLight)
         )
+    }
+}
+
+// MARK: - Code Character View
+
+private struct CodeCharView: View {
+    let char: Character
+
+    var body: some View {
+        let isDash = char == "-"
+
+        Text(String(char))
+            .font(.system(size: 32, weight: .bold, design: .monospaced))
+            .foregroundStyle(isDash ? AnyShapeStyle(QMDesign.Colors.textTertiary) : AnyShapeStyle(QMDesign.Colors.primaryGradient))
+            .frame(width: isDash ? 20 : 44, height: 56)
+            .background(
+                Group {
+                    if isDash {
+                        Color.clear
+                    } else {
+                        RoundedRectangle(cornerRadius: QMDesign.Radius.md)
+                            .fill(QMDesign.Colors.surfaceLight)
+                    }
+                }
+            )
     }
 }

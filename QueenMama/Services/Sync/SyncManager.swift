@@ -13,6 +13,7 @@ final class SyncManager: ObservableObject {
     @Published private(set) var lastSyncAt: Date?
     @Published private(set) var pendingCount: Int = 0
     @Published private(set) var lastError: String?
+    @Published private(set) var isOffline: Bool = false
 
     // MARK: - Dependencies
 
@@ -97,6 +98,7 @@ final class SyncManager: ObservableObject {
 
         isSyncing = true
         lastError = nil
+        isOffline = false
 
         do {
             let accessToken = try await authManager.getAccessToken()
@@ -106,8 +108,8 @@ final class SyncManager: ObservableObject {
             let result = try await syncBatch(batch, accessToken: accessToken)
 
             // Remove synced sessions from queue
-            for synced in result.synced {
-                pendingQueue.removeAll { $0.originalId == synced }
+            for syncedId in result.syncedIds {
+                pendingQueue.removeAll { $0.originalId == syncedId }
             }
 
             pendingCount = pendingQueue.count
@@ -123,13 +125,23 @@ final class SyncManager: ObservableObject {
         } catch {
             print("[Sync] Error: \(error)")
             lastError = error.localizedDescription
+
+            // Check if it's a network error to set offline status
+            if let urlError = error as? URLError,
+               urlError.code == .notConnectedToInternet || urlError.code == .networkConnectionLost {
+                isOffline = true
+            }
         }
 
         isSyncing = false
     }
 
     private func syncBatch(_ sessions: [SyncableSession], accessToken: String) async throws -> SyncResult {
+        #if DEBUG
+        let url = URL(string: "http://localhost:3000/api/sync/sessions")!
+        #else
         let url = URL(string: "https://queenmama.app/api/sync/sessions")!
+        #endif
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
@@ -224,18 +236,14 @@ struct SyncRequest: Codable {
 }
 
 struct SyncResult: Codable {
-    let synced: Int
+    let syncedCount: Int
     let failed: Int
     let results: [SyncedSessionResult]
-    let errors: [SyncError]?
+    let errors: [SyncResultError]?
 
+    /// IDs of successfully synced sessions
     var syncedIds: [String] {
         results.filter { $0.status == "synced" }.map { $0.originalId }
-    }
-
-    // Custom computed property for synced original IDs
-    var synced: [String] {
-        syncedIds
     }
 
     struct SyncedSessionResult: Codable {
@@ -244,9 +252,17 @@ struct SyncResult: Codable {
         let status: String
     }
 
-    struct SyncError: Codable {
+    struct SyncResultError: Codable {
         let originalId: String
         let error: String
+    }
+
+    // Map from API response field name
+    enum CodingKeys: String, CodingKey {
+        case syncedCount = "synced"
+        case failed
+        case results
+        case errors
     }
 }
 

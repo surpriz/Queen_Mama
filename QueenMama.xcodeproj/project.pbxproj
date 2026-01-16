@@ -35,13 +35,23 @@
 		00000000000000000000001A /* DesignSystem.swift in Sources */ = {isa = PBXBuildFile; fileRef = 10000000000000000000001C /* DesignSystem.swift */; };
 		00000000000000000000001B /* AutoAnswerService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 10000000000000000000001D /* AutoAnswerService.swift */; };
 		00000000000000000000001C /* OverlayPopupMenu.swift in Sources */ = {isa = PBXBuildFile; fileRef = 10000000000000000000001E /* OverlayPopupMenu.swift */; };
-		5C8B7EA42F17D57E00DAE824 /* TranscriptionProviders.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5C8B7EA32F17D57E00DAE824 /* TranscriptionProviders.swift */; };
 		00000000000000000000001D /* OnboardingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 10000000000000000000001F /* OnboardingView.swift */; };
 		00000000000000000000001E /* GrokProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 100000000000000000000020 /* GrokProvider.swift */; };
 		00000000000000000000001F /* AnthropicHaikuProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 100000000000000000000021 /* AnthropicHaikuProvider.swift */; };
 		000000000000000000000020 /* OpenAIGPT5Provider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 100000000000000000000022 /* OpenAIGPT5Provider.swift */; };
 		000000000000000000000021 /* ResponseCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = 100000000000000000000023 /* ResponseCache.swift */; };
 		000000000000000000000022 /* TokenUsageTracker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 100000000000000000000024 /* TokenUsageTracker.swift */; };
+		5C8B7EA42F17D57E00DAE824 /* TranscriptionProviders.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5C8B7EA32F17D57E00DAE824 /* TranscriptionProviders.swift */; };
+		5C90DF252F1A5197006B0DE0 /* AuthModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5C90DF182F1A5197006B0DE0 /* AuthModels.swift */; };
+		5C90DF262F1A5197006B0DE0 /* AuthTokenStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5C90DF1D2F1A5197006B0DE0 /* AuthTokenStore.swift */; };
+		5C90DF272F1A5197006B0DE0 /* SyncManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5C90DF232F1A5197006B0DE0 /* SyncManager.swift */; };
+		5C90DF282F1A5197006B0DE0 /* AuthenticationManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5C90DF1C2F1A5197006B0DE0 /* AuthenticationManager.swift */; };
+		5C90DF292F1A5197006B0DE0 /* AuthAPIClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5C90DF1B2F1A5197006B0DE0 /* AuthAPIClient.swift */; };
+		5C90DF2A2F1A5197006B0DE0 /* LicenseManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5C90DF212F1A5197006B0DE0 /* LicenseManager.swift */; };
+		5C90DF2B2F1A5197006B0DE0 /* DeviceIdentifier.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5C90DF1F2F1A5197006B0DE0 /* DeviceIdentifier.swift */; };
+		5C90DF332F1A51DE006B0DE0 /* UpgradePromptView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5C90DF312F1A51DE006B0DE0 /* UpgradePromptView.swift */; };
+		5C90DF342F1A51DE006B0DE0 /* ProFeatureBanner.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5C90DF302F1A51DE006B0DE0 /* ProFeatureBanner.swift */; };
+		5C90DF372F1A51F8006B0DE0 /* AccountStepView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5C90DF362F1A51F8006B0DE0 /* AccountStepView.swift */; };
 		72E5F74C2ED54F91ABC5DA43 /* MarkdownRenderer.swift in Sources */ = {isa = PBXBuildFile; fileRef = AED67FF476044F25BA92C2A6 /* MarkdownRenderer.swift */; };
 /* End PBXBuildFile section */
 
@@ -73,8 +83,6 @@
 		100000000000000000000019 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		10000000000000000000001A /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		10000000000000000000001B /* QueenMama.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = QueenMama.entitlements; sourceTree = "<group>"; };
-		200000000000000000000001 /* QueenMama.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = QueenMama.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		5C8B7EA32F17D57E00DAE824 /* TranscriptionProviders.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TranscriptionProviders.swift; sourceTree = "<group>"; };
 		10000000000000000000001C /* DesignSystem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DesignSystem.swift; sourceTree = "<group>"; };
 		10000000000000000000001D /* AutoAnswerService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AutoAnswerService.swift; sourceTree = "<group>"; };
 		10000000000000000000001E /* OverlayPopupMenu.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OverlayPopupMenu.swift; sourceTree = "<group>"; };
@@ -84,6 +92,18 @@
 		100000000000000000000022 /* OpenAIGPT5Provider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OpenAIGPT5Provider.swift; sourceTree = "<group>"; };
 		100000000000000000000023 /* ResponseCache.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ResponseCache.swift; sourceTree = "<group>"; };
 		100000000000000000000024 /* TokenUsageTracker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TokenUsageTracker.swift; sourceTree = "<group>"; };
+		200000000000000000000001 /* QueenMama.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = QueenMama.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		5C8B7EA32F17D57E00DAE824 /* TranscriptionProviders.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TranscriptionProviders.swift; sourceTree = "<group>"; };
+		5C90DF182F1A5197006B0DE0 /* AuthModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthModels.swift; sourceTree = "<group>"; };
+		5C90DF1B2F1A5197006B0DE0 /* AuthAPIClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthAPIClient.swift; sourceTree = "<group>"; };
+		5C90DF1C2F1A5197006B0DE0 /* AuthenticationManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthenticationManager.swift; sourceTree = "<group>"; };
+		5C90DF1D2F1A5197006B0DE0 /* AuthTokenStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthTokenStore.swift; sourceTree = "<group>"; };
+		5C90DF1F2F1A5197006B0DE0 /* DeviceIdentifier.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeviceIdentifier.swift; sourceTree = "<group>"; };
+		5C90DF212F1A5197006B0DE0 /* LicenseManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LicenseManager.swift; sourceTree = "<group>"; };
+		5C90DF232F1A5197006B0DE0 /* SyncManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SyncManager.swift; sourceTree = "<group>"; };
+		5C90DF302F1A51DE006B0DE0 /* ProFeatureBanner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProFeatureBanner.swift; sourceTree = "<group>"; };
+		5C90DF312F1A51DE006B0DE0 /* UpgradePromptView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UpgradePromptView.swift; sourceTree = "<group>"; };
+		5C90DF362F1A51F8006B0DE0 /* AccountStepView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AccountStepView.swift; sourceTree = "<group>"; };
 		AED67FF476044F25BA92C2A6 /* MarkdownRenderer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MarkdownRenderer.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -142,6 +162,9 @@
 		400000000000000000000005 /* Services */ = {
 			isa = PBXGroup;
 			children = (
+				5C90DF202F1A5197006B0DE0 /* Auth */,
+				5C90DF212F1A5197006B0DE0 /* LicenseManager.swift */,
+				5C90DF242F1A5197006B0DE0 /* Sync */,
 				5C8B7EA32F17D57E00DAE824 /* TranscriptionProviders.swift */,
 				100000000000000000000005 /* KeychainManager.swift */,
 				100000000000000000000006 /* ConfigurationManager.swift */,
@@ -168,21 +191,14 @@
 			path = Views;
 			sourceTree = "<group>";
 		};
-		40000000000000000000000C /* Onboarding */ = {
-			isa = PBXGroup;
-			children = (
-				10000000000000000000001F /* OnboardingView.swift */,
-			);
-			path = Onboarding;
-			sourceTree = "<group>";
-		};
 		400000000000000000000007 /* Utilities */ = {
 			isa = PBXGroup;
 			children = (
 				10000000000000000000001C /* DesignSystem.swift */,
 				100000000000000000000017 /* KeyboardShortcuts.swift */,
 				40000000000000000000000B /* Extensions */,
-				AED67FF476044F25BA92C2A6 /* MarkdownRenderer.swift */,);
+				AED67FF476044F25BA92C2A6 /* MarkdownRenderer.swift */,
+			);
 			path = Utilities;
 			sourceTree = "<group>";
 		};
@@ -203,6 +219,7 @@
 		400000000000000000000009 /* Dashboard */ = {
 			isa = PBXGroup;
 			children = (
+				5C90DF322F1A51DE006B0DE0 /* Components */,
 				100000000000000000000010 /* DashboardView.swift */,
 				100000000000000000000011 /* SessionListView.swift */,
 				100000000000000000000012 /* LiveSessionView.swift */,
@@ -228,6 +245,52 @@
 				100000000000000000000018 /* Extensions.swift */,
 			);
 			path = Extensions;
+			sourceTree = "<group>";
+		};
+		40000000000000000000000C /* Onboarding */ = {
+			isa = PBXGroup;
+			children = (
+				5C90DF362F1A51F8006B0DE0 /* AccountStepView.swift */,
+				10000000000000000000001F /* OnboardingView.swift */,
+			);
+			path = Onboarding;
+			sourceTree = "<group>";
+		};
+		5C90DF1A2F1A5197006B0DE0 /* Models */ = {
+			isa = PBXGroup;
+			children = (
+				5C90DF182F1A5197006B0DE0 /* AuthModels.swift */,
+			);
+			path = Models;
+			sourceTree = "<group>";
+		};
+		5C90DF202F1A5197006B0DE0 /* Auth */ = {
+			isa = PBXGroup;
+			children = (
+				5C90DF1A2F1A5197006B0DE0 /* Models */,
+				5C90DF1B2F1A5197006B0DE0 /* AuthAPIClient.swift */,
+				5C90DF1C2F1A5197006B0DE0 /* AuthenticationManager.swift */,
+				5C90DF1D2F1A5197006B0DE0 /* AuthTokenStore.swift */,
+				5C90DF1F2F1A5197006B0DE0 /* DeviceIdentifier.swift */,
+			);
+			path = Auth;
+			sourceTree = "<group>";
+		};
+		5C90DF242F1A5197006B0DE0 /* Sync */ = {
+			isa = PBXGroup;
+			children = (
+				5C90DF232F1A5197006B0DE0 /* SyncManager.swift */,
+			);
+			path = Sync;
+			sourceTree = "<group>";
+		};
+		5C90DF322F1A51DE006B0DE0 /* Components */ = {
+			isa = PBXGroup;
+			children = (
+				5C90DF302F1A51DE006B0DE0 /* ProFeatureBanner.swift */,
+				5C90DF312F1A51DE006B0DE0 /* UpgradePromptView.swift */,
+			);
+			path = Components;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -318,10 +381,20 @@
 				00000000000000000000000E /* AnthropicProvider.swift in Sources */,
 				00000000000000000000000F /* GeminiProvider.swift in Sources */,
 				000000000000000000000010 /* DashboardView.swift in Sources */,
+				5C90DF372F1A51F8006B0DE0 /* AccountStepView.swift in Sources */,
 				000000000000000000000011 /* SessionListView.swift in Sources */,
+				5C90DF332F1A51DE006B0DE0 /* UpgradePromptView.swift in Sources */,
+				5C90DF342F1A51DE006B0DE0 /* ProFeatureBanner.swift in Sources */,
 				000000000000000000000012 /* LiveSessionView.swift in Sources */,
 				000000000000000000000013 /* SettingsView.swift in Sources */,
 				000000000000000000000014 /* ModesListView.swift in Sources */,
+				5C90DF252F1A5197006B0DE0 /* AuthModels.swift in Sources */,
+				5C90DF262F1A5197006B0DE0 /* AuthTokenStore.swift in Sources */,
+				5C90DF272F1A5197006B0DE0 /* SyncManager.swift in Sources */,
+				5C90DF282F1A5197006B0DE0 /* AuthenticationManager.swift in Sources */,
+				5C90DF292F1A5197006B0DE0 /* AuthAPIClient.swift in Sources */,
+				5C90DF2A2F1A5197006B0DE0 /* LicenseManager.swift in Sources */,
+				5C90DF2B2F1A5197006B0DE0 /* DeviceIdentifier.swift in Sources */,
 				000000000000000000000015 /* OverlayWindow.swift in Sources */,
 				000000000000000000000016 /* OverlayContentView.swift in Sources */,
 				000000000000000000000017 /* KeyboardShortcuts.swift in Sources */,
@@ -333,7 +406,8 @@
 				00000000000000000000001E /* GrokProvider.swift in Sources */,
 				00000000000000000000001F /* AnthropicHaikuProvider.swift in Sources */,
 				000000000000000000000020 /* OpenAIGPT5Provider.swift in Sources */,
-				72E5F74C2ED54F91ABC5DA43 /* MarkdownRenderer.swift in Sources */,);
+				72E5F74C2ED54F91ABC5DA43 /* MarkdownRenderer.swift in Sources */,
+			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXSourcesBuildPhase section */

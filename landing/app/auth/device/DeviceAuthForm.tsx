@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
+import { useRouter } from "next/navigation";
 
 interface DeviceAuthFormProps {
   userName: string;
@@ -9,16 +10,35 @@ interface DeviceAuthFormProps {
 type AuthStatus = "idle" | "loading" | "success" | "error";
 
 export function DeviceAuthForm({ userName }: DeviceAuthFormProps) {
+  const router = useRouter();
   const [code, setCode] = useState(["", "", "", "", "", "", "", ""]);
   const [status, setStatus] = useState<AuthStatus>("idle");
   const [message, setMessage] = useState("");
   const [deviceName, setDeviceName] = useState("");
+  const [redirectCountdown, setRedirectCountdown] = useState(3);
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
 
   // Focus first input on mount
   useEffect(() => {
     inputRefs.current[0]?.focus();
   }, []);
+
+  // Redirect to dashboard after successful authorization
+  useEffect(() => {
+    if (status === "success") {
+      const timer = setInterval(() => {
+        setRedirectCountdown((prev) => {
+          if (prev <= 1) {
+            clearInterval(timer);
+            router.push("/dashboard");
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+      return () => clearInterval(timer);
+    }
+  }, [status, router]);
 
   const handleInputChange = (index: number, value: string) => {
     // Handle paste
@@ -120,14 +140,22 @@ export function DeviceAuthForm({ userName }: DeviceAuthFormProps) {
           {deviceName} is now connected to your account.
         </p>
         <p className="text-[var(--qm-text-tertiary)] text-sm mb-6">
-          You can close this page and return to your Mac.
+          Redirecting to dashboard in {redirectCountdown}s...
         </p>
-        <button
-          onClick={handleReset}
-          className="text-[var(--qm-accent)] hover:text-[var(--qm-accent-light)] transition-colors text-sm"
-        >
-          Authorize another device
-        </button>
+        <div className="flex flex-col gap-3">
+          <button
+            onClick={() => router.push("/dashboard")}
+            className="gradient-bg text-white py-2 px-4 rounded-lg hover:opacity-90 transition-opacity"
+          >
+            Go to Dashboard Now
+          </button>
+          <button
+            onClick={handleReset}
+            className="text-[var(--qm-accent)] hover:text-[var(--qm-accent-light)] transition-colors text-sm"
+          >
+            Authorize another device
+          </button>
+        </div>
       </div>
     );
   }

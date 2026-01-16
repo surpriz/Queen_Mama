@@ -1226,6 +1226,10 @@ struct ModernAccountSettingsView: View {
 
     @State private var showLogoutConfirmation = false
     @State private var showUpgradeSheet = false
+    @State private var isConnecting = false
+    @State private var deviceCodeResponse: DeviceCodeResponse?
+    @State private var connectionError: String?
+    @State private var showCopied = false
 
     var body: some View {
         VStack(spacing: QMDesign.Spacing.lg) {
@@ -1351,6 +1355,64 @@ struct ModernAccountSettingsView: View {
                         }
                     }
                 }
+            } else if let response = deviceCodeResponse {
+                // Device Code Display Card
+                SettingsCard(title: "Enter Code", icon: "number.circle.fill") {
+                    VStack(spacing: QMDesign.Spacing.md) {
+                        HStack(spacing: QMDesign.Spacing.sm) {
+                            Image(systemName: "safari")
+                                .foregroundStyle(QMDesign.Colors.primaryGradient)
+                            Text("Browser opened - enter this code:")
+                                .font(QMDesign.Typography.caption)
+                                .foregroundColor(QMDesign.Colors.textSecondary)
+                        }
+
+                        // Code display
+                        VStack(spacing: QMDesign.Spacing.sm) {
+                            HStack(spacing: QMDesign.Spacing.xs) {
+                                ForEach(Array(response.userCode), id: \.self) { char in
+                                    SettingsCodeCharView(char: char)
+                                }
+                            }
+
+                            // Copy button
+                            Button(action: { copyCode(response.userCode) }) {
+                                HStack(spacing: QMDesign.Spacing.xs) {
+                                    Image(systemName: showCopied ? "checkmark" : "doc.on.doc")
+                                    Text(showCopied ? "Copied!" : "Copy code")
+                                }
+                                .font(QMDesign.Typography.captionSmall)
+                                .foregroundColor(showCopied ? QMDesign.Colors.success : QMDesign.Colors.textSecondary)
+                            }
+                            .buttonStyle(.plain)
+                        }
+
+                        // Open link manually
+                        Link(destination: URL(string: response.verificationUrl)!) {
+                            HStack(spacing: QMDesign.Spacing.xs) {
+                                Image(systemName: "arrow.up.right.square")
+                                Text("Open link manually")
+                            }
+                            .font(QMDesign.Typography.captionSmall)
+                            .foregroundStyle(QMDesign.Colors.primaryGradient)
+                        }
+
+                        HStack(spacing: QMDesign.Spacing.sm) {
+                            ProgressView()
+                                .scaleEffect(0.7)
+                            Text("Waiting for authorization...")
+                                .font(QMDesign.Typography.caption)
+                                .foregroundColor(QMDesign.Colors.textSecondary)
+                        }
+
+                        Button(action: cancelDeviceCode) {
+                            Text("Cancel")
+                                .font(QMDesign.Typography.bodySmall)
+                                .foregroundColor(QMDesign.Colors.textSecondary)
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
             } else {
                 // Not Connected Card
                 SettingsCard(title: "Not Connected", icon: "person.crop.circle.badge.xmark") {
@@ -1359,10 +1421,32 @@ struct ModernAccountSettingsView: View {
                             .font(QMDesign.Typography.bodySmall)
                             .foregroundColor(QMDesign.Colors.textSecondary)
 
-                        Button(action: openSignIn) {
+                        // Error message
+                        if let error = connectionError {
+                            HStack(spacing: QMDesign.Spacing.xs) {
+                                Image(systemName: "exclamationmark.circle.fill")
+                                Text(error)
+                            }
+                            .font(QMDesign.Typography.caption)
+                            .foregroundColor(QMDesign.Colors.error)
+                            .padding(QMDesign.Spacing.sm)
+                            .frame(maxWidth: .infinity)
+                            .background(
+                                RoundedRectangle(cornerRadius: QMDesign.Radius.sm)
+                                    .fill(QMDesign.Colors.error.opacity(0.1))
+                            )
+                        }
+
+                        Button(action: startDeviceCodeFlow) {
                             HStack(spacing: QMDesign.Spacing.sm) {
-                                Image(systemName: "person.crop.circle.badge.plus")
-                                Text("Sign In")
+                                if isConnecting {
+                                    ProgressView()
+                                        .scaleEffect(0.8)
+                                        .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                                } else {
+                                    Image(systemName: "arrow.up.right.square")
+                                }
+                                Text(isConnecting ? "Opening browser..." : "Connect Account")
                             }
                             .font(QMDesign.Typography.labelMedium)
                             .foregroundColor(.white)
@@ -1374,6 +1458,11 @@ struct ModernAccountSettingsView: View {
                             )
                         }
                         .buttonStyle(.plain)
+                        .disabled(isConnecting)
+
+                        Text("Works with email, Google, or GitHub accounts")
+                            .font(QMDesign.Typography.captionSmall)
+                            .foregroundColor(QMDesign.Colors.textTertiary)
                     }
                 }
             }
@@ -1391,12 +1480,74 @@ struct ModernAccountSettingsView: View {
         .sheet(isPresented: $showUpgradeSheet) {
             UpgradePromptView()
         }
+        .onChange(of: authManager.authState) { oldState, newState in
+            // Clear device code when authenticated
+            if case .authenticated = newState {
+                deviceCodeResponse = nil
+                isConnecting = false
+            }
+        }
     }
 
-    private func openSignIn() {
-        if let url = URL(string: "https://queenmama.app/signin") {
-            NSWorkspace.shared.open(url)
+    private func startDeviceCodeFlow() {
+        isConnecting = true
+        connectionError = nil
+
+        Task {
+            do {
+                let response = try await authManager.startDeviceCodeFlow()
+                deviceCodeResponse = response
+
+                // Auto-open browser
+                if let url = URL(string: response.verificationUrl) {
+                    NSWorkspace.shared.open(url)
+                }
+            } catch {
+                connectionError = error.localizedDescription
+            }
+            isConnecting = false
         }
+    }
+
+    private func cancelDeviceCode() {
+        authManager.cancelDeviceCodeFlow()
+        deviceCodeResponse = nil
+    }
+
+    private func copyCode(_ code: String) {
+        NSPasteboard.general.clearContents()
+        NSPasteboard.general.setString(code, forType: .string)
+        showCopied = true
+
+        // Reset after 2 seconds
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+            showCopied = false
+        }
+    }
+}
+
+// MARK: - Settings Code Character View
+
+private struct SettingsCodeCharView: View {
+    let char: Character
+
+    var body: some View {
+        let isDash = char == "-"
+
+        Text(String(char))
+            .font(.system(size: 20, weight: .bold, design: .monospaced))
+            .foregroundStyle(isDash ? AnyShapeStyle(QMDesign.Colors.textTertiary) : AnyShapeStyle(QMDesign.Colors.primaryGradient))
+            .frame(width: isDash ? 12 : 28, height: 36)
+            .background(
+                Group {
+                    if isDash {
+                        Color.clear
+                    } else {
+                        RoundedRectangle(cornerRadius: QMDesign.Radius.sm)
+                            .fill(QMDesign.Colors.surfaceLight)
+                    }
+                }
+            )
     }
 }
 
@@ -1416,25 +1567,20 @@ struct ModernSyncSettingsView: View {
             )
 
             if !authManager.isAuthenticated {
-                // Not signed in
+                // Not signed in - direct to Account section
                 SettingsCard(title: "Sign In Required", icon: "person.crop.circle.badge.xmark") {
                     VStack(spacing: QMDesign.Spacing.md) {
-                        Text("Sign in to sync your sessions to the cloud.")
+                        Text("Connect your account in the Account section to enable session sync.")
                             .font(QMDesign.Typography.bodySmall)
                             .foregroundColor(QMDesign.Colors.textSecondary)
+                            .multilineTextAlignment(.center)
 
-                        Button(action: openSignIn) {
-                            Text("Sign In")
-                                .font(QMDesign.Typography.labelSmall)
-                                .foregroundColor(.white)
-                                .padding(.horizontal, QMDesign.Spacing.lg)
-                                .padding(.vertical, QMDesign.Spacing.sm)
-                                .background(
-                                    Capsule()
-                                        .fill(QMDesign.Colors.primaryGradient)
-                                )
+                        HStack(spacing: QMDesign.Spacing.xs) {
+                            Image(systemName: "arrow.left")
+                            Text("Go to Account section")
                         }
-                        .buttonStyle(.plain)
+                        .font(QMDesign.Typography.caption)
+                        .foregroundStyle(QMDesign.Colors.primaryGradient)
                     }
                 }
             } else if !licenseManager.isFeatureAvailable(.sessionSync) {
@@ -1574,12 +1720,6 @@ struct ModernSyncSettingsView: View {
     private func syncNow() {
         Task {
             await syncManager.syncNow()
-        }
-    }
-
-    private func openSignIn() {
-        if let url = URL(string: "https://queenmama.app/signin") {
-            NSWorkspace.shared.open(url)
         }
     }
 

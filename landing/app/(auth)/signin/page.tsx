@@ -5,7 +5,14 @@ export const metadata = {
   description: "Sign in to your Queen Mama account",
 };
 
-export default function SignInPage() {
+interface SignInPageProps {
+  searchParams: Promise<{ callbackUrl?: string }>;
+}
+
+export default async function SignInPage({ searchParams }: SignInPageProps) {
+  const params = await searchParams;
+  const callbackUrl = params.callbackUrl || "/dashboard";
+
   return (
     <AuthCard
       title="Welcome back"
@@ -16,7 +23,7 @@ export default function SignInPage() {
         linkHref: "/signup",
       }}
     >
-      <OAuthButtons />
+      <OAuthButtons callbackUrl={callbackUrl} />
 
       <div className="relative my-6">
         <div className="absolute inset-0 flex items-center">
@@ -29,7 +36,7 @@ export default function SignInPage() {
         </div>
       </div>
 
-      <SignInForm />
+      <SignInForm callbackUrl={callbackUrl} />
     </AuthCard>
   );
 }

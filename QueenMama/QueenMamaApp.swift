@@ -9,7 +9,17 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     func applicationDidFinishLaunching(_ notification: Notification) {
-        // App will keep running even without windows
+        // Restore authentication state on launch
+        Task { @MainActor in
+            await AuthenticationManager.shared.checkExistingAuth()
+        }
+    }
+
+    func applicationDidBecomeActive(_ notification: Notification) {
+        // Revalidate license when app becomes active (user returns to app)
+        Task { @MainActor in
+            await LicenseManager.shared.revalidate()
+        }
     }
 }
 

@@ -10,8 +10,13 @@ final class AuthAPIClient {
 
     private init() {
         // Configure base URL from environment or default
-        let urlString = ProcessInfo.processInfo.environment["API_BASE_URL"]
-            ?? "https://queenmama.app"
+        #if DEBUG
+        let defaultURL = "http://localhost:3000"
+        #else
+        let defaultURL = "https://queenmama.app"
+        #endif
+
+        let urlString = ProcessInfo.processInfo.environment["API_BASE_URL"] ?? defaultURL
         self.baseURL = URL(string: urlString)!
 
         let config = URLSessionConfiguration.default

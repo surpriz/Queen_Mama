@@ -30,8 +30,10 @@ final class LicenseManager: ObservableObject {
     private let cacheExpiryKey = "cached_license_expiry"
     private let usageResetKey = "usage_reset_date"
     private let gracePeriodDays = 7
+    private let revalidationIntervalMinutes = 60 // Revalidate every hour
 
     private var cancellables = Set<AnyCancellable>()
+    private var revalidationTimer: Timer?
 
     private init() {
         // Load cached license
@@ -54,6 +56,36 @@ final class LicenseManager: ObservableObject {
                 }
             }
             .store(in: &cancellables)
+
+        // Start periodic revalidation timer
+        startPeriodicRevalidation()
+    }
+
+    // MARK: - Periodic Revalidation
+
+    private func startPeriodicRevalidation() {
+        revalidationTimer?.invalidate()
+        revalidationTimer = Timer.scheduledTimer(
+            withTimeInterval: TimeInterval(revalidationIntervalMinutes * 60),
+            repeats: true
+        ) { [weak self] _ in
+            Task { @MainActor in
+                await self?.revalidateIfNeeded()
+            }
+        }
+    }
+
+    /// Revalidate only if authenticated and not recently validated
+    private func revalidateIfNeeded() async {
+        guard authManager.isAuthenticated else { return }
+
+        // Skip if validated recently (within last 5 minutes)
+        if let lastValidated = lastValidatedAt,
+           Date().timeIntervalSince(lastValidated) < 300 {
+            return
+        }
+
+        await revalidate()
     }
 
     // MARK: - Feature Access
@@ -61,12 +93,9 @@ final class LicenseManager: ObservableObject {
     /// Check if a feature can be used
     func canUse(_ feature: Feature) -> FeatureAccess {
         // Auth-gated features
-        guard authManager.isAuthenticated else {
-            switch feature {
-            case .sessionSync:
+        if !authManager.isAuthenticated {
+            if case .sessionSync = feature {
                 return .requiresAuth
-            default:
-                break
             }
         }
 
