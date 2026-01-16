@@ -16,7 +16,7 @@ class OverlayPanel: NSPanel {
                 width: QMDesign.Dimensions.Overlay.collapsedWidth,
                 height: QMDesign.Dimensions.Overlay.collapsedHeight
             ),
-            styleMask: [.borderless, .nonactivatingPanel],
+            styleMask: [.borderless, .nonactivatingPanel, .resizable],
             backing: .buffered,
             defer: false
         )
@@ -32,6 +32,13 @@ class OverlayPanel: NSPanel {
         isOpaque = false
         backgroundColor = .clear
         hasShadow = true
+
+        // Resizing constraints
+        minSize = NSSize(
+            width: QMDesign.Dimensions.Overlay.collapsedWidth,
+            height: QMDesign.Dimensions.Overlay.collapsedHeight
+        )
+        maxSize = NSSize(width: 800, height: 900)
 
         // Behavior
         collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .transient]
@@ -73,7 +80,7 @@ class OverlayPanel: NSPanel {
 // MARK: - Overlay Window Controller
 
 @MainActor
-class OverlayWindowController: NSObject, ObservableObject {
+class OverlayWindowController: NSObject, ObservableObject, NSWindowDelegate {
     static let shared = OverlayWindowController()
 
     @Published var isExpanded = false
@@ -82,6 +89,10 @@ class OverlayWindowController: NSObject, ObservableObject {
     private var panel: OverlayPanel?
     private var hostingView: NSHostingView<OverlayContentView>?
     private var configObserver: AnyCancellable?
+
+    // Keys for UserDefaults
+    private let widthKey = "overlayWindowWidth"
+    private let heightKey = "overlayWindowHeight"
 
     private override init() {
         super.init()
@@ -161,6 +172,7 @@ class OverlayWindowController: NSObject, ObservableObject {
 
     private func createPanel(appState: AppState, sessionManager: SessionManager) {
         panel = OverlayPanel()
+        panel?.delegate = self
 
         let contentView = OverlayContentView(
             appState: appState,
@@ -173,18 +185,53 @@ class OverlayWindowController: NSObject, ObservableObject {
         hostingView?.autoresizingMask = [.width, .height]
 
         panel?.contentView = hostingView
+        loadSavedSize()
         updatePanelSize()
     }
 
     private func updatePanelSize() {
-        // Use design system dimensions
-        let width: CGFloat = QMDesign.Dimensions.Overlay.expandedWidth
-        let height: CGFloat = isExpanded ? QMDesign.Dimensions.Overlay.expandedHeight : QMDesign.Dimensions.Overlay.collapsedHeight
+        // Get saved dimensions or use defaults
+        let savedWidth = UserDefaults.standard.double(forKey: widthKey)
+        let savedHeight = UserDefaults.standard.double(forKey: heightKey)
+
+        let width: CGFloat = savedWidth > 0 ? savedWidth : QMDesign.Dimensions.Overlay.expandedWidth
+        let height: CGFloat
+        if isExpanded {
+            height = savedHeight > 0 ? savedHeight : QMDesign.Dimensions.Overlay.expandedHeight
+        } else {
+            height = QMDesign.Dimensions.Overlay.collapsedHeight
+        }
 
         NSAnimationContext.runAnimationGroup { context in
             context.duration = 0.25
             context.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
             panel?.animator().setContentSize(NSSize(width: width, height: height))
+        }
+    }
+
+    private func loadSavedSize() {
+        let savedWidth = UserDefaults.standard.double(forKey: widthKey)
+        let savedHeight = UserDefaults.standard.double(forKey: heightKey)
+
+        if savedWidth > 0 && savedHeight > 0 {
+            panel?.setContentSize(NSSize(width: savedWidth, height: savedHeight))
+        }
+    }
+
+    private func saveSize(_ size: NSSize) {
+        // Only save if expanded (don't save collapsed size)
+        if isExpanded {
+            UserDefaults.standard.set(Double(size.width), forKey: widthKey)
+            UserDefaults.standard.set(Double(size.height), forKey: heightKey)
+        }
+    }
+
+    // MARK: - NSWindowDelegate
+
+    nonisolated func windowDidResize(_ notification: Notification) {
+        Task { @MainActor in
+            guard let window = notification.object as? NSWindow else { return }
+            saveSize(window.frame.size)
         }
     }
 }

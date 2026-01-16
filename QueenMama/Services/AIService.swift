@@ -28,17 +28,45 @@ final class AIService: ObservableObject {
     private let geminiProvider = GeminiProvider()                   // Backup final
 
     // Fallback order for NON-Smart mode:
-    // 1. Sonnet 4.5 -> 2. Grok 4.1 Fast -> 3. GPT-4o mini -> 4. Haiku 4.5 -> 5. Gemini (backup)
+    // Order is dynamic based on user's preferred provider, then fallback to others
     private var standardProviders: [AIProvider] {
-        [anthropicProvider, grokProvider, openAIProvider, anthropicHaikuProvider, geminiProvider]
-            .filter { $0.isConfigured }
+        let preferredProvider = ConfigurationManager.shared.selectedAIProvider
+        var providers: [AIProvider] = []
+
+        // Build provider list with preferred first
+        switch preferredProvider {
+        case .anthropic:
+            providers = [anthropicProvider, grokProvider, openAIProvider, anthropicHaikuProvider, geminiProvider]
+        case .grok:
+            providers = [grokProvider, anthropicProvider, openAIProvider, anthropicHaikuProvider, geminiProvider]
+        case .openai:
+            providers = [openAIProvider, anthropicProvider, grokProvider, anthropicHaikuProvider, geminiProvider]
+        case .gemini:
+            providers = [geminiProvider, anthropicProvider, grokProvider, openAIProvider, anthropicHaikuProvider]
+        }
+
+        return providers.filter { $0.isConfigured }
     }
 
     // Fallback order for SMART mode:
-    // 1. Sonnet 4.5 Thinking -> 2. Grok 4.1 Fast Reasoning -> 3. o3 -> 4. GPT-5.2 -> 5. Gemini (backup)
+    // Order is dynamic based on user's preferred provider, then fallback to others
     private var smartProviders: [AIProvider] {
-        [anthropicProvider, grokProvider, openAIProvider, openAIGPT5Provider, geminiProvider]
-            .filter { $0.isConfigured }
+        let preferredProvider = ConfigurationManager.shared.selectedAIProvider
+        var providers: [AIProvider] = []
+
+        // Build provider list with preferred first (Smart mode uses different models)
+        switch preferredProvider {
+        case .anthropic:
+            providers = [anthropicProvider, grokProvider, openAIProvider, openAIGPT5Provider, geminiProvider]
+        case .grok:
+            providers = [grokProvider, anthropicProvider, openAIProvider, openAIGPT5Provider, geminiProvider]
+        case .openai:
+            providers = [openAIProvider, anthropicProvider, grokProvider, openAIGPT5Provider, geminiProvider]
+        case .gemini:
+            providers = [geminiProvider, anthropicProvider, grokProvider, openAIProvider, openAIGPT5Provider]
+        }
+
+        return providers.filter { $0.isConfigured }
     }
 
     // Dynamic provider selection based on mode

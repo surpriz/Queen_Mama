@@ -42,6 +42,7 @@ struct OverlayContentView: View {
                 isSmartModeEnabled: isSmartModeEnabled,
                 showPopupMenu: $showPopupMenu,
                 onToggleExpand: { overlayController.toggleExpanded() },
+                onStart: { Task { await appState.startSession() } },
                 onStop: { Task { await appState.stopSession() } }
             )
 
@@ -214,6 +215,7 @@ struct ModernPillHeaderView: View {
     @Binding var isSmartModeEnabled: Bool
     @Binding var showPopupMenu: Bool
     let onToggleExpand: () -> Void
+    let onStart: () -> Void
     let onStop: () -> Void
 
     @State private var isHoveringExpand = false
@@ -346,6 +348,22 @@ struct ModernPillHeaderView: View {
             .buttonStyle(.plain)
             .onHover { isHoveringMore = $0 }
             .animation(QMDesign.Animation.quick, value: isHoveringMore)
+
+            // Start Button (when session inactive)
+            if !isSessionActive {
+                Button(action: onStart) {
+                    Image(systemName: "play.fill")
+                        .font(.system(size: 10))
+                        .foregroundColor(.white)
+                        .frame(width: 26, height: 26)
+                        .background(
+                            Circle()
+                                .fill(QMDesign.Colors.primaryGradient)
+                        )
+                }
+                .buttonStyle(.plain)
+                .help("Start session (Cmd+Shift+S)")
+            }
 
             // Stop Button (when session active)
             if isSessionActive {
@@ -531,6 +549,10 @@ struct ModernResponseHistoryView: View {
     let hasScreenshot: Bool
     let lastScreenshotTime: Date?
 
+    @State private var isUserScrolling = false
+    @State private var lastResponseContent = ""
+    @State private var scrollDisableTimer: Timer?
+
     var body: some View {
         VStack(spacing: 0) {
             // Screenshot indicator with gradient border
@@ -600,15 +622,38 @@ struct ModernResponseHistoryView: View {
                     }
                     .padding(QMDesign.Spacing.sm)
                 }
+                .simultaneousGesture(
+                    DragGesture(minimumDistance: 0)
+                        .onChanged { _ in
+                            // User is interacting with scroll view - disable auto-scroll
+                            if isProcessing {
+                                isUserScrolling = true
+                                scrollDisableTimer?.invalidate()
+                            }
+                        }
+                )
                 .onChange(of: responses.count) { _ in
+                    // New response added - reset user scrolling flag
+                    isUserScrolling = false
+                    scrollDisableTimer?.invalidate()
+
                     if let firstResponse = responses.first {
                         withAnimation {
                             proxy.scrollTo(firstResponse.id, anchor: .top)
                         }
                     }
                 }
-                .onChange(of: currentResponse) { _ in
-                    if isProcessing {
+                .onChange(of: currentResponse) { newContent in
+                    // Detect if this is a new response starting
+                    if lastResponseContent.isEmpty && !newContent.isEmpty {
+                        // New response starting - enable auto-scroll
+                        isUserScrolling = false
+                        scrollDisableTimer?.invalidate()
+                    }
+                    lastResponseContent = newContent
+
+                    // Only auto-scroll if user hasn't manually scrolled
+                    if isProcessing && !isUserScrolling {
                         withAnimation {
                             proxy.scrollTo("current", anchor: .top)
                         }
@@ -616,7 +661,7 @@ struct ModernResponseHistoryView: View {
                 }
             }
         }
-        .frame(maxWidth: .infinity, minHeight: 140, maxHeight: 220)
+        .frame(maxWidth: .infinity, minHeight: 140)
         .background(
             RoundedRectangle(cornerRadius: QMDesign.Radius.md)
                 .fill(QMDesign.Colors.surfaceLight)
@@ -735,10 +780,7 @@ struct ModernResponseItemView: View {
             }
 
             // Content
-            Text(content)
-                .font(QMDesign.Typography.bodySmall)
-                .foregroundColor(QMDesign.Colors.textPrimary)
-                .textSelection(.enabled)
+            MarkdownText(content: content)
                 .frame(maxWidth: .infinity, alignment: .leading)
         }
         .padding(QMDesign.Spacing.sm)
