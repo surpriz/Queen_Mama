@@ -9,7 +9,7 @@ import SwiftUI
 
 struct SettingsView: View {
     @StateObject private var config = ConfigurationManager.shared
-    @State private var selectedSection: SettingsSection = .general
+    @State private var selectedSection: SettingsSection = .account
 
     var body: some View {
         HStack(spacing: 0) {
@@ -23,6 +23,8 @@ struct SettingsView: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: QMDesign.Spacing.lg) {
                     switch selectedSection {
+                    case .account:
+                        ModernAccountSettingsView()
                     case .general:
                         ModernGeneralSettingsView()
                     case .autoAnswer:
@@ -33,6 +35,8 @@ struct SettingsView: View {
                         ModernModelsSettingsView()
                     case .audio:
                         ModernAudioSettingsView()
+                    case .sync:
+                        ModernSyncSettingsView()
                     case .shortcuts:
                         ModernShortcutsSettingsView()
                     }
@@ -49,31 +53,37 @@ struct SettingsView: View {
 // MARK: - Settings Section
 
 enum SettingsSection: String, CaseIterable {
+    case account = "Account"
     case general = "General"
     case autoAnswer = "Auto-Answer"
     case apiKeys = "API Keys"
     case models = "Models"
     case audio = "Audio"
+    case sync = "Sync"
     case shortcuts = "Shortcuts"
 
     var icon: String {
         switch self {
+        case .account: return "person.crop.circle"
         case .general: return "gear"
         case .autoAnswer: return "bolt.fill"
         case .apiKeys: return "key.fill"
         case .models: return "cpu"
         case .audio: return "speaker.wave.2.fill"
+        case .sync: return "arrow.triangle.2.circlepath"
         case .shortcuts: return "keyboard"
         }
     }
 
     var description: String {
         switch self {
+        case .account: return "Manage your account"
         case .general: return "App preferences"
         case .autoAnswer: return "Automatic responses"
         case .apiKeys: return "API configuration"
         case .models: return "AI models"
         case .audio: return "Audio capture"
+        case .sync: return "Cloud sync settings"
         case .shortcuts: return "Keyboard shortcuts"
         }
     }
@@ -1123,6 +1133,378 @@ struct ModernToggleRow: View {
                 .toggleStyle(.switch)
                 .tint(QMDesign.Colors.accent)
                 .labelsHidden()
+        }
+    }
+}
+
+// MARK: - Modern Account Settings
+
+struct ModernAccountSettingsView: View {
+    @StateObject private var authManager = AuthenticationManager.shared
+    @StateObject private var licenseManager = LicenseManager.shared
+
+    @State private var showLogoutConfirmation = false
+    @State private var showUpgradeSheet = false
+
+    var body: some View {
+        VStack(spacing: QMDesign.Spacing.lg) {
+            // Header
+            SettingsSectionHeader(
+                title: "Account",
+                subtitle: "Manage your Queen Mama account"
+            )
+
+            if authManager.isAuthenticated, let user = authManager.currentUser {
+                // Connected Account Card
+                SettingsCard(title: "Connected Account", icon: "person.crop.circle.fill") {
+                    VStack(spacing: QMDesign.Spacing.md) {
+                        HStack(spacing: QMDesign.Spacing.md) {
+                            // Avatar
+                            ZStack {
+                                Circle()
+                                    .fill(QMDesign.Colors.primaryGradient)
+                                    .frame(width: 48, height: 48)
+                                Text(String(user.displayName.prefix(1)).uppercased())
+                                    .font(.system(size: 20, weight: .bold))
+                                    .foregroundColor(.white)
+                            }
+
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(user.displayName)
+                                    .font(QMDesign.Typography.bodyMedium)
+                                    .foregroundColor(QMDesign.Colors.textPrimary)
+                                Text(user.email)
+                                    .font(QMDesign.Typography.caption)
+                                    .foregroundColor(QMDesign.Colors.textSecondary)
+                            }
+
+                            Spacer()
+
+                            // Status badge
+                            HStack(spacing: 4) {
+                                Circle()
+                                    .fill(QMDesign.Colors.success)
+                                    .frame(width: 8, height: 8)
+                                Text("Connected")
+                                    .font(QMDesign.Typography.captionSmall)
+                                    .foregroundColor(QMDesign.Colors.success)
+                            }
+                        }
+
+                        Divider()
+                            .background(QMDesign.Colors.borderSubtle)
+
+                        // Sign out button
+                        Button(action: { showLogoutConfirmation = true }) {
+                            HStack {
+                                Image(systemName: "rectangle.portrait.and.arrow.right")
+                                Text("Sign Out")
+                            }
+                            .font(QMDesign.Typography.bodySmall)
+                            .foregroundColor(QMDesign.Colors.error)
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+
+                // Subscription Card
+                SettingsCard(title: "Subscription", icon: "crown.fill") {
+                    VStack(spacing: QMDesign.Spacing.md) {
+                        HStack {
+                            VStack(alignment: .leading, spacing: 4) {
+                                HStack(spacing: QMDesign.Spacing.sm) {
+                                    Text(licenseManager.isPro ? "PRO" : "FREE")
+                                        .font(QMDesign.Typography.headline)
+                                        .foregroundStyle(licenseManager.isPro ? AnyShapeStyle(QMDesign.Colors.primaryGradient) : AnyShapeStyle(QMDesign.Colors.textPrimary))
+
+                                    if licenseManager.isTrialing, let days = licenseManager.trialDaysRemaining {
+                                        Text("\(days) days left")
+                                            .font(QMDesign.Typography.captionSmall)
+                                            .foregroundColor(QMDesign.Colors.warning)
+                                            .padding(.horizontal, 6)
+                                            .padding(.vertical, 2)
+                                            .background(
+                                                Capsule()
+                                                    .fill(QMDesign.Colors.warning.opacity(0.1))
+                                            )
+                                    }
+                                }
+
+                                Text(licenseManager.isPro ? "All features unlocked" : "Upgrade for unlimited access")
+                                    .font(QMDesign.Typography.caption)
+                                    .foregroundColor(QMDesign.Colors.textSecondary)
+                            }
+
+                            Spacer()
+
+                            if !licenseManager.isPro {
+                                Button(action: { showUpgradeSheet = true }) {
+                                    Text("Upgrade")
+                                        .font(QMDesign.Typography.labelSmall)
+                                        .foregroundColor(.white)
+                                        .padding(.horizontal, QMDesign.Spacing.md)
+                                        .padding(.vertical, QMDesign.Spacing.sm)
+                                        .background(
+                                            Capsule()
+                                                .fill(QMDesign.Colors.primaryGradient)
+                                        )
+                                }
+                                .buttonStyle(.plain)
+                            }
+                        }
+
+                        // Usage stats for free users
+                        if !licenseManager.isPro {
+                            Divider()
+                                .background(QMDesign.Colors.borderSubtle)
+
+                            VStack(spacing: QMDesign.Spacing.sm) {
+                                if let remaining = licenseManager.remainingUses(for: .smartMode) {
+                                    UsageLimitBanner(
+                                        feature: "Smart Mode",
+                                        used: licenseManager.smartModeUsedToday,
+                                        limit: licenseManager.currentLicense.features.smartModeLimit ?? 5
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            } else {
+                // Not Connected Card
+                SettingsCard(title: "Not Connected", icon: "person.crop.circle.badge.xmark") {
+                    VStack(spacing: QMDesign.Spacing.md) {
+                        Text("Sign in to unlock cloud sync, session history, and PRO features.")
+                            .font(QMDesign.Typography.bodySmall)
+                            .foregroundColor(QMDesign.Colors.textSecondary)
+
+                        Button(action: openSignIn) {
+                            HStack(spacing: QMDesign.Spacing.sm) {
+                                Image(systemName: "person.crop.circle.badge.plus")
+                                Text("Sign In")
+                            }
+                            .font(QMDesign.Typography.labelMedium)
+                            .foregroundColor(.white)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, QMDesign.Spacing.md)
+                            .background(
+                                RoundedRectangle(cornerRadius: QMDesign.Radius.md)
+                                    .fill(QMDesign.Colors.primaryGradient)
+                            )
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+            }
+        }
+        .alert("Sign Out", isPresented: $showLogoutConfirmation) {
+            Button("Cancel", role: .cancel) { }
+            Button("Sign Out", role: .destructive) {
+                Task {
+                    await authManager.logout()
+                }
+            }
+        } message: {
+            Text("Are you sure you want to sign out?")
+        }
+        .sheet(isPresented: $showUpgradeSheet) {
+            UpgradePromptView()
+        }
+    }
+
+    private func openSignIn() {
+        if let url = URL(string: "https://queenmama.app/signin") {
+            NSWorkspace.shared.open(url)
+        }
+    }
+}
+
+// MARK: - Modern Sync Settings
+
+struct ModernSyncSettingsView: View {
+    @StateObject private var authManager = AuthenticationManager.shared
+    @StateObject private var licenseManager = LicenseManager.shared
+    @StateObject private var syncManager = SyncManager.shared
+
+    var body: some View {
+        VStack(spacing: QMDesign.Spacing.lg) {
+            // Header
+            SettingsSectionHeader(
+                title: "Cloud Sync",
+                subtitle: "Sync sessions to your Queen Mama dashboard"
+            )
+
+            if !authManager.isAuthenticated {
+                // Not signed in
+                SettingsCard(title: "Sign In Required", icon: "person.crop.circle.badge.xmark") {
+                    VStack(spacing: QMDesign.Spacing.md) {
+                        Text("Sign in to sync your sessions to the cloud.")
+                            .font(QMDesign.Typography.bodySmall)
+                            .foregroundColor(QMDesign.Colors.textSecondary)
+
+                        Button(action: openSignIn) {
+                            Text("Sign In")
+                                .font(QMDesign.Typography.labelSmall)
+                                .foregroundColor(.white)
+                                .padding(.horizontal, QMDesign.Spacing.lg)
+                                .padding(.vertical, QMDesign.Spacing.sm)
+                                .background(
+                                    Capsule()
+                                        .fill(QMDesign.Colors.primaryGradient)
+                                )
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+            } else if !licenseManager.isFeatureAvailable(.sessionSync) {
+                // PRO required
+                ProFeatureBanner(
+                    feature: "Session Sync",
+                    description: "Sync sessions to view on your dashboard"
+                )
+            } else {
+                // Sync Status Card
+                SettingsCard(title: "Sync Status", icon: "arrow.triangle.2.circlepath") {
+                    VStack(spacing: QMDesign.Spacing.md) {
+                        // Status row
+                        HStack {
+                            VStack(alignment: .leading, spacing: 4) {
+                                HStack(spacing: QMDesign.Spacing.sm) {
+                                    Circle()
+                                        .fill(syncManager.isSyncing ? QMDesign.Colors.warning : (syncManager.isOffline ? QMDesign.Colors.error : QMDesign.Colors.success))
+                                        .frame(width: 8, height: 8)
+
+                                    Text(statusText)
+                                        .font(QMDesign.Typography.bodyMedium)
+                                        .foregroundColor(QMDesign.Colors.textPrimary)
+                                }
+
+                                if let lastSync = syncManager.lastSyncAt {
+                                    Text("Last sync: \(lastSync, style: .relative) ago")
+                                        .font(QMDesign.Typography.caption)
+                                        .foregroundColor(QMDesign.Colors.textTertiary)
+                                }
+                            }
+
+                            Spacer()
+
+                            if syncManager.isSyncing {
+                                ProgressView()
+                                    .scaleEffect(0.8)
+                            }
+                        }
+
+                        // Pending count
+                        if syncManager.pendingCount > 0 {
+                            HStack {
+                                Image(systemName: "clock.arrow.circlepath")
+                                    .foregroundStyle(QMDesign.Colors.primaryGradient)
+                                Text("\(syncManager.pendingCount) session(s) pending sync")
+                                    .font(QMDesign.Typography.caption)
+                                    .foregroundColor(QMDesign.Colors.textSecondary)
+                                Spacer()
+                            }
+                            .padding(QMDesign.Spacing.sm)
+                            .background(
+                                RoundedRectangle(cornerRadius: QMDesign.Radius.md)
+                                    .fill(QMDesign.Colors.accent.opacity(0.05))
+                            )
+                        }
+
+                        // Error message
+                        if let error = syncManager.lastError {
+                            HStack(alignment: .top, spacing: QMDesign.Spacing.sm) {
+                                Image(systemName: "exclamationmark.triangle.fill")
+                                    .foregroundColor(QMDesign.Colors.error)
+                                Text(error)
+                                    .font(QMDesign.Typography.caption)
+                                    .foregroundColor(QMDesign.Colors.error)
+                            }
+                            .padding(QMDesign.Spacing.sm)
+                            .background(
+                                RoundedRectangle(cornerRadius: QMDesign.Radius.md)
+                                    .fill(QMDesign.Colors.error.opacity(0.1))
+                            )
+                        }
+
+                        Divider()
+                            .background(QMDesign.Colors.borderSubtle)
+
+                        // Sync button
+                        Button(action: syncNow) {
+                            HStack(spacing: QMDesign.Spacing.sm) {
+                                Image(systemName: "arrow.triangle.2.circlepath")
+                                Text("Sync Now")
+                            }
+                            .font(QMDesign.Typography.labelSmall)
+                            .foregroundColor(.white)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, QMDesign.Spacing.sm)
+                            .background(
+                                RoundedRectangle(cornerRadius: QMDesign.Radius.md)
+                                    .fill(QMDesign.Colors.primaryGradient)
+                            )
+                        }
+                        .buttonStyle(.plain)
+                        .disabled(syncManager.isSyncing)
+                    }
+                }
+
+                // Dashboard Link
+                SettingsCard(title: "View on Dashboard", icon: "globe") {
+                    VStack(spacing: QMDesign.Spacing.md) {
+                        Text("View and manage all your synced sessions on the web dashboard.")
+                            .font(QMDesign.Typography.bodySmall)
+                            .foregroundColor(QMDesign.Colors.textSecondary)
+
+                        Button(action: openDashboard) {
+                            HStack(spacing: QMDesign.Spacing.sm) {
+                                Text("Open Dashboard")
+                                Image(systemName: "arrow.up.right")
+                            }
+                            .font(QMDesign.Typography.labelSmall)
+                            .foregroundColor(QMDesign.Colors.textPrimary)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, QMDesign.Spacing.sm)
+                            .background(
+                                RoundedRectangle(cornerRadius: QMDesign.Radius.md)
+                                    .fill(QMDesign.Colors.surfaceLight)
+                            )
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+            }
+        }
+    }
+
+    private var statusText: String {
+        if syncManager.isSyncing {
+            return "Syncing..."
+        } else if syncManager.isOffline {
+            return "Offline"
+        } else if syncManager.pendingCount > 0 {
+            return "Pending"
+        } else {
+            return "Up to date"
+        }
+    }
+
+    private func syncNow() {
+        Task {
+            await syncManager.syncNow()
+        }
+    }
+
+    private func openSignIn() {
+        if let url = URL(string: "https://queenmama.app/signin") {
+            NSWorkspace.shared.open(url)
+        }
+    }
+
+    private func openDashboard() {
+        if let url = URL(string: "https://queenmama.app/dashboard/sessions") {
+            NSWorkspace.shared.open(url)
         }
     }
 }

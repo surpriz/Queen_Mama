@@ -44,7 +44,9 @@ struct OnboardingView: View {
                     case .welcome:
                         WelcomeStepView(onContinue: { goToStep(.permissions) })
                     case .permissions:
-                        PermissionsStepView(onContinue: { goToStep(.apiKeys) })
+                        PermissionsStepView(onContinue: { goToStep(.account) })
+                    case .account:
+                        AccountStepView(onContinue: { goToStep(.apiKeys) })
                     case .apiKeys:
                         APIKeysStepView(onContinue: { goToStep(.quickTour) })
                     case .quickTour:
@@ -76,14 +78,16 @@ struct OnboardingView: View {
 enum OnboardingStep: Int, CaseIterable {
     case welcome = 0
     case permissions = 1
-    case apiKeys = 2
-    case quickTour = 3
-    case ready = 4
+    case account = 2
+    case apiKeys = 3
+    case quickTour = 4
+    case ready = 5
 
     var title: String {
         switch self {
         case .welcome: return "Welcome"
         case .permissions: return "Permissions"
+        case .account: return "Account"
         case .apiKeys: return "API Keys"
         case .quickTour: return "Tour"
         case .ready: return "Ready"
