@@ -175,6 +175,8 @@ struct ModernSidebarView: View {
     @EnvironmentObject var appState: AppState
     @EnvironmentObject var sessionManager: SessionManager
     @ObservedObject var audioService: AudioCaptureService
+    @StateObject private var licenseManager = LicenseManager.shared
+    @StateObject private var authManager = AuthenticationManager.shared
 
     var body: some View {
         VStack(spacing: 0) {
@@ -255,6 +257,15 @@ struct ModernSidebarView: View {
             // Footer
             VStack(spacing: QMDesign.Spacing.xs) {
                 Divider()
+
+                // License Status Badge
+                LicenseStatusBadge(
+                    licenseManager: licenseManager,
+                    authManager: authManager,
+                    onTap: { selectedSection = .settings }
+                )
+                .padding(.horizontal, QMDesign.Spacing.sm)
+                .padding(.top, QMDesign.Spacing.xs)
 
                 HStack {
                     Text("v1.0")
@@ -383,6 +394,128 @@ struct ModernAudioLevelIndicator: View {
             }
         }
         .frame(height: 6)
+    }
+}
+
+// MARK: - License Status Badge
+
+struct LicenseStatusBadge: View {
+    @ObservedObject var licenseManager: LicenseManager
+    @ObservedObject var authManager: AuthenticationManager
+    let onTap: () -> Void
+
+    @State private var isHovered = false
+
+    var body: some View {
+        Button(action: onTap) {
+            HStack(spacing: QMDesign.Spacing.sm) {
+                // Icon
+                Image(systemName: iconName)
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundColor(iconColor)
+
+                // Status text
+                VStack(alignment: .leading, spacing: 1) {
+                    Text(statusTitle)
+                        .font(QMDesign.Typography.captionSmall)
+                        .fontWeight(.semibold)
+                        .foregroundColor(QMDesign.Colors.textPrimary)
+
+                    Text(statusSubtitle)
+                        .font(.system(size: 9))
+                        .foregroundColor(QMDesign.Colors.textTertiary)
+                }
+
+                Spacer()
+
+                // Chevron
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 10, weight: .semibold))
+                    .foregroundColor(QMDesign.Colors.textTertiary)
+            }
+            .padding(.horizontal, QMDesign.Spacing.sm)
+            .padding(.vertical, QMDesign.Spacing.xs)
+            .background(
+                RoundedRectangle(cornerRadius: QMDesign.Radius.md)
+                    .fill(backgroundColor)
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: QMDesign.Radius.md)
+                    .stroke(borderColor, lineWidth: 1)
+            )
+            .scaleEffect(isHovered ? 1.02 : 1.0)
+        }
+        .buttonStyle(.plain)
+        .onHover { isHovered = $0 }
+        .animation(QMDesign.Animation.quick, value: isHovered)
+    }
+
+    // MARK: - Computed Properties
+
+    private var iconName: String {
+        if !authManager.isAuthenticated {
+            return "person.crop.circle.badge.xmark"
+        } else if licenseManager.isPro {
+            return "crown.fill"
+        } else {
+            return "person.crop.circle"
+        }
+    }
+
+    private var iconColor: Color {
+        if !authManager.isAuthenticated {
+            return QMDesign.Colors.textTertiary
+        } else if licenseManager.isPro {
+            return QMDesign.Colors.warning
+        } else {
+            return QMDesign.Colors.accent
+        }
+    }
+
+    private var statusTitle: String {
+        if !authManager.isAuthenticated {
+            return "Not Connected"
+        } else if licenseManager.isPro {
+            if licenseManager.isTrialing, let days = licenseManager.trialDaysRemaining {
+                return "PRO Trial"
+            }
+            return "PRO"
+        } else {
+            return "FREE"
+        }
+    }
+
+    private var statusSubtitle: String {
+        if !authManager.isAuthenticated {
+            return "Tap to sign in"
+        } else if licenseManager.isPro {
+            if licenseManager.isTrialing, let days = licenseManager.trialDaysRemaining {
+                return "\(days) days remaining"
+            }
+            return "All features unlocked"
+        } else {
+            return "Upgrade for more"
+        }
+    }
+
+    private var backgroundColor: Color {
+        if !authManager.isAuthenticated {
+            return QMDesign.Colors.surfaceLight
+        } else if licenseManager.isPro {
+            return QMDesign.Colors.warning.opacity(0.1)
+        } else {
+            return QMDesign.Colors.surfaceLight
+        }
+    }
+
+    private var borderColor: Color {
+        if !authManager.isAuthenticated {
+            return QMDesign.Colors.borderSubtle
+        } else if licenseManager.isPro {
+            return QMDesign.Colors.warning.opacity(0.3)
+        } else {
+            return QMDesign.Colors.borderSubtle
+        }
     }
 }
 
