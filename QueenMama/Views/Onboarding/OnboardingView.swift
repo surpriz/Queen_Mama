@@ -46,9 +46,8 @@ struct OnboardingView: View {
                     case .permissions:
                         PermissionsStepView(onContinue: { goToStep(.account) })
                     case .account:
-                        AccountStepView(onContinue: { goToStep(.apiKeys) })
-                    case .apiKeys:
-                        APIKeysStepView(onContinue: { goToStep(.quickTour) })
+                        // Skip API Keys step - now managed by backend proxy
+                        AccountStepView(onContinue: { goToStep(.quickTour) })
                     case .quickTour:
                         QuickTourStepView(onContinue: { goToStep(.ready) })
                     case .ready:
@@ -79,16 +78,14 @@ enum OnboardingStep: Int, CaseIterable {
     case welcome = 0
     case permissions = 1
     case account = 2
-    case apiKeys = 3
-    case quickTour = 4
-    case ready = 5
+    case quickTour = 3
+    case ready = 4
 
     var title: String {
         switch self {
         case .welcome: return "Welcome"
         case .permissions: return "Permissions"
         case .account: return "Account"
-        case .apiKeys: return "API Keys"
         case .quickTour: return "Tour"
         case .ready: return "Ready"
         }
@@ -502,205 +499,6 @@ struct PermissionCard: View {
                 )
         )
         .onHover { isHovered = $0 }
-    }
-}
-
-// MARK: - API Keys Step
-
-struct APIKeysStepView: View {
-    let onContinue: () -> Void
-
-    @State private var deepgramKey = ""
-    @State private var openAIKey = ""
-    @State private var showDeepgram = false
-    @State private var showOpenAI = false
-    @State private var isButtonHovered = false
-
-    private let keychain = KeychainManager.shared
-
-    var body: some View {
-        VStack(spacing: QMDesign.Spacing.xl) {
-            Spacer()
-
-            // Header
-            VStack(spacing: QMDesign.Spacing.md) {
-                ZStack {
-                    Circle()
-                        .fill(QMDesign.Colors.primaryGradient.opacity(0.1))
-                        .frame(width: 80, height: 80)
-                    Image(systemName: "key.fill")
-                        .font(.system(size: 32))
-                        .foregroundStyle(QMDesign.Colors.primaryGradient)
-                }
-
-                Text("Configure API Keys")
-                    .font(QMDesign.Typography.titleMedium)
-                    .foregroundColor(QMDesign.Colors.textPrimary)
-
-                Text("Queen Mama needs API keys to connect to transcription and AI services.")
-                    .font(QMDesign.Typography.bodySmall)
-                    .foregroundColor(QMDesign.Colors.textSecondary)
-                    .multilineTextAlignment(.center)
-                    .padding(.horizontal, QMDesign.Spacing.xl)
-            }
-
-            // API Key Fields
-            VStack(spacing: QMDesign.Spacing.md) {
-                OnboardingAPIKeyField(
-                    title: "Deepgram API Key",
-                    subtitle: "For speech-to-text transcription",
-                    key: $deepgramKey,
-                    showKey: $showDeepgram,
-                    isConfigured: keychain.hasAPIKey(for: .deepgram),
-                    onSave: { saveKey(.deepgram, deepgramKey) }
-                )
-
-                OnboardingAPIKeyField(
-                    title: "OpenAI API Key",
-                    subtitle: "For AI-powered responses",
-                    key: $openAIKey,
-                    showKey: $showOpenAI,
-                    isConfigured: keychain.hasAPIKey(for: .openai),
-                    onSave: { saveKey(.openai, openAIKey) }
-                )
-            }
-            .padding(.horizontal, QMDesign.Spacing.xl)
-
-            // Skip option
-            Text("You can configure these later in Settings")
-                .font(QMDesign.Typography.caption)
-                .foregroundColor(QMDesign.Colors.textTertiary)
-
-            Spacer()
-
-            // Continue Button
-            HStack(spacing: QMDesign.Spacing.md) {
-                Button(action: onContinue) {
-                    Text("Skip for now")
-                        .font(QMDesign.Typography.labelSmall)
-                        .foregroundColor(QMDesign.Colors.textSecondary)
-                        .padding(.horizontal, QMDesign.Spacing.lg)
-                        .padding(.vertical, QMDesign.Spacing.md)
-                        .background(
-                            Capsule()
-                                .fill(QMDesign.Colors.surfaceLight)
-                        )
-                }
-                .buttonStyle(.plain)
-
-                Button(action: onContinue) {
-                    HStack(spacing: QMDesign.Spacing.sm) {
-                        Text("Continue")
-                            .font(QMDesign.Typography.labelMedium)
-                        Image(systemName: "arrow.right")
-                            .font(.system(size: 14, weight: .semibold))
-                    }
-                    .padding(.horizontal, QMDesign.Spacing.xl)
-                    .padding(.vertical, QMDesign.Spacing.md)
-                    .background(
-                        Capsule()
-                            .fill(QMDesign.Colors.primaryGradient)
-                    )
-                    .foregroundColor(.white)
-                    .scaleEffect(isButtonHovered ? 1.05 : 1.0)
-                }
-                .buttonStyle(.plain)
-                .onHover { isButtonHovered = $0 }
-                .animation(QMDesign.Animation.smooth, value: isButtonHovered)
-            }
-            .padding(.bottom, QMDesign.Spacing.xxl)
-        }
-        .padding(.horizontal, QMDesign.Spacing.lg)
-        .onAppear {
-            loadKeys()
-        }
-    }
-
-    private func loadKeys() {
-        deepgramKey = keychain.getAPIKey(for: .deepgram) ?? ""
-        openAIKey = keychain.getAPIKey(for: .openai) ?? ""
-    }
-
-    private func saveKey(_ type: KeychainManager.APIKeyType, _ key: String) {
-        guard !key.isEmpty else { return }
-        try? keychain.saveAPIKey(key, for: type)
-    }
-}
-
-struct OnboardingAPIKeyField: View {
-    let title: String
-    let subtitle: String
-    @Binding var key: String
-    @Binding var showKey: Bool
-    let isConfigured: Bool
-    let onSave: () -> Void
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: QMDesign.Spacing.sm) {
-            HStack {
-                VStack(alignment: .leading, spacing: 2) {
-                    HStack(spacing: QMDesign.Spacing.xs) {
-                        Text(title)
-                            .font(QMDesign.Typography.bodyMedium)
-                            .foregroundColor(QMDesign.Colors.textPrimary)
-                        if isConfigured {
-                            Image(systemName: "checkmark.circle.fill")
-                                .font(.system(size: 12))
-                                .foregroundColor(QMDesign.Colors.success)
-                        }
-                    }
-                    Text(subtitle)
-                        .font(QMDesign.Typography.captionSmall)
-                        .foregroundColor(QMDesign.Colors.textTertiary)
-                }
-                Spacer()
-            }
-
-            HStack(spacing: QMDesign.Spacing.sm) {
-                Group {
-                    if showKey {
-                        TextField("Enter API Key", text: $key)
-                    } else {
-                        SecureField("Enter API Key", text: $key)
-                    }
-                }
-                .textFieldStyle(.plain)
-                .font(QMDesign.Typography.bodySmall)
-                .padding(QMDesign.Spacing.sm)
-                .background(
-                    RoundedRectangle(cornerRadius: QMDesign.Radius.md)
-                        .fill(QMDesign.Colors.backgroundSecondary)
-                )
-
-                Button(action: { showKey.toggle() }) {
-                    Image(systemName: showKey ? "eye.slash" : "eye")
-                        .font(.system(size: 14))
-                        .foregroundColor(QMDesign.Colors.textSecondary)
-                        .frame(width: 32, height: 32)
-                        .background(Circle().fill(QMDesign.Colors.surfaceMedium))
-                }
-                .buttonStyle(.plain)
-
-                Button(action: onSave) {
-                    Text("Save")
-                        .font(QMDesign.Typography.labelSmall)
-                        .foregroundColor(.white)
-                        .padding(.horizontal, QMDesign.Spacing.md)
-                        .padding(.vertical, QMDesign.Spacing.sm)
-                        .background(Capsule().fill(QMDesign.Colors.primaryGradient))
-                }
-                .buttonStyle(.plain)
-            }
-        }
-        .padding(QMDesign.Spacing.md)
-        .background(
-            RoundedRectangle(cornerRadius: QMDesign.Radius.lg)
-                .fill(QMDesign.Colors.surfaceLight)
-                .overlay(
-                    RoundedRectangle(cornerRadius: QMDesign.Radius.lg)
-                        .stroke(QMDesign.Colors.borderSubtle, lineWidth: 1)
-                )
-        )
     }
 }
 

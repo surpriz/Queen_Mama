@@ -1,11 +1,11 @@
 import Foundation
 import Combine
 
+@MainActor
 final class ConfigurationManager: ObservableObject {
     static let shared = ConfigurationManager()
 
     private let defaults = UserDefaults.standard
-    private let keychain = KeychainManager.shared
 
     // MARK: - Published Settings
 
@@ -133,30 +133,15 @@ final class ConfigurationManager: ObservableObject {
         set { defaults.set(newValue, forKey: Keys.hasCompletedOnboarding) }
     }
 
-    // MARK: - API Key Helpers
+    // MARK: - Service Availability Helpers
 
-    func hasAllRequiredAPIKeys() -> Bool {
-        return keychain.hasAPIKey(for: .deepgram) &&
-               (keychain.hasAPIKey(for: .openai) ||
-                keychain.hasAPIKey(for: .anthropic) ||
-                keychain.hasAPIKey(for: .gemini))
+    func hasRequiredServices() -> Bool {
+        let configManager = ProxyConfigManager.shared
+        return configManager.isTranscriptionEnabled && configManager.isAIEnabled
     }
 
-    func getMissingAPIKeys() -> [KeychainManager.APIKeyType] {
-        var missing: [KeychainManager.APIKeyType] = []
-
-        if !keychain.hasAPIKey(for: .deepgram) {
-            missing.append(.deepgram)
-        }
-
-        // Need at least one AI provider
-        if !keychain.hasAPIKey(for: .openai) &&
-           !keychain.hasAPIKey(for: .anthropic) &&
-           !keychain.hasAPIKey(for: .gemini) {
-            missing.append(.openai) // Suggest OpenAI as primary
-        }
-
-        return missing
+    func areMissingServices() -> Bool {
+        return !hasRequiredServices()
     }
 
     // MARK: - Reset

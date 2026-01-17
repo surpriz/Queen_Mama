@@ -11,7 +11,11 @@ export default auth((req) => {
   const isProtectedApi =
     pathname.startsWith("/api") &&
     !pathname.startsWith("/api/auth") &&
-    !pathname.startsWith("/api/webhooks");
+    !pathname.startsWith("/api/webhooks") &&
+    !pathname.startsWith("/api/license") &&
+    !pathname.startsWith("/api/proxy") &&
+    !pathname.startsWith("/api/usage") &&
+    !pathname.startsWith("/api/sync");
   const isAdminApi = pathname.startsWith("/api/admin");
 
   // Redirect logged-in users away from auth pages

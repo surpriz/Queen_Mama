@@ -37,68 +37,58 @@ final class AIService: ObservableObject {
     // SwiftData
     var modelContext: ModelContext?
 
-    // MARK: - Providers
+    // MARK: - Proxy Providers (new architecture)
 
-    // Primary providers (used in both modes with different models)
-    private let anthropicProvider = AnthropicProvider()      // Sonnet 4.5 / Sonnet 4.5 Thinking
-    private let grokProvider = GrokProvider()                // Grok 4.1 Fast
-    private let openAIProvider = OpenAIProvider()            // GPT-4o mini / o3
+    // Proxy providers route through backend - created dynamically based on config
+    private var proxyProviders: [AIProvider] {
+        let configManager = ProxyConfigManager.shared
 
-    // Mode-specific fallback providers
-    private let anthropicHaikuProvider = AnthropicHaikuProvider()  // Haiku 4.5 (Non-Smart only)
-    private let openAIGPT5Provider = OpenAIGPT5Provider()          // GPT-5.2 (Smart only)
-    private let geminiProvider = GeminiProvider()                   // Backup final
-
-    // Fallback order for NON-Smart mode:
-    // Order is dynamic based on user's preferred provider, then fallback to others
-    private var standardProviders: [AIProvider] {
+        // Create proxy providers for each available backend provider
+        let availableProviders = configManager.availableAIProviders
         let preferredProvider = ConfigurationManager.shared.selectedAIProvider
-        var providers: [AIProvider] = []
 
-        // Build provider list with preferred first
-        switch preferredProvider {
-        case .anthropic:
-            providers = [anthropicProvider, grokProvider, openAIProvider, anthropicHaikuProvider, geminiProvider]
-        case .grok:
-            providers = [grokProvider, anthropicProvider, openAIProvider, anthropicHaikuProvider, geminiProvider]
-        case .openai:
-            providers = [openAIProvider, anthropicProvider, grokProvider, anthropicHaikuProvider, geminiProvider]
-        case .gemini:
-            providers = [geminiProvider, anthropicProvider, grokProvider, openAIProvider, anthropicHaikuProvider]
+        // Sort with preferred first
+        let sortedProviders = availableProviders.sorted { first, _ in
+            first.lowercased() == preferredProvider.rawValue.lowercased()
         }
 
-        return providers.filter { $0.isConfigured }
-    }
-
-    // Fallback order for SMART mode:
-    // Order is dynamic based on user's preferred provider, then fallback to others
-    private var smartProviders: [AIProvider] {
-        let preferredProvider = ConfigurationManager.shared.selectedAIProvider
-        var providers: [AIProvider] = []
-
-        // Build provider list with preferred first (Smart mode uses different models)
-        switch preferredProvider {
-        case .anthropic:
-            providers = [anthropicProvider, grokProvider, openAIProvider, openAIGPT5Provider, geminiProvider]
-        case .grok:
-            providers = [grokProvider, anthropicProvider, openAIProvider, openAIGPT5Provider, geminiProvider]
-        case .openai:
-            providers = [openAIProvider, anthropicProvider, grokProvider, openAIGPT5Provider, geminiProvider]
-        case .gemini:
-            providers = [geminiProvider, anthropicProvider, grokProvider, openAIProvider, openAIGPT5Provider]
+        return sortedProviders.compactMap { providerName -> AIProvider? in
+            // Map backend provider names (lowercase) to Swift enum
+            guard let type = Self.mapBackendProviderToType(providerName) else {
+                print("[AIService] Unknown provider from backend: \(providerName)")
+                return nil
+            }
+            return ProxyAIProvider(provider: type)
         }
-
-        return providers.filter { $0.isConfigured }
     }
 
-    // Dynamic provider selection based on mode
+    // Map backend provider names to AIProviderType
+    // Backend uses: "openai", "anthropic", "gemini", "grok"
+    // Swift enum uses: "OpenAI", "Anthropic", "Google Gemini", "xAI Grok"
+    private static func mapBackendProviderToType(_ name: String) -> AIProviderType? {
+        switch name.lowercased() {
+        case "openai":
+            return .openai
+        case "anthropic":
+            return .anthropic
+        case "gemini":
+            return .gemini
+        case "grok", "xai":
+            return .grok
+        default:
+            return nil
+        }
+    }
+
+    // Dynamic provider selection based on mode (proxy-based)
     private func getProviders(smartMode: Bool) -> [AIProvider] {
-        smartMode ? smartProviders : standardProviders
+        // With proxy architecture, all providers are accessed through the backend
+        // Smart mode is handled by the backend based on the request
+        return proxyProviders
     }
 
     private var configuredProviders: [AIProvider] {
-        // Default to standard providers for backward compatibility
-        standardProviders
+        proxyProviders
     }
 
     // MARK: - Initialization

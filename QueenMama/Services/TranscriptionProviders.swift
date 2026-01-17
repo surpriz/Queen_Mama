@@ -10,15 +10,19 @@ enum TranscriptionProviderType: String, CaseIterable {
 
 enum TranscriptionError: LocalizedError {
     case noAPIKey
+    case notAuthenticated
     case connectionFailed(Error)
     case invalidResponse
     case disconnected
     case allProvidersFailed
+    case tokenExpired
 
     var errorDescription: String? {
         switch self {
         case .noAPIKey:
-            return "Transcription API key not configured."
+            return "Transcription service not available."
+        case .notAuthenticated:
+            return "Please sign in to use transcription."
         case .connectionFailed(let error):
             return "Failed to connect to transcription service: \(error.localizedDescription)"
         case .invalidResponse:
@@ -27,6 +31,8 @@ enum TranscriptionError: LocalizedError {
             return "Disconnected from transcription service."
         case .allProvidersFailed:
             return "All transcription providers failed."
+        case .tokenExpired:
+            return "Transcription token expired. Reconnecting..."
         }
     }
 }
@@ -56,10 +62,13 @@ final class DeepgramProvider: TranscriptionProvider {
     var onInterimTranscript: ((String) -> Void)?
     var onError: ((Error) -> Void)?
 
-    private let keychain = KeychainManager.shared
+    private let proxyClient = ProxyAPIClient.shared
+    private let configManager = ProxyConfigManager.shared
     private var webSocketTask: URLSessionWebSocketTask?
     private var keepaliveTimer: Timer?
     private var audioBytesSent = 0
+    private var currentToken: TranscriptionToken?
+    private var tokenRefreshTask: Task<Void, Never>?
 
     // Deepgram configuration
     private let baseURL = "wss://api.deepgram.com/v1/listen"
@@ -67,7 +76,8 @@ final class DeepgramProvider: TranscriptionProvider {
     private let language = "multi"  // Multi-language auto-detection
 
     var isConfigured: Bool {
-        keychain.hasAPIKey(for: .deepgram)
+        // Check if transcription is available via proxy
+        configManager.isTranscriptionProviderAvailable("deepgram")
     }
 
     func connect() async throws {
@@ -76,17 +86,27 @@ final class DeepgramProvider: TranscriptionProvider {
         // Clean up existing connection
         if webSocketTask != nil {
             stopKeepalive()
+            stopTokenRefresh()
             webSocketTask?.cancel(with: .goingAway, reason: nil)
             webSocketTask = nil
             try? await Task.sleep(nanoseconds: 100_000_000) // 100ms
         }
 
-        guard let apiKey = keychain.getAPIKey(for: .deepgram) else {
-            print("[Deepgram] No API key found!")
-            throw TranscriptionError.noAPIKey
+        // Get temporary token from proxy
+        guard AuthenticationManager.shared.isAuthenticated else {
+            print("[Deepgram] Not authenticated!")
+            throw TranscriptionError.notAuthenticated
         }
 
-        print("[Deepgram] Connecting with API key: \(apiKey.prefix(10))...")
+        let token: TranscriptionToken
+        do {
+            token = try await proxyClient.getTranscriptionToken(provider: "deepgram")
+            currentToken = token
+            print("[Deepgram] Got temporary token, expires at: \(token.expiresAt)")
+        } catch {
+            print("[Deepgram] Failed to get transcription token: \(error)")
+            throw TranscriptionError.noAPIKey
+        }
 
         // Build WebSocket URL with parameters
         var components = URLComponents(string: baseURL)!
@@ -106,7 +126,7 @@ final class DeepgramProvider: TranscriptionProvider {
         }
 
         var request = URLRequest(url: url)
-        request.setValue("Token \(apiKey)", forHTTPHeaderField: "Authorization")
+        request.setValue("Token \(token.token)", forHTTPHeaderField: "Authorization")
 
         let config = URLSessionConfiguration.default
         config.timeoutIntervalForRequest = 30
@@ -126,15 +146,44 @@ final class DeepgramProvider: TranscriptionProvider {
 
         // Start keepalive timer
         startKeepalive()
+
+        // Schedule token refresh before expiry
+        scheduleTokenRefresh()
+    }
+
+    private func scheduleTokenRefresh() {
+        guard let token = currentToken else { return }
+
+        // Refresh 2 minutes before expiry
+        let refreshTime = token.expiresAt.addingTimeInterval(-120)
+        let delay = refreshTime.timeIntervalSinceNow
+
+        if delay > 0 {
+            tokenRefreshTask = Task { [weak self] in
+                try? await Task.sleep(nanoseconds: UInt64(delay * 1_000_000_000))
+                guard let self = self, self.isConnected else { return }
+
+                print("[Deepgram] Token refresh needed, reconnecting...")
+                self.disconnect()
+                try? await self.connect()
+            }
+        }
+    }
+
+    private func stopTokenRefresh() {
+        tokenRefreshTask?.cancel()
+        tokenRefreshTask = nil
     }
 
     func disconnect() {
         print("[Deepgram] Disconnecting...")
         stopKeepalive()
+        stopTokenRefresh()
         webSocketTask?.cancel(with: .normalClosure, reason: nil)
         webSocketTask = nil
         isConnected = false
         audioBytesSent = 0
+        currentToken = nil
     }
 
     func sendAudioData(_ data: Data) async throws {
@@ -289,16 +338,20 @@ final class AssemblyAIProvider: TranscriptionProvider {
     var onInterimTranscript: ((String) -> Void)?
     var onError: ((Error) -> Void)?
 
-    private let keychain = KeychainManager.shared
+    private let proxyClient = ProxyAPIClient.shared
+    private let configManager = ProxyConfigManager.shared
     private var webSocketTask: URLSessionWebSocketTask?
     private var audioBytesSent = 0
     private var sessionURL: String?
+    private var currentToken: TranscriptionToken?
+    private var tokenRefreshTask: Task<Void, Never>?
 
     // AssemblyAI configuration
     private let baseURL = "wss://api.assemblyai.com/v2/realtime/ws"
 
     var isConfigured: Bool {
-        keychain.hasAPIKey(for: .assemblyai)
+        // Check if transcription is available via proxy
+        configManager.isTranscriptionProviderAvailable("assemblyai")
     }
 
     func connect() async throws {
@@ -306,17 +359,27 @@ final class AssemblyAIProvider: TranscriptionProvider {
 
         // Clean up existing connection
         if webSocketTask != nil {
+            stopTokenRefresh()
             webSocketTask?.cancel(with: .goingAway, reason: nil)
             webSocketTask = nil
             try? await Task.sleep(nanoseconds: 100_000_000) // 100ms
         }
 
-        guard let apiKey = keychain.getAPIKey(for: .assemblyai) else {
-            print("[AssemblyAI] No API key found!")
-            throw TranscriptionError.noAPIKey
+        // Get temporary token from proxy
+        guard AuthenticationManager.shared.isAuthenticated else {
+            print("[AssemblyAI] Not authenticated!")
+            throw TranscriptionError.notAuthenticated
         }
 
-        print("[AssemblyAI] Connecting with API key: \(apiKey.prefix(10))...")
+        let token: TranscriptionToken
+        do {
+            token = try await proxyClient.getTranscriptionToken(provider: "assemblyai")
+            currentToken = token
+            print("[AssemblyAI] Got temporary token, expires at: \(token.expiresAt)")
+        } catch {
+            print("[AssemblyAI] Failed to get transcription token: \(error)")
+            throw TranscriptionError.noAPIKey
+        }
 
         // Build WebSocket URL with API key as query parameter
         guard let url = URL(string: "\(baseURL)?sample_rate=16000") else {
@@ -324,7 +387,7 @@ final class AssemblyAIProvider: TranscriptionProvider {
         }
 
         var request = URLRequest(url: url)
-        request.setValue(apiKey, forHTTPHeaderField: "Authorization")
+        request.setValue(token.token, forHTTPHeaderField: "Authorization")
 
         let config = URLSessionConfiguration.default
         config.timeoutIntervalForRequest = 30
@@ -344,10 +407,39 @@ final class AssemblyAIProvider: TranscriptionProvider {
 
         // Start receiving messages
         receiveMessages()
+
+        // Schedule token refresh before expiry
+        scheduleTokenRefresh()
+    }
+
+    private func scheduleTokenRefresh() {
+        guard let token = currentToken else { return }
+
+        // Refresh 2 minutes before expiry
+        let refreshTime = token.expiresAt.addingTimeInterval(-120)
+        let delay = refreshTime.timeIntervalSinceNow
+
+        if delay > 0 {
+            tokenRefreshTask = Task { [weak self] in
+                try? await Task.sleep(nanoseconds: UInt64(delay * 1_000_000_000))
+                guard let self = self, self.isConnected else { return }
+
+                print("[AssemblyAI] Token refresh needed, reconnecting...")
+                self.disconnect()
+                try? await self.connect()
+            }
+        }
+    }
+
+    private func stopTokenRefresh() {
+        tokenRefreshTask?.cancel()
+        tokenRefreshTask = nil
     }
 
     func disconnect() {
         print("[AssemblyAI] Disconnecting...")
+
+        stopTokenRefresh()
 
         // Send termination message to AssemblyAI
         if let task = webSocketTask {
@@ -361,6 +453,7 @@ final class AssemblyAIProvider: TranscriptionProvider {
         isConnected = false
         audioBytesSent = 0
         sessionURL = nil
+        currentToken = nil
     }
 
     func sendAudioData(_ data: Data) async throws {
@@ -523,17 +616,20 @@ final class DeepgramFluxProvider: TranscriptionProvider {
     var onInterimTranscript: ((String) -> Void)?
     var onError: ((Error) -> Void)?
 
-    private let keychain = KeychainManager.shared
+    private let proxyClient = ProxyAPIClient.shared
+    private let configManager = ProxyConfigManager.shared
     private var webSocketTask: URLSessionWebSocketTask?
     private var audioBytesSent = 0
+    private var currentToken: TranscriptionToken?
+    private var tokenRefreshTask: Task<Void, Never>?
 
     // Deepgram Flux configuration - uses v2 endpoint
     private let baseURL = "wss://api.deepgram.com/v2/listen"
     private let model = "flux-general-en"
 
     var isConfigured: Bool {
-        // Flux uses the same API key as Nova-3
-        keychain.hasAPIKey(for: .deepgram)
+        // Flux uses the same Deepgram provider via proxy
+        configManager.isTranscriptionProviderAvailable("deepgram")
     }
 
     func connect() async throws {
@@ -541,17 +637,27 @@ final class DeepgramFluxProvider: TranscriptionProvider {
 
         // Clean up existing connection
         if webSocketTask != nil {
+            stopTokenRefresh()
             webSocketTask?.cancel(with: .goingAway, reason: nil)
             webSocketTask = nil
             try? await Task.sleep(nanoseconds: 100_000_000) // 100ms
         }
 
-        guard let apiKey = keychain.getAPIKey(for: .deepgram) else {
-            print("[Deepgram Flux] No API key found!")
-            throw TranscriptionError.noAPIKey
+        // Get temporary token from proxy
+        guard AuthenticationManager.shared.isAuthenticated else {
+            print("[Deepgram Flux] Not authenticated!")
+            throw TranscriptionError.notAuthenticated
         }
 
-        print("[Deepgram Flux] Connecting with API key: \(apiKey.prefix(10))...")
+        let token: TranscriptionToken
+        do {
+            token = try await proxyClient.getTranscriptionToken(provider: "deepgram")
+            currentToken = token
+            print("[Deepgram Flux] Got temporary token, expires at: \(token.expiresAt)")
+        } catch {
+            print("[Deepgram Flux] Failed to get transcription token: \(error)")
+            throw TranscriptionError.noAPIKey
+        }
 
         // Build WebSocket URL with Flux-specific parameters
         var components = URLComponents(string: baseURL)!
@@ -570,7 +676,7 @@ final class DeepgramFluxProvider: TranscriptionProvider {
         }
 
         var request = URLRequest(url: url)
-        request.setValue("Token \(apiKey)", forHTTPHeaderField: "Authorization")
+        request.setValue("Token \(token.token)", forHTTPHeaderField: "Authorization")
 
         let config = URLSessionConfiguration.default
         config.timeoutIntervalForRequest = 30
@@ -587,14 +693,43 @@ final class DeepgramFluxProvider: TranscriptionProvider {
 
         // Start receiving messages
         receiveMessages()
+
+        // Schedule token refresh before expiry
+        scheduleTokenRefresh()
+    }
+
+    private func scheduleTokenRefresh() {
+        guard let token = currentToken else { return }
+
+        // Refresh 2 minutes before expiry
+        let refreshTime = token.expiresAt.addingTimeInterval(-120)
+        let delay = refreshTime.timeIntervalSinceNow
+
+        if delay > 0 {
+            tokenRefreshTask = Task { [weak self] in
+                try? await Task.sleep(nanoseconds: UInt64(delay * 1_000_000_000))
+                guard let self = self, self.isConnected else { return }
+
+                print("[Deepgram Flux] Token refresh needed, reconnecting...")
+                self.disconnect()
+                try? await self.connect()
+            }
+        }
+    }
+
+    private func stopTokenRefresh() {
+        tokenRefreshTask?.cancel()
+        tokenRefreshTask = nil
     }
 
     func disconnect() {
         print("[Deepgram Flux] Disconnecting...")
+        stopTokenRefresh()
         webSocketTask?.cancel(with: .normalClosure, reason: nil)
         webSocketTask = nil
         isConnected = false
         audioBytesSent = 0
+        currentToken = nil
     }
 
     func sendAudioData(_ data: Data) async throws {

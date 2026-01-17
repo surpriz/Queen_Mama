@@ -58,6 +58,9 @@ final class AuthenticationManager: ObservableObject {
             isAuthenticated = true
             authState = .authenticated(user: storedUser)
 
+            // Notify other services
+            NotificationCenter.default.post(name: .userDidAuthenticate, object: nil)
+
         } catch {
             print("[Auth] Existing auth validation failed: \(error)")
             // Clear invalid credentials
@@ -91,6 +94,9 @@ final class AuthenticationManager: ObservableObject {
             currentUser = response.user
             isAuthenticated = true
             authState = .authenticated(user: response.user)
+
+            // Notify other services
+            NotificationCenter.default.post(name: .userDidAuthenticate, object: nil)
 
         } catch {
             authState = .error(message: error.localizedDescription)
@@ -162,6 +168,9 @@ final class AuthenticationManager: ObservableObject {
                             currentUser = user
                             isAuthenticated = true
                             authState = .authenticated(user: user)
+
+                            // Notify other services
+                            NotificationCenter.default.post(name: .userDidAuthenticate, object: nil)
                         }
 
                         return
@@ -215,6 +224,9 @@ final class AuthenticationManager: ObservableObject {
         currentUser = nil
         isAuthenticated = false
         authState = .unauthenticated
+
+        // Notify other services
+        NotificationCenter.default.post(name: .userDidLogout, object: nil)
     }
 
     /// Logout from all devices
@@ -234,6 +246,9 @@ final class AuthenticationManager: ObservableObject {
         currentUser = nil
         isAuthenticated = false
         authState = .unauthenticated
+
+        // Notify other services
+        NotificationCenter.default.post(name: .userDidLogout, object: nil)
     }
 
     // MARK: - Token Access

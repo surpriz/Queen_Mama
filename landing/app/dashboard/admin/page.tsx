@@ -165,10 +165,15 @@ export default async function AdminPage() {
       </div>
 
       {/* Actions */}
-      <div className="flex gap-4">
+      <div className="flex gap-4 flex-wrap">
         <Link href="/dashboard/admin/users">
           <button className="px-6 py-3 rounded-[var(--qm-radius-md)] bg-[var(--qm-accent)] hover:bg-[var(--qm-accent-hover)] text-white font-medium transition-colors">
             Manage Users
+          </button>
+        </Link>
+        <Link href="/dashboard/admin/api-keys">
+          <button className="px-6 py-3 rounded-[var(--qm-radius-md)] border border-[var(--qm-accent)] text-[var(--qm-accent)] hover:bg-[var(--qm-accent)]/10 font-medium transition-colors">
+            Manage API Keys
           </button>
         </Link>
       </div>

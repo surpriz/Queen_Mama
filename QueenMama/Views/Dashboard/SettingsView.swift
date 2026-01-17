@@ -29,8 +29,6 @@ struct SettingsView: View {
                         ModernGeneralSettingsView()
                     case .autoAnswer:
                         ModernAutoAnswerSettingsView()
-                    case .apiKeys:
-                        ModernAPIKeysSettingsView()
                     case .models:
                         ModernModelsSettingsView()
                     case .audio:
@@ -56,7 +54,6 @@ enum SettingsSection: String, CaseIterable {
     case account = "Account"
     case general = "General"
     case autoAnswer = "Auto-Answer"
-    case apiKeys = "API Keys"
     case models = "Models"
     case audio = "Audio"
     case sync = "Sync"
@@ -67,7 +64,6 @@ enum SettingsSection: String, CaseIterable {
         case .account: return "person.crop.circle"
         case .general: return "gear"
         case .autoAnswer: return "bolt.fill"
-        case .apiKeys: return "key.fill"
         case .models: return "cpu"
         case .audio: return "speaker.wave.2.fill"
         case .sync: return "arrow.triangle.2.circlepath"
@@ -80,7 +76,6 @@ enum SettingsSection: String, CaseIterable {
         case .account: return "Manage your account"
         case .general: return "App preferences"
         case .autoAnswer: return "Automatic responses"
-        case .apiKeys: return "API configuration"
         case .models: return "AI models"
         case .audio: return "Audio capture"
         case .sync: return "Cloud sync settings"
@@ -553,253 +548,22 @@ struct ResponseTypeOption: View {
     }
 }
 
-// MARK: - Modern API Keys Settings
-
-struct ModernAPIKeysSettingsView: View {
-    @State private var deepgramKey = ""
-    @State private var assemblyAIKey = ""
-    @State private var openAIKey = ""
-    @State private var anthropicKey = ""
-    @State private var xaiKey = ""
-    @State private var geminiKey = ""
-
-    @State private var showDeepgram = false
-    @State private var showAssemblyAI = false
-    @State private var showOpenAI = false
-    @State private var showAnthropic = false
-    @State private var showXAI = false
-    @State private var showGemini = false
-
-    @State private var saveMessage = ""
-    @State private var saveSuccess = true
-
-    private let keychain = KeychainManager.shared
-
-    var body: some View {
-        VStack(spacing: QMDesign.Spacing.lg) {
-            // Header
-            SettingsSectionHeader(
-                title: "API Keys",
-                subtitle: "Configure your API credentials"
-            )
-
-            // Speech-to-Text Card
-            SettingsCard(title: "Speech-to-Text", icon: "waveform") {
-                VStack(spacing: QMDesign.Spacing.md) {
-                    ModernAPIKeyField(
-                        title: "Deepgram",
-                        subtitle: "Primary transcription provider",
-                        key: $deepgramKey,
-                        showKey: $showDeepgram,
-                        isConfigured: keychain.hasAPIKey(for: .deepgram),
-                        onSave: { saveKey(.deepgram, deepgramKey) }
-                    )
-
-                    Divider()
-                        .background(QMDesign.Colors.borderSubtle)
-
-                    ModernAPIKeyField(
-                        title: "AssemblyAI",
-                        subtitle: "Fallback transcription provider",
-                        key: $assemblyAIKey,
-                        showKey: $showAssemblyAI,
-                        isConfigured: keychain.hasAPIKey(for: .assemblyai),
-                        onSave: { saveKey(.assemblyai, assemblyAIKey) }
-                    )
-                }
-            }
-
-            // AI Providers Card
-            SettingsCard(title: "AI Providers", icon: "cpu") {
-                VStack(spacing: QMDesign.Spacing.md) {
-                    ModernAPIKeyField(
-                        title: "OpenAI",
-                        subtitle: "GPT-4o mini / o3",
-                        key: $openAIKey,
-                        showKey: $showOpenAI,
-                        isConfigured: keychain.hasAPIKey(for: .openai),
-                        onSave: { saveKey(.openai, openAIKey) }
-                    )
-
-                    Divider()
-                        .background(QMDesign.Colors.borderSubtle)
-
-                    ModernAPIKeyField(
-                        title: "Anthropic",
-                        subtitle: "Claude Sonnet 4.5",
-                        key: $anthropicKey,
-                        showKey: $showAnthropic,
-                        isConfigured: keychain.hasAPIKey(for: .anthropic),
-                        onSave: { saveKey(.anthropic, anthropicKey) }
-                    )
-
-                    Divider()
-                        .background(QMDesign.Colors.borderSubtle)
-
-                    ModernAPIKeyField(
-                        title: "xAI (Grok)",
-                        subtitle: "Grok 4.1 Fast",
-                        key: $xaiKey,
-                        showKey: $showXAI,
-                        isConfigured: keychain.hasAPIKey(for: .xai),
-                        onSave: { saveKey(.xai, xaiKey) }
-                    )
-
-                    Divider()
-                        .background(QMDesign.Colors.borderSubtle)
-
-                    ModernAPIKeyField(
-                        title: "Google Gemini",
-                        subtitle: "Gemini 2.0 Flash (backup)",
-                        key: $geminiKey,
-                        showKey: $showGemini,
-                        isConfigured: keychain.hasAPIKey(for: .gemini),
-                        onSave: { saveKey(.gemini, geminiKey) }
-                    )
-                }
-            }
-
-            // Save Message
-            if !saveMessage.isEmpty {
-                HStack(spacing: QMDesign.Spacing.sm) {
-                    Image(systemName: saveSuccess ? "checkmark.circle.fill" : "exclamationmark.circle.fill")
-                        .foregroundColor(saveSuccess ? QMDesign.Colors.success : QMDesign.Colors.error)
-                    Text(saveMessage)
-                        .font(QMDesign.Typography.bodySmall)
-                        .foregroundColor(saveSuccess ? QMDesign.Colors.success : QMDesign.Colors.error)
-                }
-                .padding(QMDesign.Spacing.md)
-                .background(
-                    RoundedRectangle(cornerRadius: QMDesign.Radius.md)
-                        .fill((saveSuccess ? QMDesign.Colors.success : QMDesign.Colors.error).opacity(0.1))
-                )
-            }
-        }
-        .onAppear(perform: loadKeys)
-    }
-
-    private func loadKeys() {
-        deepgramKey = keychain.getAPIKey(for: .deepgram) ?? ""
-        assemblyAIKey = keychain.getAPIKey(for: .assemblyai) ?? ""
-        openAIKey = keychain.getAPIKey(for: .openai) ?? ""
-        anthropicKey = keychain.getAPIKey(for: .anthropic) ?? ""
-        xaiKey = keychain.getAPIKey(for: .xai) ?? ""
-        geminiKey = keychain.getAPIKey(for: .gemini) ?? ""
-    }
-
-    private func saveKey(_ type: KeychainManager.APIKeyType, _ key: String) {
-        do {
-            if key.isEmpty {
-                try keychain.deleteAPIKey(for: type)
-            } else {
-                try keychain.saveAPIKey(key, for: type)
-            }
-            saveSuccess = true
-            saveMessage = "\(type.displayName) key saved"
-
-            DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
-                saveMessage = ""
-            }
-        } catch {
-            saveSuccess = false
-            saveMessage = "Error: \(error.localizedDescription)"
-        }
-    }
-}
-
-struct ModernAPIKeyField: View {
-    let title: String
-    let subtitle: String
-    @Binding var key: String
-    @Binding var showKey: Bool
-    let isConfigured: Bool
-    let onSave: () -> Void
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: QMDesign.Spacing.sm) {
-            HStack {
-                VStack(alignment: .leading, spacing: 2) {
-                    HStack(spacing: QMDesign.Spacing.xs) {
-                        Text(title)
-                            .font(QMDesign.Typography.bodyMedium)
-                            .foregroundColor(QMDesign.Colors.textPrimary)
-
-                        if isConfigured {
-                            Image(systemName: "checkmark.circle.fill")
-                                .font(.system(size: 12))
-                                .foregroundColor(QMDesign.Colors.success)
-                        }
-                    }
-                    Text(subtitle)
-                        .font(QMDesign.Typography.captionSmall)
-                        .foregroundColor(QMDesign.Colors.textTertiary)
-                }
-
-                Spacer()
-            }
-
-            HStack(spacing: QMDesign.Spacing.sm) {
-                if showKey {
-                    TextField("Enter API Key", text: $key)
-                        .textFieldStyle(.plain)
-                        .font(QMDesign.Typography.bodySmall)
-                        .padding(QMDesign.Spacing.sm)
-                        .background(
-                            RoundedRectangle(cornerRadius: QMDesign.Radius.md)
-                                .fill(QMDesign.Colors.backgroundSecondary)
-                        )
-                } else {
-                    SecureField("Enter API Key", text: $key)
-                        .textFieldStyle(.plain)
-                        .font(QMDesign.Typography.bodySmall)
-                        .padding(QMDesign.Spacing.sm)
-                        .background(
-                            RoundedRectangle(cornerRadius: QMDesign.Radius.md)
-                                .fill(QMDesign.Colors.backgroundSecondary)
-                        )
-                }
-
-                Button(action: { showKey.toggle() }) {
-                    Image(systemName: showKey ? "eye.slash" : "eye")
-                        .font(.system(size: 14))
-                        .foregroundColor(QMDesign.Colors.textSecondary)
-                        .frame(width: 32, height: 32)
-                        .background(
-                            Circle()
-                                .fill(QMDesign.Colors.surfaceMedium)
-                        )
-                }
-                .buttonStyle(.plain)
-
-                Button(action: onSave) {
-                    Text("Save")
-                        .font(QMDesign.Typography.labelSmall)
-                        .foregroundColor(.white)
-                        .padding(.horizontal, QMDesign.Spacing.md)
-                        .padding(.vertical, QMDesign.Spacing.sm)
-                        .background(
-                            Capsule()
-                                .fill(QMDesign.Colors.primaryGradient)
-                        )
-                }
-                .buttonStyle(.plain)
-            }
-        }
-    }
-}
-
 // MARK: - Modern Models Settings
 
 struct ModernModelsSettingsView: View {
     @StateObject private var config = ConfigurationManager.shared
-    private let keychain = KeychainManager.shared
+    @StateObject private var proxyConfig = ProxyConfigManager.shared
+
+    private func isProviderAvailable(_ provider: String) -> Bool {
+        proxyConfig.availableAIProviders.contains { $0.lowercased() == provider.lowercased() }
+    }
 
     var body: some View {
         VStack(spacing: QMDesign.Spacing.lg) {
             // Header
             SettingsSectionHeader(
                 title: "AI Models",
-                subtitle: "Models used for transcription and AI responses"
+                subtitle: "Models available based on your subscription"
             )
 
             // AI Models Card
@@ -809,7 +573,7 @@ struct ModernModelsSettingsView: View {
                         provider: "OpenAI",
                         model: "gpt-4o",
                         description: "GPT-4o with vision capabilities",
-                        isConfigured: keychain.hasAPIKey(for: .openai)
+                        isConfigured: isProviderAvailable("openai")
                     )
 
                     Divider().background(QMDesign.Colors.borderSubtle)
@@ -818,7 +582,7 @@ struct ModernModelsSettingsView: View {
                         provider: "Anthropic",
                         model: "claude-sonnet-4-20250514",
                         description: "Claude Sonnet 4 with vision",
-                        isConfigured: keychain.hasAPIKey(for: .anthropic)
+                        isConfigured: isProviderAvailable("anthropic")
                     )
 
                     Divider().background(QMDesign.Colors.borderSubtle)
@@ -827,7 +591,7 @@ struct ModernModelsSettingsView: View {
                         provider: "xAI Grok",
                         model: "grok-4.1-fast",
                         description: "Grok 4.1 Fast with vision",
-                        isConfigured: keychain.hasAPIKey(for: .xai)
+                        isConfigured: isProviderAvailable("grok")
                     )
 
                     Divider().background(QMDesign.Colors.borderSubtle)
@@ -836,7 +600,7 @@ struct ModernModelsSettingsView: View {
                         provider: "Google Gemini",
                         model: "gemini-2.0-flash",
                         description: "Gemini 2.0 Flash with vision",
-                        isConfigured: keychain.hasAPIKey(for: .gemini)
+                        isConfigured: isProviderAvailable("gemini")
                     )
                 }
             }
@@ -848,7 +612,7 @@ struct ModernModelsSettingsView: View {
                         provider: "Deepgram",
                         model: "nova-3",
                         description: "Real-time speech recognition",
-                        isConfigured: keychain.hasAPIKey(for: .deepgram)
+                        isConfigured: proxyConfig.isTranscriptionEnabled
                     )
 
                     Divider().background(QMDesign.Colors.borderSubtle)
@@ -857,7 +621,7 @@ struct ModernModelsSettingsView: View {
                         provider: "AssemblyAI",
                         model: "realtime",
                         description: "Fallback speech recognition",
-                        isConfigured: keychain.hasAPIKey(for: .assemblyai)
+                        isConfigured: proxyConfig.isTranscriptionEnabled
                     )
                 }
             }
@@ -875,7 +639,7 @@ struct ModernModelsSettingsView: View {
                             .foregroundStyle(QMDesign.Colors.primaryGradient)
                     }
 
-                    DynamicFallbackOrder(preferredProvider: config.selectedAIProvider, keychain: keychain)
+                    DynamicFallbackOrder(preferredProvider: config.selectedAIProvider, availableProviders: proxyConfig.availableAIProviders)
                 }
             }
         }
@@ -953,36 +717,39 @@ struct FallbackBadge: View {
 
 struct DynamicFallbackOrder: View {
     let preferredProvider: AIProviderType
-    let keychain: KeychainManager
+    let availableProviders: [String]
 
-    private var providerOrder: [(name: String, keychainType: KeychainManager.APIKeyType, providerType: AIProviderType)] {
-        // Base order of all providers (excluding preferred)
-        let allProviders: [(String, KeychainManager.APIKeyType, AIProviderType)] = [
-            ("Anthropic", .anthropic, .anthropic),
-            ("Grok", .xai, .grok),
-            ("OpenAI", .openai, .openai),
-            ("Haiku", .anthropic, .anthropic),
-            ("Gemini", .gemini, .gemini)
+    private var providerOrder: [(name: String, providerKey: String, providerType: AIProviderType)] {
+        // Base order of all providers
+        let allProviders: [(String, String, AIProviderType)] = [
+            ("Anthropic", "anthropic", .anthropic),
+            ("Grok", "grok", .grok),
+            ("OpenAI", "openai", .openai),
+            ("Gemini", "gemini", .gemini)
         ]
 
         // Get preferred provider info
-        var preferredInfo: (String, KeychainManager.APIKeyType, AIProviderType)
+        var preferredInfo: (String, String, AIProviderType)
         switch preferredProvider {
         case .anthropic:
-            preferredInfo = ("Anthropic", .anthropic, .anthropic)
+            preferredInfo = ("Anthropic", "anthropic", .anthropic)
         case .grok:
-            preferredInfo = ("Grok", .xai, .grok)
+            preferredInfo = ("Grok", "grok", .grok)
         case .openai:
-            preferredInfo = ("OpenAI", .openai, .openai)
+            preferredInfo = ("OpenAI", "openai", .openai)
         case .gemini:
-            preferredInfo = ("Gemini", .gemini, .gemini)
+            preferredInfo = ("Gemini", "gemini", .gemini)
         }
 
         // Build order with preferred first, then others
-        var result: [(String, KeychainManager.APIKeyType, AIProviderType)] = [preferredInfo]
+        var result: [(String, String, AIProviderType)] = [preferredInfo]
         result.append(contentsOf: allProviders.filter { $0.2 != preferredProvider })
 
         return result
+    }
+
+    private func isProviderAvailable(_ providerKey: String) -> Bool {
+        availableProviders.contains { $0.lowercased() == providerKey.lowercased() }
     }
 
     var body: some View {
@@ -997,7 +764,7 @@ struct DynamicFallbackOrder: View {
                     FallbackBadge(
                         name: provider.name,
                         number: index + 1,
-                        isConfigured: keychain.hasAPIKey(for: provider.keychainType),
+                        isConfigured: isProviderAvailable(provider.providerKey),
                         isPreferred: index == 0
                     )
                 }
@@ -1014,7 +781,7 @@ struct DynamicFallbackOrder: View {
                         FallbackBadge(
                             name: provider.name,
                             number: index + 4,
-                            isConfigured: keychain.hasAPIKey(for: provider.keychainType),
+                            isConfigured: isProviderAvailable(provider.providerKey),
                             isPreferred: false
                         )
                     }
@@ -1742,14 +1509,12 @@ struct ModernSyncSettingsView: View {
 
 enum SettingsTab {
     case general
-    case apiKeys
     case models
     case audio
     case shortcuts
 }
 
 typealias GeneralSettingsView = ModernGeneralSettingsView
-typealias APIKeysSettingsView = ModernAPIKeysSettingsView
 typealias ModelsSettingsView = ModernModelsSettingsView
 typealias AudioSettingsView = ModernAudioSettingsView
 typealias ShortcutsSettingsView = ModernShortcutsSettingsView

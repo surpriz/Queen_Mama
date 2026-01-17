@@ -131,6 +131,7 @@ model DeviceAuthCode {
 // API KEYS MANAGEMENT
 // ============================================
 
+// User-specific API keys (legacy, for user-managed keys)
 model ApiKey {
   id         String         @id @default(cuid())
   userId     String
@@ -148,12 +149,29 @@ model ApiKey {
   @@unique([userId, provider])
 }
 
+// System-wide API keys managed by admin (for proxy service)
+model AdminApiKey {
+  id              String         @id @default(cuid())
+  provider        ApiKeyProvider @unique
+  encryptedKey    String         @db.Text
+  keyPrefix       String         // First 8 chars for display (sk-abc...)
+  isActive        Boolean        @default(true)
+  lastUsedAt      DateTime?
+  usageCount      Int            @default(0)
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+  createdBy       String         // Admin user ID who created it
+
+  @@index([provider])
+}
+
 enum ApiKeyProvider {
   OPENAI
   ANTHROPIC
   GEMINI
   DEEPGRAM
   GROK
+  ASSEMBLYAI
 }
 
 enum UserRole {

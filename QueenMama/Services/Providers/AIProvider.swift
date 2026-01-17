@@ -13,7 +13,7 @@ protocol AIProvider {
 // MARK: - AI Provider Errors
 
 enum AIProviderError: LocalizedError {
-    case noAPIKey
+    case notAuthenticated
     case requestFailed(Error)
     case invalidResponse
     case rateLimited
@@ -22,8 +22,8 @@ enum AIProviderError: LocalizedError {
 
     var errorDescription: String? {
         switch self {
-        case .noAPIKey:
-            return "API key not configured."
+        case .notAuthenticated:
+            return "Please sign in to use AI features."
         case .requestFailed(let error):
             return "Request failed: \(error.localizedDescription)"
         case .invalidResponse:
@@ -33,7 +33,7 @@ enum AIProviderError: LocalizedError {
         case .timeout:
             return "Request timed out."
         case .allProvidersFailed:
-            return "All AI providers failed. Please check your API keys and try again."
+            return "All AI providers failed. Please try again later."
         }
     }
 }
@@ -41,7 +41,6 @@ enum AIProviderError: LocalizedError {
 // MARK: - Base HTTP Client
 
 class BaseAIProvider {
-    let keychain = KeychainManager.shared
     let timeoutSeconds: TimeInterval = 30
 
     func makeRequest(
