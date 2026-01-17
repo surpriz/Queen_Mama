@@ -35,6 +35,7 @@ export async function POST(request: Request) {
       case "checkout.session.completed": {
         const session = event.data.object as Stripe.Checkout.Session;
         const userId = session.metadata?.userId;
+        const plan = (session.metadata?.plan === "ENTERPRISE" ? "ENTERPRISE" : "PRO") as "PRO" | "ENTERPRISE";
 
         if (userId && session.subscription) {
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -51,7 +52,7 @@ export async function POST(request: Request) {
             where: { userId },
             create: {
               userId,
-              plan: "PRO",
+              plan,
               status: "ACTIVE",
               stripeSubscriptionId: subscription.id,
               stripePriceId: subscription.items.data[0].price.id,
@@ -63,7 +64,7 @@ export async function POST(request: Request) {
               ),
             },
             update: {
-              plan: "PRO",
+              plan,
               status: "ACTIVE",
               stripeSubscriptionId: subscription.id,
               stripePriceId: subscription.items.data[0].price.id,

@@ -5,7 +5,7 @@ import { GlassCard, GradientButton, Badge } from "@/components/ui";
 import Link from "next/link";
 
 interface Subscription {
-  plan: "FREE" | "PRO";
+  plan: "FREE" | "PRO" | "ENTERPRISE";
   status: string;
   currentPeriodEnd: string | null;
   cancelAtPeriodEnd: boolean;
@@ -17,12 +17,13 @@ const plans = {
     price: "$0",
     period: "forever",
     features: [
-      "Real-time AI suggestions",
+      "50 AI requests per day",
       "Live transcription",
-      "Undetectable mode",
+      "Screenshot capture",
       "4 built-in AI modes",
-      "Bring your own API keys",
+      "Plain text export",
     ],
+    highlighted: false,
   },
   PRO: {
     name: "Pro",
@@ -30,12 +31,27 @@ const plans = {
     period: "month",
     features: [
       "Everything in Free",
-      "Unlimited Smart Mode",
+      "Unlimited AI requests",
       "Custom AI modes",
-      "Session history export",
-      "Advanced analytics",
+      "Session cloud sync",
+      "All export formats",
       "Priority support",
     ],
+    highlighted: true,
+  },
+  ENTERPRISE: {
+    name: "Enterprise",
+    price: "$49",
+    period: "month",
+    features: [
+      "Everything in Pro",
+      "Smart Mode (premium AI)",
+      "Undetectable overlay",
+      "Auto-Answer feature",
+      "Extended storage",
+      "Dedicated support",
+    ],
+    highlighted: false,
   },
 };
 
@@ -63,11 +79,13 @@ export default function BillingPage() {
     fetchSubscription();
   }, []);
 
-  const handleUpgrade = async () => {
+  const handleUpgrade = async (plan: "PRO" | "ENTERPRISE") => {
     setIsUpgrading(true);
     try {
       const response = await fetch("/api/billing/checkout", {
         method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ plan }),
       });
       const data = await response.json();
       if (data.url) {
@@ -97,8 +115,9 @@ export default function BillingPage() {
     }
   };
 
-  const isPro = subscription?.plan === "PRO";
-  const currentPlan = isPro ? plans.PRO : plans.FREE;
+  const currentPlanKey = subscription?.plan || "FREE";
+  const currentPlan = plans[currentPlanKey];
+  const isPaidPlan = currentPlanKey === "PRO" || currentPlanKey === "ENTERPRISE";
 
   return (
     <div className="space-y-8">
@@ -115,14 +134,14 @@ export default function BillingPage() {
             <div>
               <div className="flex items-center gap-3">
                 <h2 className="text-lg font-semibold text-white">Current Plan</h2>
-                <Badge variant={isPro ? "accent" : "default"}>
+                <Badge variant={isPaidPlan ? "accent" : "default"}>
                   {currentPlan.name}
                 </Badge>
               </div>
               <p className="mt-1 text-[var(--qm-text-secondary)]">
                 {currentPlan.price}/{currentPlan.period}
               </p>
-              {subscription?.currentPeriodEnd && isPro && (
+              {subscription?.currentPeriodEnd && isPaidPlan && (
                 <p className="mt-2 text-sm text-[var(--qm-text-tertiary)]">
                   {subscription.cancelAtPeriodEnd
                     ? `Cancels on ${new Date(subscription.currentPeriodEnd).toLocaleDateString()}`
@@ -130,31 +149,40 @@ export default function BillingPage() {
                 </p>
               )}
             </div>
-            {isPro ? (
+            {isPaidPlan ? (
               <GradientButton variant="secondary" onClick={handleManage} disabled={isManaging}>
                 {isManaging ? "Loading..." : "Manage Subscription"}
               </GradientButton>
             ) : (
-              <GradientButton onClick={handleUpgrade} disabled={isUpgrading}>
+              <GradientButton onClick={() => handleUpgrade("PRO")} disabled={isUpgrading}>
                 {isUpgrading ? "Loading..." : "Upgrade to Pro"}
               </GradientButton>
             )}
           </div>
         </GlassCard>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {Object.entries(plans).map(([key, plan]) => {
-            const isCurrentPlan = subscription?.plan === key;
+            const isCurrentPlan = subscription?.plan === key || (!subscription?.plan && key === "FREE");
+            const planKey = key as "FREE" | "PRO" | "ENTERPRISE";
+            const canUpgrade = !isCurrentPlan && planKey !== "FREE" &&
+              (currentPlanKey === "FREE" || (currentPlanKey === "PRO" && planKey === "ENTERPRISE"));
+
             return (
               <GlassCard
                 key={key}
                 hover={false}
                 padding="lg"
-                className={isCurrentPlan ? "ring-2 ring-[var(--qm-accent)]" : ""}
+                className={`${isCurrentPlan ? "ring-2 ring-[var(--qm-accent)]" : ""} ${plan.highlighted ? "ring-1 ring-[var(--qm-accent)]/50" : ""}`}
               >
                 <div className="flex items-center justify-between mb-4">
                   <div>
-                    <h3 className="text-lg font-semibold text-white">{plan.name}</h3>
+                    <div className="flex items-center gap-2">
+                      <h3 className="text-lg font-semibold text-white">{plan.name}</h3>
+                      {plan.highlighted && !isCurrentPlan && (
+                        <Badge variant="accent" className="text-xs">Popular</Badge>
+                      )}
+                    </div>
                     <p className="text-2xl font-bold text-white mt-1">
                       {plan.price}
                       <span className="text-sm font-normal text-[var(--qm-text-tertiary)]">
@@ -166,7 +194,7 @@ export default function BillingPage() {
                     <Badge variant="success">Current</Badge>
                   )}
                 </div>
-                <ul className="space-y-3">
+                <ul className="space-y-3 mb-6">
                   {plan.features.map((feature, i) => (
                     <li key={i} className="flex items-start gap-2">
                       <svg
@@ -186,6 +214,26 @@ export default function BillingPage() {
                     </li>
                   ))}
                 </ul>
+                {canUpgrade && (
+                  <GradientButton
+                    onClick={() => handleUpgrade(planKey as "PRO" | "ENTERPRISE")}
+                    disabled={isUpgrading}
+                    className="w-full"
+                    variant={plan.highlighted ? "primary" : "secondary"}
+                  >
+                    {isUpgrading ? "Loading..." : `Upgrade to ${plan.name}`}
+                  </GradientButton>
+                )}
+                {isCurrentPlan && planKey !== "FREE" && (
+                  <GradientButton
+                    onClick={handleManage}
+                    disabled={isManaging}
+                    className="w-full"
+                    variant="secondary"
+                  >
+                    {isManaging ? "Loading..." : "Manage"}
+                  </GradientButton>
+                )}
               </GlassCard>
             );
           })}

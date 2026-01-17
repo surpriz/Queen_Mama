@@ -1,18 +1,33 @@
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { getStripe } from "@/lib/stripe";
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 
-export async function POST() {
+const PLAN_PRICE_IDS: Record<string, string | undefined> = {
+  PRO: process.env.STRIPE_PRO_PRICE_ID,
+  ENTERPRISE: process.env.STRIPE_ENTERPRISE_PRICE_ID,
+};
+
+export async function POST(request: NextRequest) {
   const session = await auth();
   if (!session?.user?.id) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const priceId = process.env.STRIPE_PRO_PRICE_ID;
+  let plan = "PRO";
+  try {
+    const body = await request.json();
+    if (body.plan && (body.plan === "PRO" || body.plan === "ENTERPRISE")) {
+      plan = body.plan;
+    }
+  } catch {
+    // Default to PRO if no body provided
+  }
+
+  const priceId = PLAN_PRICE_IDS[plan];
   if (!priceId) {
     return NextResponse.json(
-      { error: "Stripe price not configured" },
+      { error: `Stripe price not configured for ${plan} plan` },
       { status: 500 }
     );
   }
@@ -38,10 +53,10 @@ export async function POST() {
       customer: user.stripeCustomerId || undefined,
       customer_email: user.stripeCustomerId ? undefined : user.email!,
       subscription_data: {
-        metadata: { userId: session.user.id },
+        metadata: { userId: session.user.id, plan },
         trial_period_days: 14,
       },
-      metadata: { userId: session.user.id },
+      metadata: { userId: session.user.id, plan },
     });
 
     return NextResponse.json({ url: checkoutSession.url });
