@@ -1,4 +1,4 @@
-import { stripe } from "@/lib/stripe";
+import { getStripe } from "@/lib/stripe";
 import { prisma } from "@/lib/prisma";
 import { headers } from "next/headers";
 import { NextResponse } from "next/server";
@@ -24,7 +24,7 @@ export async function POST(request: Request) {
   let event: Stripe.Event;
 
   try {
-    event = stripe.webhooks.constructEvent(body, signature, webhookSecret);
+    event = getStripe().webhooks.constructEvent(body, signature, webhookSecret);
   } catch (err) {
     console.error("Webhook signature verification failed:", err);
     return NextResponse.json({ error: "Invalid signature" }, { status: 400 });
@@ -38,7 +38,7 @@ export async function POST(request: Request) {
 
         if (userId && session.subscription) {
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const subscription: any = await stripe.subscriptions.retrieve(
+          const subscription: any = await getStripe().subscriptions.retrieve(
             session.subscription as string
           );
 

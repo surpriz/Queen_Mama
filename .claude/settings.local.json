@@ -6,7 +6,8 @@
       "mcp__context7__query-docs",
       "WebFetch(domain:cluely.com)",
       "Bash(npm run build:*)",
-      "Bash(xcodebuild:*)"
+      "Bash(xcodebuild:*)",
+      "Bash(npx prisma migrate dev:*)"
     ]
   }
 }

@@ -159,7 +159,7 @@ export const usageRecordSchema = z.object({
   action: z.enum(["ai_request", "smart_mode", "session_start", "auto_answer"]),
   provider: z.string().optional(),
   tokensUsed: z.number().int().min(0).optional(),
-  metadata: z.record(z.unknown()).optional(),
+  metadata: z.record(z.string(), z.unknown()).optional(),
 });
 
 export const usageRecordBatchSchema = z.object({
