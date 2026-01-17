@@ -122,6 +122,7 @@ struct License: Codable, Equatable {
 enum SubscriptionPlan: String, Codable {
     case free = "FREE"
     case pro = "PRO"
+    case enterprise = "ENTERPRISE"
 }
 
 enum SubscriptionStatus: String, Codable {
@@ -142,29 +143,101 @@ struct LicenseFeatures: Codable, Equatable {
     let dailyAiRequestLimit: Int?
     let maxSyncedSessions: Int?
     let maxTranscriptSize: Int?
+    let undetectableEnabled: Bool
+    let screenshotEnabled: Bool
 
+    // Custom decoding to handle servers that don't send new fields yet
+    enum CodingKeys: String, CodingKey {
+        case smartModeEnabled, smartModeLimit, customModesEnabled, exportFormats
+        case autoAnswerEnabled, sessionSyncEnabled, dailyAiRequestLimit
+        case maxSyncedSessions, maxTranscriptSize, undetectableEnabled, screenshotEnabled
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        smartModeEnabled = try container.decode(Bool.self, forKey: .smartModeEnabled)
+        smartModeLimit = try container.decodeIfPresent(Int.self, forKey: .smartModeLimit)
+        customModesEnabled = try container.decode(Bool.self, forKey: .customModesEnabled)
+        exportFormats = try container.decode([String].self, forKey: .exportFormats)
+        autoAnswerEnabled = try container.decode(Bool.self, forKey: .autoAnswerEnabled)
+        sessionSyncEnabled = try container.decode(Bool.self, forKey: .sessionSyncEnabled)
+        dailyAiRequestLimit = try container.decodeIfPresent(Int.self, forKey: .dailyAiRequestLimit)
+        maxSyncedSessions = try container.decodeIfPresent(Int.self, forKey: .maxSyncedSessions)
+        maxTranscriptSize = try container.decodeIfPresent(Int.self, forKey: .maxTranscriptSize)
+        // Default to false if not present (backward compatibility)
+        undetectableEnabled = try container.decodeIfPresent(Bool.self, forKey: .undetectableEnabled) ?? false
+        screenshotEnabled = try container.decodeIfPresent(Bool.self, forKey: .screenshotEnabled) ?? true
+    }
+
+    init(
+        smartModeEnabled: Bool,
+        smartModeLimit: Int?,
+        customModesEnabled: Bool,
+        exportFormats: [String],
+        autoAnswerEnabled: Bool,
+        sessionSyncEnabled: Bool,
+        dailyAiRequestLimit: Int?,
+        maxSyncedSessions: Int?,
+        maxTranscriptSize: Int?,
+        undetectableEnabled: Bool = false,
+        screenshotEnabled: Bool = true
+    ) {
+        self.smartModeEnabled = smartModeEnabled
+        self.smartModeLimit = smartModeLimit
+        self.customModesEnabled = customModesEnabled
+        self.exportFormats = exportFormats
+        self.autoAnswerEnabled = autoAnswerEnabled
+        self.sessionSyncEnabled = sessionSyncEnabled
+        self.dailyAiRequestLimit = dailyAiRequestLimit
+        self.maxSyncedSessions = maxSyncedSessions
+        self.maxTranscriptSize = maxTranscriptSize
+        self.undetectableEnabled = undetectableEnabled
+        self.screenshotEnabled = screenshotEnabled
+    }
+
+    // 4-tier model: Free users get basic features only
     static let freeDefaults = LicenseFeatures(
-        smartModeEnabled: true,
-        smartModeLimit: 5,
+        smartModeEnabled: false, // Enterprise only
+        smartModeLimit: 0,
         customModesEnabled: false,
         exportFormats: ["plainText"],
-        autoAnswerEnabled: false,
+        autoAnswerEnabled: false, // Enterprise only
         sessionSyncEnabled: false,
         dailyAiRequestLimit: 50,
-        maxSyncedSessions: 5,
-        maxTranscriptSize: 10240
+        maxSyncedSessions: 0,
+        maxTranscriptSize: 10240,
+        undetectableEnabled: false, // Enterprise only
+        screenshotEnabled: true
     )
 
+    // PRO tier: Unlimited standard AI, sync, custom modes - but no premium features
     static let proDefaults = LicenseFeatures(
+        smartModeEnabled: false, // Enterprise only
+        smartModeLimit: 0,
+        customModesEnabled: true,
+        exportFormats: ["plainText", "markdown", "json"],
+        autoAnswerEnabled: false, // Enterprise only
+        sessionSyncEnabled: true,
+        dailyAiRequestLimit: nil, // unlimited
+        maxSyncedSessions: nil, // unlimited
+        maxTranscriptSize: 1048576,
+        undetectableEnabled: false, // Enterprise only
+        screenshotEnabled: true
+    )
+
+    // Enterprise tier: All features unlocked
+    static let enterpriseDefaults = LicenseFeatures(
         smartModeEnabled: true,
-        smartModeLimit: nil,
+        smartModeLimit: nil, // unlimited
         customModesEnabled: true,
         exportFormats: ["plainText", "markdown", "json"],
         autoAnswerEnabled: true,
         sessionSyncEnabled: true,
-        dailyAiRequestLimit: nil,
-        maxSyncedSessions: nil,
-        maxTranscriptSize: 1048576
+        dailyAiRequestLimit: nil, // unlimited
+        maxSyncedSessions: nil, // unlimited
+        maxTranscriptSize: 10485760, // 10MB
+        undetectableEnabled: true,
+        screenshotEnabled: true
     )
 }
 
@@ -189,13 +262,40 @@ enum Feature {
     case autoAnswer
     case sessionSync
     case aiRequest
+    case undetectable
+    case screenshot
+    case sessionStart
 }
 
-enum FeatureAccess {
+enum FeatureAccess: Equatable {
     case allowed
     case limitReached(used: Int, limit: Int)
     case requiresPro
+    case requiresEnterprise
     case requiresAuth
+    case blocked // For unauthenticated users trying to use any feature
+
+    var isAllowed: Bool {
+        if case .allowed = self { return true }
+        return false
+    }
+
+    var errorMessage: String {
+        switch self {
+        case .allowed:
+            return ""
+        case .limitReached(let used, let limit):
+            return "Daily limit reached (\(used)/\(limit)). Upgrade to continue."
+        case .requiresPro:
+            return "This feature requires a PRO subscription."
+        case .requiresEnterprise:
+            return "This feature requires an Enterprise subscription."
+        case .requiresAuth:
+            return "Please sign in to use this feature."
+        case .blocked:
+            return "Please sign in to access Queen Mama features."
+        }
+    }
 }
 
 // MARK: - Auth Errors

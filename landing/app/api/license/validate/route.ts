@@ -8,19 +8,35 @@ import {
 import { licenseValidateSchema } from "@/lib/validations";
 
 // Feature limits based on plan
+// 4-tier model: Free Sans Auth (blocked at app level), Free Avec Auth, PRO, ENTERPRISE
 const PLAN_FEATURES = {
   FREE: {
-    smartModeEnabled: true,
-    smartModeLimit: 5, // per day
+    smartModeEnabled: false, // Smart Mode is Enterprise only
+    smartModeLimit: 0,
     customModesEnabled: false, // view only
     exportFormats: ["plainText"],
-    autoAnswerEnabled: false,
+    autoAnswerEnabled: false, // Enterprise only
     sessionSyncEnabled: false,
     dailyAiRequestLimit: 50,
-    maxSyncedSessions: 5,
+    maxSyncedSessions: 0,
     maxTranscriptSize: 10240, // 10KB
+    undetectableEnabled: false, // Enterprise only
+    screenshotEnabled: true,
   },
   PRO: {
+    smartModeEnabled: false, // Smart Mode is Enterprise only
+    smartModeLimit: 0,
+    customModesEnabled: true,
+    exportFormats: ["plainText", "markdown", "json"],
+    autoAnswerEnabled: false, // Enterprise only
+    sessionSyncEnabled: true,
+    dailyAiRequestLimit: null, // unlimited
+    maxSyncedSessions: null, // unlimited
+    maxTranscriptSize: 1048576, // 1MB
+    undetectableEnabled: false, // Enterprise only
+    screenshotEnabled: true,
+  },
+  ENTERPRISE: {
     smartModeEnabled: true,
     smartModeLimit: null, // unlimited
     customModesEnabled: true,
@@ -29,7 +45,9 @@ const PLAN_FEATURES = {
     sessionSyncEnabled: true,
     dailyAiRequestLimit: null, // unlimited
     maxSyncedSessions: null, // unlimited
-    maxTranscriptSize: 1048576, // 1MB
+    maxTranscriptSize: 10485760, // 10MB
+    undetectableEnabled: true,
+    screenshotEnabled: true,
   },
 } as const;
 

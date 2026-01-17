@@ -37,7 +37,8 @@ export async function POST(request: Request) {
         const userId = session.metadata?.userId;
 
         if (userId && session.subscription) {
-          const subscription = await stripe.subscriptions.retrieve(
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const subscription: any = await stripe.subscriptions.retrieve(
             session.subscription as string
           );
 
@@ -79,7 +80,8 @@ export async function POST(request: Request) {
       }
 
       case "customer.subscription.updated": {
-        const subscription = event.data.object as Stripe.Subscription;
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const subscription = event.data.object as any;
         const existingSub = await prisma.subscription.findUnique({
           where: { stripeSubscriptionId: subscription.id },
         });
@@ -120,7 +122,8 @@ export async function POST(request: Request) {
       }
 
       case "invoice.paid": {
-        const invoice = event.data.object as Stripe.Invoice;
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const invoice = event.data.object as any;
         if (invoice.subscription) {
           const sub = await prisma.subscription.findUnique({
             where: { stripeSubscriptionId: invoice.subscription as string },

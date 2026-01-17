@@ -186,6 +186,7 @@ model Subscription {
 enum SubscriptionPlan {
   FREE
   PRO
+  ENTERPRISE
 }
 
 enum SubscriptionStatus {

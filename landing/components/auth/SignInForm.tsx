@@ -28,7 +28,7 @@ export function SignInForm({ callbackUrl = "/dashboard" }: SignInFormProps) {
     const result = signInSchema.safeParse(formData);
     if (!result.success) {
       const errors: Partial<Record<keyof SignInInput, string>> = {};
-      result.error.errors.forEach((err) => {
+      result.error.issues.forEach((err) => {
         const field = err.path[0] as keyof SignInInput;
         errors[field] = err.message;
       });

@@ -2,6 +2,28 @@ import Foundation
 import Combine
 import SwiftData
 
+// MARK: - License Errors
+
+enum AILicenseError: LocalizedError {
+    case requiresAuthentication
+    case requiresEnterprise
+    case dailyLimitReached(used: Int, limit: Int)
+    case smartModeLimitReached(used: Int, limit: Int)
+
+    var errorDescription: String? {
+        switch self {
+        case .requiresAuthentication:
+            return "Please sign in to use AI features"
+        case .requiresEnterprise:
+            return "This feature requires an Enterprise subscription"
+        case .dailyLimitReached(let used, let limit):
+            return "Daily AI request limit reached (\(used)/\(limit)). Upgrade to continue."
+        case .smartModeLimitReached(let used, let limit):
+            return "Smart Mode limit reached (\(used)/\(limit)). Upgrade to Enterprise for unlimited access."
+        }
+    }
+}
+
 @MainActor
 final class AIService: ObservableObject {
     // MARK: - Published Properties
@@ -136,18 +158,45 @@ final class AIService: ObservableObject {
 
         defer { isProcessing = false }
 
+        // License checks
+        let licenseManager = LicenseManager.shared
+
+        // Check authentication
+        let authAccess = licenseManager.canUse(.aiRequest)
+        if case .blocked = authAccess {
+            throw AILicenseError.requiresAuthentication
+        }
+
+        // Check AI request limit
+        if case .limitReached(let used, let limit) = authAccess {
+            throw AILicenseError.dailyLimitReached(used: used, limit: limit)
+        }
+
+        // Check Smart Mode access if enabled
+        let useSmartMode = smartMode ?? ConfigurationManager.shared.smartModeEnabled
+        if useSmartMode {
+            let smartModeAccess = licenseManager.canUse(.smartMode)
+            switch smartModeAccess {
+            case .requiresEnterprise:
+                throw AILicenseError.requiresEnterprise
+            case .limitReached(let used, let limit):
+                throw AILicenseError.smartModeLimitReached(used: used, limit: limit)
+            default:
+                break
+            }
+        }
+
         let context = AIContext(
             transcript: transcript,
             screenshot: screenshot,
             mode: mode,
             responseType: type,
             customPrompt: customPrompt,
-            smartMode: smartMode ?? ConfigurationManager.shared.smartModeEnabled
+            smartMode: useSmartMode
         )
 
         // Try each configured provider in order based on mode
         var lastError: Error?
-        let useSmartMode = smartMode ?? ConfigurationManager.shared.smartModeEnabled
         let providers = getProviders(smartMode: useSmartMode)
 
         print("[AIService] Using \(useSmartMode ? "Smart" : "Standard") mode providers: \(providers.map { $0.providerType.displayName })")
@@ -157,6 +206,13 @@ final class AIService: ObservableObject {
                 print("[AIService] Trying provider: \(provider.providerType.displayName)")
                 let response = try await provider.generateResponse(context: context)
                 lastProvider = provider.providerType
+
+                // Record successful usage
+                licenseManager.recordUsage(.aiRequest, provider: provider.providerType.rawValue)
+                if useSmartMode {
+                    licenseManager.recordUsage(.smartMode, provider: provider.providerType.rawValue)
+                }
+
                 responses.insert(response, at: 0)
                 return response
             } catch {
@@ -179,7 +235,36 @@ final class AIService: ObservableObject {
     ) -> AsyncThrowingStream<String, Error> {
         AsyncThrowingStream { continuation in
             Task { @MainActor in
+                let licenseManager = LicenseManager.shared
                 let isSmartMode = smartMode ?? ConfigurationManager.shared.smartModeEnabled
+
+                // License checks
+                let authAccess = licenseManager.canUse(.aiRequest)
+                if case .blocked = authAccess {
+                    continuation.finish(throwing: AILicenseError.requiresAuthentication)
+                    return
+                }
+
+                if case .limitReached(let used, let limit) = authAccess {
+                    continuation.finish(throwing: AILicenseError.dailyLimitReached(used: used, limit: limit))
+                    return
+                }
+
+                // Check Smart Mode access if enabled
+                if isSmartMode {
+                    let smartModeAccess = licenseManager.canUse(.smartMode)
+                    switch smartModeAccess {
+                    case .requiresEnterprise:
+                        continuation.finish(throwing: AILicenseError.requiresEnterprise)
+                        return
+                    case .limitReached(let used, let limit):
+                        continuation.finish(throwing: AILicenseError.smartModeLimitReached(used: used, limit: limit))
+                        return
+                    default:
+                        break
+                    }
+                }
+
                 let providers = self.getProviders(smartMode: isSmartMode)
 
                 print("[AIService] Starting streaming response for type: \(type.rawValue)")
@@ -214,6 +299,12 @@ final class AIService: ObservableObject {
                         print("[AIService] Successfully completed with \(provider.providerType.displayName)")
                         print("[AIService] Response length: \(self.currentResponse.count) chars")
                         print("[AIService] Response preview: \(self.currentResponse.prefix(200))...")
+
+                        // Record successful usage
+                        licenseManager.recordUsage(.aiRequest, provider: provider.providerType.rawValue)
+                        if isSmartMode {
+                            licenseManager.recordUsage(.smartMode, provider: provider.providerType.rawValue)
+                        }
 
                         // Save completed response
                         let response = AIResponse(

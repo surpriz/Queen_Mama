@@ -24,7 +24,7 @@ export function SignUpForm() {
     const result = signUpSchema.safeParse(formData);
     if (!result.success) {
       const errors: Partial<Record<keyof SignUpInput, string>> = {};
-      result.error.errors.forEach((err) => {
+      result.error.issues.forEach((err) => {
         const field = err.path[0] as keyof SignUpInput;
         errors[field] = err.message;
       });

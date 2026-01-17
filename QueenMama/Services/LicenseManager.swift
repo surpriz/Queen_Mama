@@ -91,20 +91,25 @@ final class LicenseManager: ObservableObject {
     // MARK: - Feature Access
 
     /// Check if a feature can be used
+    /// Returns .blocked for unauthenticated users trying to use features
     func canUse(_ feature: Feature) -> FeatureAccess {
-        // Auth-gated features
+        // Block all features except viewing UI for unauthenticated users
         if !authManager.isAuthenticated {
+            // Session sync requires auth specifically
             if case .sessionSync = feature {
                 return .requiresAuth
             }
+            // All other features are blocked for unauthenticated users
+            return .blocked
         }
 
         let features = currentLicense.features
 
         switch feature {
         case .smartMode:
+            // Smart Mode is Enterprise-only
             if !features.smartModeEnabled {
-                return .requiresPro
+                return .requiresEnterprise
             }
             if let limit = features.smartModeLimit {
                 if smartModeUsedToday >= limit {
@@ -123,7 +128,8 @@ final class LicenseManager: ObservableObject {
             return features.exportFormats.contains("json") ? .allowed : .requiresPro
 
         case .autoAnswer:
-            return features.autoAnswerEnabled ? .allowed : .requiresPro
+            // Auto-Answer is Enterprise-only
+            return features.autoAnswerEnabled ? .allowed : .requiresEnterprise
 
         case .sessionSync:
             return features.sessionSyncEnabled ? .allowed : .requiresPro
@@ -135,27 +141,60 @@ final class LicenseManager: ObservableObject {
                 }
             }
             return .allowed
+
+        case .undetectable:
+            // Undetectable overlay is Enterprise-only
+            return features.undetectableEnabled ? .allowed : .requiresEnterprise
+
+        case .screenshot:
+            return features.screenshotEnabled ? .allowed : .requiresPro
+
+        case .sessionStart:
+            // Session start requires authentication
+            return authManager.isAuthenticated ? .allowed : .blocked
         }
     }
 
     /// Record usage of a feature (for rate-limited features)
-    func recordUsage(_ feature: Feature) {
+    /// Also sends usage to server asynchronously for server-side tracking
+    func recordUsage(_ feature: Feature, provider: String? = nil) {
+        let action: String
         switch feature {
         case .smartMode:
             smartModeUsedToday += 1
             saveUsage()
+            action = "smart_mode"
         case .aiRequest:
             aiRequestsToday += 1
             saveUsage()
+            action = "ai_request"
+        case .sessionStart:
+            action = "session_start"
+        case .autoAnswer:
+            action = "auto_answer"
         default:
-            break
+            return
+        }
+
+        // Record usage to server asynchronously (fire-and-forget)
+        Task {
+            do {
+                try await api.recordUsage(action: action, provider: provider)
+            } catch {
+                print("[License] Failed to record usage to server: \(error)")
+            }
         }
     }
 
     // MARK: - Plan Properties
 
     var isPro: Bool {
-        currentLicense.plan == .pro &&
+        (currentLicense.plan == .pro || currentLicense.plan == .enterprise) &&
+        (currentLicense.status == .active || currentLicense.status == .trialing)
+    }
+
+    var isEnterprise: Bool {
+        currentLicense.plan == .enterprise &&
         (currentLicense.status == .active || currentLicense.status == .trialing)
     }
 

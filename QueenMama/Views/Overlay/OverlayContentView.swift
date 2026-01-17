@@ -95,6 +95,24 @@ struct OverlayContentView: View {
     private func handleSubmit() {
         print("[Overlay] Submitting request for tab: \(selectedTab.rawValue)")
 
+        // Check license before submitting AI request
+        let licenseManager = LicenseManager.shared
+        let aiAccess = licenseManager.canUse(.aiRequest)
+
+        guard aiAccess.isAllowed else {
+            appState.errorMessage = aiAccess.errorMessage
+            return
+        }
+
+        // Check Smart Mode access if enabled
+        if config.smartModeEnabled {
+            let smartModeAccess = licenseManager.canUse(.smartMode)
+            if !smartModeAccess.isAllowed {
+                appState.errorMessage = smartModeAccess.errorMessage
+                return
+            }
+        }
+
         Task {
             do {
                 // Only capture screenshot if enabled
@@ -300,24 +318,36 @@ struct ModernPillHeaderView: View {
                 }
             }
 
-            // Auto-Answer Toggle
-            Button(action: { isAutoAnswerEnabled.toggle() }) {
+            // Auto-Answer Toggle (Enterprise only)
+            let autoAnswerAvailable = LicenseManager.shared.isFeatureAvailable(.autoAnswer)
+            Button(action: {
+                if autoAnswerAvailable {
+                    isAutoAnswerEnabled.toggle()
+                }
+            }) {
                 HStack(spacing: 4) {
                     Image(systemName: isAutoAnswerEnabled ? QMDesign.Icons.autoAnswer : QMDesign.Icons.autoAnswerOff)
                         .font(.system(size: 11))
                     Text("Auto")
                         .font(QMDesign.Typography.caption)
+                    if !autoAnswerAvailable {
+                        Image(systemName: "lock.fill")
+                            .font(.system(size: 8))
+                    }
                 }
                 .padding(.horizontal, QMDesign.Spacing.xs)
                 .padding(.vertical, 4)
                 .background(
                     Capsule()
-                        .fill(isAutoAnswerEnabled ? QMDesign.Colors.autoAnswerLight : QMDesign.Colors.surfaceLight)
+                        .fill(isAutoAnswerEnabled && autoAnswerAvailable ? QMDesign.Colors.autoAnswerLight : QMDesign.Colors.surfaceLight)
                 )
-                .foregroundColor(isAutoAnswerEnabled ? QMDesign.Colors.autoAnswer : QMDesign.Colors.textTertiary)
+                .foregroundColor(isAutoAnswerEnabled && autoAnswerAvailable ? QMDesign.Colors.autoAnswer : QMDesign.Colors.textTertiary)
+                .opacity(autoAnswerAvailable ? 1 : 0.6)
             }
             .buttonStyle(.plain)
-            .help(isAutoAnswerEnabled ? "Auto-Answer enabled" : "Auto-Answer disabled")
+            .help(autoAnswerAvailable
+                ? (isAutoAnswerEnabled ? "Auto-Answer enabled" : "Auto-Answer disabled")
+                : "Auto-Answer requires Enterprise subscription")
 
             // Screen Capture Toggle
             Button(action: { enableScreenCapture.toggle() }) {
@@ -873,25 +903,42 @@ struct ModernInputAreaView: View {
 
     @State private var isHoveringSend = false
 
+    // Check if Smart Mode is available (Enterprise only)
+    private var smartModeAvailable: Bool {
+        LicenseManager.shared.isFeatureAvailable(.smartMode)
+    }
+
     var body: some View {
         HStack(spacing: QMDesign.Spacing.xs) {
-            // Smart Mode Toggle
-            Button(action: { isSmartModeEnabled.toggle() }) {
+            // Smart Mode Toggle (Enterprise only)
+            Button(action: {
+                if smartModeAvailable {
+                    isSmartModeEnabled.toggle()
+                }
+            }) {
                 HStack(spacing: 4) {
                     Image(systemName: QMDesign.Icons.smart)
                         .font(.system(size: 10))
                     Text("Smart")
                         .font(QMDesign.Typography.caption)
+                    if !smartModeAvailable {
+                        Image(systemName: "lock.fill")
+                            .font(.system(size: 8))
+                    }
                 }
                 .padding(.horizontal, QMDesign.Spacing.xs)
                 .padding(.vertical, 5)
                 .background(
                     Capsule()
-                        .fill(isSmartModeEnabled ? QMDesign.Colors.accent.opacity(0.15) : QMDesign.Colors.surfaceLight)
+                        .fill(isSmartModeEnabled && smartModeAvailable ? QMDesign.Colors.accent.opacity(0.15) : QMDesign.Colors.surfaceLight)
                 )
-                .foregroundColor(isSmartModeEnabled ? QMDesign.Colors.accent : QMDesign.Colors.textTertiary)
+                .foregroundColor(isSmartModeEnabled && smartModeAvailable ? QMDesign.Colors.accent : QMDesign.Colors.textTertiary)
+                .opacity(smartModeAvailable ? 1 : 0.6)
             }
             .buttonStyle(.plain)
+            .help(smartModeAvailable
+                ? (isSmartModeEnabled ? "Smart Mode enabled" : "Smart Mode disabled")
+                : "Smart Mode requires Enterprise subscription")
 
             // Text Field
             TextField("Ask about your screen or conversation...", text: $inputText)

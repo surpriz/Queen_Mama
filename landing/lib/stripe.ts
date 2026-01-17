@@ -10,24 +10,37 @@ export const PLANS = {
     name: "Free",
     price: 0,
     features: [
-      "Real-time AI suggestions",
+      "50 AI requests per day",
       "Live transcription",
-      "Undetectable mode",
+      "Screenshot capture",
       "4 built-in AI modes",
-      "Bring your own API keys",
+      "Standard AI models",
     ],
   },
   PRO: {
     name: "Pro",
-    price: 1900,
+    price: 1900, // $19/month
     priceId: process.env.STRIPE_PRO_PRICE_ID,
     features: [
       "Everything in Free",
-      "Unlimited Smart Mode",
+      "Unlimited AI requests",
       "Custom AI modes",
-      "Session history export",
-      "Advanced analytics",
+      "Session cloud sync",
+      "All export formats",
       "Priority support",
+    ],
+  },
+  ENTERPRISE: {
+    name: "Enterprise",
+    price: 4900, // $49/month
+    priceId: process.env.STRIPE_ENTERPRISE_PRICE_ID,
+    features: [
+      "Everything in Pro",
+      "Smart Mode (premium AI reasoning)",
+      "Undetectable overlay mode",
+      "Auto-Answer feature",
+      "Extended transcript storage",
+      "Dedicated support",
     ],
   },
 } as const;

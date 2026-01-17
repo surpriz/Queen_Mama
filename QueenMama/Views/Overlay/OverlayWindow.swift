@@ -60,10 +60,12 @@ class OverlayPanel: NSPanel {
         }
     }
 
-    /// Update the sharing type based on undetectability setting
-    /// - Parameter enabled: If true, widget is hidden from screen capture/sharing
+    /// Update the sharing type based on undetectability setting and license
+    /// - Parameter enabled: If true AND user has Enterprise license, widget is hidden from screen capture/sharing
     func updateUndetectability(_ enabled: Bool) {
-        sharingType = enabled ? .none : .readOnly
+        // Check if user has Enterprise license for undetectable feature
+        let canUseUndetectable = LicenseManager.shared.isFeatureAvailable(.undetectable)
+        sharingType = (enabled && canUseUndetectable) ? .none : .readOnly
     }
 
     // Allow dragging
@@ -89,6 +91,7 @@ class OverlayWindowController: NSObject, ObservableObject, NSWindowDelegate {
     private var panel: OverlayPanel?
     private var hostingView: NSHostingView<OverlayContentView>?
     private var configObserver: AnyCancellable?
+    private var licenseObserver: AnyCancellable?
 
     // Keys for UserDefaults
     private let widthKey = "overlayWindowWidth"
@@ -97,6 +100,7 @@ class OverlayWindowController: NSObject, ObservableObject, NSWindowDelegate {
     private override init() {
         super.init()
         setupConfigObserver()
+        setupLicenseObserver()
     }
 
     private func setupConfigObserver() {
@@ -104,6 +108,17 @@ class OverlayWindowController: NSObject, ObservableObject, NSWindowDelegate {
         configObserver = ConfigurationManager.shared.$isUndetectabilityEnabled
             .receive(on: DispatchQueue.main)
             .sink { [weak self] enabled in
+                self?.panel?.updateUndetectability(enabled)
+            }
+    }
+
+    private func setupLicenseObserver() {
+        // Observe license changes to update undetectability
+        licenseObserver = LicenseManager.shared.$currentLicense
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] _ in
+                // Re-evaluate undetectability when license changes
+                let enabled = ConfigurationManager.shared.isUndetectabilityEnabled
                 self?.panel?.updateUndetectability(enabled)
             }
     }

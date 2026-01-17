@@ -256,21 +256,27 @@ struct ModernGeneralSettingsView: View {
             // Appearance Card
             SettingsCard(title: "Appearance", icon: "paintbrush.fill") {
                 VStack(spacing: QMDesign.Spacing.md) {
-                    ModernToggleRow(
+                    // Undetectable Mode (Enterprise only)
+                    LicenseGatedToggleRow(
                         title: "Undetectability Mode",
                         description: "Hide overlay from screen recordings and shares",
                         isOn: $config.isUndetectabilityEnabled,
-                        icon: "eye.slash"
+                        icon: "eye.slash",
+                        feature: .undetectable,
+                        requiredTier: "Enterprise"
                     )
 
                     Divider()
                         .background(QMDesign.Colors.borderSubtle)
 
-                    ModernToggleRow(
+                    // Smart Mode (Enterprise only)
+                    LicenseGatedToggleRow(
                         title: "Smart Mode",
                         description: "Enhanced AI reasoning for complex questions",
                         isOn: $config.smartModeEnabled,
-                        icon: "brain"
+                        icon: "brain",
+                        feature: .smartMode,
+                        requiredTier: "Enterprise"
                     )
                 }
             }
@@ -367,17 +373,19 @@ struct ModernAutoAnswerSettingsView: View {
                 subtitle: "Configure automatic AI responses"
             )
 
-            // Enable Card
+            // Enable Card (Enterprise only)
             SettingsCard(title: "Automatic Responses", icon: "bolt.fill") {
                 VStack(spacing: QMDesign.Spacing.md) {
-                    ModernToggleRow(
+                    LicenseGatedToggleRow(
                         title: "Enable Auto-Answer",
                         description: "Automatically trigger AI responses based on context",
                         isOn: $config.autoAnswerEnabled,
-                        icon: "bolt.circle"
+                        icon: "bolt.circle",
+                        feature: .autoAnswer,
+                        requiredTier: "Enterprise"
                     )
 
-                    if config.autoAnswerEnabled {
+                    if config.autoAnswerEnabled && LicenseManager.shared.isFeatureAvailable(.autoAnswer) {
                         // Info box
                         HStack(alignment: .top, spacing: QMDesign.Spacing.sm) {
                             Image(systemName: "info.circle.fill")
@@ -1745,3 +1753,73 @@ typealias APIKeysSettingsView = ModernAPIKeysSettingsView
 typealias ModelsSettingsView = ModernModelsSettingsView
 typealias AudioSettingsView = ModernAudioSettingsView
 typealias ShortcutsSettingsView = ModernShortcutsSettingsView
+
+// MARK: - License Gated Toggle Row
+
+/// A toggle row that shows a lock icon and disables the toggle if the feature requires a higher tier
+struct LicenseGatedToggleRow: View {
+    let title: String
+    let description: String
+    @Binding var isOn: Bool
+    let icon: String
+    let feature: Feature
+    let requiredTier: String
+
+    private var isAvailable: Bool {
+        LicenseManager.shared.isFeatureAvailable(feature)
+    }
+
+    var body: some View {
+        HStack(spacing: QMDesign.Spacing.md) {
+            Image(systemName: icon)
+                .font(.system(size: 16))
+                .foregroundStyle(isOn && isAvailable ? AnyShapeStyle(QMDesign.Colors.primaryGradient) : AnyShapeStyle(QMDesign.Colors.textSecondary))
+                .frame(width: 24)
+
+            VStack(alignment: .leading, spacing: 2) {
+                HStack(spacing: QMDesign.Spacing.xs) {
+                    Text(title)
+                        .font(QMDesign.Typography.bodyMedium)
+                        .foregroundColor(QMDesign.Colors.textPrimary)
+                        .fixedSize(horizontal: false, vertical: true)
+
+                    if !isAvailable {
+                        HStack(spacing: 2) {
+                            Image(systemName: "lock.fill")
+                                .font(.system(size: 10))
+                            Text(requiredTier)
+                                .font(QMDesign.Typography.captionSmall)
+                        }
+                        .foregroundColor(QMDesign.Colors.accent)
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 2)
+                        .background(
+                            Capsule()
+                                .fill(QMDesign.Colors.accent.opacity(0.1))
+                        )
+                    }
+                }
+
+                Text(description)
+                    .font(QMDesign.Typography.caption)
+                    .foregroundColor(QMDesign.Colors.textTertiary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+
+            if isAvailable {
+                Toggle("", isOn: $isOn)
+                    .toggleStyle(.switch)
+                    .tint(QMDesign.Colors.accent)
+                    .labelsHidden()
+            } else {
+                Toggle("", isOn: .constant(false))
+                    .toggleStyle(.switch)
+                    .tint(QMDesign.Colors.accent)
+                    .labelsHidden()
+                    .disabled(true)
+                    .opacity(0.5)
+            }
+        }
+    }
+}

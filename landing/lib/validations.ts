@@ -150,7 +150,25 @@ export const sessionSyncBatchSchema = z.object({
   sessions: z.array(sessionSyncSchema).max(50),
 });
 
+// ===========================================
+// USAGE RECORDING SCHEMAS
+// ===========================================
+
+export const usageRecordSchema = z.object({
+  deviceId: z.string().uuid("Invalid device ID"),
+  action: z.enum(["ai_request", "smart_mode", "session_start", "auto_answer"]),
+  provider: z.string().optional(),
+  tokensUsed: z.number().int().min(0).optional(),
+  metadata: z.record(z.unknown()).optional(),
+});
+
+export const usageRecordBatchSchema = z.object({
+  records: z.array(usageRecordSchema).max(100),
+});
+
 // Type exports
+export type UsageRecordInput = z.infer<typeof usageRecordSchema>;
+export type UsageRecordBatchInput = z.infer<typeof usageRecordBatchSchema>;
 export type DeviceInfo = z.infer<typeof deviceInfoSchema>;
 export type DeviceCodeRequest = z.infer<typeof deviceCodeRequestSchema>;
 export type DeviceCodePoll = z.infer<typeof deviceCodePollSchema>;

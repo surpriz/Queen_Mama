@@ -114,8 +114,18 @@ class AppState: ObservableObject {
     let aiService = AIService()
 
     func startSession() async {
+        // Check authentication before starting session
+        let sessionAccess = LicenseManager.shared.canUse(.sessionStart)
+        guard sessionAccess.isAllowed else {
+            errorMessage = sessionAccess.errorMessage
+            return
+        }
+
         isSessionActive = true
         errorMessage = nil
+
+        // Record session start usage
+        LicenseManager.shared.recordUsage(.sessionStart)
 
         do {
             try await audioService.startCapture()

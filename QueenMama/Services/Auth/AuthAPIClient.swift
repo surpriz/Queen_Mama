@@ -112,6 +112,29 @@ final class AuthAPIClient {
         )
     }
 
+    // MARK: - Usage Recording
+
+    /// Records feature usage to server for server-side tracking
+    func recordUsage(action: String, provider: String? = nil, tokensUsed: Int? = nil) async throws {
+        var body: [String: Any] = [
+            "deviceId": DeviceInfo.current().deviceId,
+            "action": action
+        ]
+
+        if let provider = provider {
+            body["provider"] = provider
+        }
+        if let tokens = tokensUsed {
+            body["tokensUsed"] = tokens
+        }
+
+        let _: UsageRecordResponse = try await post(
+            endpoint: "/api/usage/record",
+            body: body,
+            requiresAuth: true
+        )
+    }
+
     // MARK: - HTTP Helpers
 
     private func get<T: Decodable>(
@@ -226,3 +249,9 @@ private struct ErrorResponse: Decodable {
 }
 
 private struct EmptyResponse: Decodable {}
+
+struct UsageRecordResponse: Decodable {
+    let success: Bool
+    let recorded: Int
+    let usage: UsageStats?
+}

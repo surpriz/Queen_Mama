@@ -262,6 +262,40 @@ private struct FeatureGatedModifier: ViewModifier {
                     UpgradePromptView(feature: featureName)
                 }
 
+        case .requiresEnterprise:
+            content
+                .overlay(alignment: .topTrailing) {
+                    Text("ENT")
+                        .font(.system(size: 8, weight: .bold))
+                        .foregroundColor(.white)
+                        .padding(.horizontal, 4)
+                        .padding(.vertical, 2)
+                        .background(
+                            Capsule()
+                                .fill(QMDesign.Colors.primaryGradient)
+                        )
+                        .padding(4)
+                }
+                .opacity(0.6)
+                .onTapGesture {
+                    showUpgradeSheet = true
+                }
+                .sheet(isPresented: $showUpgradeSheet) {
+                    UpgradePromptView(feature: featureName)
+                }
+
+        case .blocked:
+            content
+                .overlay(alignment: .topTrailing) {
+                    Image(systemName: "lock.fill")
+                        .font(.system(size: 10))
+                        .foregroundColor(.white)
+                        .padding(6)
+                        .background(Circle().fill(QMDesign.Colors.error))
+                        .padding(4)
+                }
+                .opacity(0.4)
+
         case .limitReached(let used, let limit):
             content
                 .overlay(alignment: .topTrailing) {
@@ -284,6 +318,9 @@ private struct FeatureGatedModifier: ViewModifier {
         case .autoAnswer: return "Auto-Answer"
         case .sessionSync: return "Session Sync"
         case .aiRequest: return "AI Requests"
+        case .undetectable: return "Undetectable Mode"
+        case .screenshot: return "Screenshot"
+        case .sessionStart: return "Session Start"
         }
     }
 }
