@@ -10,14 +10,13 @@ const plans = [
     period: "forever",
     description: "Everything you need to get started",
     features: [
-      { text: "Real-time AI suggestions", included: true },
+      { text: "50 AI requests per day", included: true },
       { text: "Live transcription", included: true },
-      { text: "Undetectable mode", included: true },
+      { text: "Screenshot capture", included: true },
       { text: "4 built-in AI modes", included: true },
-      { text: "Bring your own API keys", included: true },
-      { text: "Smart Mode (limited)", included: true },
+      { text: "Standard AI models", included: true },
       { text: "Custom modes", included: false },
-      { text: "Session history export", included: false },
+      { text: "Session cloud sync", included: false },
       { text: "Priority support", included: false },
     ],
     cta: "Download Free",
@@ -30,17 +29,32 @@ const plans = [
     description: "For professionals who want more",
     features: [
       { text: "Everything in Free", included: true },
-      { text: "Unlimited Smart Mode", included: true },
+      { text: "Unlimited AI requests", included: true },
       { text: "Custom AI modes", included: true },
-      { text: "Session history export", included: true },
-      { text: "Advanced analytics", included: true },
+      { text: "Session cloud sync", included: true },
+      { text: "All export formats", included: true },
       { text: "Priority support", included: true },
-      { text: "Early access to features", included: true },
-      { text: "Attach documents to modes", included: true },
-      { text: "Team features (coming soon)", included: true },
+      { text: "Smart Mode", included: false },
+      { text: "Undetectable overlay", included: false },
     ],
     cta: "Start Pro Trial",
     popular: true,
+  },
+  {
+    name: "Enterprise",
+    price: "$49",
+    period: "/month",
+    description: "For power users and teams",
+    features: [
+      { text: "Everything in Pro", included: true },
+      { text: "Smart Mode (premium AI)", included: true },
+      { text: "Undetectable overlay mode", included: true },
+      { text: "Auto-Answer feature", included: true },
+      { text: "Extended transcript storage", included: true },
+      { text: "Dedicated support", included: true },
+    ],
+    cta: "Start Enterprise Trial",
+    popular: false,
   },
 ];
 
@@ -60,13 +74,13 @@ export function Pricing() {
             Simple, <span className="gradient-text">Transparent</span> Pricing
           </h2>
           <p className="text-lg text-[var(--qm-text-secondary)] max-w-2xl mx-auto">
-            Start free and upgrade when you&apos;re ready. Bring your own API keys -
-            you only pay for what you use with your AI provider.
+            Start free and upgrade when you&apos;re ready. All paid plans include
+            a 14-day free trial.
           </p>
         </motion.div>
 
         {/* Pricing Cards */}
-        <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
+        <div className="grid md:grid-cols-3 gap-6 max-w-6xl mx-auto">
           {plans.map((plan, index) => (
             <motion.div
               key={plan.name}
@@ -181,8 +195,7 @@ export function Pricing() {
           transition={{ duration: 0.5, delay: 0.3 }}
           className="text-center text-sm text-[var(--qm-text-tertiary)] mt-8"
         >
-          All plans require your own API keys (OpenAI, Anthropic, or Google).
-          You&apos;ll be billed directly by your AI provider based on usage.
+          Cancel anytime. No questions asked.
         </motion.p>
       </Container>
     </section>
