@@ -20,8 +20,15 @@ struct OverlayContentView: View {
     @State private var lastScreenshotTime: Date?
     @State private var hasScreenshot = false
     @State private var showPopupMenu = false
-    @State private var isAutoAnswerEnabled = false
     @AppStorage("enableScreenCapture") private var enableScreenCapture = true
+
+    // Binding to AutoAnswerService.isEnabled
+    private var isAutoAnswerEnabled: Binding<Bool> {
+        Binding(
+            get: { appState.autoAnswerService.isEnabled },
+            set: { appState.autoAnswerService.isEnabled = $0 }
+        )
+    }
 
     // Computed binding to sync Smart Mode with ConfigurationManager
     private var isSmartModeEnabled: Binding<Bool> {
@@ -39,7 +46,7 @@ struct OverlayContentView: View {
                 isSessionActive: appState.isSessionActive,
                 isFinalizingSession: appState.isFinalizingSession,
                 enableScreenCapture: $enableScreenCapture,
-                isAutoAnswerEnabled: $isAutoAnswerEnabled,
+                isAutoAnswerEnabled: isAutoAnswerEnabled,
                 isSmartModeEnabled: isSmartModeEnabled,
                 showPopupMenu: $showPopupMenu,
                 onToggleExpand: { overlayController.toggleExpanded() },
@@ -78,7 +85,7 @@ struct OverlayContentView: View {
             // Popup Menu
             if showPopupMenu {
                 OverlayPopupMenu(
-                    isAutoAnswerEnabled: $isAutoAnswerEnabled,
+                    isAutoAnswerEnabled: isAutoAnswerEnabled,
                     isSmartModeEnabled: isSmartModeEnabled,
                     enableScreenCapture: $enableScreenCapture,
                     selectedMode: $appState.selectedMode,
@@ -241,6 +248,7 @@ struct ModernPillHeaderView: View {
     @State private var isHoveringExpand = false
     @State private var isHoveringMore = false
     @State private var isHoveringDashboard = false
+    @State private var isAutoPulsing = false  // Pulsing animation for auto mode
     @Environment(\.openWindow) private var openWindow
 
     // Observe ConfigurationManager for undetectability
@@ -320,7 +328,7 @@ struct ModernPillHeaderView: View {
                 }
             }
 
-            // Auto-Answer Toggle (Enterprise only)
+            // Auto-Answer Toggle (Enterprise only) with pulsing indicator
             let autoAnswerAvailable = LicenseManager.shared.isFeatureAvailable(.autoAnswer)
             Button(action: {
                 if autoAnswerAvailable {
@@ -328,6 +336,18 @@ struct ModernPillHeaderView: View {
                 }
             }) {
                 HStack(spacing: 4) {
+                    // Pulsing indicator when Auto is active
+                    if isAutoAnswerEnabled && autoAnswerAvailable {
+                        Circle()
+                            .fill(QMDesign.Colors.autoAnswer)
+                            .frame(width: 6, height: 6)
+                            .scaleEffect(isAutoPulsing ? 1.4 : 1.0)
+                            .opacity(isAutoPulsing ? 0.6 : 1.0)
+                            .animation(.easeInOut(duration: 1.0).repeatForever(autoreverses: true), value: isAutoPulsing)
+                            .onAppear { isAutoPulsing = true }
+                            .onDisappear { isAutoPulsing = false }
+                    }
+
                     Image(systemName: isAutoAnswerEnabled ? QMDesign.Icons.autoAnswer : QMDesign.Icons.autoAnswerOff)
                         .font(.system(size: 11))
                     Text("Auto")
@@ -490,7 +510,10 @@ struct ModernExpandedContentView: View {
                 currentResponse: aiService.currentResponse,
                 isProcessing: aiService.isProcessing,
                 hasScreenshot: hasScreenshot,
-                lastScreenshotTime: lastScreenshotTime
+                lastScreenshotTime: lastScreenshotTime,
+                onDismissResponse: { response in
+                    aiService.dismissResponse(response)
+                }
             )
 
             // Status Section
@@ -598,6 +621,7 @@ struct ModernResponseHistoryView: View {
     let isProcessing: Bool
     let hasScreenshot: Bool
     let lastScreenshotTime: Date?
+    var onDismissResponse: ((AIResponse) -> Void)?
 
     @State private var isUserScrolling = false
     @State private var lastResponseContent = ""
@@ -660,7 +684,11 @@ struct ModernResponseHistoryView: View {
                                 content: response.content,
                                 timestamp: response.timestamp,
                                 provider: response.provider,
-                                isStreaming: false
+                                isStreaming: false,
+                                isAutomatic: response.isAutomatic,
+                                onDismiss: response.isAutomatic ? {
+                                    onDismissResponse?(response)
+                                } : nil
                             )
                             .id(response.id)
                         }
@@ -795,26 +823,42 @@ struct ModernResponseItemView: View {
     let timestamp: Date
     let provider: AIProviderType
     let isStreaming: Bool
+    var isAutomatic: Bool = false
+    var onDismiss: (() -> Void)?
 
     var body: some View {
         VStack(alignment: .leading, spacing: QMDesign.Spacing.xs) {
             // Header
             HStack(spacing: QMDesign.Spacing.xs) {
-                // Type badge with gradient
-                HStack(spacing: 4) {
-                    Image(systemName: type.icon)
-                        .font(.system(size: 10, weight: .semibold))
-                    Text(type.rawValue)
-                        .font(QMDesign.Typography.caption)
+                // Auto badge OR Type badge
+                if isAutomatic {
+                    // Automatic response badge (orange)
+                    HStack(spacing: 4) {
+                        Image(systemName: QMDesign.Icons.autoAnswer)
+                            .font(.system(size: 10, weight: .semibold))
+                        Text("AUTO")
+                            .font(QMDesign.Typography.caption)
+                    }
+                    .foregroundColor(QMDesign.Colors.autoAnswer)
+                } else {
+                    // Normal type badge with gradient
+                    HStack(spacing: 4) {
+                        Image(systemName: type.icon)
+                            .font(.system(size: 10, weight: .semibold))
+                        Text(type.rawValue)
+                            .font(QMDesign.Typography.caption)
+                    }
+                    .foregroundStyle(QMDesign.Colors.primaryGradient)
                 }
-                .foregroundStyle(QMDesign.Colors.primaryGradient)
 
                 Spacer()
 
-                // Provider icon
-                Image(systemName: provider.icon)
-                    .font(.system(size: 9))
-                    .foregroundColor(QMDesign.Colors.textTertiary)
+                // Provider icon (only for non-auto responses)
+                if !isAutomatic {
+                    Image(systemName: provider.icon)
+                        .font(.system(size: 9))
+                        .foregroundColor(QMDesign.Colors.textTertiary)
+                }
 
                 // Timestamp
                 Text(formatTimestamp(timestamp))
@@ -827,6 +871,22 @@ struct ModernResponseItemView: View {
                         .scaleEffect(0.5)
                         .frame(width: 12, height: 12)
                 }
+
+                // Dismiss button (only for auto responses)
+                if isAutomatic, let onDismiss {
+                    Button(action: onDismiss) {
+                        Image(systemName: "xmark")
+                            .font(.system(size: 10, weight: .medium))
+                            .foregroundColor(QMDesign.Colors.textTertiary)
+                            .frame(width: 18, height: 18)
+                            .background(
+                                Circle()
+                                    .fill(QMDesign.Colors.surfaceHover)
+                            )
+                    }
+                    .buttonStyle(.plain)
+                    .help("Dismiss suggestion")
+                }
             }
 
             // Content
@@ -838,13 +898,26 @@ struct ModernResponseItemView: View {
             RoundedRectangle(cornerRadius: QMDesign.Radius.sm)
                 .fill(QMDesign.Colors.surfaceMedium)
                 .overlay(
+                    // Left orange border for auto responses
+                    HStack {
+                        if isAutomatic {
+                            Rectangle()
+                                .fill(QMDesign.Colors.autoAnswer)
+                                .frame(width: 3)
+                        }
+                        Spacer()
+                    }
+                )
+                .overlay(
                     RoundedRectangle(cornerRadius: QMDesign.Radius.sm)
                         .stroke(
-                            isStreaming ? QMDesign.Colors.accent.opacity(0.3) : Color.clear,
+                            isStreaming ? QMDesign.Colors.accent.opacity(0.3) :
+                            isAutomatic ? QMDesign.Colors.autoAnswer.opacity(0.3) : Color.clear,
                             lineWidth: 1
                         )
                 )
         )
+        .clipShape(RoundedRectangle(cornerRadius: QMDesign.Radius.sm))
     }
 
     private func formatTimestamp(_ date: Date) -> String {

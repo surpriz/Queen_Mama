@@ -116,6 +116,7 @@ class AppState: ObservableObject {
     let screenService = ScreenCaptureService()
     let transcriptionService = TranscriptionService()
     let aiService = AIService()
+    let autoAnswerService = AutoAnswerService()
 
     // Session Manager reference (injected from QueenMamaApp)
     weak var sessionManager: SessionManager?
@@ -154,6 +155,15 @@ class AppState: ObservableObject {
                     self?.currentTranscript += text + " "
                     // Persist transcription to SessionManager
                     self?.sessionManager?.updateTranscript(self?.currentTranscript ?? "")
+                    // Feed transcript to AutoAnswerService
+                    self?.autoAnswerService.onTranscriptReceived(self?.currentTranscript ?? "")
+                }
+            }
+
+            // Wire up AutoAnswerService trigger
+            autoAnswerService.onTrigger = { [weak self] in
+                Task { @MainActor in
+                    await self?.handleAutoAnswer()
                 }
             }
         } catch {
@@ -167,6 +177,7 @@ class AppState: ObservableObject {
         audioService.stopCapture()
         screenService.stopCapture()
         transcriptionService.disconnect()
+        autoAnswerService.reset()  // Reset auto-answer state
         isSessionActive = false
 
         // 2. Get the current session before finalizing
@@ -231,6 +242,41 @@ class AppState: ObservableObject {
         currentTranscript = ""
         aiResponse = ""
         aiService.clearHistory()
+    }
+
+    // MARK: - Auto Answer
+
+    /// Handle automatic AI response triggered by AutoAnswerService
+    private func handleAutoAnswer() async {
+        // Check enterprise license for auto-answer feature
+        guard LicenseManager.shared.isFeatureAvailable(.autoAnswer) else {
+            print("[AppState] Auto-answer requires Enterprise license")
+            return
+        }
+
+        // Don't trigger if already processing
+        guard !aiService.isProcessing else {
+            print("[AppState] Skipping auto-answer - AI already processing")
+            return
+        }
+
+        // Need some transcript content
+        guard !currentTranscript.isEmpty else {
+            print("[AppState] Skipping auto-answer - no transcript")
+            return
+        }
+
+        print("[AppState] Triggering automatic response...")
+
+        do {
+            let response = try await aiService.generateAutoResponse(
+                transcript: currentTranscript,
+                mode: selectedMode
+            )
+            print("[AppState] Auto-response generated: \(response.content.prefix(100))...")
+        } catch {
+            print("[AppState] Auto-response failed: \(error)")
+        }
     }
 }
 

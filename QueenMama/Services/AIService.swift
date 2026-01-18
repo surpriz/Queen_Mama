@@ -401,6 +401,102 @@ final class AIService: ObservableObject {
         )
     }
 
+    // MARK: - Auto Response
+
+    /// Generate an automatic response (triggered by AutoAnswerService)
+    /// Returns a response marked as automatic with special styling
+    func generateAutoResponse(transcript: String, mode: Mode?) async throws -> AIResponse {
+        isProcessing = true
+        currentResponse = ""
+        errorMessage = nil
+
+        defer { isProcessing = false }
+
+        // License checks
+        let licenseManager = LicenseManager.shared
+
+        // Check enterprise license for auto-answer
+        guard licenseManager.isFeatureAvailable(.autoAnswer) else {
+            throw AILicenseError.requiresEnterprise
+        }
+
+        // Check AI request limit
+        let authAccess = licenseManager.canUse(.aiRequest)
+        if case .blocked = authAccess {
+            throw AILicenseError.requiresAuthentication
+        }
+        if case .limitReached(let used, let limit) = authAccess {
+            throw AILicenseError.dailyLimitReached(used: used, limit: limit)
+        }
+
+        let context = AIContext(
+            transcript: transcript,
+            screenshot: nil,  // No screenshot for auto responses
+            mode: mode,
+            responseType: .assist,  // Use assist type for auto responses
+            customPrompt: """
+            Based on the conversation, provide a brief, proactive suggestion or insight that could help the user.
+            Keep it concise (1-2 sentences max) and immediately actionable.
+            Focus on what the user might need to know or say next.
+            """,
+            smartMode: false  // Don't use smart mode for auto responses (faster)
+        )
+
+        // Try each configured provider in order
+        var lastError: Error?
+        let providers = getProviders(smartMode: false)
+
+        print("[AIService] Generating auto-response with providers: \(providers.map { $0.providerType.displayName })")
+
+        for provider in providers {
+            do {
+                print("[AIService] Auto-response: trying \(provider.providerType.displayName)")
+                let result = try await provider.generateResponse(context: context)
+                lastProvider = provider.providerType
+
+                // Record usage
+                licenseManager.recordUsage(.aiRequest, provider: provider.providerType.rawValue)
+
+                // Create response marked as automatic
+                let response = AIResponse(
+                    automatic: .assist,
+                    content: result.content,
+                    provider: provider.providerType
+                )
+
+                // Insert at beginning of responses list
+                responses.insert(response, at: 0)
+
+                // Persist to SwiftData
+                if let context = self.modelContext {
+                    context.insert(response)
+                    try? context.save()
+                }
+
+                print("[AIService] Auto-response generated successfully")
+                return response
+            } catch {
+                lastError = error
+                print("[AIService] Auto-response provider \(provider.providerType.displayName) failed: \(error)")
+                continue
+            }
+        }
+
+        throw lastError ?? AIProviderError.allProvidersFailed
+    }
+
+    /// Remove a specific response from history (used for dismissing auto responses)
+    func dismissResponse(_ response: AIResponse) {
+        responses.removeAll { $0.id == response.id }
+
+        // Remove from SwiftData
+        if let context = modelContext {
+            context.delete(response)
+            try? context.save()
+            print("[AIService] Dismissed response: \(response.id)")
+        }
+    }
+
     // MARK: - History Management
 
     func clearResponses() {

@@ -9,6 +9,7 @@ final class AIResponse: Identifiable {
     var timestamp: Date
     var providerRaw: String
     var latencyMs: Int?
+    var isAutomatic: Bool  // Indicates auto-generated response from AutoAnswer
 
     init(
         id: UUID = UUID(),
@@ -16,7 +17,8 @@ final class AIResponse: Identifiable {
         content: String,
         timestamp: Date = Date(),
         provider: AIProviderType,
-        latencyMs: Int? = nil
+        latencyMs: Int? = nil,
+        isAutomatic: Bool = false
     ) {
         self.id = id
         self.typeRaw = type.rawValue
@@ -24,6 +26,16 @@ final class AIResponse: Identifiable {
         self.timestamp = timestamp
         self.providerRaw = provider.rawValue
         self.latencyMs = latencyMs
+        self.isAutomatic = isAutomatic
+    }
+
+    /// Convenience initializer for automatic responses
+    convenience init(
+        automatic type: ResponseType,
+        content: String,
+        provider: AIProviderType
+    ) {
+        self.init(type: type, content: content, provider: provider, isAutomatic: true)
     }
 
     // Computed properties for easier access
