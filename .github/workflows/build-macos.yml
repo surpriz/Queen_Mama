@@ -1,0 +1,108 @@
+name: Build macOS App
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version (e.g., 1.0.0)'
+        required: true
+        default: '1.0.0'
+
+env:
+  SCHEME: QueenMama
+  XCODE_PROJECT: QueenMama.xcodeproj
+  TEAM_ID: WNNDDTBPGK
+
+jobs:
+  build:
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Select Xcode
+        run: sudo xcode-select -s /Applications/Xcode_15.4.app
+
+      - name: Install Certificate
+        env:
+          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          KEYCHAIN_PASSWORD: ${{ secrets.KEYCHAIN_PASSWORD }}
+        run: |
+          KEYCHAIN_PATH=$RUNNER_TEMP/app-signing.keychain-db
+          security create-keychain -p "$KEYCHAIN_PASSWORD" $KEYCHAIN_PATH
+          security set-keychain-settings -lut 21600 $KEYCHAIN_PATH
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" $KEYCHAIN_PATH
+          echo -n "$APPLE_CERTIFICATE" | base64 --decode -o $RUNNER_TEMP/certificate.p12
+          security import $RUNNER_TEMP/certificate.p12 -P "$APPLE_CERTIFICATE_PASSWORD" -A -t cert -f pkcs12 -k $KEYCHAIN_PATH
+          security list-keychain -d user -s $KEYCHAIN_PATH
+          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$KEYCHAIN_PASSWORD" $KEYCHAIN_PATH
+
+      - name: Build Archive
+        run: |
+          xcodebuild archive \
+            -project $XCODE_PROJECT \
+            -scheme $SCHEME \
+            -configuration Release \
+            -archivePath $RUNNER_TEMP/QueenMama.xcarchive \
+            CODE_SIGN_IDENTITY="Developer ID Application" \
+            DEVELOPMENT_TEAM=$TEAM_ID \
+            OTHER_CODE_SIGN_FLAGS="--timestamp --options runtime"
+
+      - name: Export App
+        run: |
+          cat > $RUNNER_TEMP/ExportOptions.plist << EOF
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+              <key>method</key>
+              <string>developer-id</string>
+              <key>teamID</key>
+              <string>${TEAM_ID}</string>
+          </dict>
+          </plist>
+          EOF
+          xcodebuild -exportArchive \
+            -archivePath $RUNNER_TEMP/QueenMama.xcarchive \
+            -exportOptionsPlist $RUNNER_TEMP/ExportOptions.plist \
+            -exportPath $RUNNER_TEMP/export
+
+      - name: Notarize App
+        env:
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+        run: |
+          ditto -c -k --keepParent "$RUNNER_TEMP/export/Queen Mama.app" $RUNNER_TEMP/QueenMama.zip
+          xcrun notarytool submit $RUNNER_TEMP/QueenMama.zip \
+            --apple-id "$APPLE_ID" \
+            --team-id "$APPLE_TEAM_ID" \
+            --password "$APPLE_APP_SPECIFIC_PASSWORD" \
+            --wait
+          xcrun stapler staple "$RUNNER_TEMP/export/Queen Mama.app"
+
+      - name: Create DMG
+        run: |
+          hdiutil create -volname "Queen Mama" \
+            -srcfolder "$RUNNER_TEMP/export/Queen Mama.app" \
+            -ov -format UDZO \
+            $RUNNER_TEMP/QueenMama.dmg
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: ${{ runner.temp }}/QueenMama.dmg
+          body: |
+            ## Queen Mama ${{ github.ref_name }}
+
+            **Installation:** Télécharger le DMG, glisser dans Applications.
+            **Requis:** macOS 14.2+
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Cleanup
+        if: always()
+        run: security delete-keychain $RUNNER_TEMP/app-signing.keychain-db || true
