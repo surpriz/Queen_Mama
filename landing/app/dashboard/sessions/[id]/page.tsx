@@ -114,7 +114,7 @@ export default async function SessionDetailPage({ params }: PageProps) {
       )}
 
       {/* Action Items */}
-      {session.actionItems && session.actionItems.length > 0 && (
+      {session.actionItems && Array.isArray(session.actionItems) && session.actionItems.length > 0 && (
         <GlassCard padding="lg">
           <h2 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
             <svg className="w-5 h-5 text-[var(--qm-success)]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -123,7 +123,7 @@ export default async function SessionDetailPage({ params }: PageProps) {
             Action Items
           </h2>
           <ul className="space-y-2">
-            {session.actionItems.map((item, index) => (
+            {(session.actionItems as string[]).map((item: string, index: number) => (
               <li key={index} className="flex items-start gap-3">
                 <span className="flex-shrink-0 w-5 h-5 rounded border border-[var(--qm-border)] flex items-center justify-center mt-0.5">
                   <span className="text-xs text-[var(--qm-text-tertiary)]">{index + 1}</span>
