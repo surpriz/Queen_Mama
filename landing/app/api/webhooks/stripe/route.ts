@@ -43,6 +43,22 @@ export async function POST(request: Request) {
             session.subscription as string
           );
 
+          // Check for existing subscription and cancel it
+          const existingSubscription = await prisma.subscription.findUnique({
+            where: { userId },
+          });
+
+          if (existingSubscription?.stripeSubscriptionId &&
+              existingSubscription.stripeSubscriptionId !== subscription.id) {
+            // Cancel the old subscription on Stripe
+            try {
+              await getStripe().subscriptions.cancel(existingSubscription.stripeSubscriptionId);
+              console.log(`[Webhook] Cancelled old subscription: ${existingSubscription.stripeSubscriptionId}`);
+            } catch (error) {
+              console.error(`[Webhook] Failed to cancel old subscription:`, error);
+            }
+          }
+
           await prisma.user.update({
             where: { id: userId },
             data: { stripeCustomerId: session.customer as string },
@@ -53,27 +69,27 @@ export async function POST(request: Request) {
             create: {
               userId,
               plan,
-              status: "ACTIVE",
+              status: subscription.status === "trialing" ? "TRIALING" : "ACTIVE",
               stripeSubscriptionId: subscription.id,
               stripePriceId: subscription.items.data[0].price.id,
-              currentPeriodStart: new Date(
-                subscription.current_period_start * 1000
-              ),
-              currentPeriodEnd: new Date(
-                subscription.current_period_end * 1000
-              ),
+              currentPeriodStart: subscription.current_period_start
+                ? new Date(subscription.current_period_start * 1000)
+                : null,
+              currentPeriodEnd: subscription.current_period_end
+                ? new Date(subscription.current_period_end * 1000)
+                : null,
             },
             update: {
               plan,
-              status: "ACTIVE",
+              status: subscription.status === "trialing" ? "TRIALING" : "ACTIVE",
               stripeSubscriptionId: subscription.id,
               stripePriceId: subscription.items.data[0].price.id,
-              currentPeriodStart: new Date(
-                subscription.current_period_start * 1000
-              ),
-              currentPeriodEnd: new Date(
-                subscription.current_period_end * 1000
-              ),
+              currentPeriodStart: subscription.current_period_start
+                ? new Date(subscription.current_period_start * 1000)
+                : null,
+              currentPeriodEnd: subscription.current_period_end
+                ? new Date(subscription.current_period_end * 1000)
+                : null,
             },
           });
         }
@@ -93,17 +109,20 @@ export async function POST(request: Request) {
                          subscription.status === "past_due" ? "PAST_DUE" :
                          subscription.status === "trialing" ? "TRIALING" : "INCOMPLETE";
 
+          // Check if subscription is scheduled for cancellation
+          const willCancel = subscription.cancel_at_period_end || !!subscription.cancel_at;
+
           await prisma.subscription.update({
             where: { stripeSubscriptionId: subscription.id },
             data: {
               status,
-              cancelAtPeriodEnd: subscription.cancel_at_period_end,
-              currentPeriodStart: new Date(
-                subscription.current_period_start * 1000
-              ),
-              currentPeriodEnd: new Date(
-                subscription.current_period_end * 1000
-              ),
+              cancelAtPeriodEnd: willCancel,
+              currentPeriodStart: subscription.current_period_start
+                ? new Date(subscription.current_period_start * 1000)
+                : null,
+              currentPeriodEnd: subscription.current_period_end
+                ? new Date(subscription.current_period_end * 1000)
+                : null,
             },
           });
         }

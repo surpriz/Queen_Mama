@@ -477,9 +477,9 @@ struct LicenseStatusBadge: View {
             return "Not Connected"
         } else if licenseManager.isPro {
             if licenseManager.isTrialing, let days = licenseManager.trialDaysRemaining {
-                return "PRO Trial"
+                return "\(licenseManager.currentLicense.plan.rawValue) Trial"
             }
-            return "PRO"
+            return licenseManager.currentLicense.plan.rawValue
         } else {
             return "FREE"
         }

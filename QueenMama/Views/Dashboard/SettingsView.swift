@@ -1073,7 +1073,7 @@ struct ModernAccountSettingsView: View {
                         HStack {
                             VStack(alignment: .leading, spacing: 4) {
                                 HStack(spacing: QMDesign.Spacing.sm) {
-                                    Text(licenseManager.isPro ? "PRO" : "FREE")
+                                    Text(licenseManager.currentLicense.plan.rawValue)
                                         .font(QMDesign.Typography.headline)
                                         .foregroundStyle(licenseManager.isPro ? AnyShapeStyle(QMDesign.Colors.primaryGradient) : AnyShapeStyle(QMDesign.Colors.textPrimary))
 

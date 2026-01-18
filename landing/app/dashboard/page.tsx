@@ -32,7 +32,8 @@ export default async function DashboardPage() {
     }),
   ]);
 
-  const isPro = user?.subscription?.plan === "PRO";
+  const currentPlan = user?.subscription?.plan || "FREE";
+  const isPro = currentPlan === "PRO" || currentPlan === "ENTERPRISE";
 
   return (
     <div className="space-y-8">
@@ -76,7 +77,7 @@ export default async function DashboardPage() {
         />
         <StatsCard
           title="Current Plan"
-          value={isPro ? "Pro" : "Free"}
+          value={currentPlan === "FREE" ? "Free" : currentPlan === "PRO" ? "Pro" : "Enterprise"}
           icon={
             <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
@@ -132,17 +133,19 @@ export default async function DashboardPage() {
         <GlassCard hover={false} padding="lg">
           <h2 className="text-lg font-semibold text-white mb-4">Quick Actions</h2>
           <div className="space-y-3">
-            <Link href="/dashboard/account/api-keys" className="flex items-center gap-3 p-3 rounded-[var(--qm-radius-md)] bg-[var(--qm-surface-light)] hover:bg-[var(--qm-surface-hover)] transition-colors">
-              <div className="p-2 rounded-[var(--qm-radius-sm)] bg-[var(--qm-surface-medium)]">
-                <svg className="w-5 h-5 text-[var(--qm-accent)]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
-                </svg>
-              </div>
-              <div>
-                <p className="text-sm font-medium text-white">Configure API Keys</p>
-                <p className="text-xs text-[var(--qm-text-tertiary)]">Set up your AI provider keys</p>
-              </div>
-            </Link>
+            {!isPro && (
+              <Link href="/dashboard/account/api-keys" className="flex items-center gap-3 p-3 rounded-[var(--qm-radius-md)] bg-[var(--qm-surface-light)] hover:bg-[var(--qm-surface-hover)] transition-colors">
+                <div className="p-2 rounded-[var(--qm-radius-sm)] bg-[var(--qm-surface-medium)]">
+                  <svg className="w-5 h-5 text-[var(--qm-accent)]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
+                  </svg>
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-white">Configure API Keys</p>
+                  <p className="text-xs text-[var(--qm-text-tertiary)]">Set up your AI provider keys</p>
+                </div>
+              </Link>
+            )}
 
             {!isPro && (
               <Link href="/dashboard/billing" className="flex items-center gap-3 p-3 rounded-[var(--qm-radius-md)] bg-gradient-to-r from-[var(--qm-primary)]/20 to-[var(--qm-secondary)]/20 border border-[var(--qm-accent)]/20 hover:border-[var(--qm-accent)]/40 transition-colors">
@@ -154,6 +157,20 @@ export default async function DashboardPage() {
                 <div>
                   <p className="text-sm font-medium text-white">Upgrade to Pro</p>
                   <p className="text-xs text-[var(--qm-text-tertiary)]">Unlock Smart Mode and more features</p>
+                </div>
+              </Link>
+            )}
+
+            {isPro && (
+              <Link href="/dashboard/billing" className="flex items-center gap-3 p-3 rounded-[var(--qm-radius-md)] bg-[var(--qm-surface-light)] hover:bg-[var(--qm-surface-hover)] transition-colors">
+                <div className="p-2 rounded-[var(--qm-radius-sm)] bg-[var(--qm-surface-medium)]">
+                  <svg className="w-5 h-5 text-[var(--qm-accent)]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+                  </svg>
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-white">Manage Subscription</p>
+                  <p className="text-xs text-[var(--qm-text-tertiary)]">View billing and invoices</p>
                 </div>
               </Link>
             )}
