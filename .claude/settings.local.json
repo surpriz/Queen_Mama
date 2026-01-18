@@ -8,7 +8,8 @@
       "Bash(npm run build:*)",
       "Bash(xcodebuild:*)",
       "Bash(npx prisma migrate dev:*)",
-      "Bash(curl:*)"
+      "Bash(curl:*)",
+      "Bash(npm install:*)"
     ]
   }
 }

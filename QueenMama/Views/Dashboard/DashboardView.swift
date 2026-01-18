@@ -63,40 +63,59 @@ struct DashboardView: View {
             }
 
             ToolbarItemGroup(placement: .primaryAction) {
-                // Start/Stop Session Button
-                Button(action: {
-                    Task {
-                        if appState.isSessionActive {
-                            await appState.stopSession()
-                        } else {
-                            await appState.startSession()
-                            OverlayWindowController.shared.showOverlay(
-                                appState: appState,
-                                sessionManager: sessionManager
-                            )
-                        }
-                    }
-                }) {
+                // Finalization indicator
+                if appState.isFinalizingSession {
                     HStack(spacing: QMDesign.Spacing.xs) {
-                        Image(systemName: appState.isSessionActive ? QMDesign.Icons.stop : QMDesign.Icons.play)
-                            .font(.system(size: 12, weight: .semibold))
-                        Text(appState.isSessionActive ? "Stop" : "Start")
+                        ProgressView()
+                            .scaleEffect(0.7)
+                        Text("Generating summary...")
                             .font(QMDesign.Typography.labelSmall)
                     }
                     .padding(.horizontal, QMDesign.Spacing.sm)
                     .padding(.vertical, QMDesign.Spacing.xs)
                     .background(
                         Capsule()
-                            .fill(appState.isSessionActive ? AnyShapeStyle(QMDesign.Colors.errorLight) : AnyShapeStyle(QMDesign.Colors.primaryGradient))
+                            .fill(QMDesign.Colors.accent.opacity(0.15))
                     )
-                    .foregroundColor(appState.isSessionActive ? QMDesign.Colors.error : .white)
-                    .scaleEffect(isHoveringStart ? 1.05 : 1.0)
+                    .foregroundColor(QMDesign.Colors.accent)
                 }
-                .buttonStyle(.plain)
-                .onHover { isHoveringStart = $0 }
-                .animation(QMDesign.Animation.quick, value: isHoveringStart)
-                .keyboardShortcut("s", modifiers: [.command, .shift])
-                .help("Start/Stop Session (Cmd+Shift+S)")
+
+                // Start/Stop Session Button (hidden during finalization)
+                if !appState.isFinalizingSession {
+                    Button(action: {
+                        Task {
+                            if appState.isSessionActive {
+                                await appState.stopSession()
+                            } else {
+                                await appState.startSession()
+                                OverlayWindowController.shared.showOverlay(
+                                    appState: appState,
+                                    sessionManager: sessionManager
+                                )
+                            }
+                        }
+                    }) {
+                        HStack(spacing: QMDesign.Spacing.xs) {
+                            Image(systemName: appState.isSessionActive ? QMDesign.Icons.stop : QMDesign.Icons.play)
+                                .font(.system(size: 12, weight: .semibold))
+                            Text(appState.isSessionActive ? "Stop" : "Start")
+                                .font(QMDesign.Typography.labelSmall)
+                        }
+                        .padding(.horizontal, QMDesign.Spacing.sm)
+                        .padding(.vertical, QMDesign.Spacing.xs)
+                        .background(
+                            Capsule()
+                                .fill(appState.isSessionActive ? AnyShapeStyle(QMDesign.Colors.errorLight) : AnyShapeStyle(QMDesign.Colors.primaryGradient))
+                        )
+                        .foregroundColor(appState.isSessionActive ? QMDesign.Colors.error : .white)
+                        .scaleEffect(isHoveringStart ? 1.05 : 1.0)
+                    }
+                    .buttonStyle(.plain)
+                    .onHover { isHoveringStart = $0 }
+                    .animation(QMDesign.Animation.quick, value: isHoveringStart)
+                    .keyboardShortcut("s", modifiers: [.command, .shift])
+                    .help("Start/Stop Session (Cmd+Shift+S)")
+                }
 
                 // Show/Hide Overlay
                 Button(action: {

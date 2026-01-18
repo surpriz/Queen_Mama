@@ -45,8 +45,9 @@ final class SessionManager: ObservableObject {
         return session
     }
 
-    func endSession() {
-        guard let session = currentSession else { return }
+    @discardableResult
+    func endSession() -> Session? {
+        guard let session = currentSession else { return nil }
 
         session.endTime = Date()
         isSessionActive = false
@@ -57,7 +58,11 @@ final class SessionManager: ObservableObject {
         // Stop timer
         stopDurationTimer()
 
+        // Keep reference before clearing
+        let finishedSession = session
         currentSession = nil
+
+        return finishedSession
     }
 
     func updateTranscript(_ text: String) {

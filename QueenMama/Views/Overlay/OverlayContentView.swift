@@ -37,6 +37,7 @@ struct OverlayContentView: View {
             ModernPillHeaderView(
                 isExpanded: overlayController.isExpanded,
                 isSessionActive: appState.isSessionActive,
+                isFinalizingSession: appState.isFinalizingSession,
                 enableScreenCapture: $enableScreenCapture,
                 isAutoAnswerEnabled: $isAutoAnswerEnabled,
                 isSmartModeEnabled: isSmartModeEnabled,
@@ -228,6 +229,7 @@ struct StatusBadge: View {
 struct ModernPillHeaderView: View {
     let isExpanded: Bool
     let isSessionActive: Bool
+    let isFinalizingSession: Bool
     @Binding var enableScreenCapture: Bool
     @Binding var isAutoAnswerEnabled: Bool
     @Binding var isSmartModeEnabled: Bool
@@ -379,8 +381,26 @@ struct ModernPillHeaderView: View {
             .onHover { isHoveringMore = $0 }
             .animation(QMDesign.Animation.quick, value: isHoveringMore)
 
-            // Start Button (when session inactive)
-            if !isSessionActive {
+            // Finalization indicator (when generating summary)
+            if isFinalizingSession {
+                HStack(spacing: 6) {
+                    ProgressView()
+                        .scaleEffect(0.7)
+                        .frame(width: 14, height: 14)
+                    Text("Résumé...")
+                        .font(QMDesign.Typography.captionSmall)
+                        .foregroundColor(QMDesign.Colors.accent)
+                }
+                .padding(.horizontal, QMDesign.Spacing.xs)
+                .padding(.vertical, 4)
+                .background(
+                    Capsule()
+                        .fill(QMDesign.Colors.accent.opacity(0.15))
+                )
+            }
+
+            // Start Button (when session inactive and not finalizing)
+            if !isSessionActive && !isFinalizingSession {
                 Button(action: onStart) {
                     Image(systemName: "play.fill")
                         .font(.system(size: 10))

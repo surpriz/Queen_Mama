@@ -282,9 +282,7 @@ struct ModernSessionDetailView: View {
                 // Summary Section
                 if let summary = session.summary {
                     DetailSection(title: "Summary", icon: "doc.text") {
-                        Text(summary)
-                            .font(QMDesign.Typography.bodyMedium)
-                            .foregroundColor(QMDesign.Colors.textPrimary)
+                        MarkdownText(content: summary)
                     }
                 }
 

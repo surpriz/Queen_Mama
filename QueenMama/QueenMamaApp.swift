@@ -61,6 +61,9 @@ struct QueenMamaApp: App {
                         .environmentObject(appState)
                         .environmentObject(sessionManager)
                         .onAppear {
+                            // Connect SessionManager to AppState
+                            appState.sessionManager = sessionManager
+
                             // Show widget by default
                             OverlayWindowController.shared.showOverlay(
                                 appState: appState,
@@ -106,12 +109,16 @@ class AppState: ObservableObject {
     @Published var audioLevel: Float = 0.0
     @Published var selectedMode: Mode?
     @Published var errorMessage: String?
+    @Published var isFinalizingSession = false  // Indicates AI is generating title/summary
 
     // Services
     let audioService = AudioCaptureService()
     let screenService = ScreenCaptureService()
     let transcriptionService = TranscriptionService()
     let aiService = AIService()
+
+    // Session Manager reference (injected from QueenMamaApp)
+    weak var sessionManager: SessionManager?
 
     func startSession() async {
         // Check authentication before starting session
@@ -127,6 +134,10 @@ class AppState: ObservableObject {
         // Record session start usage
         LicenseManager.shared.recordUsage(.sessionStart)
 
+        // Create session in SessionManager
+        let defaultTitle = "Session - \(Date().formatted(date: .abbreviated, time: .shortened))"
+        _ = sessionManager?.startSession(title: defaultTitle, modeId: selectedMode?.id)
+
         do {
             try await audioService.startCapture()
             try await screenService.startCapture()
@@ -141,6 +152,8 @@ class AppState: ObservableObject {
             transcriptionService.onTranscript = { [weak self] text in
                 Task { @MainActor in
                     self?.currentTranscript += text + " "
+                    // Persist transcription to SessionManager
+                    self?.sessionManager?.updateTranscript(self?.currentTranscript ?? "")
                 }
             }
         } catch {
@@ -150,10 +163,63 @@ class AppState: ObservableObject {
     }
 
     func stopSession() async {
+        // 1. Stop services immediately (for good UX)
         audioService.stopCapture()
         screenService.stopCapture()
         transcriptionService.disconnect()
         isSessionActive = false
+
+        // 2. Get the current session before finalizing
+        guard let manager = sessionManager,
+              let session = manager.currentSession else {
+            clearContext()
+            return
+        }
+
+        // 3. Get the final transcript
+        let finalTranscript = currentTranscript.trimmingCharacters(in: .whitespacesAndNewlines)
+
+        // 4. Skip AI processing if transcript is too short (< 50 characters)
+        if finalTranscript.count < 50 {
+            print("[AppState] Session too short for AI processing (\(finalTranscript.count) chars)")
+            manager.endSession()
+            syncSessionIfEligible(session)
+            clearContext()
+            return
+        }
+
+        // 5. Activate finalization indicator
+        isFinalizingSession = true
+
+        // 6. Generate title and summary using AI
+        let title = await aiService.generateSessionTitle(transcript: finalTranscript)
+        session.title = title
+        print("[AppState] Generated title: \(title)")
+
+        if let summary = await aiService.generateSessionSummary(transcript: finalTranscript) {
+            manager.setSummary(summary)
+            print("[AppState] Generated summary (\(summary.count) chars)")
+        }
+
+        // 7. Finalize the session
+        manager.endSession()
+
+        // 8. Queue for sync if PRO+ subscription
+        syncSessionIfEligible(session)
+
+        // 9. Deactivate indicator and clear context
+        isFinalizingSession = false
+        clearContext()
+    }
+
+    /// Queue session for sync if user has PRO+ subscription
+    private func syncSessionIfEligible(_ session: Session) {
+        if LicenseManager.shared.isFeatureAvailable(.sessionSync) {
+            SyncManager.shared.queueSession(session)
+            print("[AppState] Session queued for sync: \(session.id)")
+        } else {
+            print("[AppState] Session sync requires PRO subscription - stored locally only")
+        }
     }
 
     func toggleOverlay() {

@@ -28,6 +28,23 @@ export default async function SessionsPage() {
     return `${mins}m ${secs}s`;
   };
 
+  // Strip markdown syntax for preview
+  const stripMarkdown = (text: string) => {
+    return text
+      .replace(/#{1,6}\s?/g, "") // Remove headers
+      .replace(/\*\*([^*]+)\*\*/g, "$1") // Remove bold
+      .replace(/\*([^*]+)\*/g, "$1") // Remove italic
+      .replace(/__([^_]+)__/g, "$1") // Remove bold (underscore)
+      .replace(/_([^_]+)_/g, "$1") // Remove italic (underscore)
+      .replace(/\[([^\]]+)\]\([^)]+\)/g, "$1") // Remove links
+      .replace(/`([^`]+)`/g, "$1") // Remove inline code
+      .replace(/^[-*+]\s/gm, "") // Remove list markers
+      .replace(/^\d+\.\s/gm, "") // Remove numbered list markers
+      .replace(/\n{2,}/g, " ") // Replace multiple newlines with space
+      .replace(/\n/g, " ") // Replace single newlines with space
+      .trim();
+  };
+
   return (
     <div className="space-y-8">
       <div>
@@ -69,7 +86,7 @@ export default async function SessionsPage() {
                     </div>
                     {s.summary && (
                       <p className="mt-2 text-sm text-[var(--qm-text-secondary)] line-clamp-2">
-                        {s.summary}
+                        {stripMarkdown(s.summary)}
                       </p>
                     )}
                   </div>

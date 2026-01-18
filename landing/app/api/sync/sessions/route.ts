@@ -53,15 +53,15 @@ export async function POST(request: Request) {
       );
     }
 
-    // Check if user has PRO subscription for sync
-    const isPro = user.subscription?.plan === "PRO" &&
+    // Check if user has PRO or ENTERPRISE subscription for sync
+    const hasPaidPlan = (user.subscription?.plan === "PRO" || user.subscription?.plan === "ENTERPRISE") &&
       (user.subscription.status === "ACTIVE" || user.subscription.status === "TRIALING");
 
-    if (!isPro) {
+    if (!hasPaidPlan) {
       return NextResponse.json(
         {
           error: "subscription_required",
-          message: "Session sync requires a PRO subscription",
+          message: "Session sync requires a PRO or ENTERPRISE subscription",
           upgradeUrl: "/dashboard/billing",
         },
         { status: 403 }

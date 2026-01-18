@@ -423,6 +423,60 @@ final class AIService: ObservableObject {
         responses.first { $0.id == id }
     }
 
+    // MARK: - Session Finalization Methods
+
+    /// Generate a concise title for a session from its transcript
+    func generateSessionTitle(transcript: String) async -> String {
+        guard !transcript.isEmpty else {
+            return "Session - \(Date().formatted(date: .abbreviated, time: .shortened))"
+        }
+
+        do {
+            let response = try await generateResponse(
+                transcript: String(transcript.prefix(3000)),
+                screenshot: nil,
+                mode: nil,
+                type: .custom,
+                customPrompt: """
+                Generate a SHORT, CONCISE title (maximum 6-8 words) for this conversation.
+                The title should capture the main topic or purpose discussed.
+                Return ONLY the title, no quotes, no explanation, no punctuation at the end.
+                Match the language of the transcript (French or English).
+                """,
+                smartMode: false
+            )
+
+            let title = response.content
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+                .trimmingCharacters(in: CharacterSet(charactersIn: "\"'"))
+
+            return title.isEmpty ? "Untitled Session" : title
+        } catch {
+            print("[AIService] Title generation failed: \(error)")
+            return "Session - \(Date().formatted(date: .abbreviated, time: .shortened))"
+        }
+    }
+
+    /// Generate a summary for a session from its transcript
+    func generateSessionSummary(transcript: String) async -> String? {
+        guard transcript.count >= 100 else { return nil }
+
+        do {
+            let response = try await generateResponse(
+                transcript: transcript,
+                screenshot: nil,
+                mode: nil,
+                type: .recap,
+                customPrompt: nil,
+                smartMode: false
+            )
+            return response.content
+        } catch {
+            print("[AIService] Summary generation failed: \(error)")
+            return nil
+        }
+    }
+
     // MARK: - Export
 
     func exportToMarkdown() -> String {
