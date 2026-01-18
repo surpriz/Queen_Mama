@@ -34,7 +34,7 @@ export default async function DeviceAuthPage() {
         </div>
 
         <p className="mt-6 text-center text-[var(--qm-text-tertiary)] text-sm">
-          Open the Queen Mama app on your Mac and select "Use Device Code" to get a code.
+          Open the Queen Mama app on your Mac and select &quot;Use Device Code&quot; to get a code.
         </p>
       </div>
     </div>

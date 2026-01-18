@@ -9,7 +9,7 @@ import { prisma } from "@/lib/prisma";
 export async function logAdminAction(
   adminId: string,
   action: string,
-  metadata?: Record<string, any>
+  metadata?: Record<string, unknown>
 ) {
   try {
     await prisma.usageLog.create({

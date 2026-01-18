@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { Container } from "@/components/ui";
 
 const footerLinks = {
@@ -29,7 +30,7 @@ export function Footer() {
         <div className="grid md:grid-cols-4 gap-12 mb-12">
           {/* Brand */}
           <div className="md:col-span-1">
-            <a href="/" className="flex items-center gap-2 mb-4">
+            <Link href="/" className="flex items-center gap-2 mb-4">
               <div className="w-8 h-8 rounded-full gradient-bg flex items-center justify-center">
                 <svg
                   className="w-4 h-4 text-white"
@@ -46,7 +47,7 @@ export function Footer() {
                 </svg>
               </div>
               <span className="text-lg font-bold gradient-text">Queen Mama</span>
-            </a>
+            </Link>
             <p className="text-sm text-[var(--qm-text-tertiary)] mb-4">
               AI-powered real-time coaching for high-stakes conversations.
             </p>
