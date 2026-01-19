@@ -11,6 +11,7 @@ import type { Adapter } from "next-auth/adapters";
 export const { handlers, auth, signIn, signOut } = NextAuth({
   adapter: PrismaAdapter(prisma) as Adapter,
   session: { strategy: "jwt" },
+  trustHost: true,
   pages: {
     signIn: "/signin",
     error: "/auth/error",
