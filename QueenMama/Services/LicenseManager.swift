@@ -52,10 +52,11 @@ final class LicenseManager: ObservableObject {
     /// This provides basic tampering protection but is not cryptographically secure
     /// against determined attackers who can reverse-engineer the binary
     private static let bundledLicenseSecret: String = {
-        // Split to make it slightly harder to find in binary
-        // In production, use more sophisticated obfuscation
-        let parts = ["queen", "mama", "license", "2026"]
-        return parts.joined(separator: "_")
+        // Split to make it harder to find via simple string search in binary
+        let parts = [
+            "FpOU+px9", "sASk0/+e", "Zu5uDQBP", "4r0rhZ2g", "2h5u5iqf", "0Uw="
+        ]
+        return parts.joined()
     }()
 
     private init() {

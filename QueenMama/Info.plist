@@ -52,9 +52,9 @@
 
     <!-- Sparkle Auto-Update Configuration -->
     <key>SUFeedURL</key>
-    <string>https://queenmama.app/appcast.xml</string>
+    <string>https://queenmama.co/appcast.xml</string>
     <key>SUPublicEDKey</key>
-    <string></string>
+    <string>J3GGTERWgV6iyXa+LuzXf3j4HWJ6M/Mb9WqSciHBeYc=</string>
     <key>SUEnableAutomaticChecks</key>
     <true/>
     <key>SUScheduledCheckInterval</key>

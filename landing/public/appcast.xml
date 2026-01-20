@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="utf-8"?>
+<rss version="2.0" xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle" xmlns:dc="http://purl.org/dc/elements/1.1/">
+  <channel>
+    <title>Queen Mama Updates</title>
+    <link>https://queenmama.co/appcast.xml</link>
+    <description>Most recent updates to Queen Mama</description>
+    <language>en</language>
+
+    <!--
+    ===========================================
+    HOW TO ADD A NEW RELEASE:
+    ===========================================
+
+    1. Build your .dmg file
+    2. Sign it with: ./sign_update YourApp.dmg
+    3. Get the file size: ls -l YourApp.dmg
+    4. Copy the <item> template below and fill in:
+       - sparkle:version (build number, e.g., 2)
+       - sparkle:shortVersionString (version, e.g., 1.0.1)
+       - pubDate (RFC 2822 format)
+       - url (download URL)
+       - sparkle:edSignature (from sign_update output)
+       - length (file size in bytes)
+    5. Add release notes in <description>
+
+    ===========================================
+    -->
+
+    <item>
+      <title>Version 1.0.0</title>
+      <description><![CDATA[
+        <h2>Queen Mama 1.0.0 - Initial Release</h2>
+        <ul>
+          <li>Real-time transcription with Deepgram Nova-3</li>
+          <li>AI-powered coaching with multiple providers</li>
+          <li>Undetectable overlay for screen sharing</li>
+          <li>Session recording and sync</li>
+          <li>Keyboard shortcuts for quick access</li>
+        </ul>
+      ]]></description>
+      <pubDate>Mon, 20 Jan 2026 12:00:00 +0000</pubDate>
+      <sparkle:version>1</sparkle:version>
+      <sparkle:shortVersionString>1.0.0</sparkle:shortVersionString>
+      <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+      <enclosure
+        url="https://queenmama.co/downloads/QueenMama-1.0.0.dmg"
+        sparkle:edSignature="REPLACE_WITH_SIGNATURE_AFTER_SIGNING"
+        length="0"
+        type="application/octet-stream"/>
+    </item>
+
+  </channel>
+</rss>
