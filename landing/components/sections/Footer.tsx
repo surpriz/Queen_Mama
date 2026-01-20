@@ -12,9 +12,8 @@ const footerLinks = {
   ],
   resources: [
     { label: "Documentation", href: "#" },
-    { label: "API Keys Guide", href: "#" },
+    { label: "Windows Waitlist", href: "/windows-waitlist" },
     { label: "Subprocessors", href: "/subprocessors" },
-    { label: "GitHub", href: "#" },
   ],
   legal: [
     { label: "Privacy Policy", href: "/privacy" },

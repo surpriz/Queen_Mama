@@ -292,3 +292,23 @@ model UsageLog {
 
   @@index([userId, createdAt])
 }
+
+// ============================================
+// WAITLIST
+// ============================================
+
+model Waitlist {
+  id        String       @id @default(cuid())
+  email     String       @unique
+  platform  WaitlistPlatform
+  createdAt DateTime     @default(now())
+
+  @@index([platform])
+}
+
+enum WaitlistPlatform {
+  WINDOWS
+  LINUX
+  IOS
+  ANDROID
+}

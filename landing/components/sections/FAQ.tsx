@@ -7,9 +7,9 @@ import { cn } from "@/lib/utils";
 
 const faqs = [
   {
-    question: "What API keys do I need?",
+    question: "How does Queen Mama work?",
     answer:
-      "You'll need at least one AI provider API key (OpenAI, Anthropic/Claude, or Google Gemini) and one transcription provider key (Deepgram or AssemblyAI). We recommend starting with OpenAI + Deepgram for the best experience. All keys are stored securely in your macOS Keychain.",
+      "Queen Mama listens to your conversations in real-time, transcribes the audio, and provides AI-powered suggestions based on the context. Simply download the app, create an account, and you're ready to go - no configuration needed. We handle all the AI and transcription infrastructure for you.",
   },
   {
     question: "Is it really invisible during screen sharing?",
@@ -29,7 +29,7 @@ const faqs = [
   {
     question: "Is my data private?",
     answer:
-      "Yes. All transcription and AI processing happens through your own API keys - we never see your conversations. Session data is stored locally on your Mac using SwiftData. API keys are secured in your macOS Keychain, not accessible to us.",
+      "Yes. We take privacy seriously. Audio is processed in real-time and not stored on our servers. Session data and transcripts are stored locally on your Mac using SwiftData. Your conversations remain private and are never used for training AI models.",
   },
   {
     question: "What are the system requirements?",

@@ -6,15 +6,15 @@ import { Container, GlassCard, KeyboardShortcut } from "@/components/ui";
 const steps = [
   {
     number: "01",
-    title: "Install & Configure",
+    title: "Install & Sign Up",
     description:
-      "Download Queen Mama and add your API keys for OpenAI, Claude, or Gemini. Set up takes just minutes.",
+      "Download Queen Mama and create your free account. Setup takes just minutes - no configuration needed.",
     icon: (
       <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
       </svg>
     ),
-    details: ["Works with any AI provider", "Secure API key storage", "One-time setup"],
+    details: ["No API keys required", "Ready in seconds", "Works out of the box"],
   },
   {
     number: "02",

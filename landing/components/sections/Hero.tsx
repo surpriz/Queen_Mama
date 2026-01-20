@@ -37,11 +37,17 @@ export function Hero() {
               initial={{ opacity: 0, y: -20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.2 }}
-              className="mb-6"
+              className="mb-6 flex flex-wrap justify-center lg:justify-start gap-2"
             >
               <Badge variant="success" size="md">
                 <span className="w-2 h-2 rounded-full bg-[var(--qm-success)] animate-pulse" />
                 Available for macOS
+              </Badge>
+              <Badge variant="default" size="md">
+                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                Windows coming soon
               </Badge>
             </motion.div>
 
@@ -124,10 +130,6 @@ export function Hero() {
               </GradientButton>
             </div>
 
-            {/* Trust Note */}
-            <p className="mt-6 text-sm text-[var(--qm-text-tertiary)]">
-              Free to use. Bring your own API keys.
-            </p>
           </motion.div>
 
           {/* Right Column - Widget Preview */}
