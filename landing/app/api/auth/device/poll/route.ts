@@ -66,13 +66,17 @@ export async function GET(request: NextRequest) {
     });
 
     if (!user) {
+      console.error("[Device Poll] User not found for userId:", authCode.userId);
       return NextResponse.json(
         { error: "access_denied", message: "User not found" },
         { status: 403 }
       );
     }
 
+    console.log("[Device Poll] User found:", { id: user.id, email: user.email, role: user.role });
+
     if (user.role === "BLOCKED") {
+      console.error("[Device Poll] User is blocked:", user.email);
       return NextResponse.json(
         { error: "access_denied", message: "Account has been blocked" },
         { status: 403 }
