@@ -265,9 +265,10 @@ extension SecureStorage {
 // MARK: - Supporting Types
 
 /// Represents a cached license for offline use
+/// Uses LicenseFeatures from AuthModels.swift
 struct LicenseCache: Codable {
     let userId: String
-    let plan: String
+    let plan: SubscriptionPlan
     let features: LicenseFeatures
     let expiresAt: Date
     let cachedAt: Date
@@ -280,14 +281,6 @@ struct LicenseCache: Codable {
         // Consider stale after 1 hour
         Date().timeIntervalSince(cachedAt) > 3600
     }
-}
-
-/// Features available in a license
-struct LicenseFeatures: Codable {
-    let smartModeLimit: Int?
-    let sessionSync: Bool
-    let undetectable: Bool
-    let autoAnswer: Bool
 }
 
 /// Item in the sync queue

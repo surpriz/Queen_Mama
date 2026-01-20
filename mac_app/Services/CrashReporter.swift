@@ -64,20 +64,11 @@ final class CrashReporter {
             // Enable performance monitoring
             options.tracesSampleRate = 0.1 // Sample 10% of transactions
 
-            // Enable out-of-memory tracking
-            options.enableOutOfMemoryTracking = true
-
             // Enable auto session tracking
             options.enableAutoSessionTracking = true
 
             // Set max breadcrumbs
             options.maxBreadcrumbs = 100
-
-            // Attach screenshots on crash (useful for UI issues)
-            options.attachScreenshot = true
-
-            // Attach view hierarchy on crash
-            options.attachViewHierarchy = true
 
             // Set release and dist
             if let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String,
@@ -92,8 +83,11 @@ final class CrashReporter {
                 event.breadcrumbs = event.breadcrumbs?.map { breadcrumb in
                     // Scrub API keys from breadcrumb messages
                     if let message = breadcrumb.message {
-                        var scrubbed = breadcrumb
+                        let scrubbed = Breadcrumb(level: breadcrumb.level, category: breadcrumb.category)
                         scrubbed.message = self.scrubSensitiveData(message)
+                        scrubbed.type = breadcrumb.type
+                        scrubbed.data = breadcrumb.data
+                        scrubbed.timestamp = breadcrumb.timestamp
                         return scrubbed
                     }
                     return breadcrumb
@@ -169,14 +163,14 @@ final class CrashReporter {
     }
 
     /// Finish a performance transaction
-    func finishTransaction(_ transaction: Any?, status: SpanStatus = .ok) {
+    func finishTransaction(_ transaction: Any?, status: SentrySpanStatus = .ok) {
         guard let span = transaction as? Span else { return }
         span.finish(status: status)
     }
 
     // MARK: - Private Methods
 
-    private func scrubSensitiveData(_ text: String) -> String {
+    private nonisolated func scrubSensitiveData(_ text: String) -> String {
         var scrubbed = text
 
         // Scrub API keys (common patterns)
