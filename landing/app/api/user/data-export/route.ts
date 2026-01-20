@@ -55,7 +55,6 @@ export async function GET() {
           type: true,
           provider: true,
           providerAccountId: true,
-          createdAt: true,
         },
       }),
 
