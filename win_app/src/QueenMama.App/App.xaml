@@ -1,0 +1,41 @@
+<Application x:Class="QueenMama.App.App"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:tb="http://www.hardcodet.net/taskbar"
+             StartupUri="Views/MainWindow.xaml"
+             ShutdownMode="OnExplicitShutdown">
+    <Application.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="Themes/Colors.xaml" />
+                <ResourceDictionary Source="Themes/Styles.xaml" />
+            </ResourceDictionary.MergedDictionaries>
+
+            <!-- System Tray Icon -->
+            <tb:TaskbarIcon x:Key="SystemTrayIcon"
+                            IconSource="/Assets/tray-icon.ico"
+                            ToolTipText="Queen Mama"
+                            MenuActivation="RightClick"
+                            DoubleClickCommand="{Binding OpenDashboardCommand}">
+                <tb:TaskbarIcon.ContextMenu>
+                    <ContextMenu>
+                        <MenuItem Header="Start Session"
+                                  Command="{Binding StartSessionCommand}"
+                                  InputGestureText="Ctrl+Shift+S"/>
+                        <MenuItem Header="Show Widget"
+                                  Command="{Binding ToggleOverlayCommand}"
+                                  InputGestureText="Ctrl+\"/>
+                        <Separator/>
+                        <MenuItem Header="Open Dashboard"
+                                  Command="{Binding OpenDashboardCommand}"/>
+                        <MenuItem Header="Settings"
+                                  Command="{Binding OpenSettingsCommand}"/>
+                        <Separator/>
+                        <MenuItem Header="Quit"
+                                  Command="{Binding QuitCommand}"/>
+                    </ContextMenu>
+                </tb:TaskbarIcon.ContextMenu>
+            </tb:TaskbarIcon>
+        </ResourceDictionary>
+    </Application.Resources>
+</Application>
