@@ -134,7 +134,7 @@
 				10000000000000000000001A /* Info.plist */,
 				10000000000000000000001B /* QueenMama.entitlements */,
 			);
-			path = QueenMama;
+			path = mac_app;
 			sourceTree = "<group>";
 		};
 		400000000000000000000003 /* Products */ = {
@@ -538,7 +538,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
-				CODE_SIGN_ENTITLEMENTS = QueenMama/QueenMama.entitlements;
+				CODE_SIGN_ENTITLEMENTS = mac_app/QueenMama.entitlements;
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
@@ -546,7 +546,7 @@
 				DEVELOPMENT_TEAM = "";
 				ENABLE_HARDENED_RUNTIME = YES;
 				GENERATE_INFOPLIST_FILE = NO;
-				INFOPLIST_FILE = QueenMama/Info.plist;
+				INFOPLIST_FILE = mac_app/Info.plist;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				INFOPLIST_KEY_NSMicrophoneUsageDescription = "Queen Mama needs microphone access to transcribe your voice during meetings and calls.";
@@ -569,7 +569,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
-				CODE_SIGN_ENTITLEMENTS = QueenMama/QueenMama.entitlements;
+				CODE_SIGN_ENTITLEMENTS = mac_app/QueenMama.entitlements;
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
@@ -577,7 +577,7 @@
 				DEVELOPMENT_TEAM = "";
 				ENABLE_HARDENED_RUNTIME = YES;
 				GENERATE_INFOPLIST_FILE = NO;
-				INFOPLIST_FILE = QueenMama/Info.plist;
+				INFOPLIST_FILE = mac_app/Info.plist;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				INFOPLIST_KEY_NSMicrophoneUsageDescription = "Queen Mama needs microphone access to transcribe your voice during meetings and calls.";
