@@ -182,24 +182,6 @@ export function Contact() {
             )}
           </GlassCard>
 
-          {/* Contact Info */}
-          <motion.div
-            initial={{ opacity: 0 }}
-            whileInView={{ opacity: 1 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.5, delay: 0.3 }}
-            className="mt-8 text-center"
-          >
-            <p className="text-sm text-[var(--qm-text-tertiary)]">
-              Or email us directly at{" "}
-              <a
-                href="mailto:jerome0laval@gmail.com"
-                className="text-[var(--qm-accent)] hover:text-[var(--qm-accent-light)] transition-colors"
-              >
-                jerome0laval@gmail.com
-              </a>
-            </p>
-          </motion.div>
         </motion.div>
       </Container>
     </section>
