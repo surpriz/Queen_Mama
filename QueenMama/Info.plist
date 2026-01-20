@@ -50,6 +50,10 @@
     <key>NSSupportsAutomaticGraphicsSwitching</key>
     <true/>
 
+    <!-- Sentry Crash Reporting -->
+    <key>SentryDSN</key>
+    <string>https://f18987df343d1e21a7e8d8f0e6866b64@o4510350814085121.ingest.de.sentry.io/4510742707568720</string>
+
     <!-- Sparkle Auto-Update Configuration -->
     <key>SUFeedURL</key>
     <string>https://queenmama.co/appcast.xml</string>
