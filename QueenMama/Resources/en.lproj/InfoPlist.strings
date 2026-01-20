@@ -1,0 +1,12 @@
+/*
+  InfoPlist.strings (English)
+  QueenMama
+
+  Localized Info.plist values
+*/
+
+"CFBundleDisplayName" = "Queen Mama";
+"CFBundleName" = "Queen Mama";
+"NSMicrophoneUsageDescription" = "Queen Mama needs microphone access to transcribe your voice during meetings and calls.";
+"NSScreenCaptureUsageDescription" = "Queen Mama needs screen recording permission to capture screen context for AI assistance.";
+"NSAppleEventsUsageDescription" = "Queen Mama needs automation access to detect active applications.";

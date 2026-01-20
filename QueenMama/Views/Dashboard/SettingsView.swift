@@ -37,6 +37,8 @@ struct SettingsView: View {
                         ModernSyncSettingsView()
                     case .shortcuts:
                         ModernShortcutsSettingsView()
+                    case .updates:
+                        ModernUpdatesSettingsView()
                     }
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -58,6 +60,7 @@ enum SettingsSection: String, CaseIterable {
     case audio = "Audio"
     case sync = "Sync"
     case shortcuts = "Shortcuts"
+    case updates = "Updates"
 
     var icon: String {
         switch self {
@@ -68,6 +71,7 @@ enum SettingsSection: String, CaseIterable {
         case .audio: return "speaker.wave.2.fill"
         case .sync: return "arrow.triangle.2.circlepath"
         case .shortcuts: return "keyboard"
+        case .updates: return "arrow.down.circle"
         }
     }
 
@@ -80,6 +84,7 @@ enum SettingsSection: String, CaseIterable {
         case .audio: return "Audio capture"
         case .sync: return "Cloud sync settings"
         case .shortcuts: return "Keyboard shortcuts"
+        case .updates: return "Check for updates"
         }
     }
 }
@@ -1585,6 +1590,127 @@ struct LicenseGatedToggleRow: View {
                     .disabled(true)
                     .opacity(0.5)
             }
+        }
+    }
+}
+
+// MARK: - Modern Updates Settings
+
+struct ModernUpdatesSettingsView: View {
+    @ObservedObject private var updater = UpdaterManager.shared
+
+    var body: some View {
+        VStack(spacing: QMDesign.Spacing.lg) {
+            // Header
+            SettingsSectionHeader(
+                title: "Updates",
+                subtitle: "Keep Queen Mama up to date"
+            )
+
+            // Version Info Card
+            SettingsCard(title: "Version Information", icon: "info.circle.fill") {
+                VStack(spacing: QMDesign.Spacing.md) {
+                    HStack {
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("Current Version")
+                                .font(QMDesign.Typography.bodySmall)
+                                .foregroundColor(QMDesign.Colors.textSecondary)
+                            Text("\(updater.currentVersion) (\(updater.currentBuild))")
+                                .font(QMDesign.Typography.bodyMedium)
+                                .foregroundStyle(QMDesign.Colors.primaryGradient)
+                        }
+
+                        Spacer()
+
+                        if let lastCheck = updater.lastUpdateCheckDate {
+                            VStack(alignment: .trailing, spacing: 4) {
+                                Text("Last Checked")
+                                    .font(QMDesign.Typography.bodySmall)
+                                    .foregroundColor(QMDesign.Colors.textSecondary)
+                                Text(lastCheck, style: .relative)
+                                    .font(QMDesign.Typography.caption)
+                                    .foregroundColor(QMDesign.Colors.textTertiary)
+                            }
+                        }
+                    }
+
+                    Divider()
+                        .background(QMDesign.Colors.borderSubtle)
+
+                    // Check for updates button
+                    Button(action: { updater.checkForUpdates() }) {
+                        HStack(spacing: QMDesign.Spacing.sm) {
+                            Image(systemName: "arrow.down.circle")
+                            Text("Check for Updates")
+                        }
+                        .font(QMDesign.Typography.labelSmall)
+                        .foregroundColor(.white)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, QMDesign.Spacing.sm)
+                        .background(
+                            RoundedRectangle(cornerRadius: QMDesign.Radius.md)
+                                .fill(QMDesign.Colors.primaryGradient)
+                        )
+                    }
+                    .buttonStyle(.plain)
+                    .disabled(!updater.canCheckForUpdates)
+                }
+            }
+
+            // Update Settings Card
+            SettingsCard(title: "Update Preferences", icon: "gearshape.2.fill") {
+                VStack(spacing: QMDesign.Spacing.md) {
+                    ModernToggleRow(
+                        title: "Check Automatically",
+                        description: "Check for updates daily in the background",
+                        isOn: $updater.automaticallyChecksForUpdates,
+                        icon: "clock.arrow.2.circlepath"
+                    )
+
+                    Divider()
+                        .background(QMDesign.Colors.borderSubtle)
+
+                    ModernToggleRow(
+                        title: "Download Automatically",
+                        description: "Download updates automatically when available",
+                        isOn: $updater.automaticallyDownloadsUpdates,
+                        icon: "arrow.down.to.line"
+                    )
+                    .disabled(!updater.automaticallyChecksForUpdates)
+                    .opacity(updater.automaticallyChecksForUpdates ? 1 : 0.5)
+                }
+            }
+
+            // Changelog Card
+            SettingsCard(title: "What's New", icon: "sparkles") {
+                VStack(spacing: QMDesign.Spacing.md) {
+                    Text("Stay up to date with the latest features and improvements.")
+                        .font(QMDesign.Typography.bodySmall)
+                        .foregroundColor(QMDesign.Colors.textSecondary)
+
+                    Button(action: openChangelog) {
+                        HStack(spacing: QMDesign.Spacing.sm) {
+                            Text("View Changelog")
+                            Image(systemName: "arrow.up.right")
+                        }
+                        .font(QMDesign.Typography.labelSmall)
+                        .foregroundColor(QMDesign.Colors.textPrimary)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, QMDesign.Spacing.sm)
+                        .background(
+                            RoundedRectangle(cornerRadius: QMDesign.Radius.md)
+                                .fill(QMDesign.Colors.surfaceLight)
+                        )
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+        }
+    }
+
+    private func openChangelog() {
+        if let url = URL(string: "https://queenmama.app/changelog") {
+            NSWorkspace.shared.open(url)
         }
     }
 }

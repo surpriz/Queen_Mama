@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { signUpSchema } from "@/lib/validations";
 import bcrypt from "bcryptjs";
+import { generateAndSendVerificationEmail } from "@/app/api/auth/verify-email/route";
 
 export async function POST(request: Request) {
   try {
@@ -49,7 +50,18 @@ export async function POST(request: Request) {
       },
     });
 
-    return NextResponse.json(user, { status: 201 });
+    // Send verification email
+    try {
+      await generateAndSendVerificationEmail(email, name);
+    } catch (emailError) {
+      // Log but don't fail registration if email fails
+      console.error("Failed to send verification email:", emailError);
+    }
+
+    return NextResponse.json({
+      ...user,
+      message: "Account created. Please check your email to verify your account.",
+    }, { status: 201 });
   } catch (error) {
     console.error("Registration error:", error);
     return NextResponse.json(

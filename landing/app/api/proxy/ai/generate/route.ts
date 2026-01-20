@@ -9,6 +9,7 @@ import {
   type PlanTier,
   type AIProviderType,
 } from "@/lib/ai-providers";
+import { checkRateLimit, getIdentifier, rateLimitResponse, rateLimitConfigs, addRateLimitHeaders } from "@/lib/rate-limit";
 
 interface AIRequestBody {
   provider: AIProviderType;
@@ -25,6 +26,14 @@ interface AIRequestBody {
  * Routes requests to the appropriate AI provider with admin API keys
  */
 export async function POST(request: Request) {
+  // Apply rate limiting - initial check based on IP
+  const ipIdentifier = getIdentifier(request);
+  const initialRateLimit = checkRateLimit(ipIdentifier, rateLimitConfigs.aiProxy);
+
+  if (!initialRateLimit.success) {
+    return rateLimitResponse(initialRateLimit);
+  }
+
   try {
     // Get access token from Authorization header
     const authHeader = request.headers.get("Authorization");
@@ -197,13 +206,14 @@ export async function POST(request: Request) {
       });
     }
 
-    return NextResponse.json({
+    const response = NextResponse.json({
       content: aiResponse.content,
       provider,
       model: validation.model,
       latencyMs,
       tokensUsed: aiResponse.tokensUsed,
     });
+    return addRateLimitHeaders(response, initialRateLimit, rateLimitConfigs.aiProxy.maxRequests);
   } catch (error) {
     console.error("AI proxy error:", error);
     return NextResponse.json(

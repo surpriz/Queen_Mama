@@ -9,9 +9,17 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        // Initialize crash reporting (requires Sentry DSN to be configured)
+        CrashReporter.shared.start()
+
         // Restore authentication state on launch
         Task { @MainActor in
             await AuthenticationManager.shared.checkExistingAuth()
+
+            // Set user context for crash reports if authenticated
+            if let user = AuthenticationManager.shared.currentUser {
+                CrashReporter.shared.setUser(id: user.id, email: user.email)
+            }
         }
     }
 

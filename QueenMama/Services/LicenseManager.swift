@@ -1,5 +1,6 @@
 import Foundation
 import Combine
+import CryptoKit
 
 /// Manages license validation and feature gating
 @MainActor
@@ -12,6 +13,7 @@ final class LicenseManager: ObservableObject {
     @Published private(set) var isValidating: Bool = false
     @Published private(set) var isOffline: Bool = false
     @Published private(set) var lastValidatedAt: Date?
+    @Published private(set) var lastSignatureError: String?
 
     // MARK: - Usage Tracking
 
@@ -34,6 +36,27 @@ final class LicenseManager: ObservableObject {
 
     private var cancellables = Set<AnyCancellable>()
     private var revalidationTimer: Timer?
+
+    // MARK: - Signature Verification
+
+    /// License secret for HMAC signature verification
+    /// In production, this should be securely stored or obfuscated
+    /// For stronger security, consider migrating to Ed25519 asymmetric signatures
+    private var licenseSecret: String {
+        // Retrieve from environment or use bundled key
+        // The secret should match LICENSE_SECRET from the server
+        ProcessInfo.processInfo.environment["LICENSE_SECRET"] ?? Self.bundledLicenseSecret
+    }
+
+    /// Bundled license secret (obfuscated)
+    /// This provides basic tampering protection but is not cryptographically secure
+    /// against determined attackers who can reverse-engineer the binary
+    private static let bundledLicenseSecret: String = {
+        // Split to make it slightly harder to find in binary
+        // In production, use more sophisticated obfuscation
+        let parts = ["queen", "mama", "license", "2026"]
+        return parts.joined(separator: "_")
+    }()
 
     private init() {
         // Load cached license
@@ -206,32 +229,148 @@ final class LicenseManager: ObservableObject {
         currentLicense.trial?.daysRemaining
     }
 
+    // MARK: - Signature Verification Methods
+
+    /// Verifies the HMAC-SHA256 signature of a license response
+    /// - Parameters:
+    ///   - license: The license to verify
+    /// - Returns: true if signature is valid, false otherwise
+    private func verifyLicenseSignature(_ license: License) -> Bool {
+        // Skip verification for local free license (no signature)
+        if license.signature.isEmpty && license.plan == .free {
+            return true
+        }
+
+        // Build the payload that was signed (same fields as server)
+        // Order must match server: valid, plan, status, features, trial, cacheTTL, validatedAt
+        let signedPayload = buildSignaturePayload(from: license)
+
+        guard let payloadData = signedPayload.data(using: .utf8) else {
+            print("[License] Failed to encode payload for signature verification")
+            return false
+        }
+
+        // Compute HMAC-SHA256
+        let key = SymmetricKey(data: Data(licenseSecret.utf8))
+        let signature = HMAC<SHA256>.authenticationCode(for: payloadData, using: key)
+        let computedSignature = signature.map { String(format: "%02x", $0) }.joined()
+
+        // Compare signatures using constant-time comparison to prevent timing attacks
+        let isValid = constantTimeCompare(computedSignature, license.signature)
+
+        if !isValid {
+            print("[License] Signature verification failed")
+            print("[License] Expected: \(computedSignature.prefix(16))...")
+            print("[License] Got: \(license.signature.prefix(16))...")
+        }
+
+        return isValid
+    }
+
+    /// Constant-time string comparison to prevent timing attacks
+    private func constantTimeCompare(_ a: String, _ b: String) -> Bool {
+        guard a.count == b.count else { return false }
+
+        let aBytes = Array(a.utf8)
+        let bBytes = Array(b.utf8)
+
+        var result: UInt8 = 0
+        for i in 0..<aBytes.count {
+            result |= aBytes[i] ^ bBytes[i]
+        }
+
+        return result == 0
+    }
+
+    /// Builds the JSON payload string that was signed by the server
+    /// Must match the exact format and order used by the server
+    private func buildSignaturePayload(from license: License) -> String {
+        // The server signs this structure (JSON.stringify preserves insertion order):
+        // { valid, plan, status, features, trial, cacheTTL, validatedAt }
+
+        var payload = "{"
+        payload += "\"valid\":\(license.valid),"
+        payload += "\"plan\":\"\(license.plan.rawValue)\","
+        payload += "\"status\":\"\(license.status.rawValue)\","
+        payload += "\"features\":\(buildFeaturesJSON(license.features)),"
+        payload += "\"trial\":\(buildTrialJSON(license.trial)),"
+        payload += "\"cacheTTL\":\(license.cacheTTL),"
+        payload += "\"validatedAt\":\"\(license.validatedAt)\""
+        payload += "}"
+
+        return payload
+    }
+
+    private func buildFeaturesJSON(_ features: LicenseFeatures) -> String {
+        var json = "{"
+        json += "\"smartModeEnabled\":\(features.smartModeEnabled),"
+        json += "\"smartModeLimit\":\(features.smartModeLimit.map { String($0) } ?? "null"),"
+        json += "\"customModesEnabled\":\(features.customModesEnabled),"
+        json += "\"exportFormats\":[\(features.exportFormats.map { "\"\($0)\"" }.joined(separator: ","))],"
+        json += "\"autoAnswerEnabled\":\(features.autoAnswerEnabled),"
+        json += "\"sessionSyncEnabled\":\(features.sessionSyncEnabled),"
+        json += "\"dailyAiRequestLimit\":\(features.dailyAiRequestLimit.map { String($0) } ?? "null"),"
+        json += "\"maxSyncedSessions\":\(features.maxSyncedSessions.map { String($0) } ?? "null"),"
+        json += "\"maxTranscriptSize\":\(features.maxTranscriptSize.map { String($0) } ?? "null"),"
+        json += "\"undetectableEnabled\":\(features.undetectableEnabled),"
+        json += "\"screenshotEnabled\":\(features.screenshotEnabled)"
+        json += "}"
+        return json
+    }
+
+    private func buildTrialJSON(_ trial: TrialInfo?) -> String {
+        guard let trial = trial else { return "null" }
+        var json = "{"
+        json += "\"isActive\":\(trial.isActive),"
+        json += "\"daysRemaining\":\(trial.daysRemaining),"
+        json += "\"endsAt\":\"\(trial.endsAt)\""
+        json += "}"
+        return json
+    }
+
     // MARK: - Validation
 
     /// Force revalidate license from server
     func revalidate() async {
         guard authManager.isAuthenticated else {
             currentLicense = .free
+            lastSignatureError = nil
             return
         }
 
         isValidating = true
         isOffline = false
+        lastSignatureError = nil
 
         do {
             let license = try await api.validateLicense(deviceId: deviceInfo.deviceId)
 
-            currentLicense = license
-            lastValidatedAt = Date()
+            // Verify signature before accepting the license
+            if verifyLicenseSignature(license) {
+                currentLicense = license
+                lastValidatedAt = Date()
 
-            // Update usage from server
-            if let usage = license.usage {
-                smartModeUsedToday = usage.smartModeUsedToday
-                aiRequestsToday = usage.aiRequestsToday
+                // Update usage from server
+                if let usage = license.usage {
+                    smartModeUsedToday = usage.smartModeUsedToday
+                    aiRequestsToday = usage.aiRequestsToday
+                }
+
+                // Cache the license
+                cacheLicense(license)
+            } else {
+                // Signature verification failed - potential tampering
+                print("[License] SECURITY: Invalid license signature detected")
+                lastSignatureError = "License signature verification failed"
+
+                // Fall back to cached license if valid, otherwise use free
+                if let cachedLicense = loadCachedLicense(),
+                   verifyLicenseSignature(cachedLicense) {
+                    currentLicense = cachedLicense
+                } else {
+                    currentLicense = .free
+                }
             }
-
-            // Cache the license
-            cacheLicense(license)
 
         } catch {
             print("[License] Validation failed: \(error)")
@@ -239,6 +378,14 @@ final class LicenseManager: ObservableObject {
 
             // Use cached license with grace period
             if let cachedLicense = loadCachedLicense() {
+                // Verify cached license signature
+                guard verifyLicenseSignature(cachedLicense) else {
+                    print("[License] SECURITY: Cached license has invalid signature")
+                    currentLicense = .free
+                    isValidating = false
+                    return
+                }
+
                 // Check grace period for PRO users
                 if cachedLicense.plan == .pro {
                     if let expiry = getCacheExpiry(), expiry > Date() {

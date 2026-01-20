@@ -1,0 +1,200 @@
+/*
+  Localizable.strings (English)
+  QueenMama
+
+  English localization file
+*/
+
+// MARK: - App General
+"app.name" = "Queen Mama";
+"app.tagline" = "Your AI Meeting Assistant";
+
+// MARK: - Common Actions
+"action.cancel" = "Cancel";
+"action.confirm" = "Confirm";
+"action.save" = "Save";
+"action.delete" = "Delete";
+"action.edit" = "Edit";
+"action.done" = "Done";
+"action.close" = "Close";
+"action.retry" = "Retry";
+"action.copy" = "Copy";
+"action.copied" = "Copied!";
+"action.continue" = "Continue";
+"action.back" = "Back";
+"action.skip" = "Skip";
+"action.next" = "Next";
+
+// MARK: - Menu Bar
+"menu.startSession" = "Start Session";
+"menu.stopSession" = "Stop Session";
+"menu.showWidget" = "Show Widget";
+"menu.hideWidget" = "Hide Widget";
+"menu.openDashboard" = "Open Dashboard";
+"menu.quit" = "Quit Queen Mama";
+
+// MARK: - Dashboard
+"dashboard.title" = "Dashboard";
+"dashboard.sessions" = "Sessions";
+"dashboard.modes" = "Modes";
+"dashboard.noSessions" = "No sessions yet";
+"dashboard.noSessionsDescription" = "Start your first session to see it here";
+
+// MARK: - Session
+"session.start" = "Start Session";
+"session.stop" = "Stop Session";
+"session.active" = "Session Active";
+"session.duration" = "Duration";
+"session.transcript" = "Transcript";
+"session.summary" = "Summary";
+"session.actionItems" = "Action Items";
+"session.noTranscript" = "No transcript available";
+"session.finalizingTitle" = "Generating title...";
+"session.finalizingSummary" = "Creating summary...";
+
+// MARK: - AI Assist
+"ai.assist" = "Assist";
+"ai.whatToSay" = "What Should I Say";
+"ai.followUp" = "Follow-up Questions";
+"ai.recap" = "Recap";
+"ai.processing" = "Thinking...";
+"ai.error" = "Something went wrong";
+"ai.noResponse" = "No response yet";
+"ai.triggerAssist" = "Press ⌘ + Enter to get AI assistance";
+
+// MARK: - Settings
+"settings.title" = "Settings";
+"settings.account" = "Account";
+"settings.general" = "General";
+"settings.autoAnswer" = "Auto-Answer";
+"settings.models" = "Models";
+"settings.audio" = "Audio";
+"settings.sync" = "Sync";
+"settings.shortcuts" = "Shortcuts";
+"settings.updates" = "Updates";
+
+// MARK: - Account Settings
+"account.connected" = "Connected";
+"account.notConnected" = "Not Connected";
+"account.signIn" = "Sign In";
+"account.signOut" = "Sign Out";
+"account.signOutConfirm" = "Are you sure you want to sign out?";
+"account.connectAccount" = "Connect Account";
+"account.connecting" = "Opening browser...";
+"account.enterCode" = "Enter Code";
+"account.waitingAuthorization" = "Waiting for authorization...";
+"account.browserOpened" = "Browser opened - enter this code:";
+
+// MARK: - Subscription
+"subscription.free" = "Free";
+"subscription.pro" = "Pro";
+"subscription.enterprise" = "Enterprise";
+"subscription.upgrade" = "Upgrade";
+"subscription.manageBilling" = "Manage Billing";
+"subscription.trialDaysRemaining" = "%d days left";
+"subscription.allFeaturesUnlocked" = "All features unlocked";
+"subscription.upgradeForUnlimited" = "Upgrade for unlimited access";
+
+// MARK: - Features
+"feature.undetectableMode" = "Undetectability Mode";
+"feature.undetectableDescription" = "Hide overlay from screen recordings and shares";
+"feature.smartMode" = "Smart Mode";
+"feature.smartModeDescription" = "Enhanced AI reasoning for complex questions";
+"feature.autoAnswer" = "Auto-Answer";
+"feature.autoAnswerDescription" = "Automatically trigger AI responses based on context";
+"feature.sessionSync" = "Session Sync";
+"feature.sessionSyncDescription" = "Sync sessions to view on your dashboard";
+"feature.requiresPro" = "Requires Pro";
+"feature.requiresEnterprise" = "Requires Enterprise";
+
+// MARK: - Audio Settings
+"audio.sources" = "Audio Sources";
+"audio.captureMicrophone" = "Capture Microphone";
+"audio.captureMicrophoneDescription" = "Record your voice from the microphone";
+"audio.captureSystem" = "Capture System Audio";
+"audio.captureSystemDescription" = "Record audio from other applications";
+
+// MARK: - Privacy
+"privacy.title" = "Privacy Information";
+"privacy.audioStreamed" = "Audio is streamed directly to transcription services";
+"privacy.audioNotStored" = "Audio is not stored locally on your device";
+"privacy.encrypted" = "All transmissions are encrypted";
+
+// MARK: - Sync Settings
+"sync.title" = "Cloud Sync";
+"sync.status" = "Sync Status";
+"sync.syncing" = "Syncing...";
+"sync.upToDate" = "Up to date";
+"sync.pending" = "Pending";
+"sync.offline" = "Offline";
+"sync.lastSync" = "Last sync: %@";
+"sync.pendingCount" = "%d session(s) pending sync";
+"sync.syncNow" = "Sync Now";
+"sync.viewDashboard" = "View on Dashboard";
+"sync.signInRequired" = "Sign In Required";
+"sync.signInDescription" = "Connect your account in the Account section to enable session sync.";
+
+// MARK: - Update Settings
+"updates.title" = "Updates";
+"updates.versionInfo" = "Version Information";
+"updates.currentVersion" = "Current Version";
+"updates.lastChecked" = "Last Checked";
+"updates.checkForUpdates" = "Check for Updates";
+"updates.checkAutomatically" = "Check Automatically";
+"updates.checkAutomaticallyDescription" = "Check for updates daily in the background";
+"updates.downloadAutomatically" = "Download Automatically";
+"updates.downloadAutomaticallyDescription" = "Download updates automatically when available";
+"updates.whatsNew" = "What's New";
+"updates.viewChangelog" = "View Changelog";
+"updates.notAvailable" = "Auto-updates not available";
+
+// MARK: - Shortcuts
+"shortcuts.title" = "Keyboard Shortcuts";
+"shortcuts.global" = "Global Shortcuts";
+"shortcuts.widget" = "Widget Navigation";
+"shortcuts.toggleWidget" = "Toggle Widget";
+"shortcuts.toggleWidgetDescription" = "Show/hide the overlay widget";
+"shortcuts.triggerAssist" = "Trigger Assist";
+"shortcuts.triggerAssistDescription" = "Get AI assistance based on context";
+"shortcuts.clearContext" = "Clear Context";
+"shortcuts.clearContextDescription" = "Clear transcript and context";
+"shortcuts.moveWidget" = "Move Widget";
+"shortcuts.moveWidgetDescription" = "Reposition the overlay widget";
+"shortcuts.scrollResponses" = "Scroll Responses";
+"shortcuts.scrollResponsesDescription" = "Scroll through AI responses";
+
+// MARK: - Models
+"models.title" = "AI Models";
+"models.available" = "Models available based on your subscription";
+"models.aiResponse" = "AI Response Models";
+"models.speechRecognition" = "Speech Recognition";
+"models.fallbackOrder" = "Fallback Order";
+"models.fallbackDescription" = "When a provider fails, Queen Mama automatically tries the next one.";
+"models.preferredFirst" = "Your preferred provider (%@) is always tried first.";
+
+// MARK: - Onboarding
+"onboarding.welcome" = "Welcome to Queen Mama";
+"onboarding.welcomeDescription" = "Your AI-powered meeting assistant";
+"onboarding.permissions" = "Permissions";
+"onboarding.permissionsDescription" = "Queen Mama needs a few permissions to work";
+"onboarding.microphonePermission" = "Microphone access to transcribe your voice";
+"onboarding.screenPermission" = "Screen recording for visual context";
+"onboarding.account" = "Connect Your Account";
+"onboarding.accountDescription" = "Sign in to unlock cloud sync and premium features";
+"onboarding.ready" = "You're All Set!";
+"onboarding.readyDescription" = "Start your first session with ⌘ + Shift + S";
+"onboarding.getStarted" = "Get Started";
+
+// MARK: - Errors
+"error.generic" = "Something went wrong";
+"error.networkError" = "Network error. Please check your connection.";
+"error.authenticationRequired" = "Please sign in to continue";
+"error.featureNotAvailable" = "This feature requires a higher subscription tier";
+"error.sessionLimitReached" = "Session limit reached for today";
+"error.transcriptionFailed" = "Transcription service unavailable";
+"error.aiFailed" = "AI service unavailable";
+
+// MARK: - Usage Limits
+"usage.smartModeLimit" = "Smart Mode";
+"usage.dailyLimit" = "%d / %d uses today";
+"usage.unlimited" = "Unlimited";

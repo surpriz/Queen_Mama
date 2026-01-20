@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { Input, Label, GradientButton } from "@/components/ui";
 import { signInSchema, type SignInInput } from "@/lib/validations";
 
@@ -82,9 +83,17 @@ export function SignInForm({ callbackUrl = "/dashboard" }: SignInFormProps) {
       </div>
 
       <div>
-        <Label htmlFor="password" required>
-          Password
-        </Label>
+        <div className="flex items-center justify-between">
+          <Label htmlFor="password" required>
+            Password
+          </Label>
+          <Link
+            href="/forgot-password"
+            className="text-sm text-[var(--qm-accent)] hover:text-[var(--qm-accent-light)] transition-colors"
+          >
+            Forgot password?
+          </Link>
+        </div>
         <Input
           id="password"
           type="password"
