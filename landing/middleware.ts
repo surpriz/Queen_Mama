@@ -15,7 +15,9 @@ export default auth((req) => {
     !pathname.startsWith("/api/license") &&
     !pathname.startsWith("/api/proxy") &&
     !pathname.startsWith("/api/usage") &&
-    !pathname.startsWith("/api/sync");
+    !pathname.startsWith("/api/sync") &&
+    !pathname.startsWith("/api/waitlist") &&
+    !pathname.startsWith("/api/contact");
   const isAdminApi = pathname.startsWith("/api/admin");
 
   // Redirect logged-in users away from auth pages

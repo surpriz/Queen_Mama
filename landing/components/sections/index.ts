@@ -6,5 +6,6 @@ export { HowItWorks } from "./HowItWorks";
 export { Undetectable } from "./Undetectable";
 export { Pricing } from "./Pricing";
 export { FAQ } from "./FAQ";
+export { Contact } from "./Contact";
 export { CTA } from "./CTA";
 export { Footer } from "./Footer";

@@ -13,6 +13,7 @@ const footerLinks = {
   resources: [
     { label: "Documentation", href: "#" },
     { label: "Windows Waitlist", href: "/windows-waitlist" },
+    { label: "Contact", href: "/#contact" },
     { label: "Subprocessors", href: "/subprocessors" },
   ],
   legal: [
