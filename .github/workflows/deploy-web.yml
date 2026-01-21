@@ -1,11 +1,15 @@
-name: Deploy Web App
+name: Validate Web App
 
 on:
   push:
-    branches: [main]
+    branches: [main, staging]
     paths:
       - 'landing/**'
       - '.github/workflows/deploy-web.yml'
+  pull_request:
+    branches: [main, staging]
+    paths:
+      - 'landing/**'
   workflow_dispatch:
 
 jobs:
@@ -23,8 +27,22 @@ jobs:
           cache: 'npm'
           cache-dependency-path: landing/package-lock.json
 
-      - run: npm ci
-      - run: npm run lint
-      - run: npx prisma generate
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Generate Prisma client
+        run: npx prisma generate
+
       - name: Type check
         run: npx tsc --noEmit
+
+      - name: Build check
+        run: npm run build
+        env:
+          # Minimal env vars for build check
+          NEXTAUTH_URL: https://example.com
+          NEXTAUTH_SECRET: build-check-secret-not-real
+          DATABASE_URL: postgresql://user:pass@localhost/db

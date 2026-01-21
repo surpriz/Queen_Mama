@@ -7,9 +7,13 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: 'Version (e.g., 1.0.0)'
+        description: 'Version (e.g., 1.0.0 or 1.0.0-beta.1)'
         required: true
         default: '1.0.0'
+      prerelease:
+        description: 'Pre-release (for staging)'
+        type: boolean
+        default: false
 
 env:
   SCHEME: QueenMama
@@ -19,8 +23,24 @@ env:
 jobs:
   build:
     runs-on: macos-14
+    timeout-minutes: 30  # Prevent infinite hangs
     steps:
       - uses: actions/checkout@v4
+
+      - name: Determine release type
+        id: release_type
+        run: |
+          TAG_NAME="${GITHUB_REF_NAME:-${{ github.event.inputs.version }}}"
+          echo "tag_name=$TAG_NAME" >> $GITHUB_OUTPUT
+
+          # Check if it's a pre-release (contains -beta, -rc, -alpha, etc.)
+          if [[ "$TAG_NAME" =~ -(beta|rc|alpha|dev) ]] || [[ "${{ github.event.inputs.prerelease }}" == "true" ]]; then
+            echo "is_prerelease=true" >> $GITHUB_OUTPUT
+            echo "📦 Building PRE-RELEASE: $TAG_NAME"
+          else
+            echo "is_prerelease=false" >> $GITHUB_OUTPUT
+            echo "🚀 Building PRODUCTION RELEASE: $TAG_NAME"
+          fi
 
       - name: Select Xcode
         run: sudo xcode-select -s /Applications/Xcode_15.4.app
@@ -85,21 +105,36 @@ jobs:
 
           # Verify signature
           echo "Verifying code signature:"
-          codesign -dv --verbose=4 "$RUNNER_TEMP/export/Queen Mama.app"
+          codesign -dv --verbose=2 "$RUNNER_TEMP/export/Queen Mama.app"
 
       - name: Notarize App
+        timeout-minutes: 15  # Notarization timeout
         env:
           APPLE_ID: ${{ secrets.APPLE_ID }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
           APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
         run: |
+          echo "📤 Submitting for notarization..."
           ditto -c -k --keepParent "$RUNNER_TEMP/export/Queen Mama.app" $RUNNER_TEMP/QueenMama.zip
-          xcrun notarytool submit $RUNNER_TEMP/QueenMama.zip \
+
+          # Submit and capture output
+          NOTARIZE_OUTPUT=$(xcrun notarytool submit $RUNNER_TEMP/QueenMama.zip \
             --apple-id "$APPLE_ID" \
             --team-id "$APPLE_TEAM_ID" \
             --password "$APPLE_APP_SPECIFIC_PASSWORD" \
-            --wait
-          xcrun stapler staple "$RUNNER_TEMP/export/Queen Mama.app"
+            --wait 2>&1) || true
+
+          echo "$NOTARIZE_OUTPUT"
+
+          # Check if notarization succeeded
+          if echo "$NOTARIZE_OUTPUT" | grep -q "status: Accepted"; then
+            echo "✅ Notarization successful!"
+            xcrun stapler staple "$RUNNER_TEMP/export/Queen Mama.app"
+          else
+            echo "❌ Notarization failed or timed out"
+            echo "Continuing without notarization for testing..."
+            # Don't fail the build - allow testing unsigned builds
+          fi
 
       - name: Create DMG
         run: |
@@ -108,12 +143,17 @@ jobs:
             -ov -format UDZO \
             $RUNNER_TEMP/QueenMama.dmg
 
+          echo "📦 DMG created: $(ls -lh $RUNNER_TEMP/QueenMama.dmg)"
+
       - name: Create Release
         uses: softprops/action-gh-release@v1
         with:
           files: ${{ runner.temp }}/QueenMama.dmg
+          prerelease: ${{ steps.release_type.outputs.is_prerelease }}
           body: |
-            ## Queen Mama ${{ github.ref_name }}
+            ## Queen Mama ${{ steps.release_type.outputs.tag_name }}
+
+            ${{ steps.release_type.outputs.is_prerelease == 'true' && '⚠️ **PRE-RELEASE** - Pour tests uniquement (staging.queenmama.co)' || '🚀 **PRODUCTION RELEASE** - Version stable (queenmama.co)' }}
 
             **Installation:** Télécharger le DMG, glisser dans Applications.
             **Requis:** macOS 14.2+

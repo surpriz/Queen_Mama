@@ -1,5 +1,6 @@
 import { Metadata } from "next";
 import Link from "next/link";
+import { headers } from "next/headers";
 
 export const metadata: Metadata = {
   title: "Download Queen Mama for macOS",
@@ -12,6 +13,7 @@ interface GitHubRelease {
   name: string;
   published_at: string;
   body: string;
+  prerelease: boolean;
   assets: Array<{
     name: string;
     browser_download_url: string;
@@ -19,19 +21,50 @@ interface GitHubRelease {
   }>;
 }
 
-async function getLatestRelease(): Promise<GitHubRelease | null> {
+// Detect if we're on staging environment
+function isStaging(): boolean {
   try {
-    const res = await fetch(
-      "https://api.github.com/repos/surpriz/Queen_Mama/releases/latest",
-      {
-        next: { revalidate: 300 }, // Revalidate every 5 minutes
-        headers: {
-          Accept: "application/vnd.github.v3+json",
-        },
-      }
-    );
-    if (!res.ok) return null;
-    return res.json();
+    const headersList = headers();
+    const host = headersList.get("host") || "";
+    return host.includes("staging") || host.includes("localhost");
+  } catch {
+    return false;
+  }
+}
+
+async function getRelease(isStaging: boolean): Promise<GitHubRelease | null> {
+  try {
+    if (isStaging) {
+      // For staging: get the latest pre-release
+      const res = await fetch(
+        "https://api.github.com/repos/surpriz/Queen_Mama/releases",
+        {
+          next: { revalidate: 60 }, // Revalidate every 1 minute for staging
+          headers: {
+            Accept: "application/vnd.github.v3+json",
+          },
+        }
+      );
+      if (!res.ok) return null;
+      const releases: GitHubRelease[] = await res.json();
+      // Find the latest pre-release
+      const prerelease = releases.find((r) => r.prerelease);
+      // Fallback to latest release if no pre-release exists
+      return prerelease || releases[0] || null;
+    } else {
+      // For production: get the latest stable release
+      const res = await fetch(
+        "https://api.github.com/repos/surpriz/Queen_Mama/releases/latest",
+        {
+          next: { revalidate: 300 }, // Revalidate every 5 minutes
+          headers: {
+            Accept: "application/vnd.github.v3+json",
+          },
+        }
+      );
+      if (!res.ok) return null;
+      return res.json();
+    }
   } catch {
     return null;
   }
@@ -51,7 +84,8 @@ function formatDate(dateString: string): string {
 }
 
 export default async function DownloadPage() {
-  const release = await getLatestRelease();
+  const staging = isStaging();
+  const release = await getRelease(staging);
   const dmgAsset = release?.assets?.find((a) => a.name.endsWith(".dmg"));
   const version = release?.tag_name?.replace("v", "") || "1.0.0";
 
@@ -63,18 +97,38 @@ export default async function DownloadPage() {
           <Link href="/" className="text-xl font-bold text-white">
             Queen Mama
           </Link>
-          <Link
-            href="/"
-            className="text-gray-400 hover:text-white transition-colors"
-          >
-            ← Back to Home
-          </Link>
+          <div className="flex items-center gap-4">
+            {staging && (
+              <span className="px-3 py-1 bg-yellow-500/20 text-yellow-400 text-xs font-medium rounded-full border border-yellow-500/30">
+                STAGING
+              </span>
+            )}
+            <Link
+              href="/"
+              className="text-gray-400 hover:text-white transition-colors"
+            >
+              ← Back to Home
+            </Link>
+          </div>
         </div>
       </nav>
 
       {/* Main Content */}
       <div className="pt-32 pb-20 px-6">
         <div className="max-w-4xl mx-auto text-center">
+          {/* Staging Warning Banner */}
+          {staging && release?.prerelease && (
+            <div className="mb-8 p-4 bg-yellow-500/10 border border-yellow-500/30 rounded-xl">
+              <div className="flex items-center justify-center gap-2 text-yellow-400 font-medium">
+                <span>⚠️</span>
+                <span>Pre-release version - For testing only</span>
+              </div>
+              <p className="text-yellow-400/70 text-sm mt-1">
+                This build is from the staging branch and may contain bugs.
+              </p>
+            </div>
+          )}
+
           {/* Icon */}
           <div className="mb-8 flex justify-center">
             <div className="w-32 h-32 bg-gradient-to-br from-purple-500 to-pink-500 rounded-3xl shadow-2xl shadow-purple-500/25 flex items-center justify-center">
@@ -96,7 +150,11 @@ export default async function DownloadPage() {
             <div className="mb-12">
               <a
                 href={dmgAsset.browser_download_url}
-                className="inline-flex items-center gap-3 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white px-10 py-5 rounded-2xl text-xl font-semibold transition-all shadow-xl shadow-purple-500/25 hover:shadow-purple-500/40 hover:scale-105"
+                className={`inline-flex items-center gap-3 ${
+                  release?.prerelease
+                    ? "bg-gradient-to-r from-yellow-600 to-orange-600 hover:from-yellow-500 hover:to-orange-500 shadow-yellow-500/25 hover:shadow-yellow-500/40"
+                    : "bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 shadow-purple-500/25 hover:shadow-purple-500/40"
+                } text-white px-10 py-5 rounded-2xl text-xl font-semibold transition-all shadow-xl hover:scale-105`}
               >
                 <svg
                   className="w-6 h-6"
@@ -111,10 +169,13 @@ export default async function DownloadPage() {
                     d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
                   />
                 </svg>
-                Download for macOS
+                {release?.prerelease ? "Download Beta" : "Download for macOS"}
               </a>
               <div className="mt-4 flex items-center justify-center gap-4 text-sm text-gray-500">
-                <span>Version {version}</span>
+                <span className={release?.prerelease ? "text-yellow-500" : ""}>
+                  Version {version}
+                  {release?.prerelease && " (Beta)"}
+                </span>
                 <span>•</span>
                 <span>{formatFileSize(dmgAsset.size)}</span>
                 {release?.published_at && (
