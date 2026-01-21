@@ -97,15 +97,47 @@ jobs:
           # Copy app from archive (already signed during archive step)
           cp -R "$RUNNER_TEMP/QueenMama.xcarchive/Products/Applications/QueenMama.app" "$RUNNER_TEMP/export/Queen Mama.app"
 
-          # Re-sign with hardened runtime and timestamp
-          codesign --force --deep --timestamp --options runtime \
-            --sign "Developer ID Application: Jerome LAVAL (WNNDDTBPGK)" \
-            --entitlements "mac_app/QueenMama.entitlements" \
-            "$RUNNER_TEMP/export/Queen Mama.app"
+          APP_PATH="$RUNNER_TEMP/export/Queen Mama.app"
+          SIGN_IDENTITY="Developer ID Application: Jerome LAVAL (WNNDDTBPGK)"
 
-          # Verify signature
-          echo "Verifying code signature:"
-          codesign -dv --verbose=2 "$RUNNER_TEMP/export/Queen Mama.app"
+          # Sign Sparkle framework components explicitly (nested code requires individual signing)
+          echo "🔐 Signing Sparkle framework components..."
+
+          # Sign XPC services first
+          find "$APP_PATH/Contents/Frameworks/Sparkle.framework" -name "*.xpc" -type d | while read xpc; do
+            echo "Signing: $xpc"
+            codesign --force --timestamp --options runtime --sign "$SIGN_IDENTITY" "$xpc"
+          done
+
+          # Sign helper apps
+          find "$APP_PATH/Contents/Frameworks/Sparkle.framework" -name "*.app" -type d | while read app; do
+            echo "Signing: $app"
+            codesign --force --timestamp --options runtime --sign "$SIGN_IDENTITY" "$app"
+          done
+
+          # Sign Autoupdate binary
+          if [ -f "$APP_PATH/Contents/Frameworks/Sparkle.framework/Versions/B/Autoupdate" ]; then
+            echo "Signing: Autoupdate"
+            codesign --force --timestamp --options runtime --sign "$SIGN_IDENTITY" \
+              "$APP_PATH/Contents/Frameworks/Sparkle.framework/Versions/B/Autoupdate"
+          fi
+
+          # Sign the Sparkle framework itself
+          echo "Signing: Sparkle.framework"
+          codesign --force --timestamp --options runtime --sign "$SIGN_IDENTITY" \
+            "$APP_PATH/Contents/Frameworks/Sparkle.framework"
+
+          # Finally sign the main app with entitlements
+          echo "🔐 Signing main application..."
+          codesign --force --timestamp --options runtime \
+            --sign "$SIGN_IDENTITY" \
+            --entitlements "mac_app/QueenMama.entitlements" \
+            "$APP_PATH"
+
+          # Verify all signatures
+          echo "✅ Verifying code signatures:"
+          codesign -dv --verbose=2 "$APP_PATH"
+          codesign --verify --deep --strict "$APP_PATH" && echo "Deep verification passed!"
 
       - name: Notarize App
         timeout-minutes: 15  # Notarization timeout
