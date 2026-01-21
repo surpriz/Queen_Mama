@@ -80,13 +80,23 @@ jobs:
               <string>developer-id</string>
               <key>teamID</key>
               <string>${TEAM_ID}</string>
+              <key>signingStyle</key>
+              <string>manual</string>
+              <key>signingCertificate</key>
+              <string>Developer ID Application</string>
           </dict>
           </plist>
           EOF
+
+          # Verify archive exists
+          echo "Archive contents:"
+          ls -la $RUNNER_TEMP/QueenMama.xcarchive/Products/Applications/
+
           xcodebuild -exportArchive \
             -archivePath $RUNNER_TEMP/QueenMama.xcarchive \
             -exportOptionsPlist $RUNNER_TEMP/ExportOptions.plist \
-            -exportPath $RUNNER_TEMP/export
+            -exportPath $RUNNER_TEMP/export \
+            -allowProvisioningUpdates
 
       - name: Notarize App
         env:
