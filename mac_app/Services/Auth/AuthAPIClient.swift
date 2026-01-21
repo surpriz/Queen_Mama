@@ -13,7 +13,7 @@ final class AuthAPIClient {
         #if DEBUG
         let defaultURL = "http://localhost:3000"
         #else
-        let defaultURL = "https://queenmama.app"
+        let defaultURL = "https://queenmama.co"
         #endif
 
         let urlString = ProcessInfo.processInfo.environment["API_BASE_URL"] ?? defaultURL
