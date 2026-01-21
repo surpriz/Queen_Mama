@@ -989,6 +989,7 @@ struct StatusSection: View {
 
 // MARK: - Modern Input Area View
 
+@MainActor
 struct ModernInputAreaView: View {
     @Binding var inputText: String
     @Binding var isSmartModeEnabled: Bool

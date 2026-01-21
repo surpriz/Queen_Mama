@@ -1,6 +1,7 @@
 import SwiftUI
 
 /// Inline banner for PRO-only features
+@MainActor
 struct ProFeatureBanner: View {
     let feature: String
     let description: String?
@@ -230,11 +231,13 @@ struct ProBadge: View {
 
 extension View {
     /// Applies feature gating to a view - shows PRO badge if not available
+    @MainActor
     func featureGated(_ feature: Feature, licenseManager: LicenseManager = .shared) -> some View {
         modifier(FeatureGatedModifier(feature: feature, licenseManager: licenseManager))
     }
 }
 
+@MainActor
 private struct FeatureGatedModifier: ViewModifier {
     let feature: Feature
     @ObservedObject var licenseManager: LicenseManager

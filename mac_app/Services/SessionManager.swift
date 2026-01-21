@@ -156,8 +156,9 @@ final class SessionManager: ObservableObject {
 
     private func startDurationTimer() {
         durationTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] _ in
-            Task { @MainActor in
-                self?.sessionDuration += 1
+            guard let self else { return }
+            Task { @MainActor [self] in
+                self.sessionDuration += 1
             }
         }
     }

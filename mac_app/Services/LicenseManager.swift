@@ -93,8 +93,9 @@ final class LicenseManager: ObservableObject {
             withTimeInterval: TimeInterval(revalidationIntervalMinutes * 60),
             repeats: true
         ) { [weak self] _ in
-            Task { @MainActor in
-                await self?.revalidateIfNeeded()
+            guard let self else { return }
+            Task { @MainActor [self] in
+                await self.revalidateIfNeeded()
             }
         }
     }

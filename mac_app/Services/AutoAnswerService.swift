@@ -121,8 +121,9 @@ final class AutoAnswerService: ObservableObject {
         silenceTimer?.invalidate()
 
         silenceTimer = Timer.scheduledTimer(withTimeInterval: 0.5, repeats: true) { [weak self] _ in
-            Task { @MainActor in
-                self?.checkSilenceTrigger()
+            guard let self else { return }
+            Task { @MainActor [self] in
+                self.checkSilenceTrigger()
             }
         }
     }

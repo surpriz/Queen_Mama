@@ -1527,6 +1527,7 @@ typealias ShortcutsSettingsView = ModernShortcutsSettingsView
 // MARK: - License Gated Toggle Row
 
 /// A toggle row that shows a lock icon and disables the toggle if the feature requires a higher tier
+@MainActor
 struct LicenseGatedToggleRow: View {
     let title: String
     let description: String

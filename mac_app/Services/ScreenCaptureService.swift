@@ -258,8 +258,9 @@ final class ScreenCaptureService: NSObject, ObservableObject {
     private func startScreenshotTimer() {
         let interval = config.screenCaptureIntervalSeconds
         screenshotTimer = Timer.scheduledTimer(withTimeInterval: interval, repeats: true) { [weak self] _ in
-            Task { @MainActor in
-                try? await self?.captureScreenshot()
+            guard let self else { return }
+            Task { @MainActor [self] in
+                try? await self.captureScreenshot()
             }
         }
     }
@@ -293,8 +294,6 @@ private class StreamOutput: NSObject, SCStreamOutput {
             onFrame?(sampleBuffer)
         case .audio:
             onAudio?(sampleBuffer)
-        case .microphone:
-            break
         @unknown default:
             break
         }
