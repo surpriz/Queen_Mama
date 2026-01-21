@@ -180,7 +180,7 @@ function ResendVerificationButton() {
   if (sent) {
     return (
       <p className="text-sm text-[var(--qm-success)]">
-        If your email is registered, you'll receive a new verification link.
+        If your email is registered, you&apos;ll receive a new verification link.
       </p>
     );
   }

@@ -83,7 +83,7 @@ export default function ForgotPasswordPage() {
             you will receive an email with instructions to reset your password.
           </p>
           <p className="text-sm text-[var(--qm-text-tertiary)]">
-            Didn't receive the email? Check your spam folder or{" "}
+            Didn&apos;t receive the email? Check your spam folder or{" "}
             <button
               onClick={() => {
                 setSuccess(false);

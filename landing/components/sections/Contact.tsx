@@ -58,7 +58,7 @@ export function Contact() {
             Get in <span className="gradient-text">Touch</span>
           </h2>
           <p className="text-lg text-[var(--qm-text-secondary)]">
-            Have questions? We'd love to hear from you.
+            Have questions? We&apos;d love to hear from you.
           </p>
         </motion.div>
 
@@ -80,7 +80,7 @@ export function Contact() {
                 </div>
                 <h3 className="text-xl font-semibold text-white mb-2">Message sent!</h3>
                 <p className="text-[var(--qm-text-secondary)] mb-6">
-                  Thanks for reaching out. We'll get back to you soon.
+                  Thanks for reaching out. We&apos;ll get back to you soon.
                 </p>
                 <button
                   onClick={() => setSuccess(false)}

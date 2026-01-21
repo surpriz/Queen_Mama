@@ -64,7 +64,7 @@ export default function WindowsWaitlistPage() {
             Queen Mama for <span className="gradient-text">Windows</span>
           </h1>
           <p className="text-lg text-[var(--qm-text-secondary)] max-w-md mx-auto">
-            We're working hard to bring Queen Mama to Windows. Join the waitlist to be the first to know when it's ready.
+            We&apos;re working hard to bring Queen Mama to Windows. Join the waitlist to be the first to know when it&apos;s ready.
           </p>
         </motion.div>
 
@@ -81,9 +81,9 @@ export default function WindowsWaitlistPage() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                 </svg>
               </div>
-              <h2 className="text-xl font-semibold text-white mb-2">You're on the list!</h2>
+              <h2 className="text-xl font-semibold text-white mb-2">You&apos;re on the list!</h2>
               <p className="text-[var(--qm-text-secondary)] mb-6">
-                We'll notify you at <span className="text-white font-medium">{email}</span> as soon as Queen Mama for Windows is available.
+                We&apos;ll notify you at <span className="text-white font-medium">{email}</span> as soon as Queen Mama for Windows is available.
               </p>
               <Link href="/" className="text-[var(--qm-accent)] hover:text-[var(--qm-accent-light)] transition-colors">
                 Back to home
@@ -117,7 +117,7 @@ export default function WindowsWaitlistPage() {
               </GradientButton>
 
               <p className="text-xs text-[var(--qm-text-tertiary)] text-center">
-                We'll only email you when Windows support is ready. No spam, ever.
+                We&apos;ll only email you when Windows support is ready. No spam, ever.
               </p>
             </form>
           )}
