@@ -71,32 +71,21 @@ jobs:
 
       - name: Export App
         run: |
-          cat > $RUNNER_TEMP/ExportOptions.plist << EOF
-          <?xml version="1.0" encoding="UTF-8"?>
-          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-          <plist version="1.0">
-          <dict>
-              <key>method</key>
-              <string>developer-id</string>
-              <key>teamID</key>
-              <string>${TEAM_ID}</string>
-              <key>signingStyle</key>
-              <string>manual</string>
-              <key>signingCertificate</key>
-              <string>Developer ID Application</string>
-          </dict>
-          </plist>
-          EOF
+          # Create export directory
+          mkdir -p "$RUNNER_TEMP/export"
 
-          # Verify archive exists
-          echo "Archive contents:"
-          ls -la $RUNNER_TEMP/QueenMama.xcarchive/Products/Applications/
+          # Copy app from archive (already signed during archive step)
+          cp -R "$RUNNER_TEMP/QueenMama.xcarchive/Products/Applications/QueenMama.app" "$RUNNER_TEMP/export/Queen Mama.app"
 
-          xcodebuild -exportArchive \
-            -archivePath $RUNNER_TEMP/QueenMama.xcarchive \
-            -exportOptionsPlist $RUNNER_TEMP/ExportOptions.plist \
-            -exportPath $RUNNER_TEMP/export \
-            -allowProvisioningUpdates
+          # Re-sign with hardened runtime and timestamp
+          codesign --force --deep --timestamp --options runtime \
+            --sign "Developer ID Application: Jerome LAVAL (WNNDDTBPGK)" \
+            --entitlements "mac_app/QueenMama.entitlements" \
+            "$RUNNER_TEMP/export/Queen Mama.app"
+
+          # Verify signature
+          echo "Verifying code signature:"
+          codesign -dv --verbose=4 "$RUNNER_TEMP/export/Queen Mama.app"
 
       - name: Notarize App
         env:
