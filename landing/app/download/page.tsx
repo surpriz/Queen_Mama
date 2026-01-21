@@ -22,9 +22,9 @@ interface GitHubRelease {
 }
 
 // Detect if we're on staging environment
-function isStaging(): boolean {
+async function isStaging(): Promise<boolean> {
   try {
-    const headersList = headers();
+    const headersList = await headers();
     const host = headersList.get("host") || "";
     return host.includes("staging") || host.includes("localhost");
   } catch {
@@ -84,7 +84,7 @@ function formatDate(dateString: string): string {
 }
 
 export default async function DownloadPage() {
-  const staging = isStaging();
+  const staging = await isStaging();
   const release = await getRelease(staging);
   const dmgAsset = release?.assets?.find((a) => a.name.endsWith(".dmg"));
   const version = release?.tag_name?.replace("v", "") || "1.0.0";
