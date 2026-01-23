@@ -137,11 +137,7 @@ final class SyncManager: ObservableObject {
     }
 
     private func syncBatch(_ sessions: [SyncableSession], accessToken: String) async throws -> SyncResult {
-        #if DEBUG
-        let url = URL(string: "http://localhost:3000/api/sync/sessions")!
-        #else
-        let url = URL(string: "https://www.queenmama.co/api/sync/sessions")!
-        #endif
+        let url = URLConfigManager.shared.syncSessionsURL
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")

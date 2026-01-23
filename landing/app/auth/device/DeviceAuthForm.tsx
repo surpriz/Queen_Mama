@@ -177,7 +177,7 @@ export function DeviceAuthForm({ userName }: DeviceAuthFormProps) {
               value={char}
               onChange={(e) => handleInputChange(index, e.target.value)}
               onKeyDown={(e) => handleKeyDown(index, e)}
-              maxLength={8}
+              maxLength={12}
               className={`w-10 h-12 text-center text-xl font-mono font-bold uppercase
                 bg-[var(--qm-surface-dark)] border rounded-lg
                 text-white placeholder-[var(--qm-text-tertiary)]

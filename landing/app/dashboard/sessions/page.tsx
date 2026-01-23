@@ -2,6 +2,7 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { GlassCard } from "@/components/ui";
 import Link from "next/link";
+import { DeleteSessionButton } from "./DeleteSessionButton";
 
 export const metadata = {
   title: "Sessions - Queen Mama",
@@ -90,10 +91,13 @@ export default async function SessionsPage() {
                       </p>
                     )}
                   </div>
-                  <div className="ml-4 flex flex-col items-end gap-1">
-                    <span className="text-sm text-[var(--qm-text-tertiary)]">
-                      {s._count.aiResponses} AI responses
-                    </span>
+                  <div className="ml-4 flex flex-col items-end gap-2">
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm text-[var(--qm-text-tertiary)]">
+                        {s._count.aiResponses} AI responses
+                      </span>
+                      <DeleteSessionButton sessionId={s.id} sessionTitle={s.title} />
+                    </div>
                     <svg
                       className="w-5 h-5 text-[var(--qm-text-tertiary)]"
                       fill="none"

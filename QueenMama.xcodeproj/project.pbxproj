@@ -57,6 +57,7 @@
 		5CD8E05C2F1FAB790011F4D3 /* Sentry in Frameworks */ = {isa = PBXBuildFile; productRef = 5CD8E05B2F1FAB790011F4D2 /* Sentry */; };
 		6937AD307161BE7D38D20A02 /* ProxyConfigManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6FF34DCBA9126388FFC21F75 /* ProxyConfigManager.swift */; };
 		72E5F74C2ED54F91ABC5DA43 /* MarkdownRenderer.swift in Sources */ = {isa = PBXBuildFile; fileRef = AED67FF476044F25BA92C2A6 /* MarkdownRenderer.swift */; };
+		10000000000000000000002A /* URLConfigManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 10000000000000000000002B /* URLConfigManager.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -111,6 +112,7 @@
 		AED67FF476044F25BA92C2A6 /* MarkdownRenderer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MarkdownRenderer.swift; sourceTree = "<group>"; };
 		C4A5D6911606803AAD99FDDE /* ProxyAIProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProxyAIProvider.swift; sourceTree = "<group>"; };
 		F31BD8E8B721652533B20139 /* ProxyAPIClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProxyAPIClient.swift; sourceTree = "<group>"; };
+		10000000000000000000002B /* URLConfigManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = URLConfigManager.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -176,6 +178,7 @@
 				5C8B7EA32F17D57E00DAE824 /* TranscriptionProviders.swift */,
 				100000000000000000000005 /* KeychainManager.swift */,
 				100000000000000000000006 /* ConfigurationManager.swift */,
+				10000000000000000000002B /* URLConfigManager.swift */,
 				100000000000000000000007 /* AudioCaptureService.swift */,
 				100000000000000000000008 /* ScreenCaptureService.swift */,
 				100000000000000000000009 /* TranscriptionService.swift */,
@@ -443,6 +446,7 @@
 				000000000000000000000027 /* SecureStorage.swift in Sources */,
 				000000000000000000000028 /* UpdaterManager.swift in Sources */,
 				000000000000000000000029 /* AuthGateView.swift in Sources */,
+				10000000000000000000002A /* URLConfigManager.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

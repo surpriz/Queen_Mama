@@ -16,9 +16,12 @@ interface User {
   } | null;
 }
 
+type SubscriptionPlan = "FREE" | "PRO" | "ENTERPRISE";
+
 interface UserTableProps {
   users: User[];
   onRoleChange: (userId: string, role: UserRole) => Promise<void>;
+  onPlanChange: (userId: string, plan: SubscriptionPlan) => Promise<void>;
   onDelete: (userId: string) => Promise<void>;
 }
 
@@ -33,8 +36,22 @@ function getRoleBadgeColor(role: UserRole) {
   }
 }
 
-export function UserTable({ users, onRoleChange, onDelete }: UserTableProps) {
+function getPlanBadgeColor(plan: string) {
+  switch (plan) {
+    case "ENTERPRISE":
+      return "bg-amber-500/20 text-amber-300";
+    case "PRO":
+      return "bg-green-500/20 text-green-300";
+    default:
+      return "bg-gray-500/20 text-gray-300";
+  }
+}
+
+export function UserTable({ users, onRoleChange, onPlanChange, onDelete }: UserTableProps) {
   const [loadingStates, setLoadingStates] = useState<Record<string, boolean>>(
+    {}
+  );
+  const [planLoadingStates, setPlanLoadingStates] = useState<Record<string, boolean>>(
     {}
   );
 
@@ -44,6 +61,15 @@ export function UserTable({ users, onRoleChange, onDelete }: UserTableProps) {
       await onRoleChange(userId, newRole);
     } finally {
       setLoadingStates((prev) => ({ ...prev, [userId]: false }));
+    }
+  };
+
+  const handlePlanChange = async (userId: string, newPlan: SubscriptionPlan) => {
+    setPlanLoadingStates((prev) => ({ ...prev, [userId]: true }));
+    try {
+      await onPlanChange(userId, newPlan);
+    } finally {
+      setPlanLoadingStates((prev) => ({ ...prev, [userId]: false }));
     }
   };
 
@@ -118,9 +144,20 @@ export function UserTable({ users, onRoleChange, onDelete }: UserTableProps) {
                   </select>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="text-sm text-[var(--qm-text-secondary)]">
-                    {user.subscription?.plan || "FREE"}
-                  </div>
+                  <select
+                    value={user.subscription?.plan || "FREE"}
+                    onChange={(e) =>
+                      handlePlanChange(user.id, e.target.value as SubscriptionPlan)
+                    }
+                    disabled={planLoadingStates[user.id]}
+                    className={`px-3 py-1 rounded-full text-xs font-medium ${getPlanBadgeColor(
+                      user.subscription?.plan || "FREE"
+                    )} bg-transparent border border-current cursor-pointer hover:opacity-80 disabled:opacity-50 disabled:cursor-not-allowed`}
+                  >
+                    <option value="FREE">FREE</option>
+                    <option value="PRO">PRO</option>
+                    <option value="ENTERPRISE">ENTERPRISE</option>
+                  </select>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   <div className="text-sm text-[var(--qm-text-secondary)]">

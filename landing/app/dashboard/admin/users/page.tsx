@@ -104,6 +104,29 @@ export default function AdminUsersPage() {
     }
   };
 
+  const handlePlanChange = async (userId: string, newPlan: string) => {
+    try {
+      const res = await fetch(`/api/admin/users/${userId}/plan`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ plan: newPlan }),
+      });
+
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.error || "Failed to update plan");
+      }
+
+      // Refresh users list
+      await fetchUsers();
+    } catch (error) {
+      console.error("Error updating plan:", error);
+      alert(
+        error instanceof Error ? error.message : "Failed to update user plan"
+      );
+    }
+  };
+
   const handleDelete = async (userId: string) => {
     try {
       const res = await fetch(`/api/admin/users/${userId}`, {
@@ -182,6 +205,7 @@ export default function AdminUsersPage() {
           <UserTable
             users={users}
             onRoleChange={handleRoleChange}
+            onPlanChange={handlePlanChange}
             onDelete={handleDelete}
           />
 

@@ -46,6 +46,11 @@ export const updateUserRoleSchema = z.object({
   role: z.enum(["USER", "ADMIN", "BLOCKED"]),
 });
 
+export const updateUserPlanSchema = z.object({
+  plan: z.enum(["FREE", "PRO", "ENTERPRISE"]),
+  status: z.enum(["ACTIVE", "CANCELED", "PAST_DUE", "TRIALING", "INCOMPLETE"]).optional(),
+});
+
 export const adminUserQuerySchema = z.object({
   page: z.coerce.number().min(1).default(1),
   limit: z.coerce.number().min(1).max(100).default(20),
@@ -59,6 +64,7 @@ export type UpdateProfileInput = z.infer<typeof updateProfileSchema>;
 export type ChangePasswordInput = z.infer<typeof changePasswordSchema>;
 export type ApiKeyInput = z.infer<typeof apiKeySchema>;
 export type UpdateUserRoleInput = z.infer<typeof updateUserRoleSchema>;
+export type UpdateUserPlanInput = z.infer<typeof updateUserPlanSchema>;
 export type AdminUserQueryInput = z.infer<typeof adminUserQuerySchema>;
 
 // ===========================================
