@@ -12,11 +12,14 @@ struct SessionListView: View {
     @Binding var searchText: String
     @EnvironmentObject var sessionManager: SessionManager
     @Environment(\.modelContext) private var modelContext
+    @StateObject private var syncManager = SyncManager.shared
 
     @Query(sort: \Session.startTime, order: .reverse)
     private var sessions: [Session]
 
     @State private var selectedSession: Session?
+    @State private var sessionToDelete: Session?
+    @State private var showingDeleteConfirmation = false
 
     private var filteredSessions: [Session] {
         if searchText.isEmpty {
@@ -35,16 +38,75 @@ struct SessionListView: View {
                 // Modern Search Bar
                 ModernSearchBar(searchText: $searchText)
 
+                // Sync buttons (when sync is available)
+                if syncManager.canSync {
+                    HStack(spacing: QMDesign.Spacing.md) {
+                        // Refresh button (fetch remote changes)
+                        Button(action: {
+                            Task {
+                                await syncManager.reconcileRemoteDeletions()
+                            }
+                        }) {
+                            HStack(spacing: 4) {
+                                Image(systemName: "arrow.clockwise")
+                                    .font(.system(size: 11))
+                                Text("Refresh")
+                                    .font(QMDesign.Typography.captionSmall)
+                            }
+                            .foregroundColor(QMDesign.Colors.textSecondary)
+                        }
+                        .buttonStyle(.plain)
+                        .disabled(syncManager.isSyncing)
+                        .help("Sync changes from web dashboard")
+
+                        Spacer()
+
+                        // Sync All button (upload local sessions)
+                        Button(action: {
+                            syncManager.syncAllSessions(Array(filteredSessions))
+                        }) {
+                            HStack(spacing: 4) {
+                                if syncManager.isSyncing {
+                                    ProgressView()
+                                        .scaleEffect(0.6)
+                                        .frame(width: 12, height: 12)
+                                } else {
+                                    Image(systemName: "arrow.triangle.2.circlepath")
+                                        .font(.system(size: 11))
+                                }
+                                Text("Sync All")
+                                    .font(QMDesign.Typography.captionSmall)
+                            }
+                            .foregroundColor(QMDesign.Colors.accent)
+                        }
+                        .buttonStyle(.plain)
+                        .disabled(syncManager.isSyncing)
+                        .help("Upload all sessions to web dashboard")
+                    }
+                    .padding(.horizontal, QMDesign.Spacing.sm)
+                    .padding(.bottom, QMDesign.Spacing.xs)
+                }
+
                 // Session List
                 ScrollView {
                     LazyVStack(spacing: QMDesign.Spacing.xs) {
                         ForEach(filteredSessions) { session in
                             ModernSessionCard(
                                 session: session,
-                                isSelected: selectedSession == session
-                            ) {
-                                selectedSession = session
-                            }
+                                isSelected: selectedSession == session,
+                                syncStatus: syncManager.getSyncStatus(for: session.id),
+                                canSync: syncManager.canSync,
+                                action: {
+                                    selectedSession = session
+                                },
+                                onDelete: {
+                                    sessionToDelete = session
+                                    showingDeleteConfirmation = true
+                                },
+                                onSync: session.endTime != nil ? {
+                                    syncManager.queueExistingSession(session)
+                                } : nil
+                            )
                             .contextMenu {
                                 Button {
                                     exportSession(session, format: .markdown)
@@ -86,6 +148,46 @@ struct SessionListView: View {
                 EmptySessionDetailView()
             }
         }
+        .confirmationDialog(
+            "Delete Session",
+            isPresented: $showingDeleteConfirmation,
+            presenting: sessionToDelete
+        ) { session in
+            Button("Delete", role: .destructive) {
+                deleteSession(session)
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: { session in
+            Text("Delete \"\(session.title)\"? This cannot be undone.")
+        }
+        .onAppear {
+            // Trigger auto-sync of unsynced sessions on view load
+            if syncManager.canSync {
+                Task {
+                    await syncManager.performInitialSync(Array(sessions))
+                }
+            }
+        }
+        .onChange(of: syncManager.sessionIdsToDeleteRemotely) { _, idsToDelete in
+            // Handle remote deletions
+            if !idsToDelete.isEmpty {
+                processRemoteDeletions(idsToDelete)
+            }
+        }
+    }
+
+    /// Process sessions that were deleted on the web dashboard
+    private func processRemoteDeletions(_ idsToDelete: Set<String>) {
+        for session in sessions {
+            if idsToDelete.contains(session.id.uuidString) {
+                print("[SessionList] Deleting locally: \(session.title) (deleted remotely)")
+                if selectedSession == session {
+                    selectedSession = nil
+                }
+                sessionManager.deleteSession(session)
+            }
+        }
+        syncManager.clearRemoteDeletions()
     }
 
     private func exportSession(_ session: Session, format: SessionManager.ExportFormat) {
@@ -104,6 +206,14 @@ struct SessionListView: View {
         if selectedSession == session {
             selectedSession = nil
         }
+
+        // Delete from remote server first (if synced)
+        let sessionId = session.id
+        Task {
+            await syncManager.deleteRemoteSession(sessionId)
+        }
+
+        // Delete locally
         sessionManager.deleteSession(session)
     }
 }
@@ -152,9 +262,15 @@ struct ModernSearchBar: View {
 struct ModernSessionCard: View {
     let session: Session
     let isSelected: Bool
+    var syncStatus: SyncDisplayStatus = .notSynced
+    var canSync: Bool = false
     let action: () -> Void
+    let onDelete: () -> Void
+    var onSync: (() -> Void)?
 
     @State private var isHovered = false
+    @State private var isDeleteHovered = false
+    @State private var isSyncHovered = false
 
     var body: some View {
         Button(action: action) {
@@ -186,6 +302,16 @@ struct ModernSessionCard: View {
                                 .fill(QMDesign.Colors.errorLight)
                         )
                     }
+
+                    // Delete button
+                    Button(action: onDelete) {
+                        Image(systemName: "trash")
+                            .font(.system(size: 12))
+                            .foregroundColor(isDeleteHovered ? QMDesign.Colors.error : QMDesign.Colors.textTertiary)
+                    }
+                    .buttonStyle(.plain)
+                    .onHover { isDeleteHovered = $0 }
+                    .help("Delete session")
                 }
 
                 // Metadata
@@ -209,6 +335,14 @@ struct ModernSessionCard: View {
                             Capsule()
                                 .fill(QMDesign.Colors.accent.opacity(0.1))
                         )
+
+                    Spacer()
+
+                    // Sync status badge (for completed sessions when sync is available)
+                    if canSync && session.endTime != nil {
+                        SyncStatusBadge(status: syncStatus, onSync: onSync)
+                            .onHover { isSyncHovered = $0 }
+                    }
                 }
 
                 // Transcript preview
@@ -444,6 +578,80 @@ struct EmptySessionDetailView: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(QMDesign.Colors.backgroundPrimary)
+    }
+}
+
+// MARK: - Sync Status Badge
+
+struct SyncStatusBadge: View {
+    let status: SyncDisplayStatus
+    var onSync: (() -> Void)?
+
+    @State private var isHovered = false
+
+    var body: some View {
+        Group {
+            if status == .notSynced || status == .failed, let onSync = onSync {
+                // Clickable sync button for unsynced/failed sessions
+                Button(action: onSync) {
+                    badgeContent
+                }
+                .buttonStyle(.plain)
+                .onHover { isHovered = $0 }
+                .help(status == .failed ? "Retry sync" : "Sync to dashboard")
+            } else {
+                // Static badge for other states
+                badgeContent
+            }
+        }
+    }
+
+    private var badgeContent: some View {
+        HStack(spacing: 4) {
+            if status == .syncing {
+                ProgressView()
+                    .scaleEffect(0.5)
+                    .frame(width: 10, height: 10)
+            } else {
+                Image(systemName: iconName)
+                    .font(.system(size: 10))
+            }
+        }
+        .foregroundColor(isHovered && (status == .notSynced || status == .failed) ? color.opacity(0.8) : color)
+        .padding(.horizontal, 6)
+        .padding(.vertical, 2)
+        .background(
+            Capsule()
+                .fill(color.opacity(0.1))
+        )
+    }
+
+    private var iconName: String {
+        switch status {
+        case .notSynced:
+            return "icloud.slash"
+        case .pending:
+            return "clock.arrow.circlepath"
+        case .syncing:
+            return "arrow.triangle.2.circlepath"
+        case .synced:
+            return "checkmark.icloud"
+        case .failed:
+            return "exclamationmark.icloud"
+        }
+    }
+
+    private var color: Color {
+        switch status {
+        case .notSynced:
+            return QMDesign.Colors.textTertiary
+        case .pending, .syncing:
+            return QMDesign.Colors.accent
+        case .synced:
+            return QMDesign.Colors.success
+        case .failed:
+            return QMDesign.Colors.error
+        }
     }
 }
 

@@ -30,6 +30,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                 } catch {
                     print("[App] Failed to load proxy config: \(error)")
                 }
+
+                // Perform initial sync (upload unsynced + reconcile remote deletions)
+                // Note: Sessions will be passed from SessionListView once it loads
+                await SyncManager.shared.reconcileRemoteDeletions()
             }
         }
     }

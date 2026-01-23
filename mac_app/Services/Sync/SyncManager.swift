@@ -2,6 +2,15 @@ import Foundation
 import SwiftData
 import Combine
 
+/// Sync status for display in UI
+enum SyncDisplayStatus {
+    case notSynced
+    case pending
+    case syncing
+    case synced
+    case failed
+}
+
 /// Manages session synchronization between macOS app and web dashboard
 @MainActor
 final class SyncManager: ObservableObject {
@@ -15,6 +24,9 @@ final class SyncManager: ObservableObject {
     @Published private(set) var lastError: String?
     @Published private(set) var isOffline: Bool = false
 
+    /// Session IDs that were deleted remotely and need local deletion
+    @Published var sessionIdsToDeleteRemotely: Set<String> = []
+
     // MARK: - Dependencies
 
     private let authManager = AuthenticationManager.shared
@@ -26,6 +38,11 @@ final class SyncManager: ObservableObject {
     private let queueFileURL: URL
     private var pendingQueue: [SyncableSession] = []
 
+    // Track synced session IDs
+    private let syncedSessionsKey = "synced_session_ids"
+    private var syncedSessionIds: Set<String> = []
+    private var failedSessionIds: Set<String> = []
+
     private var cancellables = Set<AnyCancellable>()
 
     private init() {
@@ -36,6 +53,7 @@ final class SyncManager: ObservableObject {
         queueFileURL = appFolder.appendingPathComponent("sync_queue.json")
 
         loadQueue()
+        loadSyncedIds()
 
         // Auto-sync when coming online
         NotificationCenter.default.publisher(for: .NSReachabilityDidChange)
@@ -85,6 +103,193 @@ final class SyncManager: ObservableObject {
         saveQueue()
     }
 
+    /// Get sync status for a session
+    func getSyncStatus(for sessionId: UUID) -> SyncDisplayStatus {
+        let idString = sessionId.uuidString
+        if syncedSessionIds.contains(idString) {
+            return .synced
+        }
+        if failedSessionIds.contains(idString) {
+            return .failed
+        }
+        if pendingQueue.contains(where: { $0.originalId == idString }) {
+            return isSyncing ? .syncing : .pending
+        }
+        return .notSynced
+    }
+
+    /// Queue an existing completed session for sync
+    func queueExistingSession(_ session: Session) {
+        guard authManager.isAuthenticated else { return }
+        guard licenseManager.isFeatureAvailable(.sessionSync) else { return }
+        guard session.endTime != nil else { return } // Must be completed
+
+        let syncable = SyncableSession(from: session, deviceId: deviceInfo.deviceId)
+
+        // Don't re-queue already synced sessions
+        guard !syncedSessionIds.contains(syncable.originalId) else { return }
+
+        // Check if already queued
+        if !pendingQueue.contains(where: { $0.originalId == syncable.originalId }) {
+            pendingQueue.append(syncable)
+        }
+
+        // Remove from failed set if retrying
+        failedSessionIds.remove(syncable.originalId)
+
+        pendingCount = pendingQueue.count
+        saveQueue()
+
+        Task {
+            await syncPendingIfNeeded()
+        }
+    }
+
+    /// Sync all completed sessions
+    func syncAllSessions(_ sessions: [Session]) {
+        for session in sessions where session.endTime != nil {
+            queueExistingSession(session)
+        }
+    }
+
+    /// Check if sync is available (authenticated + PRO subscription)
+    var canSync: Bool {
+        authManager.isAuthenticated && licenseManager.isFeatureAvailable(.sessionSync)
+    }
+
+    // MARK: - Auto Sync on Launch
+
+    /// Perform initial sync: upload unsynced sessions and reconcile remote deletions
+    func performInitialSync(_ sessions: [Session]) async {
+        guard canSync else {
+            print("[Sync] Initial sync skipped - not authenticated or no PRO subscription")
+            return
+        }
+
+        print("[Sync] Starting initial sync...")
+
+        // 1. Queue unsynced completed sessions for upload
+        let unsyncedSessions = sessions.filter { session in
+            session.endTime != nil && getSyncStatus(for: session.id) == .notSynced
+        }
+
+        if !unsyncedSessions.isEmpty {
+            print("[Sync] Found \(unsyncedSessions.count) unsynced sessions to upload")
+            syncAllSessions(unsyncedSessions)
+        }
+
+        // 2. Fetch remote sessions and reconcile deletions
+        await reconcileRemoteDeletions()
+    }
+
+    /// Fetch remote sessions and mark locally-synced sessions for deletion if removed from server
+    func reconcileRemoteDeletions() async {
+        guard canSync else { return }
+
+        do {
+            let accessToken = try await authManager.getAccessToken()
+            let remoteSessions = try await fetchRemoteSessions(accessToken: accessToken)
+
+            // Get all originalIds from remote
+            let remoteOriginalIds = Set(remoteSessions.map { $0.originalId })
+
+            // Find sessions that we thought were synced but are no longer on the server
+            let deletedRemotely = syncedSessionIds.filter { !remoteOriginalIds.contains($0) }
+
+            if !deletedRemotely.isEmpty {
+                print("[Sync] Found \(deletedRemotely.count) sessions deleted remotely")
+
+                // Mark for local deletion
+                sessionIdsToDeleteRemotely = deletedRemotely
+
+                // Remove from synced tracking
+                for id in deletedRemotely {
+                    syncedSessionIds.remove(id)
+                }
+                UserDefaults.standard.set(Array(syncedSessionIds), forKey: syncedSessionsKey)
+            }
+
+            // Also mark remote sessions as synced locally (in case we missed tracking them)
+            for remoteId in remoteOriginalIds {
+                if !syncedSessionIds.contains(remoteId) {
+                    syncedSessionIds.insert(remoteId)
+                }
+            }
+            UserDefaults.standard.set(Array(syncedSessionIds), forKey: syncedSessionsKey)
+
+            print("[Sync] Remote reconciliation complete. \(syncedSessionIds.count) sessions tracked as synced.")
+
+        } catch {
+            print("[Sync] Failed to reconcile remote deletions: \(error)")
+        }
+    }
+
+    /// Clear the remote deletion list after UI has processed them
+    func clearRemoteDeletions() {
+        sessionIdsToDeleteRemotely.removeAll()
+    }
+
+    // MARK: - Remote Deletion (Mac → Web)
+
+    /// Delete a session from the remote server
+    func deleteRemoteSession(_ sessionId: UUID) async {
+        guard canSync else {
+            print("[Sync] Cannot delete remotely - not authenticated or no PRO subscription")
+            return
+        }
+
+        let idString = sessionId.uuidString
+
+        // Only delete if session was previously synced
+        guard syncedSessionIds.contains(idString) else {
+            print("[Sync] Session \(idString) was not synced, no remote deletion needed")
+            return
+        }
+
+        do {
+            let accessToken = try await authManager.getAccessToken()
+            try await performRemoteDeletion(sessionId: idString, accessToken: accessToken)
+
+            // Remove from synced tracking
+            syncedSessionIds.remove(idString)
+            UserDefaults.standard.set(Array(syncedSessionIds), forKey: syncedSessionsKey)
+
+            print("[Sync] Successfully deleted session \(idString) from server")
+        } catch {
+            print("[Sync] Failed to delete session remotely: \(error)")
+            // Session will still be deleted locally, but remain on server
+            // User can manually delete from web if needed
+        }
+    }
+
+    private func performRemoteDeletion(sessionId: String, accessToken: String) async throws {
+        let baseURL = URLConfigManager.shared.syncSessionsURL
+        let url = baseURL.appendingPathComponent(sessionId)
+
+        var request = URLRequest(url: url)
+        request.httpMethod = "DELETE"
+        request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
+
+        let (data, response) = try await URLSession.shared.data(for: request)
+
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw SyncError.invalidResponse
+        }
+
+        switch httpResponse.statusCode {
+        case 200...299:
+            print("[Sync] Remote deletion successful")
+        case 404:
+            // Session not found on server - that's fine, already deleted
+            print("[Sync] Session not found on server (already deleted?)")
+        case 401:
+            throw SyncError.unauthorized
+        default:
+            let message = String(data: data, encoding: .utf8) ?? "Unknown error"
+            throw SyncError.serverError("Delete failed: \(message)")
+        }
+    }
+
     // MARK: - Private Methods
 
     private func syncPendingIfNeeded() async {
@@ -107,9 +312,17 @@ final class SyncManager: ObservableObject {
             let batch = Array(pendingQueue.prefix(10))
             let result = try await syncBatch(batch, accessToken: accessToken)
 
-            // Remove synced sessions from queue
+            // Remove synced sessions from queue and mark as synced
             for syncedId in result.syncedIds {
                 pendingQueue.removeAll { $0.originalId == syncedId }
+                markAsSynced(syncedId)
+            }
+
+            // Mark failed sessions
+            if let errors = result.errors {
+                for error in errors {
+                    markAsFailed(error.originalId)
+                }
             }
 
             pendingCount = pendingQueue.count
@@ -134,6 +347,26 @@ final class SyncManager: ObservableObject {
         }
 
         isSyncing = false
+    }
+
+    private func fetchRemoteSessions(accessToken: String) async throws -> [RemoteSessionInfo] {
+        let url = URLConfigManager.shared.syncSessionsURL
+        var request = URLRequest(url: url)
+        request.httpMethod = "GET"
+        request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
+
+        let (data, response) = try await URLSession.shared.data(for: request)
+
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw SyncError.invalidResponse
+        }
+
+        guard httpResponse.statusCode == 200 else {
+            throw SyncError.serverError("Failed to fetch remote sessions: \(httpResponse.statusCode)")
+        }
+
+        let result = try JSONDecoder().decode(RemoteSessionsResponse.self, from: data)
+        return result.sessions
     }
 
     private func syncBatch(_ sessions: [SyncableSession], accessToken: String) async throws -> SyncResult {
@@ -186,6 +419,22 @@ final class SyncManager: ObservableObject {
         } catch {
             print("[Sync] Failed to save queue: \(error)")
         }
+    }
+
+    // MARK: - Synced Session ID Persistence
+
+    private func loadSyncedIds() {
+        syncedSessionIds = Set(UserDefaults.standard.stringArray(forKey: syncedSessionsKey) ?? [])
+    }
+
+    private func markAsSynced(_ sessionId: String) {
+        syncedSessionIds.insert(sessionId)
+        failedSessionIds.remove(sessionId)
+        UserDefaults.standard.set(Array(syncedSessionIds), forKey: syncedSessionsKey)
+    }
+
+    private func markAsFailed(_ sessionId: String) {
+        failedSessionIds.insert(sessionId)
     }
 }
 
@@ -280,6 +529,25 @@ enum SyncError: LocalizedError {
             return message
         }
     }
+}
+
+// MARK: - Remote Session Types
+
+struct RemoteSessionInfo: Codable {
+    let id: String
+    let originalId: String
+    let title: String
+    let startTime: String
+    let version: Int
+    let checksum: String?
+    let updatedAt: String
+}
+
+struct RemoteSessionsResponse: Codable {
+    let sessions: [RemoteSessionInfo]
+    let total: Int
+    let limit: Int
+    let offset: Int
 }
 
 // MARK: - Reachability Notification Extension

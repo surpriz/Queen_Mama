@@ -23,22 +23,22 @@ export function DeviceAuthForm({ userName }: DeviceAuthFormProps) {
     inputRefs.current[0]?.focus();
   }, []);
 
-  // Redirect to dashboard after successful authorization
+  // Countdown timer after successful authorization
   useEffect(() => {
-    if (status === "success") {
-      const timer = setInterval(() => {
-        setRedirectCountdown((prev) => {
-          if (prev <= 1) {
-            clearInterval(timer);
-            router.push("/dashboard");
-            return 0;
-          }
-          return prev - 1;
-        });
+    if (status === "success" && redirectCountdown > 0) {
+      const timer = setTimeout(() => {
+        setRedirectCountdown((prev) => prev - 1);
       }, 1000);
-      return () => clearInterval(timer);
+      return () => clearTimeout(timer);
     }
-  }, [status, router]);
+  }, [status, redirectCountdown]);
+
+  // Redirect when countdown reaches 0
+  useEffect(() => {
+    if (status === "success" && redirectCountdown === 0) {
+      router.push("/dashboard");
+    }
+  }, [status, redirectCountdown, router]);
 
   const handleInputChange = (index: number, value: string) => {
     // Handle paste
