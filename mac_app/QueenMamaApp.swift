@@ -20,6 +20,17 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             if let user = AuthenticationManager.shared.currentUser {
                 CrashReporter.shared.setUser(id: user.id, email: user.email)
             }
+
+            // Explicitly load proxy configuration after auth check
+            // This ensures AI providers are available even if notification timing is off
+            if AuthenticationManager.shared.isAuthenticated {
+                do {
+                    try await ProxyConfigManager.shared.refreshConfig()
+                    print("[App] Proxy config loaded: \(ProxyConfigManager.shared.availableAIProviders)")
+                } catch {
+                    print("[App] Failed to load proxy config: \(error)")
+                }
+            }
         }
     }
 
