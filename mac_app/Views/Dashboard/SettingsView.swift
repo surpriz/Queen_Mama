@@ -143,6 +143,26 @@ struct ModernSettingsSidebar: View {
             }
 
             Spacer()
+
+            // Version info at bottom
+            VStack(spacing: QMDesign.Spacing.xxs) {
+                Divider()
+                    .background(QMDesign.Colors.borderSubtle)
+
+                HStack {
+                    Text("Queen Mama")
+                        .font(QMDesign.Typography.captionSmall)
+                        .foregroundColor(QMDesign.Colors.textTertiary)
+
+                    Spacer()
+
+                    Text("v\(Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "?") (\(Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "?"))")
+                        .font(QMDesign.Typography.captionSmall)
+                        .foregroundColor(QMDesign.Colors.textTertiary)
+                }
+                .padding(.horizontal, QMDesign.Spacing.md)
+                .padding(.vertical, QMDesign.Spacing.sm)
+            }
         }
         .background(QMDesign.Colors.backgroundSecondary)
     }
