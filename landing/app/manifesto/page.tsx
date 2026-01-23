@@ -1,6 +1,5 @@
 "use client";
 
-import { Metadata } from "next";
 import { motion } from "framer-motion";
 import { Container, GradientButton } from "@/components/ui";
 import { Navbar } from "@/components/sections/Navbar";

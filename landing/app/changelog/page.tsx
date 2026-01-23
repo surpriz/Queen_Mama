@@ -3,6 +3,9 @@ import { LegalPageLayout } from "@/components/LegalPageLayout";
 import { ChangelogEntry } from "@/components/changelog/ChangelogEntry";
 import { changelogData } from "@/lib/changelog-data";
 
+// Force static generation for this page
+export const dynamic = "force-static";
+
 export const metadata: Metadata = {
   title: "Changelog - Queen Mama",
   description: "Discover what's new in Queen Mama. Follow our journey as we continuously improve your AI coaching experience.",

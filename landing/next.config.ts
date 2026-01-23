@@ -3,6 +3,30 @@ import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
   // Vercel handles Prisma natively - no special config needed
 
+  // Performance optimizations
+  experimental: {
+    // Tree-shake unused exports from these packages
+    optimizePackageImports: [
+      "framer-motion",
+      "@radix-ui/react-accordion",
+      "@radix-ui/react-dialog",
+      "@radix-ui/react-dropdown-menu",
+      "@radix-ui/react-label",
+      "@radix-ui/react-slot",
+      "@radix-ui/react-tabs",
+      "@radix-ui/react-toast",
+      "lucide-react",
+    ],
+  },
+
+  // Remove console.log in production builds
+  compiler: {
+    removeConsole: process.env.NODE_ENV === "production",
+  },
+
+  // Turbopack configuration (Next.js 16+ uses Turbopack by default)
+  turbopack: {},
+
   // CORS and security headers
   async headers() {
     // Define allowed origins based on environment

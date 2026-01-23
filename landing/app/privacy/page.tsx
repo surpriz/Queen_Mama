@@ -1,6 +1,9 @@
 import { Metadata } from "next";
 import { LegalPageLayout } from "@/components/LegalPageLayout";
 
+// Force static generation for this page
+export const dynamic = "force-static";
+
 export const metadata: Metadata = {
   title: "Privacy Policy - Queen Mama",
   description: "Privacy Policy for Queen Mama - Learn how we handle your data.",

@@ -2,6 +2,9 @@ import { Metadata } from "next";
 import { LegalPageLayout } from "@/components/LegalPageLayout";
 import { GlassCard } from "@/components/ui";
 
+// Force static generation for this page
+export const dynamic = "force-static";
+
 export const metadata: Metadata = {
   title: "Subprocessors - Queen Mama",
   description:

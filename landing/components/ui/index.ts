@@ -8,3 +8,4 @@ export { Input } from "./Input";
 export { Label } from "./Label";
 export { Avatar } from "./Avatar";
 export { Skeleton } from "./Skeleton";
+export { SectionSkeleton } from "./SectionSkeleton";
