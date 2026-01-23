@@ -140,7 +140,7 @@ final class SyncManager: ObservableObject {
         #if DEBUG
         let url = URL(string: "http://localhost:3000/api/sync/sessions")!
         #else
-        let url = URL(string: "https://queenmama.co/api/sync/sessions")!
+        let url = URL(string: "https://www.queenmama.co/api/sync/sessions")!
         #endif
         var request = URLRequest(url: url)
         request.httpMethod = "POST"

@@ -112,7 +112,7 @@ struct UpgradePromptView: View {
 
     private func handleUpgrade() {
         // Open billing page in browser
-        if let url = URL(string: "https://queenmama.co/dashboard/billing") {
+        if let url = URL(string: "https://www.queenmama.co/dashboard/billing") {
             NSWorkspace.shared.open(url)
         }
         onUpgrade?()

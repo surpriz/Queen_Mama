@@ -1504,7 +1504,7 @@ struct ModernSyncSettingsView: View {
     }
 
     private func openDashboard() {
-        if let url = URL(string: "https://queenmama.co/dashboard/sessions") {
+        if let url = URL(string: "https://www.queenmama.co/dashboard/sessions") {
             NSWorkspace.shared.open(url)
         }
     }
@@ -1710,7 +1710,7 @@ struct ModernUpdatesSettingsView: View {
     }
 
     private func openChangelog() {
-        if let url = URL(string: "https://queenmama.co/changelog") {
+        if let url = URL(string: "https://www.queenmama.co/changelog") {
             NSWorkspace.shared.open(url)
         }
     }
