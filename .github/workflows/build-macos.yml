@@ -24,6 +24,8 @@ jobs:
   build:
     runs-on: macos-14
     timeout-minutes: 30  # Prevent infinite hangs
+    permissions:
+      contents: write  # Required for creating releases
     steps:
       - uses: actions/checkout@v4
 
