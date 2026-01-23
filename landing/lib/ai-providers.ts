@@ -40,7 +40,7 @@ export const AI_MODELS = {
 // Tier-based feature limits
 export const TIER_LIMITS = {
   FREE: {
-    aiProviders: ["openai"] as AIProviderType[], // GPT-4o-mini only
+    aiProviders: ["openai", "anthropic"] as AIProviderType[], // Allow OpenAI or Anthropic
     transcriptionProviders: ["deepgram"] as TranscriptionProviderType[],
     maxTokens: 1000,
     smartMode: false,
