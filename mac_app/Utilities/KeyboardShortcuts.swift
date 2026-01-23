@@ -1,8 +1,8 @@
 import AppKit
 import Carbon
 
-final class KeyboardShortcutManager {
-    static let shared = KeyboardShortcutManager()
+final class KeyboardShortcutManager: @unchecked Sendable {
+    nonisolated(unsafe) static let shared = KeyboardShortcutManager()
 
     private var eventTap: CFMachPort?
     private var runLoopSource: CFRunLoopSource?

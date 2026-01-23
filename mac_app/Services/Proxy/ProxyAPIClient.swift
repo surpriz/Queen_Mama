@@ -2,8 +2,8 @@ import Foundation
 
 /// HTTP client for proxy API endpoints
 /// Handles AI requests and transcription token generation through the backend
-final class ProxyAPIClient {
-    static let shared = ProxyAPIClient()
+final class ProxyAPIClient: @unchecked Sendable {
+    nonisolated(unsafe) static let shared = ProxyAPIClient()
 
     private let baseURL: URL
     private let session: URLSession

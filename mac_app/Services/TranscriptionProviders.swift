@@ -213,7 +213,9 @@ final class DeepgramProvider: TranscriptionProvider {
     private func startKeepalive() {
         stopKeepalive()
         keepaliveTimer = Timer.scheduledTimer(withTimeInterval: 8.0, repeats: true) { [weak self] _ in
-            self?.sendKeepalive()
+            Task { @MainActor in
+                self?.sendKeepalive()
+            }
         }
     }
 

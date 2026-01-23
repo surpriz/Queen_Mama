@@ -78,7 +78,7 @@ final class Logger: @unchecked Sendable {
 
     // MARK: - OS Log Categories
 
-    private nonisolated static let osLogs: [String: OSLog] = [
+    nonisolated(unsafe) private static let osLogs: [String: OSLog] = [
         "QueenMama": OSLog(subsystem: "com.queenmama.app", category: "general"),
         "Audio": OSLog(subsystem: "com.queenmama.app", category: "audio"),
         "Transcription": OSLog(subsystem: "com.queenmama.app", category: "transcription"),
@@ -120,13 +120,13 @@ final class Logger: @unchecked Sendable {
 
     // MARK: - Private Implementation
 
-    private nonisolated static let dateFormatter: ISO8601DateFormatter = {
+    nonisolated(unsafe) private static let dateFormatter: ISO8601DateFormatter = {
         let formatter = ISO8601DateFormatter()
         formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
         return formatter
     }()
 
-    private nonisolated static let jsonEncoder: JSONEncoder = {
+    nonisolated(unsafe) private static let jsonEncoder: JSONEncoder = {
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.sortedKeys]
         return encoder
