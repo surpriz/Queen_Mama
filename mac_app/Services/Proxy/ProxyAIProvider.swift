@@ -67,7 +67,7 @@ final class ProxyAIProvider: AIProvider {
         )
     }
 
-    func generateStreamingResponse(context: AIContext) -> AsyncThrowingStream<String, Error> {
+    nonisolated func generateStreamingResponse(context: AIContext) -> AsyncThrowingStream<String, Error> {
         AsyncThrowingStream { continuation in
             Task { @MainActor in
                 guard AuthenticationManager.shared.isAuthenticated else {

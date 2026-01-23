@@ -23,8 +23,8 @@ enum KeychainError: LocalizedError {
 
 /// Manages secure storage in the macOS Keychain.
 /// Used for storing sensitive data like authentication tokens.
-final class KeychainManager {
-    static let shared = KeychainManager()
+final class KeychainManager: @unchecked Sendable {
+    nonisolated(unsafe) static let shared = KeychainManager()
 
     private let service = "com.queenmama.app"
 
