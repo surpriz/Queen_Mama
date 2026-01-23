@@ -55,15 +55,16 @@ public class License
     {
         return feature switch
         {
-            Feature.BasicTranscription => true,
             Feature.AIAssist => true,
             Feature.ScreenCapture => Features.ScreenshotEnabled,
             Feature.AutoAnswer => Features.AutoAnswerEnabled,
             Feature.CustomModes => Features.CustomModesEnabled,
             Feature.SessionHistory => true,
-            Feature.Export => Features.ExportFormats.Count > 1,
+            Feature.ExportMarkdown => Features.ExportFormats.Contains("markdown"),
+            Feature.ExportJson => Features.ExportFormats.Contains("json"),
             Feature.UndetectableOverlay => Features.UndetectableEnabled,
-            Feature.PrioritySupport => Plan == SubscriptionPlan.Enterprise,
+            Feature.SmartMode => Features.SmartModeEnabled,
+            Feature.SessionStart => true,
             _ => false
         };
     }

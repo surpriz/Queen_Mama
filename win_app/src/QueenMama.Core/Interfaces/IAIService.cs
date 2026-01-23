@@ -18,7 +18,7 @@ public interface IAIService
 public interface IProxyAIProvider
 {
     Task<AIResponse> GenerateAsync(AIContext context);
-    IAsyncEnumerable<string> StreamAsync(AIContext context);
+    IAsyncEnumerable<string> StreamAsync(AIContext context, CancellationToken cancellationToken = default);
 }
 
 public record AIContext(
@@ -28,11 +28,3 @@ public record AIContext(
     byte[]? ScreenshotData = null,
     string? AdditionalContext = null
 );
-
-public enum ResponseType
-{
-    Assist,
-    WhatToSay,
-    FollowUp,
-    Recap
-}

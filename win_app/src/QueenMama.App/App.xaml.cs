@@ -1,5 +1,6 @@
+using System.IO;
 using System.Windows;
-using Hardcodet.NotifyIcon.Wpf;
+using H.NotifyIcon;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using QueenMama.App.Services;
@@ -83,8 +84,9 @@ public partial class App : Application
 
         // Audio & Transcription
         services.AddSingleton<IAudioCaptureService, AudioCaptureService>();
+        services.AddSingleton<DeepgramProvider>();
+        services.AddSingleton<ITranscriptionProvider>(sp => sp.GetRequiredService<DeepgramProvider>());
         services.AddSingleton<ITranscriptionService, TranscriptionService>();
-        services.AddSingleton<ITranscriptionProvider, DeepgramProvider>();
 
         // AI
         services.AddSingleton<IAIService, AIService>();

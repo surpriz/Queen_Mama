@@ -21,16 +21,3 @@ public enum LicenseTier
     Pro,
     Enterprise
 }
-
-public enum Feature
-{
-    BasicTranscription,
-    AIAssist,
-    ScreenCapture,
-    AutoAnswer,
-    CustomModes,
-    SessionHistory,
-    Export,
-    UndetectableOverlay,
-    PrioritySupport
-}

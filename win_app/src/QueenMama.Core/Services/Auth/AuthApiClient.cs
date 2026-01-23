@@ -104,10 +104,10 @@ public class AuthApiClient : IAuthApiClient
         }
     }
 
-    public async Task<License> ValidateLicenseAsync(string deviceId)
+    public async Task<Models.License> ValidateLicenseAsync(string deviceId)
     {
         var body = new { deviceId };
-        return await PostAsync<License>("/api/license/validate", body, requiresAuth: true);
+        return await PostAsync<Models.License>("/api/license/validate", body, requiresAuth: true);
     }
 
     public async Task RecordUsageAsync(string action, string? provider = null, int? tokensUsed = null)

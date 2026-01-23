@@ -1,11 +1,12 @@
 using Microsoft.EntityFrameworkCore;
 using QueenMama.Core.Models;
+using SessionModel = QueenMama.Core.Models.Session;
 
 namespace QueenMama.Core.Data;
 
 public class QueenMamaDbContext : DbContext
 {
-    public DbSet<Session> Sessions => Set<Session>();
+    public DbSet<SessionModel> Sessions => Set<SessionModel>();
     public DbSet<TranscriptEntry> TranscriptEntries => Set<TranscriptEntry>();
     public DbSet<Mode> Modes => Set<Mode>();
     public DbSet<AIResponse> AIResponses => Set<AIResponse>();
@@ -44,7 +45,7 @@ public class QueenMamaDbContext : DbContext
         base.OnModelCreating(modelBuilder);
 
         // Session configuration
-        modelBuilder.Entity<Session>(entity =>
+        modelBuilder.Entity<SessionModel>(entity =>
         {
             entity.HasKey(e => e.Id);
             entity.Property(e => e.Title).HasMaxLength(200);

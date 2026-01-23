@@ -1,5 +1,5 @@
+using System.ComponentModel;
 using System.Windows;
-using QueenMama.App.ViewModels;
 
 namespace QueenMama.App.Views;
 
@@ -10,10 +10,10 @@ public partial class MainWindow : Window
         InitializeComponent();
     }
 
-    protected override void OnClosed(EventArgs e)
+    protected override void OnClosing(CancelEventArgs e)
     {
         // Hide to tray instead of closing
+        e.Cancel = true;
         Hide();
-        e.Handled = true;
     }
 }

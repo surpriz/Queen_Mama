@@ -9,7 +9,10 @@
       "Bash(xcodebuild:*)",
       "Bash(npx prisma migrate dev:*)",
       "Bash(curl:*)",
-      "Bash(npm install:*)"
+      "Bash(npm install:*)",
+      "Bash(powershell -Command:*)",
+      "Bash(dotnet build:*)",
+      "Bash(dotnet run:*)"
     ]
   }
 }
