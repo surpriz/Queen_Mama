@@ -2,8 +2,8 @@ import Foundation
 
 /// Centralized URL configuration manager for the Queen Mama app.
 /// Provides environment-aware URLs (localhost in DEBUG, production in Release).
-final class URLConfigManager {
-    static let shared = URLConfigManager()
+final class URLConfigManager: @unchecked Sendable {
+    nonisolated(unsafe) static let shared = URLConfigManager()
 
     let apiBaseURL: URL
     let webBaseURL: URL

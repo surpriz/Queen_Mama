@@ -105,7 +105,7 @@ final class AIResponse: Identifiable {
     }
 }
 
-enum AIProviderType: String, CaseIterable {
+enum AIProviderType: String, CaseIterable, Sendable {
     case anthropic = "Anthropic"
     case grok = "xAI Grok"
     case openai = "OpenAI"
@@ -123,7 +123,7 @@ enum AIProviderType: String, CaseIterable {
     }
 }
 
-struct AIContext {
+struct AIContext: @unchecked Sendable {
     let transcript: String
     let screenshot: Data?
     let mode: Mode?

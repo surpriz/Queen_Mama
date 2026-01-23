@@ -2,7 +2,7 @@ import Foundation
 
 // MARK: - AI Provider Protocol
 
-protocol AIProvider {
+protocol AIProvider: Sendable {
     var providerType: AIProviderType { get }
     var isConfigured: Bool { get }
 
