@@ -357,3 +357,7 @@ bin/*.key
 # Keep example files
 !certificate/*.example
 !bin/*.example
+
+# Claude AI documentation files (not for version control)
+**/CLAUDE.md
+CLAUDE.md
