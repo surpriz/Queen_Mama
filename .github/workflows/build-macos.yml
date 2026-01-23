@@ -172,8 +172,16 @@ jobs:
 
       - name: Create DMG
         run: |
+          # Create a folder for DMG contents
+          mkdir -p "$RUNNER_TEMP/dmg-contents"
+          cp -R "$RUNNER_TEMP/export/Queen Mama.app" "$RUNNER_TEMP/dmg-contents/"
+
+          # Add symbolic link to Applications folder
+          ln -s /Applications "$RUNNER_TEMP/dmg-contents/Applications"
+
+          # Create DMG with both app and Applications shortcut
           hdiutil create -volname "Queen Mama" \
-            -srcfolder "$RUNNER_TEMP/export/Queen Mama.app" \
+            -srcfolder "$RUNNER_TEMP/dmg-contents" \
             -ov -format UDZO \
             $RUNNER_TEMP/QueenMama.dmg
 
