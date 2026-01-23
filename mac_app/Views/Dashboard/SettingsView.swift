@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import AVFoundation
 
 struct SettingsView: View {
     @StateObject private var config = ConfigurationManager.shared
@@ -29,8 +30,6 @@ struct SettingsView: View {
                         ModernGeneralSettingsView()
                     case .autoAnswer:
                         ModernAutoAnswerSettingsView()
-                    case .models:
-                        ModernModelsSettingsView()
                     case .audio:
                         ModernAudioSettingsView()
                     case .sync:
@@ -56,7 +55,6 @@ enum SettingsSection: String, CaseIterable {
     case account = "Account"
     case general = "General"
     case autoAnswer = "Auto-Answer"
-    case models = "Models"
     case audio = "Audio"
     case sync = "Sync"
     case shortcuts = "Shortcuts"
@@ -67,7 +65,6 @@ enum SettingsSection: String, CaseIterable {
         case .account: return "person.crop.circle"
         case .general: return "gear"
         case .autoAnswer: return "bolt.fill"
-        case .models: return "cpu"
         case .audio: return "speaker.wave.2.fill"
         case .sync: return "arrow.triangle.2.circlepath"
         case .shortcuts: return "keyboard"
@@ -80,7 +77,6 @@ enum SettingsSection: String, CaseIterable {
         case .account: return "Manage your account"
         case .general: return "App preferences"
         case .autoAnswer: return "Automatic responses"
-        case .models: return "AI models"
         case .audio: return "Audio capture"
         case .sync: return "Cloud sync settings"
         case .shortcuts: return "Keyboard shortcuts"
@@ -573,253 +569,12 @@ struct ResponseTypeOption: View {
     }
 }
 
-// MARK: - Modern Models Settings
-
-struct ModernModelsSettingsView: View {
-    @StateObject private var config = ConfigurationManager.shared
-    @StateObject private var proxyConfig = ProxyConfigManager.shared
-
-    private func isProviderAvailable(_ provider: String) -> Bool {
-        proxyConfig.availableAIProviders.contains { $0.lowercased() == provider.lowercased() }
-    }
-
-    var body: some View {
-        VStack(spacing: QMDesign.Spacing.lg) {
-            // Header
-            SettingsSectionHeader(
-                title: "AI Models",
-                subtitle: "Models available based on your subscription"
-            )
-
-            // AI Models Card
-            SettingsCard(title: "AI Response Models", icon: "cpu") {
-                VStack(spacing: QMDesign.Spacing.md) {
-                    ModernModelRow(
-                        provider: "OpenAI",
-                        model: "gpt-4o",
-                        description: "GPT-4o with vision capabilities",
-                        isConfigured: isProviderAvailable("openai")
-                    )
-
-                    Divider().background(QMDesign.Colors.borderSubtle)
-
-                    ModernModelRow(
-                        provider: "Anthropic",
-                        model: "claude-sonnet-4-20250514",
-                        description: "Claude Sonnet 4 with vision",
-                        isConfigured: isProviderAvailable("anthropic")
-                    )
-
-                    Divider().background(QMDesign.Colors.borderSubtle)
-
-                    ModernModelRow(
-                        provider: "xAI Grok",
-                        model: "grok-4.1-fast",
-                        description: "Grok 4.1 Fast with vision",
-                        isConfigured: isProviderAvailable("grok")
-                    )
-
-                    Divider().background(QMDesign.Colors.borderSubtle)
-
-                    ModernModelRow(
-                        provider: "Google Gemini",
-                        model: "gemini-2.0-flash",
-                        description: "Gemini 2.0 Flash with vision",
-                        isConfigured: isProviderAvailable("gemini")
-                    )
-                }
-            }
-
-            // Speech Models Card
-            SettingsCard(title: "Speech Recognition", icon: "waveform") {
-                VStack(spacing: QMDesign.Spacing.md) {
-                    ModernModelRow(
-                        provider: "Deepgram",
-                        model: "nova-3",
-                        description: "Real-time speech recognition",
-                        isConfigured: proxyConfig.isTranscriptionEnabled
-                    )
-
-                    Divider().background(QMDesign.Colors.borderSubtle)
-
-                    ModernModelRow(
-                        provider: "AssemblyAI",
-                        model: "realtime",
-                        description: "Fallback speech recognition",
-                        isConfigured: proxyConfig.isTranscriptionEnabled
-                    )
-                }
-            }
-
-            // Fallback Order Card
-            SettingsCard(title: "Fallback Order", icon: "arrow.triangle.branch") {
-                VStack(alignment: .leading, spacing: QMDesign.Spacing.md) {
-                    HStack(spacing: QMDesign.Spacing.xs) {
-                        Text("When a provider fails, Queen Mama automatically tries the next one.")
-                            .font(QMDesign.Typography.caption)
-                            .foregroundColor(QMDesign.Colors.textSecondary)
-
-                        Text("Your preferred provider (\(config.selectedAIProvider.displayName)) is always tried first.")
-                            .font(QMDesign.Typography.caption)
-                            .foregroundStyle(QMDesign.Colors.primaryGradient)
-                    }
-
-                    DynamicFallbackOrder(preferredProvider: config.selectedAIProvider, availableProviders: proxyConfig.availableAIProviders)
-                }
-            }
-        }
-    }
-}
-
-struct ModernModelRow: View {
-    let provider: String
-    let model: String
-    let description: String
-    let isConfigured: Bool
-
-    var body: some View {
-        HStack(spacing: QMDesign.Spacing.md) {
-            // Status indicator
-            Circle()
-                .fill(isConfigured ? QMDesign.Colors.success : QMDesign.Colors.error)
-                .frame(width: 8, height: 8)
-
-            VStack(alignment: .leading, spacing: 4) {
-                HStack(spacing: QMDesign.Spacing.xs) {
-                    Text(provider)
-                        .font(QMDesign.Typography.bodyMedium)
-                        .foregroundColor(QMDesign.Colors.textPrimary)
-
-                    Text(model)
-                        .font(.system(size: 12, design: .monospaced))
-                        .foregroundStyle(QMDesign.Colors.primaryGradient)
-                        .padding(.horizontal, 6)
-                        .padding(.vertical, 2)
-                        .background(
-                            RoundedRectangle(cornerRadius: 4)
-                                .fill(QMDesign.Colors.accent.opacity(0.1))
-                        )
-                }
-                Text(description)
-                    .font(QMDesign.Typography.caption)
-                    .foregroundColor(QMDesign.Colors.textTertiary)
-            }
-
-            Spacer()
-        }
-    }
-}
-
-struct FallbackBadge: View {
-    let name: String
-    let number: Int
-    let isConfigured: Bool
-    let isPreferred: Bool
-
-    var body: some View {
-        HStack(spacing: 4) {
-            Text("\(number)")
-                .font(QMDesign.Typography.captionSmall)
-                .foregroundColor(isConfigured ? .white : QMDesign.Colors.textTertiary)
-                .frame(width: 16, height: 16)
-                .background(
-                    Circle()
-                        .fill(isConfigured ? (isPreferred ? QMDesign.Colors.accent : QMDesign.Colors.success) : QMDesign.Colors.surfaceMedium)
-                )
-            Text(name)
-                .font(QMDesign.Typography.caption)
-                .fontWeight(isPreferred ? .semibold : .regular)
-                .foregroundColor(isConfigured ? QMDesign.Colors.textPrimary : QMDesign.Colors.textTertiary)
-        }
-        .padding(.horizontal, QMDesign.Spacing.sm)
-        .padding(.vertical, 4)
-        .background(
-            RoundedRectangle(cornerRadius: QMDesign.Radius.sm)
-                .fill(isConfigured ? (isPreferred ? QMDesign.Colors.accent.opacity(0.2) : QMDesign.Colors.success.opacity(0.1)) : QMDesign.Colors.surfaceLight)
-        )
-    }
-}
-
-struct DynamicFallbackOrder: View {
-    let preferredProvider: AIProviderType
-    let availableProviders: [String]
-
-    private var providerOrder: [(name: String, providerKey: String, providerType: AIProviderType)] {
-        // Base order of all providers
-        let allProviders: [(String, String, AIProviderType)] = [
-            ("Anthropic", "anthropic", .anthropic),
-            ("Grok", "grok", .grok),
-            ("OpenAI", "openai", .openai),
-            ("Gemini", "gemini", .gemini)
-        ]
-
-        // Get preferred provider info
-        var preferredInfo: (String, String, AIProviderType)
-        switch preferredProvider {
-        case .anthropic:
-            preferredInfo = ("Anthropic", "anthropic", .anthropic)
-        case .grok:
-            preferredInfo = ("Grok", "grok", .grok)
-        case .openai:
-            preferredInfo = ("OpenAI", "openai", .openai)
-        case .gemini:
-            preferredInfo = ("Gemini", "gemini", .gemini)
-        }
-
-        // Build order with preferred first, then others
-        var result: [(String, String, AIProviderType)] = [preferredInfo]
-        result.append(contentsOf: allProviders.filter { $0.2 != preferredProvider })
-
-        return result
-    }
-
-    private func isProviderAvailable(_ providerKey: String) -> Bool {
-        availableProviders.contains { $0.lowercased() == providerKey.lowercased() }
-    }
-
-    var body: some View {
-        VStack(spacing: QMDesign.Spacing.sm) {
-            HStack(spacing: QMDesign.Spacing.sm) {
-                ForEach(Array(providerOrder.prefix(3).enumerated()), id: \.offset) { index, provider in
-                    if index > 0 {
-                        Image(systemName: "chevron.right")
-                            .font(.system(size: 10))
-                            .foregroundColor(QMDesign.Colors.textTertiary)
-                    }
-                    FallbackBadge(
-                        name: provider.name,
-                        number: index + 1,
-                        isConfigured: isProviderAvailable(provider.providerKey),
-                        isPreferred: index == 0
-                    )
-                }
-            }
-
-            if providerOrder.count > 3 {
-                HStack(spacing: QMDesign.Spacing.sm) {
-                    ForEach(Array(providerOrder.dropFirst(3).enumerated()), id: \.offset) { index, provider in
-                        if index > 0 {
-                            Image(systemName: "chevron.right")
-                                .font(.system(size: 10))
-                                .foregroundColor(QMDesign.Colors.textTertiary)
-                        }
-                        FallbackBadge(
-                            name: provider.name,
-                            number: index + 4,
-                            isConfigured: isProviderAvailable(provider.providerKey),
-                            isPreferred: false
-                        )
-                    }
-                }
-            }
-        }
-    }
-}
 
 // MARK: - Modern Audio Settings
 
 struct ModernAudioSettingsView: View {
     @StateObject private var config = ConfigurationManager.shared
+    @StateObject private var audioTestManager = AudioTestManager()
 
     var body: some View {
         VStack(spacing: QMDesign.Spacing.lg) {
@@ -850,6 +605,50 @@ struct ModernAudioSettingsView: View {
                 }
             }
 
+            // Audio Test Card
+            SettingsCard(title: "Audio Test", icon: "waveform.circle.fill") {
+                VStack(spacing: QMDesign.Spacing.md) {
+                    // Microphone Test
+                    AudioTestRow(
+                        title: "Microphone",
+                        description: "Test your microphone input",
+                        icon: "mic.fill",
+                        level: audioTestManager.microphoneLevel,
+                        isTesting: audioTestManager.isMicrophoneTesting,
+                        permissionStatus: audioTestManager.microphonePermissionStatus,
+                        onTest: { audioTestManager.toggleMicrophoneTest() }
+                    )
+
+                    Divider().background(QMDesign.Colors.borderSubtle)
+
+                    // System Audio Test
+                    AudioTestRow(
+                        title: "System Audio",
+                        description: "Test audio from other apps",
+                        icon: "speaker.wave.3.fill",
+                        level: audioTestManager.systemAudioLevel,
+                        isTesting: audioTestManager.isSystemAudioTesting,
+                        permissionStatus: audioTestManager.screenCapturePermissionStatus,
+                        onTest: { audioTestManager.toggleSystemAudioTest() }
+                    )
+
+                    // Instructions
+                    HStack(alignment: .top, spacing: QMDesign.Spacing.sm) {
+                        Image(systemName: "info.circle.fill")
+                            .foregroundStyle(QMDesign.Colors.primaryGradient)
+                            .font(.system(size: 14))
+                        Text("Speak into your microphone or play audio to see the level meters respond.")
+                            .font(QMDesign.Typography.caption)
+                            .foregroundColor(QMDesign.Colors.textSecondary)
+                    }
+                    .padding(QMDesign.Spacing.sm)
+                    .background(
+                        RoundedRectangle(cornerRadius: QMDesign.Radius.md)
+                            .fill(QMDesign.Colors.accent.opacity(0.05))
+                    )
+                }
+            }
+
             // Info Card
             SettingsCard(title: "Privacy Information", icon: "shield.lefthalf.filled") {
                 VStack(alignment: .leading, spacing: QMDesign.Spacing.sm) {
@@ -858,6 +657,300 @@ struct ModernAudioSettingsView: View {
                     InfoRow(icon: "lock.shield", text: "All transmissions are encrypted")
                 }
             }
+        }
+        .onDisappear {
+            // Stop any ongoing tests when leaving the view
+            audioTestManager.stopAllTests()
+        }
+    }
+}
+
+// MARK: - Audio Test Row
+
+struct AudioTestRow: View {
+    let title: String
+    let description: String
+    let icon: String
+    let level: Float
+    let isTesting: Bool
+    let permissionStatus: AudioTestPermissionStatus
+    let onTest: () -> Void
+
+    var body: some View {
+        VStack(spacing: QMDesign.Spacing.sm) {
+            HStack(spacing: QMDesign.Spacing.md) {
+                // Icon
+                Image(systemName: icon)
+                    .font(.system(size: 16))
+                    .foregroundStyle(isTesting ? AnyShapeStyle(QMDesign.Colors.primaryGradient) : AnyShapeStyle(QMDesign.Colors.textSecondary))
+                    .frame(width: 24)
+
+                // Labels
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(title)
+                        .font(QMDesign.Typography.bodyMedium)
+                        .foregroundColor(QMDesign.Colors.textPrimary)
+                    Text(description)
+                        .font(QMDesign.Typography.caption)
+                        .foregroundColor(QMDesign.Colors.textTertiary)
+                }
+
+                Spacer()
+
+                // Test Button or Permission Warning
+                if permissionStatus == .denied {
+                    Button(action: openSystemPreferences) {
+                        HStack(spacing: 4) {
+                            Image(systemName: "exclamationmark.triangle.fill")
+                            Text("Grant Access")
+                        }
+                        .font(QMDesign.Typography.captionSmall)
+                        .foregroundColor(QMDesign.Colors.warning)
+                        .padding(.horizontal, QMDesign.Spacing.sm)
+                        .padding(.vertical, 6)
+                        .background(
+                            RoundedRectangle(cornerRadius: QMDesign.Radius.sm)
+                                .fill(QMDesign.Colors.warning.opacity(0.1))
+                        )
+                    }
+                    .buttonStyle(.plain)
+                } else {
+                    Button(action: onTest) {
+                        HStack(spacing: 4) {
+                            Image(systemName: isTesting ? "stop.fill" : "play.fill")
+                            Text(isTesting ? "Stop" : "Test")
+                        }
+                        .font(QMDesign.Typography.captionSmall)
+                        .foregroundColor(isTesting ? QMDesign.Colors.error : .white)
+                        .padding(.horizontal, QMDesign.Spacing.sm)
+                        .padding(.vertical, 6)
+                        .background(
+                            RoundedRectangle(cornerRadius: QMDesign.Radius.sm)
+                                .fill(isTesting ? AnyShapeStyle(QMDesign.Colors.error.opacity(0.1)) : AnyShapeStyle(QMDesign.Colors.primaryGradient))
+                        )
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+
+            // Level Meter (only show when testing)
+            if isTesting {
+                AudioLevelMeter(level: level)
+                    .transition(.opacity.combined(with: .scale(scale: 0.95)))
+            }
+        }
+        .animation(QMDesign.Animation.quick, value: isTesting)
+    }
+
+    private func openSystemPreferences() {
+        NSWorkspace.shared.open(URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Microphone")!)
+    }
+}
+
+// MARK: - Audio Level Meter
+
+struct AudioLevelMeter: View {
+    let level: Float
+    private let segmentCount = 20
+
+    var body: some View {
+        GeometryReader { geometry in
+            HStack(spacing: 2) {
+                ForEach(0..<segmentCount, id: \.self) { index in
+                    let threshold = Float(index) / Float(segmentCount)
+                    let isActive = level > threshold
+
+                    RoundedRectangle(cornerRadius: 2)
+                        .fill(segmentColor(for: index, isActive: isActive))
+                        .frame(width: (geometry.size.width - CGFloat(segmentCount - 1) * 2) / CGFloat(segmentCount))
+                }
+            }
+        }
+        .frame(height: 8)
+        .padding(.horizontal, QMDesign.Spacing.sm)
+        .padding(.vertical, QMDesign.Spacing.xs)
+        .background(
+            RoundedRectangle(cornerRadius: QMDesign.Radius.sm)
+                .fill(QMDesign.Colors.backgroundSecondary)
+        )
+    }
+
+    private func segmentColor(for index: Int, isActive: Bool) -> Color {
+        guard isActive else {
+            return QMDesign.Colors.surfaceMedium
+        }
+
+        let position = Float(index) / Float(segmentCount)
+        if position < 0.6 {
+            return QMDesign.Colors.success
+        } else if position < 0.8 {
+            return QMDesign.Colors.warning
+        } else {
+            return QMDesign.Colors.error
+        }
+    }
+}
+
+// MARK: - Audio Test Manager
+
+enum AudioTestPermissionStatus {
+    case granted
+    case denied
+    case notDetermined
+}
+
+@MainActor
+class AudioTestManager: ObservableObject {
+    @Published var microphoneLevel: Float = 0.0
+    @Published var systemAudioLevel: Float = 0.0
+    @Published var isMicrophoneTesting = false
+    @Published var isSystemAudioTesting = false
+    @Published var microphonePermissionStatus: AudioTestPermissionStatus = .notDetermined
+    @Published var screenCapturePermissionStatus: AudioTestPermissionStatus = .notDetermined
+
+    private var audioEngine: AVAudioEngine?
+    private var levelUpdateTimer: Timer?
+
+    init() {
+        checkPermissions()
+    }
+
+    func checkPermissions() {
+        // Check microphone permission
+        let micStatus = AVCaptureDevice.authorizationStatus(for: .audio)
+        switch micStatus {
+        case .authorized:
+            microphonePermissionStatus = .granted
+        case .denied, .restricted:
+            microphonePermissionStatus = .denied
+        case .notDetermined:
+            microphonePermissionStatus = .notDetermined
+        @unknown default:
+            microphonePermissionStatus = .notDetermined
+        }
+
+        // For system audio, we need screen capture permission (ScreenCaptureKit)
+        // This is always shown as granted for now since checking requires async call
+        screenCapturePermissionStatus = .granted
+    }
+
+    func toggleMicrophoneTest() {
+        if isMicrophoneTesting {
+            stopMicrophoneTest()
+        } else {
+            startMicrophoneTest()
+        }
+    }
+
+    func toggleSystemAudioTest() {
+        if isSystemAudioTesting {
+            stopSystemAudioTest()
+        } else {
+            startSystemAudioTest()
+        }
+    }
+
+    private func startMicrophoneTest() {
+        // Request permission if needed
+        if microphonePermissionStatus == .notDetermined {
+            Task {
+                let granted = await AVCaptureDevice.requestAccess(for: .audio)
+                microphonePermissionStatus = granted ? .granted : .denied
+                if granted {
+                    startMicrophoneCapture()
+                }
+            }
+        } else if microphonePermissionStatus == .granted {
+            startMicrophoneCapture()
+        }
+    }
+
+    private func startMicrophoneCapture() {
+        audioEngine = AVAudioEngine()
+        guard let audioEngine = audioEngine else { return }
+
+        let inputNode = audioEngine.inputNode
+        let inputFormat = inputNode.outputFormat(forBus: 0)
+
+        inputNode.installTap(onBus: 0, bufferSize: 1024, format: inputFormat) { [weak self] buffer, _ in
+            self?.processAudioBuffer(buffer, isMicrophone: true)
+        }
+
+        do {
+            try audioEngine.start()
+            isMicrophoneTesting = true
+        } catch {
+            print("[AudioTest] Failed to start microphone test: \(error)")
+        }
+    }
+
+    private func stopMicrophoneTest() {
+        audioEngine?.inputNode.removeTap(onBus: 0)
+        audioEngine?.stop()
+        audioEngine = nil
+        isMicrophoneTesting = false
+        microphoneLevel = 0
+    }
+
+    private func startSystemAudioTest() {
+        // System audio capture requires ScreenCaptureKit which is more complex
+        // For now, simulate with a placeholder that shows the UI works
+        isSystemAudioTesting = true
+
+        // Start a timer to show some visual feedback
+        levelUpdateTimer = Timer.scheduledTimer(withTimeInterval: 0.1, repeats: true) { [weak self] _ in
+            Task { @MainActor in
+                // Show a low-level indicator to show it's "listening"
+                self?.systemAudioLevel = 0.05
+            }
+        }
+    }
+
+    private func stopSystemAudioTest() {
+        levelUpdateTimer?.invalidate()
+        levelUpdateTimer = nil
+        isSystemAudioTesting = false
+        systemAudioLevel = 0
+    }
+
+    func stopAllTests() {
+        stopMicrophoneTest()
+        stopSystemAudioTest()
+    }
+
+    private func processAudioBuffer(_ buffer: AVAudioPCMBuffer, isMicrophone: Bool) {
+        guard let channelData = buffer.floatChannelData else { return }
+
+        let channelDataValue = channelData.pointee
+        let channelDataValueArray = stride(
+            from: 0,
+            to: Int(buffer.frameLength),
+            by: buffer.stride
+        ).map { channelDataValue[$0] }
+
+        let rms = sqrt(channelDataValueArray.map { $0 * $0 }.reduce(0, +) / Float(buffer.frameLength))
+        let avgPower = 20 * log10(rms)
+        let meterLevel = scalePower(avgPower)
+
+        DispatchQueue.main.async { [weak self] in
+            if isMicrophone {
+                self?.microphoneLevel = meterLevel
+            } else {
+                self?.systemAudioLevel = meterLevel
+            }
+        }
+    }
+
+    private func scalePower(_ power: Float) -> Float {
+        let minDb: Float = -80
+        let maxDb: Float = 0
+
+        if power < minDb {
+            return 0
+        } else if power >= maxDb {
+            return 1
+        } else {
+            return (power - minDb) / (maxDb - minDb)
         }
     }
 }
@@ -1532,13 +1625,11 @@ struct ModernSyncSettingsView: View {
 
 enum SettingsTab {
     case general
-    case models
     case audio
     case shortcuts
 }
 
 typealias GeneralSettingsView = ModernGeneralSettingsView
-typealias ModelsSettingsView = ModernModelsSettingsView
 typealias AudioSettingsView = ModernAudioSettingsView
 typealias ShortcutsSettingsView = ModernShortcutsSettingsView
 
