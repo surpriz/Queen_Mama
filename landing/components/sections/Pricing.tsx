@@ -74,8 +74,8 @@ export function Pricing() {
             Simple, <span className="gradient-text">Transparent</span> Pricing
           </h2>
           <p className="text-lg text-[var(--qm-text-secondary)] max-w-2xl mx-auto">
-            Start free and upgrade when you&apos;re ready. All paid plans include
-            a 14-day free trial.
+            Start free and upgrade when you&apos;re ready. Unlock premium features
+            instantly with our paid plans.
           </p>
         </motion.div>
 

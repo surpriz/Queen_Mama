@@ -92,7 +92,7 @@ final class SyncManager: ObservableObject {
         guard !pendingQueue.isEmpty else { return }
         guard authManager.isAuthenticated else { return }
         guard licenseManager.isFeatureAvailable(.sessionSync) else {
-            lastError = "Session sync requires PRO subscription"
+            lastError = "Session sync is not available"
             return
         }
 

@@ -53,21 +53,7 @@ export async function POST(request: Request) {
       );
     }
 
-    // Check if user has PRO or ENTERPRISE subscription for sync
-    const hasPaidPlan = (user.subscription?.plan === "PRO" || user.subscription?.plan === "ENTERPRISE") &&
-      (user.subscription.status === "ACTIVE" || user.subscription.status === "TRIALING");
-
-    if (!hasPaidPlan) {
-      return NextResponse.json(
-        {
-          error: "subscription_required",
-          message: "Session sync requires a PRO or ENTERPRISE subscription",
-          upgradeUrl: "/dashboard/billing",
-        },
-        { status: 403 }
-      );
-    }
-
+    // Session sync is now available for all authenticated users
     const body = await request.json();
 
     // Determine if batch or single session

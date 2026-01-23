@@ -66,7 +66,7 @@ struct UpgradePromptView: View {
                         .foregroundColor(QMDesign.Colors.textSecondary)
                 }
 
-                Text("14-day free trial included")
+                Text("Cancel anytime")
                     .font(QMDesign.Typography.caption)
                     .foregroundColor(QMDesign.Colors.textTertiary)
             }

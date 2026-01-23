@@ -16,9 +16,9 @@ const PLAN_FEATURES = {
     customModesEnabled: false, // view only
     exportFormats: ["plainText"],
     autoAnswerEnabled: false, // Enterprise only
-    sessionSyncEnabled: false,
+    sessionSyncEnabled: true, // Session sync enabled for all users
     dailyAiRequestLimit: 50,
-    maxSyncedSessions: 0,
+    maxSyncedSessions: 100, // Limit for free users
     maxTranscriptSize: 10240, // 10KB
     undetectableEnabled: false, // Enterprise only
     screenshotEnabled: true,

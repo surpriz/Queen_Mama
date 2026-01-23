@@ -54,7 +54,6 @@ export async function POST(request: NextRequest) {
       customer_email: user.stripeCustomerId ? undefined : user.email!,
       subscription_data: {
         metadata: { userId: session.user.id, plan },
-        trial_period_days: 14,
       },
       metadata: { userId: session.user.id, plan },
     });
