@@ -41,6 +41,7 @@
 		000000000000000000000028 /* UpdaterManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 100000000000000000000028 /* UpdaterManager.swift */; };
 		000000000000000000000029 /* AuthGateView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 100000000000000000000029 /* AuthGateView.swift */; };
 		075FD1B28F548EA76E2128F9 /* ProxyAPIClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = F31BD8E8B721652533B20139 /* ProxyAPIClient.swift */; };
+		10000000000000000000002A /* URLConfigManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 10000000000000000000002B /* URLConfigManager.swift */; };
 		3BB6D98AB2453F3BF23375A2 /* ProxyAIProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = C4A5D6911606803AAD99FDDE /* ProxyAIProvider.swift */; };
 		5C4CC9402F1F6755008BDBE9 /* Sparkle in Frameworks */ = {isa = PBXBuildFile; productRef = 5C4CC93F2F1F6755008BDBE9 /* Sparkle */; };
 		5C8B7EA42F17D57E00DAE824 /* TranscriptionProviders.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5C8B7EA32F17D57E00DAE824 /* TranscriptionProviders.swift */; };
@@ -57,7 +58,6 @@
 		5CD8E05C2F1FAB790011F4D3 /* Sentry in Frameworks */ = {isa = PBXBuildFile; productRef = 5CD8E05B2F1FAB790011F4D2 /* Sentry */; };
 		6937AD307161BE7D38D20A02 /* ProxyConfigManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6FF34DCBA9126388FFC21F75 /* ProxyConfigManager.swift */; };
 		72E5F74C2ED54F91ABC5DA43 /* MarkdownRenderer.swift in Sources */ = {isa = PBXBuildFile; fileRef = AED67FF476044F25BA92C2A6 /* MarkdownRenderer.swift */; };
-		10000000000000000000002A /* URLConfigManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 10000000000000000000002B /* URLConfigManager.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -96,6 +96,7 @@
 		100000000000000000000027 /* SecureStorage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SecureStorage.swift; sourceTree = "<group>"; };
 		100000000000000000000028 /* UpdaterManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UpdaterManager.swift; sourceTree = "<group>"; };
 		100000000000000000000029 /* AuthGateView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthGateView.swift; sourceTree = "<group>"; };
+		10000000000000000000002B /* URLConfigManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = URLConfigManager.swift; sourceTree = "<group>"; };
 		200000000000000000000001 /* QueenMama.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = QueenMama.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		5C8B7EA32F17D57E00DAE824 /* TranscriptionProviders.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TranscriptionProviders.swift; sourceTree = "<group>"; };
 		5C90DF182F1A5197006B0DE0 /* AuthModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthModels.swift; sourceTree = "<group>"; };
@@ -112,7 +113,6 @@
 		AED67FF476044F25BA92C2A6 /* MarkdownRenderer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MarkdownRenderer.swift; sourceTree = "<group>"; };
 		C4A5D6911606803AAD99FDDE /* ProxyAIProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProxyAIProvider.swift; sourceTree = "<group>"; };
 		F31BD8E8B721652533B20139 /* ProxyAPIClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProxyAPIClient.swift; sourceTree = "<group>"; };
-		10000000000000000000002B /* URLConfigManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = URLConfigManager.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -610,6 +610,7 @@
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
 				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_PACKAGE_PLUGIN_VALIDATION = NO;
 				SWIFT_STRICT_CONCURRENCY = complete;
 				SWIFT_VERSION = 5.0;
 			};
@@ -648,6 +649,7 @@
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
 				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_PACKAGE_PLUGIN_VALIDATION = NO;
 				SWIFT_STRICT_CONCURRENCY = complete;
 				SWIFT_VERSION = 5.0;
 			};

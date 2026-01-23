@@ -44,8 +44,9 @@ export const TIER_LIMITS = {
     transcriptionProviders: ["deepgram"] as TranscriptionProviderType[],
     maxTokens: 1000,
     smartMode: false,
-    dailyAiRequests: 50,
+    dailyAiRequests: 1,
     transcription: true,
+    screenshot: false,
   },
   PRO: {
     aiProviders: ["openai", "anthropic", "grok", "gemini"] as AIProviderType[],
@@ -54,6 +55,7 @@ export const TIER_LIMITS = {
     smartMode: false,
     dailyAiRequests: null, // unlimited
     transcription: true,
+    screenshot: true,
   },
   ENTERPRISE: {
     aiProviders: ["openai", "anthropic", "grok", "gemini"] as AIProviderType[],
@@ -62,6 +64,7 @@ export const TIER_LIMITS = {
     smartMode: true,
     dailyAiRequests: null, // unlimited
     transcription: true,
+    screenshot: true,
   },
 } as const;
 
