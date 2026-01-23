@@ -899,7 +899,8 @@ class AudioTestManager: ObservableObject {
 
         // Start a timer to show some visual feedback
         levelUpdateTimer = Timer.scheduledTimer(withTimeInterval: 0.1, repeats: true) { [weak self] _ in
-            Task { @MainActor in
+            guard let self else { return }
+            Task { @MainActor [weak self] in
                 // Show a low-level indicator to show it's "listening"
                 self?.systemAudioLevel = 0.05
             }

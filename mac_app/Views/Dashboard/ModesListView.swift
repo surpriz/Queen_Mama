@@ -730,6 +730,7 @@ struct ModernModeFilesCard: View {
         )
     }
 
+    @MainActor
     private func addFile() {
         let openPanel = NSOpenPanel()
         openPanel.allowedContentTypes = [.pdf, .plainText, .rtf]
