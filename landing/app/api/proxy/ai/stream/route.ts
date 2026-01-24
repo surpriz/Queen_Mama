@@ -3,14 +3,16 @@ import { prisma } from "@/lib/prisma";
 import { verifyAccessToken } from "@/lib/device-auth";
 import {
   getProviderApiKey,
-  validateAIRequest,
+  getModelCascade,
   PROVIDER_URLS,
+  TIER_LIMITS,
   type PlanTier,
   type AIProviderType,
+  type CascadeModel,
 } from "@/lib/ai-providers";
 
 interface AIStreamRequestBody {
-  provider: AIProviderType;
+  provider?: AIProviderType; // Optional - backend uses cascade if not specified
   smartMode?: boolean;
   systemPrompt: string;
   userMessage: string;
@@ -20,8 +22,8 @@ interface AIStreamRequestBody {
 
 /**
  * POST /api/proxy/ai/stream
- * Proxy for streaming AI requests (Server-Sent Events)
- * Routes requests to the appropriate AI provider with admin API keys
+ * Proxy for streaming AI requests with automatic cascade fallback
+ * Tries multiple providers in order for maximum resilience
  */
 export async function POST(request: Request) {
   try {
@@ -48,11 +50,11 @@ export async function POST(request: Request) {
 
     // Parse request body
     const body: AIStreamRequestBody = await request.json();
-    const { provider, smartMode = false, systemPrompt, userMessage, screenshot, maxTokens } = body;
+    const { smartMode = false, systemPrompt, userMessage, screenshot, maxTokens } = body;
 
-    if (!provider || !systemPrompt || !userMessage) {
+    if (!systemPrompt || !userMessage) {
       return NextResponse.json(
-        { error: "invalid_request", message: "Missing required fields: provider, systemPrompt, userMessage" },
+        { error: "invalid_request", message: "Missing required fields: systemPrompt, userMessage" },
         { status: 400 }
       );
     }
@@ -81,6 +83,15 @@ export async function POST(request: Request) {
 
     // Get plan and check limits
     const plan = (user.subscription?.plan || "FREE") as PlanTier;
+    const tierConfig = TIER_LIMITS[plan];
+
+    // Check smart mode access
+    if (smartMode && !tierConfig.smartMode) {
+      return NextResponse.json(
+        { error: "request_denied", message: "Smart Mode requires Enterprise subscription" },
+        { status: 403 }
+      );
+    }
 
     // Get today's usage count
     const today = new Date();
@@ -94,95 +105,110 @@ export async function POST(request: Request) {
       },
     });
 
-    // Validate request (async - checks DB for configured providers)
-    const validation = await validateAIRequest({
-      tier: plan,
-      provider,
-      smartMode,
-      dailyRequestCount,
-    });
-
-    if (!validation.valid) {
+    // Check daily request limit
+    if (tierConfig.dailyAiRequests !== null && dailyRequestCount >= tierConfig.dailyAiRequests) {
       return NextResponse.json(
-        { error: "request_denied", message: validation.error },
+        { error: "request_denied", message: `Daily AI request limit reached (${tierConfig.dailyAiRequests})` },
         { status: 403 }
       );
     }
 
-    // Get admin API key from database
-    const adminApiKey = await getProviderApiKey(provider);
-    if (!adminApiKey) {
+    // Get model cascade for this mode
+    const cascade = await getModelCascade(smartMode);
+
+    if (cascade.length === 0) {
       return NextResponse.json(
-        { error: "provider_not_configured", message: `${provider} is not configured by admin` },
+        { error: "no_providers", message: "No AI providers are configured" },
         { status: 503 }
       );
     }
 
     // Calculate tokens
-    const requestMaxTokens = Math.min(maxTokens || validation.maxTokens, validation.maxTokens);
+    const requestMaxTokens = Math.min(maxTokens || tierConfig.maxTokens, tierConfig.maxTokens);
 
-    // Create SSE stream
+    // Create SSE stream with cascade fallback
     const encoder = new TextEncoder();
     const userId = user.id;
 
     const stream = new ReadableStream({
       async start(controller) {
-        try {
-          let providerStream: ReadableStream<Uint8Array>;
+        let successProvider: string | null = null;
+        let successModel: string | null = null;
+        const errors: string[] = [];
 
-          switch (provider) {
-            case "openai":
-            case "grok":
-              providerStream = await streamOpenAICompatible(
-                provider,
-                adminApiKey,
-                validation.model,
-                systemPrompt,
-                userMessage,
-                screenshot,
-                requestMaxTokens
-              );
-              break;
-            case "anthropic":
-              providerStream = await streamAnthropic(
-                adminApiKey,
-                validation.model,
-                systemPrompt,
-                userMessage,
-                screenshot,
-                requestMaxTokens,
-                smartMode
-              );
-              break;
-            case "gemini":
-              providerStream = await streamGemini(
-                adminApiKey,
-                validation.model,
-                systemPrompt,
-                userMessage,
-                screenshot,
-                requestMaxTokens
-              );
-              break;
-            default:
-              controller.enqueue(encoder.encode(`data: ${JSON.stringify({ error: "unsupported_provider" })}\n\n`));
-              controller.close();
-              return;
+        // Try each model in the cascade until one succeeds
+        for (const cascadeItem of cascade) {
+          const { provider, model } = cascadeItem;
+
+          try {
+            console.log(`[AI Cascade] Trying ${provider}/${model}...`);
+
+            const apiKey = await getProviderApiKey(provider);
+            if (!apiKey) {
+              console.log(`[AI Cascade] ${provider} not configured, skipping`);
+              errors.push(`${provider}: not configured`);
+              continue;
+            }
+
+            let providerStream: ReadableStream<Uint8Array>;
+
+            switch (provider) {
+              case "openai":
+              case "grok":
+                providerStream = await streamOpenAICompatible(
+                  provider,
+                  apiKey,
+                  model,
+                  systemPrompt,
+                  userMessage,
+                  screenshot,
+                  requestMaxTokens
+                );
+                break;
+              case "anthropic":
+                providerStream = await streamAnthropic(
+                  apiKey,
+                  model,
+                  systemPrompt,
+                  userMessage,
+                  screenshot,
+                  requestMaxTokens,
+                  smartMode
+                );
+                break;
+              default:
+                errors.push(`${provider}: unsupported provider`);
+                continue;
+            }
+
+            // Stream succeeded - forward to client
+            const reader = providerStream.getReader();
+            const decoder = new TextDecoder();
+
+            while (true) {
+              const { done, value } = await reader.read();
+              if (done) break;
+
+              const chunk = decoder.decode(value, { stream: true });
+              controller.enqueue(encoder.encode(chunk));
+            }
+
+            successProvider = provider;
+            successModel = model;
+            console.log(`[AI Cascade] Success with ${provider}/${model}`);
+            break; // Exit cascade loop on success
+
+          } catch (error) {
+            const errorMsg = error instanceof Error ? error.message : String(error);
+            console.error(`[AI Cascade] ${provider}/${model} failed:`, errorMsg);
+            errors.push(`${provider}/${model}: ${errorMsg}`);
+            // Continue to next provider in cascade
           }
+        }
 
-          const reader = providerStream.getReader();
-          const decoder = new TextDecoder();
-
-          while (true) {
-            const { done, value } = await reader.read();
-            if (done) break;
-
-            const chunk = decoder.decode(value, { stream: true });
-            controller.enqueue(encoder.encode(chunk));
-          }
-
-          // Send completion marker
-          controller.enqueue(encoder.encode("data: [DONE]\n\n"));
+        if (successProvider && successModel) {
+          // Send completion marker with provider info
+          controller.enqueue(encoder.encode(`data: [DONE]\n\n`));
           controller.close();
 
           // Record usage (async, don't block stream)
@@ -191,7 +217,7 @@ export async function POST(request: Request) {
               data: {
                 userId,
                 action: "ai_request",
-                provider,
+                provider: successProvider,
               },
             })
             .catch(console.error);
@@ -202,15 +228,20 @@ export async function POST(request: Request) {
                 data: {
                   userId,
                   action: "smart_mode",
-                  provider,
+                  provider: successProvider,
                 },
               })
               .catch(console.error);
           }
-        } catch (error) {
-          console.error("Stream error:", error);
+        } else {
+          // All providers failed
+          console.error("[AI Cascade] All providers failed:", errors);
           controller.enqueue(
-            encoder.encode(`data: ${JSON.stringify({ error: "stream_error", message: String(error) })}\n\n`)
+            encoder.encode(`data: ${JSON.stringify({
+              error: "all_providers_failed",
+              message: "All AI providers failed. Please try again.",
+              details: errors
+            })}\n\n`)
           );
           controller.close();
         }
@@ -222,8 +253,7 @@ export async function POST(request: Request) {
         "Content-Type": "text/event-stream",
         "Cache-Control": "no-cache",
         Connection: "keep-alive",
-        "X-Provider": provider,
-        "X-Model": validation.model,
+        "X-Cascade-Mode": smartMode ? "smart" : "standard",
       },
     });
   } catch (error) {
@@ -235,7 +265,7 @@ export async function POST(request: Request) {
   }
 }
 
-// OpenAI and Grok streaming
+// OpenAI and Grok streaming (OpenAI-compatible API)
 async function streamOpenAICompatible(
   provider: "openai" | "grok",
   apiKey: string,
@@ -264,23 +294,39 @@ async function streamOpenAICompatible(
     messages.push({ role: "user", content: userMessage });
   }
 
+  const startTime = Date.now();
+  console.log(`[${provider}] Calling API with model: ${model}, screenshot: ${!!screenshot}, maxTokens: ${maxTokens}`);
+
+  // Newer OpenAI models (gpt-5-*, o4-*) require max_completion_tokens
+  const useNewTokenParam = model.startsWith("gpt-5") || model.startsWith("o4-");
+
+  const requestBody: Record<string, unknown> = {
+    model,
+    messages,
+    temperature: 0.7,
+    stream: true,
+  };
+
+  if (useNewTokenParam) {
+    requestBody.max_completion_tokens = maxTokens;
+  } else {
+    requestBody.max_tokens = maxTokens;
+  }
+
   const response = await fetch(PROVIDER_URLS[provider], {
     method: "POST",
     headers: {
       Authorization: `Bearer ${apiKey}`,
       "Content-Type": "application/json",
     },
-    body: JSON.stringify({
-      model,
-      messages,
-      max_tokens: maxTokens,
-      temperature: 0.7,
-      stream: true,
-    }),
+    body: JSON.stringify(requestBody),
   });
 
+  console.log(`[${provider}] Response in ${Date.now() - startTime}ms, status: ${response.status}`);
+
   if (!response.ok || !response.body) {
-    throw new Error(`${provider} streaming error: ${response.status}`);
+    const errorText = await response.text().catch(() => "Failed to read error body");
+    throw new Error(`${provider} error ${response.status}: ${errorText}`);
   }
 
   // Transform the stream to extract content
@@ -363,6 +409,9 @@ async function streamAnthropic(
     };
   }
 
+  const startTime = Date.now();
+  console.log(`[Anthropic] Calling API with model: ${model}, screenshot: ${!!screenshot}, maxTokens: ${maxTokens}`);
+
   const response = await fetch(PROVIDER_URLS.anthropic, {
     method: "POST",
     headers: {
@@ -374,8 +423,11 @@ async function streamAnthropic(
     body: JSON.stringify(body),
   });
 
+  console.log(`[Anthropic] Response in ${Date.now() - startTime}ms, status: ${response.status}`);
+
   if (!response.ok || !response.body) {
-    throw new Error(`Anthropic streaming error: ${response.status}`);
+    const errorText = await response.text().catch(() => "Failed to read error body");
+    throw new Error(`Anthropic error ${response.status}: ${errorText}`);
   }
 
   const reader = response.body.getReader();
@@ -404,83 +456,6 @@ async function streamAnthropic(
             if (content) {
               controller.enqueue(encoder.encode(`data: ${JSON.stringify({ content })}\n\n`));
             }
-          }
-        } catch {
-          // Ignore parse errors
-        }
-      }
-    },
-  });
-}
-
-// Gemini streaming
-async function streamGemini(
-  apiKey: string,
-  model: string,
-  systemPrompt: string,
-  userMessage: string,
-  screenshot: string | undefined,
-  maxTokens: number
-): Promise<ReadableStream<Uint8Array>> {
-  const url = `${PROVIDER_URLS.gemini}/${model}:streamGenerateContent?key=${apiKey}&alt=sse`;
-
-  const parts: Array<{ text?: string; inline_data?: { mime_type: string; data: string } }> = [];
-  parts.push({ text: `${systemPrompt}\n\n${userMessage}` });
-
-  if (screenshot) {
-    parts.push({
-      inline_data: {
-        mime_type: "image/jpeg",
-        data: screenshot,
-      },
-    });
-  }
-
-  const response = await fetch(url, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      contents: [
-        {
-          role: "user",
-          parts,
-        },
-      ],
-      generationConfig: {
-        maxOutputTokens: maxTokens,
-        temperature: 0.7,
-      },
-    }),
-  });
-
-  if (!response.ok || !response.body) {
-    throw new Error(`Gemini streaming error: ${response.status}`);
-  }
-
-  const reader = response.body.getReader();
-  const encoder = new TextEncoder();
-  const decoder = new TextDecoder();
-
-  return new ReadableStream({
-    async pull(controller) {
-      const { done, value } = await reader.read();
-      if (done) {
-        controller.close();
-        return;
-      }
-
-      const chunk = decoder.decode(value, { stream: true });
-      const lines = chunk.split("\n").filter((line) => line.startsWith("data: "));
-
-      for (const line of lines) {
-        const jsonStr = line.slice(6);
-        try {
-          const data = JSON.parse(jsonStr);
-          const content = data.candidates?.[0]?.content?.parts?.[0]?.text;
-          if (content) {
-            controller.enqueue(encoder.encode(`data: ${JSON.stringify({ content })}\n\n`));
           }
         } catch {
           // Ignore parse errors

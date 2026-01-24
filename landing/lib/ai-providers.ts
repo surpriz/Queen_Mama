@@ -17,30 +17,57 @@ const providerToPrisma: Record<AIProviderType | TranscriptionProviderType, ApiKe
   assemblyai: "ASSEMBLYAI",
 };
 
-// Model configurations per provider
+// Model cascade configuration for resilience
+// Alternates between providers to maximize uptime
+// Order: Primary → Different provider → Backup → Last resort
+export interface CascadeModel {
+  provider: AIProviderType;
+  model: string;
+}
+
+export const MODEL_CASCADE = {
+  // Standard Mode: Fast, cheap, good enough
+  standard: [
+    { provider: "openai", model: "gpt-4.1-nano" },           // Primary: Fastest, cheapest, 1M context
+    { provider: "grok", model: "grok-4-1-fast-non-reasoning" }, // Fallback 1: Different provider
+    { provider: "openai", model: "gpt-5-nano" },             // Fallback 2: OpenAI backup
+    { provider: "anthropic", model: "claude-haiku-4-5-20251001" }, // Last resort: Claude
+  ] as CascadeModel[],
+
+  // Smart Mode: Enhanced reasoning for Enterprise
+  smart: [
+    { provider: "openai", model: "o4-mini" },                // Primary: Best reasoning/speed
+    { provider: "grok", model: "grok-4-1-fast-reasoning" },  // Fallback 1: Different provider
+    { provider: "openai", model: "gpt-5-mini" },             // Fallback 2: OpenAI backup
+    { provider: "anthropic", model: "claude-sonnet-4-5-20250929" }, // Last resort: Claude
+  ] as CascadeModel[],
+} as const;
+
+// Legacy AI_MODELS for backward compatibility
 export const AI_MODELS = {
   openai: {
-    standard: "gpt-4o-mini",
-    smart: "o3",
+    standard: "gpt-4.1-nano",
+    smart: "o4-mini",
   },
   anthropic: {
-    standard: "claude-sonnet-4-20250514",
-    smart: "claude-sonnet-4-20250514", // Uses extended thinking
+    standard: "claude-haiku-4-5-20251001",
+    smart: "claude-sonnet-4-5-20250929",
   },
   gemini: {
     standard: "gemini-2.0-flash",
     smart: "gemini-2.0-flash-thinking-exp",
   },
   grok: {
-    standard: "grok-3-fast",
-    smart: "grok-3",
+    standard: "grok-4-1-fast-non-reasoning",
+    smart: "grok-4-1-fast-reasoning",
   },
 } as const;
 
 // Tier-based feature limits
+// All tiers use the cascade system for resilience (OpenAI → Grok → Claude)
 export const TIER_LIMITS = {
   FREE: {
-    aiProviders: ["openai", "anthropic"] as AIProviderType[], // Allow OpenAI or Anthropic
+    aiProviders: ["openai", "grok", "anthropic"] as AIProviderType[], // Cascade providers
     transcriptionProviders: ["deepgram"] as TranscriptionProviderType[],
     maxTokens: 1000,
     smartMode: false,
@@ -49,7 +76,7 @@ export const TIER_LIMITS = {
     screenshot: false,
   },
   PRO: {
-    aiProviders: ["openai", "anthropic", "grok", "gemini"] as AIProviderType[],
+    aiProviders: ["openai", "grok", "anthropic"] as AIProviderType[], // Cascade providers
     transcriptionProviders: ["deepgram", "assemblyai"] as TranscriptionProviderType[],
     maxTokens: 4000,
     smartMode: false,
@@ -58,15 +85,27 @@ export const TIER_LIMITS = {
     screenshot: true,
   },
   ENTERPRISE: {
-    aiProviders: ["openai", "anthropic", "grok", "gemini"] as AIProviderType[],
+    aiProviders: ["openai", "grok", "anthropic"] as AIProviderType[], // Cascade providers
     transcriptionProviders: ["deepgram", "assemblyai"] as TranscriptionProviderType[],
     maxTokens: 16000,
-    smartMode: true,
+    smartMode: true, // Uses o4-mini for enhanced reasoning
     dailyAiRequests: null, // unlimited
     transcription: true,
     screenshot: true,
   },
 } as const;
+
+// Get model cascade for a given mode, filtered by configured providers
+export async function getModelCascade(smartMode: boolean): Promise<CascadeModel[]> {
+  const cascade = smartMode ? MODEL_CASCADE.smart : MODEL_CASCADE.standard;
+  const configuredProviders = await getConfiguredProviders();
+
+  // Filter cascade to only include configured providers
+  return cascade.filter((item) => {
+    const prismaProvider = providerToPrisma[item.provider];
+    return configuredProviders.includes(prismaProvider);
+  });
+}
 
 // API URLs for each provider
 export const PROVIDER_URLS = {
@@ -174,13 +213,23 @@ export function buildOpenAIRequestBody(params: {
   stream: boolean;
   temperature?: number;
 }): object {
-  return {
+  // Newer OpenAI models (gpt-5-*, o4-*) require max_completion_tokens
+  const useNewTokenParam = params.model.startsWith("gpt-5") || params.model.startsWith("o4-");
+
+  const body: Record<string, unknown> = {
     model: params.model,
     messages: params.messages,
-    max_tokens: params.maxTokens,
     temperature: params.temperature ?? 0.7,
     stream: params.stream,
   };
+
+  if (useNewTokenParam) {
+    body.max_completion_tokens = params.maxTokens;
+  } else {
+    body.max_tokens = params.maxTokens;
+  }
+
+  return body;
 }
 
 // Build request body for Anthropic API

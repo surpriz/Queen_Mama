@@ -28,7 +28,7 @@ final class ProxyAPIClient: @unchecked Sendable {
         self.baseURL = URL(string: urlString)!
 
         let config = URLSessionConfiguration.default
-        config.timeoutIntervalForRequest = 60
+        config.timeoutIntervalForRequest = 30  // 30s timeout - fast models should respond in <10s
         config.timeoutIntervalForResource = 120
         self.session = URLSession(configuration: config)
     }

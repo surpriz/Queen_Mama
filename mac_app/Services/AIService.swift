@@ -40,19 +40,15 @@ final class AIService: ObservableObject {
     // MARK: - Proxy Providers (new architecture)
 
     // Proxy providers route through backend - created dynamically based on config
+    // QueenMama uses OpenAI exclusively - no user provider selection
     private var proxyProviders: [AIProvider] {
         let configManager = ProxyConfigManager.shared
 
         // Create proxy providers for each available backend provider
+        // Backend determines provider order (OpenAI only for QueenMama)
         let availableProviders = configManager.availableAIProviders
-        let preferredProvider = ConfigurationManager.shared.selectedAIProvider
 
-        // Sort with preferred first
-        let sortedProviders = availableProviders.sorted { first, _ in
-            first.lowercased() == preferredProvider.rawValue.lowercased()
-        }
-
-        return sortedProviders.compactMap { providerName -> AIProvider? in
+        return availableProviders.compactMap { providerName -> AIProvider? in
             // Map backend provider names (lowercase) to Swift enum
             guard let type = Self.mapBackendProviderToType(providerName) else {
                 print("[AIService] Unknown provider from backend: \(providerName)")

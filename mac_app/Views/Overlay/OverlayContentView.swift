@@ -121,6 +121,10 @@ struct OverlayContentView: View {
             }
         }
 
+        // Immediately show processing indicator for better UX
+        appState.aiService.isProcessing = true
+        appState.aiService.currentResponse = ""
+
         Task {
             do {
                 // Only capture screenshot if enabled
@@ -135,7 +139,8 @@ struct OverlayContentView: View {
                     lastScreenshotTime = Date()
                 }
 
-                print("[Overlay] Screen capture \(enableScreenCapture ? "enabled" : "disabled") - Screenshot: \(hasScreenshot ? "captured" : "not captured")")
+                let screenshotSize = screenshot?.count ?? 0
+                print("[Overlay] Screen capture \(enableScreenCapture ? "enabled" : "disabled") - Screenshot: \(hasScreenshot ? "captured (\(screenshotSize / 1024)KB)" : "not captured")")
 
                 switch selectedTab {
                 case .assist:
@@ -174,6 +179,8 @@ struct OverlayContentView: View {
             } catch {
                 print("[Overlay] Error: \(error)")
                 appState.errorMessage = error.localizedDescription
+                // Ensure processing state is reset on error
+                appState.aiService.isProcessing = false
             }
         }
     }

@@ -347,31 +347,6 @@ struct ModernGeneralSettingsView: View {
                 }
             }
 
-            // AI Provider Card
-            SettingsCard(title: "AI Provider", icon: "cpu") {
-                VStack(spacing: QMDesign.Spacing.md) {
-                    HStack {
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text("Preferred Provider")
-                                .font(QMDesign.Typography.bodySmall)
-                                .foregroundColor(QMDesign.Colors.textSecondary)
-                            Text("Will fallback to others if unavailable")
-                                .font(QMDesign.Typography.captionSmall)
-                                .foregroundColor(QMDesign.Colors.textTertiary)
-                        }
-
-                        Spacer()
-
-                        Picker("", selection: $config.selectedAIProvider) {
-                            ForEach(AIProviderType.allCases, id: \.self) { provider in
-                                Text(provider.displayName).tag(provider)
-                            }
-                        }
-                        .pickerStyle(.menu)
-                        .frame(width: 150)
-                    }
-                }
-            }
         }
     }
 }

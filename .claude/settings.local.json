@@ -12,7 +12,8 @@
       "Bash(npm install:*)",
       "Bash(powershell -Command:*)",
       "Bash(dotnet build:*)",
-      "Bash(dotnet run:*)"
+      "Bash(dotnet run:*)",
+      "WebFetch(domain:platform.openai.com)"
     ]
   }
 }
