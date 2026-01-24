@@ -49,9 +49,12 @@ struct OverlayContentView: View {
                 isAutoAnswerEnabled: isAutoAnswerEnabled,
                 isSmartModeEnabled: isSmartModeEnabled,
                 showPopupMenu: $showPopupMenu,
+                selectedMode: $appState.selectedMode,
                 onToggleExpand: { overlayController.toggleExpanded() },
                 onStart: { Task { await appState.startSession() } },
-                onStop: { Task { await appState.stopSession() } }
+                onStop: { Task { await appState.stopSession() } },
+                onClearContext: { appState.clearContext() },
+                onMovePosition: { position in overlayController.moveToPosition(position) }
             )
 
             // Expanded Content
@@ -81,23 +84,6 @@ struct OverlayContentView: View {
                 .stroke(QMDesign.Colors.borderSubtle, lineWidth: 1)
         )
         .animation(QMDesign.Animation.smooth, value: overlayController.isExpanded)
-        .overlay(alignment: .top) {
-            // Popup Menu
-            if showPopupMenu {
-                OverlayPopupMenu(
-                    isAutoAnswerEnabled: isAutoAnswerEnabled,
-                    isSmartModeEnabled: isSmartModeEnabled,
-                    enableScreenCapture: $enableScreenCapture,
-                    selectedMode: $appState.selectedMode,
-                    isVisible: $showPopupMenu,
-                    onClearContext: { appState.clearContext() },
-                    onMovePosition: { position in overlayController.moveToPosition(position) }
-                )
-                .offset(y: 56)
-                .transition(.opacity.combined(with: .scale(scale: 0.95, anchor: .top)))
-            }
-        }
-        .animation(QMDesign.Animation.quick, value: showPopupMenu)
     }
 
     private func handleSubmit() {
@@ -248,15 +234,20 @@ struct ModernPillHeaderView: View {
     @Binding var isAutoAnswerEnabled: Bool
     @Binding var isSmartModeEnabled: Bool
     @Binding var showPopupMenu: Bool
+    @Binding var selectedMode: Mode?
     let onToggleExpand: () -> Void
     let onStart: () -> Void
     let onStop: () -> Void
+    let onClearContext: () -> Void
+    let onMovePosition: (OverlayPosition) -> Void
 
     @State private var isHoveringExpand = false
     @State private var isHoveringMore = false
     @State private var isHoveringDashboard = false
+    @State private var isHoveringPlay = false  // Hover state for play button
     @State private var isAutoPulsing = false  // Pulsing animation for auto mode
     @State private var isChevronPulsing = false  // Pulsing animation for expand hint
+    @State private var isPlayPulsing = false  // Pulsing animation for play button
     @State private var showExpandPreview = false  // Hover preview state
     @Environment(\.openWindow) private var openWindow
 
@@ -442,7 +433,7 @@ struct ModernPillHeaderView: View {
             .buttonStyle(.plain)
             .help(enableScreenCapture ? "Screen capture ON" : "Screen capture OFF")
 
-            // More Button (Popup Menu)
+            // More Button (Popup Menu) - works in both collapsed and expanded states
             Button(action: { showPopupMenu.toggle() }) {
                 Image(systemName: QMDesign.Icons.more)
                     .font(.system(size: 14))
@@ -457,6 +448,18 @@ struct ModernPillHeaderView: View {
             .buttonStyle(.plain)
             .onHover { isHoveringMore = $0 }
             .animation(QMDesign.Animation.quick, value: isHoveringMore)
+            .help("Settings menu")
+            .popover(isPresented: $showPopupMenu, arrowEdge: .bottom) {
+                OverlayPopupMenu(
+                    isAutoAnswerEnabled: $isAutoAnswerEnabled,
+                    isSmartModeEnabled: $isSmartModeEnabled,
+                    enableScreenCapture: $enableScreenCapture,
+                    selectedMode: $selectedMode,
+                    isVisible: $showPopupMenu,
+                    onClearContext: onClearContext,
+                    onMovePosition: onMovePosition
+                )
+            }
 
             // Finalization indicator (when generating summary)
             if isFinalizingSession {
@@ -476,19 +479,37 @@ struct ModernPillHeaderView: View {
                 )
             }
 
-            // Start Button (when session inactive and not finalizing)
+            // Start Button (when session inactive and not finalizing) - PROMINENT
             if !isSessionActive && !isFinalizingSession {
                 Button(action: onStart) {
-                    Image(systemName: "play.fill")
-                        .font(.system(size: 10))
-                        .foregroundColor(.white)
-                        .frame(width: 26, height: 26)
-                        .background(
-                            Circle()
-                                .fill(QMDesign.Colors.primaryGradient)
-                        )
+                    ZStack {
+                        // Pulsing glow ring
+                        Circle()
+                            .fill(QMDesign.Colors.primaryGradient.opacity(0.3))
+                            .frame(width: 38, height: 38)
+                            .scaleEffect(isPlayPulsing ? 1.2 : 1.0)
+                            .opacity(isPlayPulsing ? 0 : 0.6)
+
+                        // Main button
+                        Circle()
+                            .fill(QMDesign.Colors.primaryGradient)
+                            .frame(width: 32, height: 32)
+                            .shadow(color: QMDesign.Colors.accent.opacity(0.5), radius: 8, x: 0, y: 2)
+
+                        Image(systemName: "play.fill")
+                            .font(.system(size: 12, weight: .bold))
+                            .foregroundColor(.white)
+                    }
+                    .scaleEffect(isHoveringPlay ? 1.15 : 1.0)
                 }
                 .buttonStyle(.plain)
+                .onHover { isHoveringPlay = $0 }
+                .animation(QMDesign.Animation.quick, value: isHoveringPlay)
+                .onAppear {
+                    withAnimation(.easeInOut(duration: 1.2).repeatForever(autoreverses: true)) {
+                        isPlayPulsing = true
+                    }
+                }
                 .help("Start session (Cmd+Shift+S)")
             }
 
