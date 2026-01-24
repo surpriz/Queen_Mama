@@ -12,13 +12,22 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         // Initialize crash reporting (requires Sentry DSN to be configured)
         CrashReporter.shared.start()
 
+        // Initialize analytics (PostHog)
+        AnalyticsService.shared.start()
+
         // Restore authentication state on launch
         Task { @MainActor in
             await AuthenticationManager.shared.checkExistingAuth()
 
-            // Set user context for crash reports if authenticated
+            // Set user context for crash reports and analytics if authenticated
             if let user = AuthenticationManager.shared.currentUser {
                 CrashReporter.shared.setUser(id: user.id, email: user.email)
+                AnalyticsService.shared.identify(
+                    userId: user.id,
+                    email: user.email,
+                    name: user.name,
+                    plan: LicenseManager.shared.currentLicense.plan.rawValue
+                )
             }
 
             // Explicitly load proxy configuration after auth check
@@ -158,6 +167,12 @@ class AppState: ObservableObject {
         // Record session start usage
         LicenseManager.shared.recordUsage(.sessionStart)
 
+        // Track session start in analytics
+        AnalyticsService.shared.trackSessionStarted(
+            modeId: selectedMode?.id,
+            modeName: selectedMode?.name
+        )
+
         // Create session in SessionManager
         let defaultTitle = "Session - \(Date().formatted(date: .abbreviated, time: .shortened))"
         _ = sessionManager?.startSession(title: defaultTitle, modeId: selectedMode?.id)
@@ -241,7 +256,15 @@ class AppState: ObservableObject {
         // 8. Queue for sync if PRO+ subscription
         syncSessionIfEligible(session)
 
-        // 9. Deactivate indicator and clear context
+        // 9. Track session end in analytics
+        let duration = Int(session.endTime?.timeIntervalSince(session.startTime) ?? 0)
+        AnalyticsService.shared.trackSessionEnded(
+            durationSeconds: duration,
+            transcriptLength: finalTranscript.count,
+            hadAIResponses: !aiResponse.isEmpty
+        )
+
+        // 10. Deactivate indicator and clear context
         isFinalizingSession = false
         clearContext()
     }
@@ -259,6 +282,7 @@ class AppState: ObservableObject {
     func toggleOverlay() {
         isOverlayVisible.toggle()
         OverlayWindowController.shared.setVisible(isOverlayVisible)
+        AnalyticsService.shared.trackOverlayToggled(visible: isOverlayVisible)
     }
 
     func clearContext() {
