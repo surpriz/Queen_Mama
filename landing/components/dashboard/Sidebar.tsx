@@ -114,7 +114,7 @@ export function Sidebar({ userRole }: { userRole?: UserRole }) {
 
         <div className="mt-auto space-y-2">
           <Link
-            href="/#download"
+            href="/download"
             className="flex items-center gap-x-3 rounded-[var(--qm-radius-md)] p-3 text-sm font-semibold gradient-bg text-white hover:opacity-90 transition-opacity"
           >
             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">

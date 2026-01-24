@@ -7,11 +7,10 @@ const footerLinks = {
     { label: "Pricing", href: "/#pricing" },
     { label: "FAQ", href: "/#faq" },
     { label: "Changelog", href: "/changelog" },
-    { label: "Download", href: "#" },
+    { label: "Download", href: "/download" },
     { label: "Manifesto", href: "/manifesto" },
   ],
   resources: [
-    { label: "Documentation", href: "#" },
     { label: "Windows Waitlist", href: "/windows-waitlist" },
     { label: "Contact", href: "/#contact" },
     { label: "Subprocessors", href: "/subprocessors" },

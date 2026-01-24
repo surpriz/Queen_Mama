@@ -37,7 +37,7 @@ const plans = [
       { text: "Smart Mode", included: false },
       { text: "Undetectable overlay", included: false },
     ],
-    cta: "Start Pro Trial",
+    cta: "Get Pro",
     popular: true,
   },
   {
@@ -53,7 +53,7 @@ const plans = [
       { text: "Extended transcript storage", included: true },
       { text: "Dedicated support", included: true },
     ],
-    cta: "Start Enterprise Trial",
+    cta: "Get Enterprise",
     popular: false,
   },
 ];
@@ -187,16 +187,22 @@ export function Pricing() {
           ))}
         </div>
 
-        {/* Note */}
-        <motion.p
+        {/* European Data & Note */}
+        <motion.div
           initial={{ opacity: 0 }}
           whileInView={{ opacity: 1 }}
           viewport={{ once: true }}
           transition={{ duration: 0.5, delay: 0.3 }}
-          className="text-center text-sm text-[var(--qm-text-tertiary)] mt-8"
+          className="text-center mt-8 space-y-4"
         >
-          Cancel anytime. No questions asked.
-        </motion.p>
+          <div className="flex items-center justify-center gap-2 text-sm text-[var(--qm-text-secondary)]">
+            <span className="text-xl">🇪🇺</span>
+            <span>Data stored securely in Europe (GDPR compliant)</span>
+          </div>
+          <p className="text-sm text-[var(--qm-text-tertiary)]">
+            Cancel anytime. No questions asked.
+          </p>
+        </motion.div>
       </Container>
     </section>
   );
