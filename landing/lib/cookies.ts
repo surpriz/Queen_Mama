@@ -60,7 +60,7 @@ export function setCookieConsent(consent: Omit<CookieConsent, "necessary" | "tim
 /**
  * Check if a specific type of cookie is allowed
  */
-export function isCookieAllowed(type: keyof CookieConsent): boolean {
+export function isCookieAllowed(type: "necessary" | "analytics" | "marketing"): boolean {
   const consent = getCookieConsent();
   if (!consent) return type === "necessary"; // Only necessary cookies before consent
   return consent[type] ?? false;
