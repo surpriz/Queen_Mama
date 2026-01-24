@@ -43,15 +43,6 @@ const baseNavigation = [
     ),
   },
   {
-    name: "API Keys",
-    href: "/dashboard/account/api-keys",
-    icon: (
-      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
-      </svg>
-    ),
-  },
-  {
     name: "Billing",
     href: "/dashboard/billing",
     icon: (
@@ -121,7 +112,16 @@ export function Sidebar({ userRole }: { userRole?: UserRole }) {
           </ul>
         </nav>
 
-        <div className="mt-auto">
+        <div className="mt-auto space-y-2">
+          <Link
+            href="/#download"
+            className="flex items-center gap-x-3 rounded-[var(--qm-radius-md)] p-3 text-sm font-semibold gradient-bg text-white hover:opacity-90 transition-opacity"
+          >
+            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+            </svg>
+            Download App
+          </Link>
           <Link
             href="/"
             className="flex items-center gap-x-3 rounded-[var(--qm-radius-md)] p-3 text-sm font-medium text-[var(--qm-text-secondary)] hover:bg-[var(--qm-surface-light)] hover:text-white transition-colors"

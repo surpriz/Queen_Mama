@@ -20,7 +20,6 @@ const mobileNavigation = [
   { name: "Sessions", href: "/dashboard/sessions" },
   { name: "Analytics", href: "/dashboard/analytics" },
   { name: "Account", href: "/dashboard/account" },
-  { name: "API Keys", href: "/dashboard/account/api-keys" },
   { name: "Billing", href: "/dashboard/billing" },
 ];
 

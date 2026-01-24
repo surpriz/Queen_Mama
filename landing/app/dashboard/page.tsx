@@ -1,7 +1,7 @@
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { StatsCard } from "@/components/dashboard";
-import { GlassCard, GradientButton } from "@/components/ui";
+import { GlassCard } from "@/components/ui";
 import Link from "next/link";
 
 export const metadata = {
@@ -133,20 +133,6 @@ export default async function DashboardPage() {
         <GlassCard hover={false} padding="lg">
           <h2 className="text-lg font-semibold text-white mb-4">Quick Actions</h2>
           <div className="space-y-3">
-            {!isPro && (
-              <Link href="/dashboard/account/api-keys" className="flex items-center gap-3 p-3 rounded-[var(--qm-radius-md)] bg-[var(--qm-surface-light)] hover:bg-[var(--qm-surface-hover)] transition-colors">
-                <div className="p-2 rounded-[var(--qm-radius-sm)] bg-[var(--qm-surface-medium)]">
-                  <svg className="w-5 h-5 text-[var(--qm-accent)]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
-                  </svg>
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-white">Configure API Keys</p>
-                  <p className="text-xs text-[var(--qm-text-tertiary)]">Set up your AI provider keys</p>
-                </div>
-              </Link>
-            )}
-
             {!isPro && (
               <Link href="/dashboard/billing" className="flex items-center gap-3 p-3 rounded-[var(--qm-radius-md)] bg-gradient-to-r from-[var(--qm-primary)]/20 to-[var(--qm-secondary)]/20 border border-[var(--qm-accent)]/20 hover:border-[var(--qm-accent)]/40 transition-colors">
                 <div className="p-2 rounded-[var(--qm-radius-sm)] gradient-bg">
