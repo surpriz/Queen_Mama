@@ -12,6 +12,7 @@ struct DashboardView: View {
     @EnvironmentObject var appState: AppState
     @EnvironmentObject var sessionManager: SessionManager
     @Environment(\.modelContext) private var modelContext
+    @StateObject private var authManager = AuthenticationManager.shared
 
     @State private var selectedSection: DashboardSection = .sessions
     @State private var searchText = ""
@@ -28,19 +29,26 @@ struct DashboardView: View {
             .frame(minWidth: QMDesign.Dimensions.Dashboard.sidebarMinWidth)
         } detail: {
             // Main Content
-            Group {
-                switch selectedSection {
-                case .sessions:
-                    SessionListView(searchText: $searchText)
-                case .liveSession:
-                    LiveSessionView()
-                case .modes:
-                    ModesListView()
-                case .settings:
-                    SettingsView()
+            VStack(spacing: 0) {
+                // Authentication warning banner
+                if !authManager.isAuthenticated {
+                    AuthWarningBanner(onSignIn: { selectedSection = .settings })
                 }
+
+                Group {
+                    switch selectedSection {
+                    case .sessions:
+                        SessionListView(searchText: $searchText)
+                    case .liveSession:
+                        LiveSessionView()
+                    case .modes:
+                        ModesListView()
+                    case .settings:
+                        SettingsView()
+                    }
+                }
+                .frame(minWidth: QMDesign.Dimensions.Dashboard.detailMinWidth)
             }
-            .frame(minWidth: QMDesign.Dimensions.Dashboard.detailMinWidth)
         }
         .navigationTitle("")
         .toolbar {
@@ -82,6 +90,8 @@ struct DashboardView: View {
 
                 // Start/Stop Session Button (hidden during finalization)
                 if !appState.isFinalizingSession {
+                    let canStart = authManager.isAuthenticated || appState.isSessionActive
+
                     Button(action: {
                         Task {
                             if appState.isSessionActive {
@@ -105,16 +115,25 @@ struct DashboardView: View {
                         .padding(.vertical, QMDesign.Spacing.xs)
                         .background(
                             Capsule()
-                                .fill(appState.isSessionActive ? AnyShapeStyle(QMDesign.Colors.errorLight) : AnyShapeStyle(QMDesign.Colors.primaryGradient))
+                                .fill(
+                                    appState.isSessionActive
+                                        ? AnyShapeStyle(QMDesign.Colors.errorLight)
+                                        : (canStart ? AnyShapeStyle(QMDesign.Colors.primaryGradient) : AnyShapeStyle(QMDesign.Colors.surfaceMedium))
+                                )
                         )
-                        .foregroundColor(appState.isSessionActive ? QMDesign.Colors.error : .white)
-                        .scaleEffect(isHoveringStart ? 1.05 : 1.0)
+                        .foregroundColor(
+                            appState.isSessionActive
+                                ? QMDesign.Colors.error
+                                : (canStart ? .white : QMDesign.Colors.textTertiary)
+                        )
+                        .scaleEffect(isHoveringStart && canStart ? 1.05 : 1.0)
                     }
                     .buttonStyle(.plain)
+                    .disabled(!canStart)
                     .onHover { isHoveringStart = $0 }
                     .animation(QMDesign.Animation.quick, value: isHoveringStart)
                     .keyboardShortcut("s", modifiers: [.command, .shift])
-                    .help("Start/Stop Session (Cmd+Shift+S)")
+                    .help(canStart ? "Start/Stop Session (Cmd+Shift+S)" : "Sign in to start a session")
                 }
 
                 // Show/Hide Overlay
@@ -535,6 +554,70 @@ struct LicenseStatusBadge: View {
         } else {
             return QMDesign.Colors.borderSubtle
         }
+    }
+}
+
+// MARK: - Authentication Warning Banner
+
+struct AuthWarningBanner: View {
+    let onSignIn: () -> Void
+
+    @State private var isHovered = false
+
+    var body: some View {
+        HStack(spacing: QMDesign.Spacing.md) {
+            // Warning icon
+            Image(systemName: "exclamationmark.triangle.fill")
+                .font(.system(size: 16, weight: .semibold))
+                .foregroundColor(QMDesign.Colors.warning)
+
+            // Message
+            VStack(alignment: .leading, spacing: 2) {
+                Text("You're not signed in")
+                    .font(QMDesign.Typography.bodySmall)
+                    .fontWeight(.semibold)
+                    .foregroundColor(QMDesign.Colors.textPrimary)
+
+                Text("Sign in to start recording sessions and access all features")
+                    .font(QMDesign.Typography.captionSmall)
+                    .foregroundColor(QMDesign.Colors.textSecondary)
+            }
+
+            Spacer()
+
+            // Sign in button
+            Button(action: onSignIn) {
+                HStack(spacing: QMDesign.Spacing.xs) {
+                    Image(systemName: "arrow.right.circle.fill")
+                        .font(.system(size: 12))
+                    Text("Sign In")
+                        .font(QMDesign.Typography.labelSmall)
+                }
+                .padding(.horizontal, QMDesign.Spacing.md)
+                .padding(.vertical, QMDesign.Spacing.xs)
+                .background(
+                    Capsule()
+                        .fill(QMDesign.Colors.warning)
+                )
+                .foregroundColor(.white)
+                .scaleEffect(isHovered ? 1.05 : 1.0)
+            }
+            .buttonStyle(.plain)
+            .onHover { isHovered = $0 }
+            .animation(QMDesign.Animation.quick, value: isHovered)
+        }
+        .padding(.horizontal, QMDesign.Spacing.lg)
+        .padding(.vertical, QMDesign.Spacing.md)
+        .background(
+            Rectangle()
+                .fill(QMDesign.Colors.warning.opacity(0.1))
+        )
+        .overlay(
+            Rectangle()
+                .frame(height: 1)
+                .foregroundColor(QMDesign.Colors.warning.opacity(0.3)),
+            alignment: .bottom
+        )
     }
 }
 

@@ -1,25 +1,37 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Input, Label, GradientButton } from "@/components/ui";
 import { signInSchema, type SignInInput } from "@/lib/validations";
+import { setLastAuthMethod } from "./OAuthButtons";
 
 interface SignInFormProps {
   callbackUrl?: string;
 }
 
+const REMEMBER_ME_KEY = "qm_remember_me";
+
 export function SignInForm({ callbackUrl = "/dashboard" }: SignInFormProps) {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [rememberMe, setRememberMe] = useState(true);
   const [formData, setFormData] = useState<SignInInput>({
     email: "",
     password: "",
   });
   const [fieldErrors, setFieldErrors] = useState<Partial<Record<keyof SignInInput, string>>>({});
+
+  useEffect(() => {
+    // Load saved preference
+    const saved = localStorage.getItem(REMEMBER_ME_KEY);
+    if (saved !== null) {
+      setRememberMe(saved === "true");
+    }
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -49,6 +61,8 @@ export function SignInForm({ callbackUrl = "/dashboard" }: SignInFormProps) {
       if (response?.error) {
         setError("Invalid email or password");
       } else {
+        setLastAuthMethod("email");
+        localStorage.setItem(REMEMBER_ME_KEY, String(rememberMe));
         router.push(callbackUrl);
         router.refresh();
       }
@@ -103,6 +117,23 @@ export function SignInForm({ callbackUrl = "/dashboard" }: SignInFormProps) {
           error={fieldErrors.password}
           disabled={isLoading}
         />
+      </div>
+
+      <div className="flex items-center gap-2">
+        <input
+          type="checkbox"
+          id="rememberMe"
+          checked={rememberMe}
+          onChange={(e) => setRememberMe(e.target.checked)}
+          disabled={isLoading}
+          className="w-4 h-4 rounded border-[var(--qm-border-subtle)] bg-[var(--qm-surface-dark)] text-[var(--qm-accent)] focus:ring-[var(--qm-accent)] focus:ring-offset-0 cursor-pointer"
+        />
+        <label
+          htmlFor="rememberMe"
+          className="text-sm text-[var(--qm-text-secondary)] cursor-pointer select-none"
+        >
+          Keep me logged in for 30 days
+        </label>
       </div>
 
       <GradientButton type="submit" className="w-full" disabled={isLoading}>

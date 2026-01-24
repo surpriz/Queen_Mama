@@ -1,8 +1,22 @@
 "use client";
 
 import { signIn } from "next-auth/react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
+
+const LAST_AUTH_METHOD_KEY = "qm_last_auth_method";
+
+export type AuthMethod = "google" | "github" | "email";
+
+export function getLastAuthMethod(): AuthMethod | null {
+  if (typeof window === "undefined") return null;
+  return localStorage.getItem(LAST_AUTH_METHOD_KEY) as AuthMethod | null;
+}
+
+export function setLastAuthMethod(method: AuthMethod) {
+  if (typeof window === "undefined") return;
+  localStorage.setItem(LAST_AUTH_METHOD_KEY, method);
+}
 
 interface OAuthButtonsProps {
   callbackUrl?: string;
@@ -10,11 +24,23 @@ interface OAuthButtonsProps {
 
 export function OAuthButtons({ callbackUrl = "/dashboard" }: OAuthButtonsProps) {
   const [isLoading, setIsLoading] = useState<string | null>(null);
+  const [lastMethod, setLastMethod] = useState<AuthMethod | null>(null);
 
-  const handleOAuthSignIn = async (provider: string) => {
+  useEffect(() => {
+    setLastMethod(getLastAuthMethod());
+  }, []);
+
+  const handleOAuthSignIn = async (provider: AuthMethod) => {
     setIsLoading(provider);
+    setLastAuthMethod(provider);
     await signIn(provider, { callbackUrl });
   };
+
+  const LastUsedBadge = () => (
+    <span className="absolute -top-2 -right-2 px-2 py-0.5 text-[10px] font-semibold bg-[var(--qm-accent)] text-white rounded-full shadow-sm">
+      Last used
+    </span>
+  );
 
   return (
     <div className="space-y-3">
@@ -22,14 +48,16 @@ export function OAuthButtons({ callbackUrl = "/dashboard" }: OAuthButtonsProps) 
         onClick={() => handleOAuthSignIn("google")}
         disabled={isLoading !== null}
         className={cn(
-          "w-full flex items-center justify-center gap-3",
+          "relative w-full flex items-center justify-center gap-3",
           "px-4 py-3 rounded-[var(--qm-radius-md)]",
           "bg-white text-gray-800 font-medium",
           "transition-all duration-[var(--qm-duration-quick)]",
           "hover:bg-gray-100",
-          "disabled:opacity-50 disabled:cursor-not-allowed"
+          "disabled:opacity-50 disabled:cursor-not-allowed",
+          lastMethod === "google" && "ring-2 ring-[var(--qm-accent)] ring-offset-2 ring-offset-[var(--qm-surface-medium)]"
         )}
       >
+        {lastMethod === "google" && <LastUsedBadge />}
         <svg className="w-5 h-5" viewBox="0 0 24 24">
           <path
             fill="currentColor"
@@ -55,14 +83,16 @@ export function OAuthButtons({ callbackUrl = "/dashboard" }: OAuthButtonsProps) 
         onClick={() => handleOAuthSignIn("github")}
         disabled={isLoading !== null}
         className={cn(
-          "w-full flex items-center justify-center gap-3",
+          "relative w-full flex items-center justify-center gap-3",
           "px-4 py-3 rounded-[var(--qm-radius-md)]",
           "bg-[#24292e] text-white font-medium",
           "transition-all duration-[var(--qm-duration-quick)]",
           "hover:bg-[#2f363d]",
-          "disabled:opacity-50 disabled:cursor-not-allowed"
+          "disabled:opacity-50 disabled:cursor-not-allowed",
+          lastMethod === "github" && "ring-2 ring-[var(--qm-accent)] ring-offset-2 ring-offset-[var(--qm-surface-medium)]"
         )}
       >
+        {lastMethod === "github" && <LastUsedBadge />}
         <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
           <path
             fillRule="evenodd"
