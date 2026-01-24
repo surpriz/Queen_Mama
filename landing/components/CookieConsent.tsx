@@ -7,8 +7,6 @@ import {
   acceptAllCookies,
   acceptNecessaryCookies,
   setCookieConsent,
-  getCookieConsent,
-  type CookieConsent as CookieConsentType,
 } from "@/lib/cookies";
 
 export function CookieConsent() {
@@ -205,8 +203,7 @@ export function CookieConsent() {
                 </button>
               </div>
             </div>
-          )}
-        </div>
+        )}
       </div>
     </div>
   );
