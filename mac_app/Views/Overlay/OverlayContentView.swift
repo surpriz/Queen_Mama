@@ -256,6 +256,8 @@ struct ModernPillHeaderView: View {
     @State private var isHoveringMore = false
     @State private var isHoveringDashboard = false
     @State private var isAutoPulsing = false  // Pulsing animation for auto mode
+    @State private var isChevronPulsing = false  // Pulsing animation for expand hint
+    @State private var showExpandPreview = false  // Hover preview state
     @Environment(\.openWindow) private var openWindow
 
     // Observe ConfigurationManager for undetectability
@@ -263,50 +265,98 @@ struct ModernPillHeaderView: View {
 
     var body: some View {
         HStack(spacing: QMDesign.Spacing.xs) {
-            // Logo with gradient - also opens Dashboard
-            Button(action: toggleDashboard) {
-                ZStack {
-                    Circle()
-                        .fill(QMDesign.Colors.primaryGradient)
-                        .frame(width: 28, height: 28)
+            // Logo (branding only - no action)
+            ZStack {
+                Circle()
+                    .fill(QMDesign.Colors.primaryGradient)
+                    .frame(width: 28, height: 28)
 
-                    Image(systemName: "waveform")
-                        .font(.system(size: 14, weight: .semibold))
-                        .foregroundColor(.white)
-                }
-                .scaleEffect(isHoveringDashboard ? 1.1 : 1.0)
+                Image(systemName: "waveform")
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundColor(.white)
+            }
+
+            // Dashboard Button (explicit action)
+            Button(action: toggleDashboard) {
+                Image(systemName: "square.grid.2x2")
+                    .font(.system(size: 12, weight: .medium))
+                    .foregroundColor(isHoveringDashboard ? QMDesign.Colors.accent : QMDesign.Colors.textSecondary)
+                    .frame(width: 26, height: 26)
+                    .background(
+                        Circle()
+                            .fill(isHoveringDashboard ? QMDesign.Colors.accent.opacity(0.15) : QMDesign.Colors.surfaceLight)
+                    )
+                    .scaleEffect(isHoveringDashboard ? 1.1 : 1.0)
             }
             .buttonStyle(.plain)
             .onHover { isHoveringDashboard = $0 }
             .animation(QMDesign.Animation.quick, value: isHoveringDashboard)
             .help("Open Dashboard (Cmd+D)")
 
-            // Expand/Collapse Button
+            // Expand/Collapse Button with animated chevron
             Button(action: onToggleExpand) {
-                HStack(spacing: 4) {
-                    Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
-                        .font(.system(size: 10, weight: .bold))
-                    Text(isExpanded ? "Hide" : "Ask")
-                        .font(QMDesign.Typography.labelSmall)
-                }
-                .padding(.horizontal, QMDesign.Spacing.sm)
-                .padding(.vertical, 6)
-                .background(
+                ZStack {
+                    // Pulsing ring when collapsed (indicates hidden content)
+                    if !isExpanded {
+                        Circle()
+                            .stroke(QMDesign.Colors.accent.opacity(0.4), lineWidth: 2)
+                            .frame(width: 32, height: 32)
+                            .scaleEffect(isChevronPulsing ? 1.3 : 1.0)
+                            .opacity(isChevronPulsing ? 0 : 0.6)
+                    }
+
+                    // Main button
                     Group {
                         if isExpanded {
-                            QMDesign.Colors.surfaceMedium
+                            Circle()
+                                .fill(QMDesign.Colors.surfaceMedium)
                         } else {
-                            QMDesign.Colors.primaryGradient
+                            Circle()
+                                .fill(QMDesign.Colors.primaryGradient)
                         }
                     }
-                )
-                .foregroundColor(isExpanded ? QMDesign.Colors.textPrimary : .white)
-                .clipShape(Capsule())
-                .scaleEffect(isHoveringExpand ? 1.05 : 1.0)
+                    .frame(width: 28, height: 28)
+
+                    // Animated chevron
+                    Image(systemName: "chevron.down")
+                        .font(.system(size: 12, weight: .bold))
+                        .foregroundColor(isExpanded ? QMDesign.Colors.textPrimary : .white)
+                        .rotationEffect(.degrees(isExpanded ? 180 : 0))
+                }
+                .scaleEffect(isHoveringExpand ? 1.1 : 1.0)
             }
             .buttonStyle(.plain)
-            .onHover { isHoveringExpand = $0 }
+            .onHover { hovering in
+                isHoveringExpand = hovering
+                // Show preview only when collapsed and hovering
+                if !isExpanded {
+                    showExpandPreview = hovering
+                }
+            }
             .animation(QMDesign.Animation.quick, value: isHoveringExpand)
+            .animation(QMDesign.Animation.smooth, value: isExpanded)
+            .onAppear {
+                // Start pulsing animation when collapsed
+                if !isExpanded {
+                    withAnimation(.easeInOut(duration: 1.5).repeatForever(autoreverses: true)) {
+                        isChevronPulsing = true
+                    }
+                }
+            }
+            .onChange(of: isExpanded) { expanded in
+                if expanded {
+                    isChevronPulsing = false
+                    showExpandPreview = false
+                } else {
+                    withAnimation(.easeInOut(duration: 1.5).repeatForever(autoreverses: true)) {
+                        isChevronPulsing = true
+                    }
+                }
+            }
+            .help(isExpanded ? "Collapse panel" : "Expand AI assistant")
+            .popover(isPresented: $showExpandPreview, arrowEdge: .bottom) {
+                ExpandPreviewView()
+            }
 
             Spacer()
 
@@ -1128,6 +1178,62 @@ struct VisualEffectView: NSViewRepresentable {
     func updateNSView(_ nsView: NSVisualEffectView, context: Context) {
         nsView.material = material
         nsView.blendingMode = blendingMode
+    }
+}
+
+// MARK: - Expand Preview View (Hover Tooltip)
+
+struct ExpandPreviewView: View {
+    var body: some View {
+        VStack(alignment: .leading, spacing: QMDesign.Spacing.sm) {
+            // Header
+            HStack(spacing: QMDesign.Spacing.xs) {
+                Image(systemName: QMDesign.Icons.assist)
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundStyle(QMDesign.Colors.primaryGradient)
+                Text("AI Assistant")
+                    .font(QMDesign.Typography.labelMedium)
+                    .foregroundColor(QMDesign.Colors.textPrimary)
+            }
+
+            // Features preview
+            VStack(alignment: .leading, spacing: QMDesign.Spacing.xs) {
+                FeaturePreviewRow(icon: QMDesign.Icons.assist, text: "Get real-time assistance")
+                FeaturePreviewRow(icon: QMDesign.Icons.whatToSay, text: "Suggestions on what to say")
+                FeaturePreviewRow(icon: QMDesign.Icons.followUp, text: "Smart follow-up questions")
+                FeaturePreviewRow(icon: QMDesign.Icons.recap, text: "Conversation recap")
+            }
+
+            // Hint
+            HStack(spacing: 4) {
+                Text("Click to expand")
+                    .font(QMDesign.Typography.caption)
+                    .foregroundColor(QMDesign.Colors.textTertiary)
+                Image(systemName: "chevron.down")
+                    .font(.system(size: 8, weight: .bold))
+                    .foregroundColor(QMDesign.Colors.textTertiary)
+            }
+        }
+        .padding(QMDesign.Spacing.md)
+        .frame(width: 200)
+        .background(QMDesign.Colors.backgroundElevated)
+    }
+}
+
+struct FeaturePreviewRow: View {
+    let icon: String
+    let text: String
+
+    var body: some View {
+        HStack(spacing: QMDesign.Spacing.xs) {
+            Image(systemName: icon)
+                .font(.system(size: 10))
+                .foregroundColor(QMDesign.Colors.accent)
+                .frame(width: 16)
+            Text(text)
+                .font(QMDesign.Typography.caption)
+                .foregroundColor(QMDesign.Colors.textSecondary)
+        }
     }
 }
 
