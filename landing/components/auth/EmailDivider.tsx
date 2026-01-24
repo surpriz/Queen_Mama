@@ -1,16 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { getLastAuthMethod, type AuthMethod } from "./OAuthButtons";
+import { useLastAuthMethod } from "./OAuthButtons";
 import { cn } from "@/lib/utils";
 
 export function EmailDivider() {
-  const [lastMethod, setLastMethod] = useState<AuthMethod | null>(null);
-
-  useEffect(() => {
-    setLastMethod(getLastAuthMethod());
-  }, []);
-
+  const lastMethod = useLastAuthMethod();
   const isLastUsed = lastMethod === "email";
 
   return (

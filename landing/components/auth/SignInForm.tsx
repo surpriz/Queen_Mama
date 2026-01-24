@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useSyncExternalStore } from "react";
 import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -14,24 +14,35 @@ interface SignInFormProps {
 
 const REMEMBER_ME_KEY = "qm_remember_me";
 
+function getRememberMeSnapshot(): boolean {
+  const saved = localStorage.getItem(REMEMBER_ME_KEY);
+  return saved === null ? true : saved === "true";
+}
+
+function getRememberMeServerSnapshot(): boolean {
+  return true;
+}
+
+function subscribeToStorage(callback: () => void) {
+  window.addEventListener("storage", callback);
+  return () => window.removeEventListener("storage", callback);
+}
+
 export function SignInForm({ callbackUrl = "/dashboard" }: SignInFormProps) {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [rememberMe, setRememberMe] = useState(true);
+  const storedRememberMe = useSyncExternalStore(
+    subscribeToStorage,
+    getRememberMeSnapshot,
+    getRememberMeServerSnapshot
+  );
+  const [rememberMe, setRememberMe] = useState(storedRememberMe);
   const [formData, setFormData] = useState<SignInInput>({
     email: "",
     password: "",
   });
   const [fieldErrors, setFieldErrors] = useState<Partial<Record<keyof SignInInput, string>>>({});
-
-  useEffect(() => {
-    // Load saved preference
-    const saved = localStorage.getItem(REMEMBER_ME_KEY);
-    if (saved !== null) {
-      setRememberMe(saved === "true");
-    }
-  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

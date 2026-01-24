@@ -1,21 +1,45 @@
 "use client";
 
 import { signIn } from "next-auth/react";
-import { useState, useEffect } from "react";
+import { useState, useSyncExternalStore } from "react";
 import { cn } from "@/lib/utils";
 
 const LAST_AUTH_METHOD_KEY = "qm_last_auth_method";
 
 export type AuthMethod = "google" | "github" | "email";
 
-export function getLastAuthMethod(): AuthMethod | null {
-  if (typeof window === "undefined") return null;
+function getLastAuthMethodSnapshot(): AuthMethod | null {
   return localStorage.getItem(LAST_AUTH_METHOD_KEY) as AuthMethod | null;
+}
+
+function getServerSnapshot(): AuthMethod | null {
+  return null;
+}
+
+function subscribeToStorage(callback: () => void) {
+  window.addEventListener("storage", callback);
+  return () => window.removeEventListener("storage", callback);
+}
+
+export function useLastAuthMethod(): AuthMethod | null {
+  return useSyncExternalStore(
+    subscribeToStorage,
+    getLastAuthMethodSnapshot,
+    getServerSnapshot
+  );
 }
 
 export function setLastAuthMethod(method: AuthMethod) {
   if (typeof window === "undefined") return;
   localStorage.setItem(LAST_AUTH_METHOD_KEY, method);
+}
+
+function LastUsedBadge() {
+  return (
+    <span className="absolute -top-2 -right-2 px-2 py-0.5 text-[10px] font-semibold bg-[var(--qm-accent)] text-white rounded-full shadow-sm">
+      Last used
+    </span>
+  );
 }
 
 interface OAuthButtonsProps {
@@ -24,23 +48,13 @@ interface OAuthButtonsProps {
 
 export function OAuthButtons({ callbackUrl = "/dashboard" }: OAuthButtonsProps) {
   const [isLoading, setIsLoading] = useState<string | null>(null);
-  const [lastMethod, setLastMethod] = useState<AuthMethod | null>(null);
-
-  useEffect(() => {
-    setLastMethod(getLastAuthMethod());
-  }, []);
+  const lastMethod = useLastAuthMethod();
 
   const handleOAuthSignIn = async (provider: AuthMethod) => {
     setIsLoading(provider);
     setLastAuthMethod(provider);
     await signIn(provider, { callbackUrl });
   };
-
-  const LastUsedBadge = () => (
-    <span className="absolute -top-2 -right-2 px-2 py-0.5 text-[10px] font-semibold bg-[var(--qm-accent)] text-white rounded-full shadow-sm">
-      Last used
-    </span>
-  );
 
   return (
     <div className="space-y-3">
