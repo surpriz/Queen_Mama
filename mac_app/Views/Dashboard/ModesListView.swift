@@ -372,6 +372,7 @@ struct ModernModeRow: View {
 // MARK: - Modern Mode Detail View
 
 struct ModernModeDetailView: View {
+    @Environment(\.modelContext) private var modelContext
     let mode: Mode
     @Binding var isEditing: Bool
     var isActive: Bool = false

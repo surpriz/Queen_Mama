@@ -148,8 +148,34 @@ struct AIContext: @unchecked Sendable {
     }
 
     var systemPrompt: String {
-        var prompt = mode?.systemPrompt ?? Mode.defaultMode.systemPrompt
-        prompt += "\n\n" + responseType.systemPromptAddition
+        var prompt = ""
+
+        // Check if this is a custom mode (not one of the built-in modes)
+        let isCustomMode: Bool
+        if let mode = mode {
+            let builtInNames = ["Default", "Professional", "Interview", "Sales"]
+            isCustomMode = !builtInNames.contains(mode.name)
+            print("[AIContext] Mode name: '\(mode.name)', isCustomMode: \(isCustomMode)")
+            print("[AIContext] Mode systemPrompt (first 100 chars): '\(String(mode.systemPrompt.prefix(100)))'")
+        } else {
+            isCustomMode = false
+            print("[AIContext] Mode is nil, using default")
+        }
+
+        if isCustomMode {
+            // For custom modes, use ONLY the mode's system prompt
+            // This allows users to have full control over AI behavior
+            prompt = mode?.systemPrompt ?? Mode.defaultMode.systemPrompt
+            print("[AIContext] Using CUSTOM mode logic - no responseType additions")
+
+            // Add language instruction only (not the generic response type instructions)
+            prompt += "\n\nIMPORTANT: Respond in the SAME LANGUAGE as the transcript or screen content. If French, respond in French."
+        } else {
+            // For built-in modes, use the traditional combination
+            prompt = mode?.systemPrompt ?? Mode.defaultMode.systemPrompt
+            prompt += "\n\n" + responseType.systemPromptAddition
+            print("[AIContext] Using BUILT-IN mode logic with responseType: \(responseType.rawValue)")
+        }
 
         // Smart Mode: Add enhanced reasoning instructions
         if smartMode {
@@ -170,6 +196,15 @@ SMART MODE ENABLED: Please provide enhanced, thorough analysis:
     var userMessage: String {
         var message = ""
 
+        // Check if this is a custom mode (same logic as systemPrompt)
+        let isCustomMode: Bool
+        if let mode = mode {
+            let builtInNames = ["Default", "Professional", "Interview", "Sales"]
+            isCustomMode = !builtInNames.contains(mode.name)
+        } else {
+            isCustomMode = false
+        }
+
         if !transcript.isEmpty {
             // Limit transcript to ~8000 chars (~2000 tokens) for cost optimization
             let maxTranscriptLength = 8000
@@ -186,12 +221,20 @@ SMART MODE ENABLED: Please provide enhanced, thorough analysis:
         }
 
         if screenshot != nil {
-            message += "[Screenshot of current screen is attached - analyze it carefully]\n\n"
+            message += "[Screenshot attached]\n\n"
         }
 
         if let customPrompt, !customPrompt.isEmpty {
             message += "## User's Question:\n\(customPrompt)"
+        } else if isCustomMode {
+            // For custom modes, use minimal prompt - let the system prompt control behavior
+            if transcript.isEmpty && screenshot != nil {
+                message += "Process the screenshot according to your instructions."
+            } else {
+                message += "Process the above content according to your instructions."
+            }
         } else {
+            // For built-in modes, use the standard prompts
             if transcript.isEmpty && screenshot != nil {
                 message += "Analyze the screenshot and provide \(responseType.rawValue.lowercased()) based on what you see."
             } else {

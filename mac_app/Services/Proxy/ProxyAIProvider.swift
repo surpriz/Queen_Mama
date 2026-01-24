@@ -81,6 +81,10 @@ final class ProxyAIProvider: AIProvider {
                 }
 
                 do {
+                    // Debug logging for system prompt
+                    print("[ProxyAIProvider] Mode name: \(context.mode?.name ?? "nil")")
+                    print("[ProxyAIProvider] System prompt (first 500 chars): \(String(context.systemPrompt.prefix(500)))")
+
                     for try await chunk in self.proxyClient.streamAIResponse(
                         provider: self.providerName,
                         smartMode: context.smartMode,
