@@ -3,6 +3,7 @@ import { Inter } from "next/font/google";
 import "./globals.css";
 import { BackToTop } from "@/components/ui";
 import { SessionProvider } from "@/components/providers/SessionProvider";
+import { PostHogProvider } from "@/components/providers/PostHogProvider";
 import { CookieConsent } from "@/components/CookieConsent";
 
 const inter = Inter({
@@ -66,9 +67,11 @@ export default function RootLayout({
     <html lang="en" className="dark">
       <body className={`${inter.variable} font-sans antialiased`}>
         <SessionProvider>
-          {children}
-          <BackToTop />
-          <CookieConsent />
+          <PostHogProvider>
+            {children}
+            <BackToTop />
+            <CookieConsent />
+          </PostHogProvider>
         </SessionProvider>
       </body>
     </html>
