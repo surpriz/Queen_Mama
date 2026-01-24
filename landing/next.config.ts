@@ -38,7 +38,13 @@ const nextConfig: NextConfig = {
       "https://www.queenmama.co",
       // Allow staging domains
       ...(process.env.NODE_ENV === "development"
-        ? ["http://localhost:3000", "http://127.0.0.1:3000"]
+        ? [
+            "http://localhost:3000",
+            "http://127.0.0.1:3000",
+            "http://localhost:1420", // Tauri app dev server
+            "http://127.0.0.1:1420",
+            "tauri://localhost", // Tauri custom protocol
+          ]
         : []),
       ...(process.env.VERCEL_ENV === "preview"
         ? ["https://*.vercel.app"]
@@ -53,10 +59,14 @@ const nextConfig: NextConfig = {
           {
             key: "Access-Control-Allow-Origin",
             // In production, we'll set this dynamically in the API routes
-            // For static headers, use the primary domain
+            // For development, allow all origins (Tauri app runs on different port)
             value: process.env.NODE_ENV === "development"
-              ? "http://localhost:3000"
+              ? "*"
               : "https://queenmama.app",
+          },
+          {
+            key: "Access-Control-Allow-Credentials",
+            value: "true",
           },
           {
             key: "Access-Control-Allow-Methods",

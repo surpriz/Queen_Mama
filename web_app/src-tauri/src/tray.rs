@@ -3,7 +3,7 @@
 
 use tauri::{
     image::Image,
-    menu::{MenuBuilder, MenuItemBuilder, PredefinedMenuItem},
+    menu::{MenuBuilder, MenuItemBuilder},
     tray::TrayIconBuilder,
     App, Emitter, Manager,
 };

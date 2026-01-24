@@ -22,10 +22,10 @@ export function OverlayWindow() {
   const [audioLevel, setAudioLevel] = useState(0);
 
   // Stores
-  const { isSessionActive, startSession, stopSession, getFullTranscript } = useSessionStore();
+  const { isSessionActive, startSession, stopSession } = useSessionStore();
   const { responses, currentResponse, isProcessing, triggerAssist, clearResponses } = useAIStore();
   const { isConnected, connect, disconnect, sendAudio, interimText } = useTranscriptionStore();
-  const { enableScreenCapture, smartModeEnabled, selectedModeId } = useSettingsStore();
+  const { enableScreenCapture, smartModeEnabled } = useSettingsStore();
 
   // Handle expand/collapse
   const toggleExpanded = async () => {
@@ -118,7 +118,6 @@ export function OverlayWindow() {
         smartModeEnabled={smartModeEnabled}
         onToggleExpand={toggleExpanded}
         onToggleSession={handleToggleSession}
-        onClearContext={handleClearContext}
       />
 
       {/* Expanded Content */}

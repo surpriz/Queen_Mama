@@ -10,7 +10,7 @@ import DashboardView from './components/dashboard/DashboardView';
 import SettingsView from './components/dashboard/SettingsView';
 
 function App() {
-  const { isAuthenticated, initialize: initAuth } = useAuthStore();
+  const { isAuthenticated, isLoading, accessToken, initialize: initAuth } = useAuthStore();
   const { startSession, stopSession } = useSessionStore();
 
   useEffect(() => {
@@ -47,7 +47,35 @@ function App() {
     };
   }, [initAuth, startSession, stopSession]);
 
-  if (!isAuthenticated) {
+  // Show loading screen during auth initialization
+  if (isLoading) {
+    return (
+      <div className="h-screen w-screen bg-qm-bg-primary flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-12 h-12 mx-auto mb-4 rounded-xl bg-qm-gradient flex items-center justify-center animate-pulse">
+            <svg
+              className="w-6 h-6 text-white"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3"
+              />
+            </svg>
+          </div>
+          <p className="text-qm-text-secondary text-sm">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Require both isAuthenticated AND accessToken to show main app
+  // This prevents showing main UI before tokens are loaded from Tauri store
+  if (!isAuthenticated || !accessToken) {
     return <AuthGate />;
   }
 

@@ -17,7 +17,6 @@ export interface PillHeaderProps {
   smartModeEnabled: boolean;
   onToggleExpand: () => void;
   onToggleSession: () => void;
-  onClearContext: () => void;
 }
 
 export function PillHeader({
@@ -29,7 +28,6 @@ export function PillHeader({
   smartModeEnabled,
   onToggleExpand,
   onToggleSession,
-  onClearContext,
 }: PillHeaderProps) {
   // Open dashboard
   const handleOpenDashboard = async () => {

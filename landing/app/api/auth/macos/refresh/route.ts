@@ -9,6 +9,21 @@ import {
 } from "@/lib/device-auth";
 import { macosRefreshSchema } from "@/lib/validations";
 
+// CORS headers for desktop app requests
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+  "Access-Control-Allow-Headers": "Content-Type, Authorization",
+};
+
+/**
+ * OPTIONS /api/auth/macos/refresh
+ * Handle preflight CORS requests
+ */
+export async function OPTIONS() {
+  return new NextResponse(null, { status: 204, headers: corsHeaders });
+}
+
 /**
  * POST /api/auth/macos/refresh
  * Refresh access token using refresh token
@@ -21,7 +36,7 @@ export async function POST(request: Request) {
     if (!parsed.success) {
       return NextResponse.json(
         { error: "invalid_request", message: "Refresh token is required" },
-        { status: 400 }
+        { status: 400, headers: corsHeaders }
       );
     }
 
@@ -53,7 +68,7 @@ export async function POST(request: Request) {
     if (!storedToken) {
       return NextResponse.json(
         { error: "invalid_token", message: "Invalid refresh token" },
-        { status: 401 }
+        { status: 401, headers: corsHeaders }
       );
     }
 
@@ -61,7 +76,7 @@ export async function POST(request: Request) {
     if (storedToken.revokedAt) {
       return NextResponse.json(
         { error: "token_revoked", message: "Token has been revoked" },
-        { status: 401 }
+        { status: 401, headers: corsHeaders }
       );
     }
 
@@ -69,7 +84,7 @@ export async function POST(request: Request) {
     if (storedToken.expiresAt < new Date()) {
       return NextResponse.json(
         { error: "token_expired", message: "Refresh token has expired" },
-        { status: 401 }
+        { status: 401, headers: corsHeaders }
       );
     }
 
@@ -77,7 +92,7 @@ export async function POST(request: Request) {
     if (!storedToken.device.isActive) {
       return NextResponse.json(
         { error: "device_inactive", message: "Device has been deactivated" },
-        { status: 401 }
+        { status: 401, headers: corsHeaders }
       );
     }
 
@@ -85,7 +100,7 @@ export async function POST(request: Request) {
     if (storedToken.user.role === "BLOCKED") {
       return NextResponse.json(
         { error: "account_blocked", message: "Account has been blocked" },
-        { status: 403 }
+        { status: 403, headers: corsHeaders }
       );
     }
 
@@ -124,16 +139,19 @@ export async function POST(request: Request) {
       deviceId: storedToken.device.deviceId,
     });
 
-    return NextResponse.json({
-      accessToken,
-      refreshToken: newRefreshToken,
-      expiresIn: AUTH_CONSTANTS.ACCESS_TOKEN_EXPIRY_SECONDS,
-    });
+    return NextResponse.json(
+      {
+        accessToken,
+        refreshToken: newRefreshToken,
+        expiresIn: AUTH_CONSTANTS.ACCESS_TOKEN_EXPIRY_SECONDS,
+      },
+      { headers: corsHeaders }
+    );
   } catch (error) {
     console.error("Token refresh error:", error);
     return NextResponse.json(
       { error: "server_error", message: "Token refresh failed" },
-      { status: 500 }
+      { status: 500, headers: corsHeaders }
     );
   }
 }

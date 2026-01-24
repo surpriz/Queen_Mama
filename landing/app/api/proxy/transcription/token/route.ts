@@ -8,6 +8,21 @@ import {
   type TranscriptionProviderType,
 } from "@/lib/ai-providers";
 
+// CORS headers for desktop app requests
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+  "Access-Control-Allow-Headers": "Content-Type, Authorization",
+};
+
+/**
+ * OPTIONS /api/proxy/transcription/token
+ * Handle preflight CORS requests
+ */
+export async function OPTIONS() {
+  return new NextResponse(null, { status: 204, headers: corsHeaders });
+}
+
 interface DeepgramKeyResponse {
   key_id: string;
   key: string;
@@ -31,24 +46,35 @@ export async function POST(request: Request) {
     if (!authHeader?.startsWith("Bearer ")) {
       return NextResponse.json(
         { error: "unauthorized", message: "Missing authorization header" },
-        { status: 401 }
+        { status: 401, headers: corsHeaders }
       );
     }
 
     const accessToken = authHeader.slice(7);
+    console.log("[Transcription Token] Received token:", accessToken?.slice(0, 30) + "...");
 
     let tokenPayload;
     try {
       tokenPayload = await verifyAccessToken(accessToken);
-    } catch {
+      console.log("[Transcription Token] Token verified for user:", tokenPayload.sub);
+    } catch (error) {
+      console.error("[Transcription Token] Token verification failed:", error);
       return NextResponse.json(
         { error: "invalid_token", message: "Invalid or expired token" },
-        { status: 401 }
+        { status: 401, headers: corsHeaders }
       );
     }
 
-    // Parse request body
-    const body = await request.json();
+    // Parse request body (handle empty body)
+    let body: { provider?: string } = {};
+    try {
+      const text = await request.text();
+      if (text) {
+        body = JSON.parse(text);
+      }
+    } catch {
+      // Empty body is OK, use defaults
+    }
     const provider = (body.provider || "deepgram") as TranscriptionProviderType;
 
     // Fetch user with subscription
@@ -62,14 +88,14 @@ export async function POST(request: Request) {
     if (!user) {
       return NextResponse.json(
         { error: "user_not_found" },
-        { status: 404 }
+        { status: 404, headers: corsHeaders }
       );
     }
 
     if (user.role === "BLOCKED") {
       return NextResponse.json(
         { error: "account_blocked", message: "Account has been blocked" },
-        { status: 403 }
+        { status: 403, headers: corsHeaders }
       );
     }
 
@@ -80,7 +106,7 @@ export async function POST(request: Request) {
     if (!availableProviders.includes(provider)) {
       return NextResponse.json(
         { error: "provider_not_available", message: `${provider} is not available for your plan` },
-        { status: 403 }
+        { status: 403, headers: corsHeaders }
       );
     }
 
@@ -89,7 +115,7 @@ export async function POST(request: Request) {
     if (!adminApiKey) {
       return NextResponse.json(
         { error: "provider_not_configured", message: `${provider} is not configured by admin` },
-        { status: 503 }
+        { status: 503, headers: corsHeaders }
       );
     }
 
@@ -109,12 +135,15 @@ export async function POST(request: Request) {
         },
       });
 
-      return NextResponse.json({
-        provider: "deepgram",
-        token: adminApiKey,
-        expiresAt: expiresAt.toISOString(),
-        ttlSeconds: 900,
-      });
+      return NextResponse.json(
+        {
+          provider: "deepgram",
+          token: adminApiKey,
+          expiresAt: expiresAt.toISOString(),
+          ttlSeconds: 900,
+        },
+        { headers: corsHeaders }
+      );
     } else if (provider === "assemblyai") {
       // AssemblyAI uses the same API key for real-time
       // We'll return a temporary session token
@@ -128,23 +157,26 @@ export async function POST(request: Request) {
         },
       });
 
-      return NextResponse.json({
-        provider: "assemblyai",
-        token: tokenResponse.token,
-        expiresAt: new Date(Date.now() + 900 * 1000).toISOString(), // 15 min
-        ttlSeconds: 900,
-      });
+      return NextResponse.json(
+        {
+          provider: "assemblyai",
+          token: tokenResponse.token,
+          expiresAt: new Date(Date.now() + 900 * 1000).toISOString(), // 15 min
+          ttlSeconds: 900,
+        },
+        { headers: corsHeaders }
+      );
     }
 
     return NextResponse.json(
       { error: "unsupported_provider", message: `Provider ${provider} is not supported` },
-      { status: 400 }
+      { status: 400, headers: corsHeaders }
     );
   } catch (error) {
     console.error("Transcription token error:", error);
     return NextResponse.json(
       { error: "server_error", message: "Failed to generate transcription token" },
-      { status: 500 }
+      { status: 500, headers: corsHeaders }
     );
   }
 }

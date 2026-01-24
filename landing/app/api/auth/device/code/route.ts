@@ -7,6 +7,21 @@ import {
 } from "@/lib/device-auth";
 import { deviceCodeRequestSchema } from "@/lib/validations";
 
+// CORS headers for desktop app requests
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+  "Access-Control-Allow-Headers": "Content-Type, Authorization",
+};
+
+/**
+ * OPTIONS /api/auth/device/code
+ * Handle preflight CORS requests
+ */
+export async function OPTIONS() {
+  return new NextResponse(null, { status: 204, headers: corsHeaders });
+}
+
 /**
  * POST /api/auth/device/code
  * Generates a device code pair for OAuth device flow authorization
@@ -20,7 +35,7 @@ export async function POST(request: Request) {
     if (!parsed.success) {
       return NextResponse.json(
         { error: "Invalid request", details: parsed.error.flatten() },
-        { status: 400 }
+        { status: 400, headers: corsHeaders }
       );
     }
 
@@ -50,18 +65,21 @@ export async function POST(request: Request) {
       },
     });
 
-    return NextResponse.json({
-      userCode, // Display to user: "ABCD-1234"
-      deviceCode, // Use for polling
-      expiresIn: AUTH_CONSTANTS.DEVICE_CODE_EXPIRY_MINUTES * 60,
-      interval: 5, // Polling interval in seconds
-      verificationUrl: `${process.env.NEXTAUTH_URL || "https://queenmama.app"}/auth/device`,
-    });
+    return NextResponse.json(
+      {
+        userCode, // Display to user: "ABCD-1234"
+        deviceCode, // Use for polling
+        expiresIn: AUTH_CONSTANTS.DEVICE_CODE_EXPIRY_MINUTES * 60,
+        interval: 5, // Polling interval in seconds
+        verificationUrl: `${process.env.NEXTAUTH_URL || "https://queenmama.app"}/auth/device`,
+      },
+      { headers: corsHeaders }
+    );
   } catch (error) {
     console.error("Device code generation error:", error);
     return NextResponse.json(
       { error: "Failed to generate device code" },
-      { status: 500 }
+      { status: 500, headers: corsHeaders }
     );
   }
 }

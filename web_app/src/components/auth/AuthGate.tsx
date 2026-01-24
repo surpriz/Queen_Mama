@@ -3,6 +3,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { open } from '@tauri-apps/plugin-shell';
 import { useAuthStore } from '../../stores/authStore';
 import { Button } from '../ui/Button';
 
@@ -66,10 +67,16 @@ export function AuthGate() {
     }
   }, [deviceCode]);
 
-  // Open verification URL
-  const openVerificationUrl = useCallback(() => {
-    if (deviceCode?.verificationUri) {
-      window.open(deviceCode.verificationUri, '_blank');
+  // Open verification URL using Tauri shell opener
+  const openVerificationUrl = useCallback(async () => {
+    if (deviceCode?.verificationUrl) {
+      try {
+        await open(deviceCode.verificationUrl);
+      } catch (error) {
+        console.error('[Auth] Failed to open browser:', error);
+        // Fallback to window.open
+        window.open(deviceCode.verificationUrl, '_blank');
+      }
     }
   }, [deviceCode]);
 
@@ -166,7 +173,7 @@ export function AuthGate() {
                   onClick={openVerificationUrl}
                   className="text-qm-accent hover:underline"
                 >
-                  {deviceCode.verificationUri}
+                  {deviceCode.verificationUrl}
                 </button>{' '}
                 and enter the code above.
               </p>

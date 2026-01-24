@@ -23,7 +23,7 @@ export interface AuthState {
 export interface DeviceCodeResponse {
   deviceCode: string;
   userCode: string;
-  verificationUri: string;
+  verificationUrl: string;
   expiresIn: number;
   interval: number;
 }

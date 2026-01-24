@@ -128,12 +128,14 @@ export const TabsTrigger = forwardRef<HTMLButtonElement, TabsTriggerProps>(
 TabsTrigger.displayName = 'TabsTrigger';
 
 // Tabs Content
-export interface TabsContentProps extends HTMLAttributes<HTMLDivElement> {
+export interface TabsContentProps {
   value: string;
+  className?: string;
+  children?: React.ReactNode;
 }
 
 export const TabsContent = forwardRef<HTMLDivElement, TabsContentProps>(
-  ({ className, value, children, ...props }, ref) => {
+  ({ className, value, children }, ref) => {
     const { activeTab } = useTabsContext();
     const isActive = activeTab === value;
 
@@ -148,7 +150,6 @@ export const TabsContent = forwardRef<HTMLDivElement, TabsContentProps>(
             exit={{ opacity: 0, y: -10 }}
             transition={{ duration: 0.2 }}
             className={twMerge('focus:outline-none', className)}
-            {...props}
           >
             {children}
           </motion.div>

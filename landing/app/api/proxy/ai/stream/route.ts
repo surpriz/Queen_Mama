@@ -11,6 +11,21 @@ import {
   type CascadeModel,
 } from "@/lib/ai-providers";
 
+// CORS headers for desktop app requests
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+  "Access-Control-Allow-Headers": "Content-Type, Authorization",
+};
+
+/**
+ * OPTIONS /api/proxy/ai/stream
+ * Handle preflight CORS requests
+ */
+export async function OPTIONS() {
+  return new NextResponse(null, { status: 204, headers: corsHeaders });
+}
+
 interface AIStreamRequestBody {
   provider?: AIProviderType; // Optional - backend uses cascade if not specified
   smartMode?: boolean;
@@ -32,19 +47,22 @@ export async function POST(request: Request) {
     if (!authHeader?.startsWith("Bearer ")) {
       return NextResponse.json(
         { error: "unauthorized", message: "Missing authorization header" },
-        { status: 401 }
+        { status: 401, headers: corsHeaders }
       );
     }
 
     const accessToken = authHeader.slice(7);
+    console.log("[AI Stream] Received token:", accessToken?.slice(0, 30) + "...");
 
     let tokenPayload;
     try {
       tokenPayload = await verifyAccessToken(accessToken);
-    } catch {
+      console.log("[AI Stream] Token verified for user:", tokenPayload.sub);
+    } catch (error) {
+      console.error("[AI Stream] Token verification failed:", error);
       return NextResponse.json(
         { error: "invalid_token", message: "Invalid or expired token" },
-        { status: 401 }
+        { status: 401, headers: corsHeaders }
       );
     }
 
@@ -55,7 +73,7 @@ export async function POST(request: Request) {
     if (!systemPrompt || !userMessage) {
       return NextResponse.json(
         { error: "invalid_request", message: "Missing required fields: systemPrompt, userMessage" },
-        { status: 400 }
+        { status: 400, headers: corsHeaders }
       );
     }
 
@@ -70,14 +88,14 @@ export async function POST(request: Request) {
     if (!user) {
       return NextResponse.json(
         { error: "user_not_found" },
-        { status: 404 }
+        { status: 404, headers: corsHeaders }
       );
     }
 
     if (user.role === "BLOCKED") {
       return NextResponse.json(
         { error: "account_blocked", message: "Account has been blocked" },
-        { status: 403 }
+        { status: 403, headers: corsHeaders }
       );
     }
 
@@ -89,7 +107,7 @@ export async function POST(request: Request) {
     if (smartMode && !tierConfig.smartMode) {
       return NextResponse.json(
         { error: "request_denied", message: "Smart Mode requires Enterprise subscription" },
-        { status: 403 }
+        { status: 403, headers: corsHeaders }
       );
     }
 
@@ -109,7 +127,7 @@ export async function POST(request: Request) {
     if (tierConfig.dailyAiRequests !== null && dailyRequestCount >= tierConfig.dailyAiRequests) {
       return NextResponse.json(
         { error: "request_denied", message: `Daily AI request limit reached (${tierConfig.dailyAiRequests})` },
-        { status: 403 }
+        { status: 403, headers: corsHeaders }
       );
     }
 
@@ -119,7 +137,7 @@ export async function POST(request: Request) {
     if (cascade.length === 0) {
       return NextResponse.json(
         { error: "no_providers", message: "No AI providers are configured" },
-        { status: 503 }
+        { status: 503, headers: corsHeaders }
       );
     }
 
@@ -254,13 +272,15 @@ export async function POST(request: Request) {
         "Cache-Control": "no-cache",
         Connection: "keep-alive",
         "X-Cascade-Mode": smartMode ? "smart" : "standard",
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Headers": "Content-Type, Authorization",
       },
     });
   } catch (error) {
     console.error("AI stream proxy error:", error);
     return NextResponse.json(
       { error: "server_error", message: "AI streaming request failed" },
-      { status: 500 }
+      { status: 500, headers: corsHeaders }
     );
   }
 }

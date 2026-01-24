@@ -2,7 +2,6 @@
 
 import { useMemo } from 'react';
 import { clsx } from 'clsx';
-import { platform } from '@tauri-apps/plugin-os';
 
 export interface KeyboardShortcutProps {
   shortcut: string; // e.g., "Cmd+Enter", "Ctrl+Shift+S"

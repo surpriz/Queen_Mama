@@ -64,7 +64,7 @@ export class AudioCaptureService {
         const pcm16 = this.float32ToPCM16(downsampled);
 
         // Send to callback
-        this.callbacks.onAudioData(pcm16.buffer);
+        this.callbacks.onAudioData(pcm16.buffer as ArrayBuffer);
       };
 
       // Connect nodes

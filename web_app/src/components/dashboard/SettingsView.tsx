@@ -3,7 +3,7 @@
 
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { enable, disable, isEnabled } from '@tauri-apps/plugin-autostart';
+import { enable, disable } from '@tauri-apps/plugin-autostart';
 import { Button, IconButton } from '../ui/Button';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '../ui/Card';
 import { Badge } from '../ui/Badge';

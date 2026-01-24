@@ -16,7 +16,9 @@ tauri-build = { version = "2", features = [] }
 tauri = { version = "2", features = ["tray-icon", "image-png"] }
 tauri-plugin-global-shortcut = "2"
 tauri-plugin-store = "2"
-tauri-plugin-autostart = { version = "2", features = ["system-startup"] }
+tauri-plugin-autostart = "2"
+tauri-plugin-shell = "2"
+open = "5"
 tauri-plugin-notification = "2"
 tauri-plugin-fs = "2"
 tauri-plugin-http = "2"

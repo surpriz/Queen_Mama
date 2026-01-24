@@ -3,7 +3,7 @@
 
 import { create } from 'zustand';
 import { v4 as uuidv4 } from 'uuid';
-import type { AIResponse, AIResponseType, AIProvider, Mode } from '../types';
+import type { AIResponse, AIResponseType, AIProvider } from '../types';
 import { useAuthStore } from './authStore';
 import { useSessionStore } from './sessionStore';
 import { useSettingsStore } from './settingsStore';
@@ -41,24 +41,37 @@ export const useAIStore = create<AIStore>((set, get) => ({
     set({ isProcessing: true, currentResponse: '', error: null });
 
     try {
-      const { accessToken } = useAuthStore.getState();
+      const { accessToken, isAuthenticated } = useAuthStore.getState();
+      console.log('[AI] Auth state - isAuthenticated:', isAuthenticated, 'accessToken:', accessToken ? `${accessToken.slice(0, 20)}...` : 'NULL');
+
+      if (!accessToken) {
+        throw new Error('Not authenticated. Please sign in again.');
+      }
+
       const transcript = useSessionStore.getState().getFullTranscript();
-      const { selectedModeId, smartModeEnabled, enableScreenCapture } = useSettingsStore.getState();
+      const { smartModeEnabled } = useSettingsStore.getState();
 
       // Truncate transcript if too long
       const truncatedTranscript = transcript.slice(-MAX_TRANSCRIPT_LENGTH);
 
-      // Build request body
-      const body: Record<string, unknown> = {
-        type,
-        transcript: truncatedTranscript,
-        modeId: selectedModeId,
-        smartMode: smartModeEnabled,
+      // Build system prompt based on response type
+      const systemPrompts: Record<AIResponseType, string> = {
+        assist: `You are Queen Mama, an AI coaching assistant. Analyze the conversation transcript and provide helpful, actionable advice. Be concise and professional. Respond in the same language as the transcript.`,
+        whatToSay: `You are a communication coach. Based on the conversation, suggest what the user should say next. Provide 2-3 options with different tones (professional, friendly, assertive). Respond in the same language as the transcript.`,
+        followUp: `You are a conversation analyst. Based on the transcript, suggest 3-5 follow-up questions the user could ask to deepen the conversation or clarify important points. Respond in the same language as the transcript.`,
+        recap: `You are a meeting summarizer. Provide a concise summary of the conversation including: key topics discussed, decisions made, action items, and next steps. Respond in the same language as the transcript.`,
+        custom: customPrompt || 'Analyze the following conversation and provide helpful insights.',
       };
 
-      if (customPrompt) {
-        body.customPrompt = customPrompt;
-      }
+      const systemPrompt = systemPrompts[type];
+      const userMessage = truncatedTranscript || 'No transcript available yet.';
+
+      // Build request body matching backend AIStreamRequestBody interface
+      const body: Record<string, unknown> = {
+        systemPrompt,
+        userMessage,
+        smartMode: smartModeEnabled,
+      };
 
       // TODO: Add screenshot if enabled
       // if (enableScreenCapture) {

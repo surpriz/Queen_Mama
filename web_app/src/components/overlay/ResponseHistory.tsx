@@ -4,7 +4,6 @@
 import { useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { clsx } from 'clsx';
-import { formatDistanceToNow } from 'date-fns';
 import { MarkdownRenderer } from '../shared/MarkdownRenderer';
 import { Badge } from '../ui/Badge';
 import type { AIResponse } from '../../types';

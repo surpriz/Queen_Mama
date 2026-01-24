@@ -1,13 +1,12 @@
 // Queen Mama LITE - Dashboard View Component
 // Main dashboard with sidebar and session management
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { motion } from 'framer-motion';
 import { invoke } from '@tauri-apps/api/core';
 import { clsx } from 'clsx';
 import { Button, IconButton } from '../ui/Button';
-import { Card, CardHeader, CardTitle, CardContent } from '../ui/Card';
+import { Card } from '../ui/Card';
 import { StatusBadge, Badge } from '../ui/Badge';
 import { AudioStatus } from '../shared/AudioLevel';
 import { useAuthStore } from '../../stores/authStore';
@@ -16,14 +15,14 @@ import { useSettingsStore } from '../../stores/settingsStore';
 import { useTranscriptionStore } from '../../stores/transcriptionStore';
 import { audioCaptureService } from '../../services/audio/AudioCaptureService';
 import type { Session } from '../../types';
-import { formatDistanceToNow, format } from 'date-fns';
+import { format } from 'date-fns';
 
 export function DashboardView() {
   const navigate = useNavigate();
   const { user, logout } = useAuthStore();
   const { sessions, currentSession, isSessionActive, startSession, stopSession, transcript } = useSessionStore();
   const { modes, selectedModeId, setSelectedMode } = useSettingsStore();
-  const { isConnected, connect, disconnect, sendAudio } = useTranscriptionStore();
+  const { connect, disconnect, sendAudio } = useTranscriptionStore();
 
   const [audioLevel, setAudioLevel] = useState(0);
   const [selectedSessionId, setSelectedSessionId] = useState<string | null>(null);

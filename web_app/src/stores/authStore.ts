@@ -4,10 +4,33 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import { LazyStore } from '@tauri-apps/plugin-store';
+import { platform as getPlatform, hostname } from '@tauri-apps/plugin-os';
+import { v4 as uuidv4 } from 'uuid';
 import type { User, DeviceCodeResponse, AuthState } from '../types';
 
 // API base URL - configurable for dev/prod
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+
+// Tauri store for persistent auth data
+let tauriStore: LazyStore | null = null;
+
+const getStore = async () => {
+  if (!tauriStore) {
+    tauriStore = new LazyStore('auth.json');
+  }
+  return tauriStore;
+};
+
+// Generate or retrieve persistent device ID
+const getDeviceId = async (): Promise<string> => {
+  const store = await getStore();
+  let deviceId = await store.get<string>('deviceId');
+  if (!deviceId) {
+    deviceId = uuidv4();
+    await store.set('deviceId', deviceId);
+  }
+  return deviceId;
+};
 
 interface AuthStore extends AuthState {
   // Device code flow
@@ -23,16 +46,6 @@ interface AuthStore extends AuthState {
   logout: () => Promise<void>;
   setError: (error: string | null) => void;
 }
-
-// Tauri store for persistent auth data
-let tauriStore: LazyStore | null = null;
-
-const getStore = async () => {
-  if (!tauriStore) {
-    tauriStore = new LazyStore('auth.json', { autoSave: true });
-  }
-  return tauriStore;
-};
 
 export const useAuthStore = create<AuthStore>()(
   persist(
@@ -57,16 +70,29 @@ export const useAuthStore = create<AuthStore>()(
           const user = await store.get<User>('user');
 
           if (accessToken && refreshToken && user) {
+            // Set tokens temporarily for refresh to work
             set({
               accessToken,
               refreshToken,
               user,
-              isAuthenticated: true,
-              isLoading: false,
             });
 
-            // Refresh token in background
-            get().refreshAccessToken();
+            // Await token refresh before marking as authenticated
+            console.log('[Auth] Refreshing access token...');
+            const refreshed = await get().refreshAccessToken();
+
+            if (refreshed) {
+              console.log('[Auth] Token refresh successful');
+              set({
+                isAuthenticated: true,
+                isLoading: false,
+              });
+            } else {
+              // Refresh failed, clear tokens and require re-login
+              console.log('[Auth] Token refresh failed, requiring re-login');
+              await get().logout();
+              set({ isLoading: false });
+            }
           } else {
             set({ isLoading: false });
           }
@@ -80,14 +106,29 @@ export const useAuthStore = create<AuthStore>()(
       startDeviceCodeFlow: async () => {
         set({ isLoading: true, error: null });
         try {
+          // Get device identification
+          const deviceId = await getDeviceId();
+          const platformName = await getPlatform();
+          let deviceName = 'Queen Mama LITE';
+          try {
+            deviceName = await hostname() || 'Queen Mama LITE';
+          } catch {
+            // hostname may not be available on all platforms
+          }
+
           const response = await fetch(`${API_BASE_URL}/api/auth/device/code`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ clientId: 'queen-mama-lite' }),
+            body: JSON.stringify({
+              deviceId,
+              deviceName,
+              platform: platformName,
+            }),
           });
 
           if (!response.ok) {
-            throw new Error('Failed to initiate device code flow');
+            const errorData = await response.json().catch(() => ({}));
+            throw new Error(errorData.error || 'Failed to initiate device code flow');
           }
 
           const data: DeviceCodeResponse = await response.json();
@@ -124,6 +165,8 @@ export const useAuthStore = create<AuthStore>()(
 
           const data = await response.json();
           const store = await getStore();
+
+          console.log('[Auth] Poll success, got accessToken:', data.accessToken?.slice(0, 20) + '...');
 
           // Save tokens
           await store.set('accessToken', data.accessToken);
@@ -178,6 +221,7 @@ export const useAuthStore = create<AuthStore>()(
             await store.set('refreshToken', data.refreshToken);
           }
 
+          console.log('[Auth] Token refreshed successfully:', data.accessToken?.slice(0, 20) + '...');
           set({
             accessToken: data.accessToken,
             refreshToken: data.refreshToken || refreshToken,

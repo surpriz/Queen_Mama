@@ -38,8 +38,6 @@
         "height": 100,
         "minWidth": 380,
         "minHeight": 52,
-        "maxWidth": 420,
-        "maxHeight": 480,
         "resizable": false,
         "fullscreen": false,
         "center": false,
@@ -47,41 +45,19 @@
         "decorations": false,
         "transparent": true,
         "alwaysOnTop": true,
-        "skipTaskbar": true,
-        "x": 100,
-        "y": 100
+        "skipTaskbar": true
       }
     ],
     "security": {
       "csp": null
     }
   },
-  "plugins": {
-    "global-shortcut": {},
-    "store": {},
-    "autostart": {},
-    "notification": {},
-    "fs": {
-      "scope": ["$APPDATA/**", "$HOME/.queenmama/**"]
-    },
-    "http": {
-      "scope": [
-        "https://*.deepgram.com/**",
-        "https://*.queenmama.io/**",
-        "http://localhost:3000/**"
-      ]
-    },
-    "os": {}
-  },
+  "plugins": {},
   "bundle": {
     "active": true,
     "targets": "all",
     "icon": [
-      "icons/32x32.png",
-      "icons/128x128.png",
-      "icons/128x128@2x.png",
-      "icons/icon.icns",
-      "icons/icon.ico"
+      "icons/icon.png"
     ],
     "macOS": {
       "minimumSystemVersion": "10.15"

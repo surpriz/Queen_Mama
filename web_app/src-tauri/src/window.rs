@@ -1,7 +1,7 @@
 // Queen Mama LITE - Window Management
 // Handles multi-window setup and overlay behavior
 
-use tauri::{App, Emitter, Manager, PhysicalPosition, PhysicalSize};
+use tauri::{App, Emitter, Manager, LogicalPosition, LogicalSize};
 
 /// Overlay dimensions
 const OVERLAY_COLLAPSED_WIDTH: u32 = 420;
@@ -12,16 +12,18 @@ const OVERLAY_EXPANDED_HEIGHT: u32 = 400;
 pub fn setup_windows(app: &App) -> Result<(), Box<dyn std::error::Error>> {
     // Get overlay window
     if let Some(overlay) = app.get_webview_window("overlay") {
-        // Set initial size
-        let _ = overlay.set_size(PhysicalSize::new(OVERLAY_COLLAPSED_WIDTH, OVERLAY_COLLAPSED_HEIGHT));
+        // Set initial size using logical pixels (HiDPI aware)
+        let _ = overlay.set_size(LogicalSize::new(OVERLAY_COLLAPSED_WIDTH as f64, OVERLAY_COLLAPSED_HEIGHT as f64));
 
         // Position in top-right corner with some padding
         if let Ok(monitor) = overlay.current_monitor() {
             if let Some(monitor) = monitor {
                 let screen_size = monitor.size();
-                let x = screen_size.width as i32 - OVERLAY_COLLAPSED_WIDTH as i32 - 20;
-                let y = 100; // Top padding
-                let _ = overlay.set_position(PhysicalPosition::new(x, y));
+                let scale_factor = monitor.scale_factor();
+                let logical_width = screen_size.width as f64 / scale_factor;
+                let x = logical_width - OVERLAY_COLLAPSED_WIDTH as f64 - 20.0;
+                let y = 100.0; // Top padding
+                let _ = overlay.set_position(LogicalPosition::new(x, y));
             }
         }
 
@@ -57,13 +59,13 @@ pub async fn toggle_overlay(app: tauri::AppHandle) -> Result<bool, String> {
 pub async fn set_overlay_expanded(app: tauri::AppHandle, expanded: bool) -> Result<(), String> {
     if let Some(overlay) = app.get_webview_window("overlay") {
         let (width, height) = if expanded {
-            (OVERLAY_EXPANDED_WIDTH, OVERLAY_EXPANDED_HEIGHT)
+            (OVERLAY_EXPANDED_WIDTH as f64, OVERLAY_EXPANDED_HEIGHT as f64)
         } else {
-            (OVERLAY_COLLAPSED_WIDTH, OVERLAY_COLLAPSED_HEIGHT)
+            (OVERLAY_COLLAPSED_WIDTH as f64, OVERLAY_COLLAPSED_HEIGHT as f64)
         };
 
         overlay
-            .set_size(PhysicalSize::new(width, height))
+            .set_size(LogicalSize::new(width, height))
             .map_err(|e| e.to_string())?;
 
         // Emit event to frontend
@@ -85,37 +87,44 @@ pub async fn move_overlay(app: tauri::AppHandle, position: OverlayPosition) -> R
             .ok_or("No monitor found")?;
 
         let screen_size = monitor.size();
-        let window_size = overlay.outer_size().map_err(|e| e.to_string())?;
+        let scale_factor = monitor.scale_factor();
+        let logical_screen_width = screen_size.width as f64 / scale_factor;
+        let logical_screen_height = screen_size.height as f64 / scale_factor;
 
-        let padding = 20;
+        let window_size = overlay.outer_size().map_err(|e| e.to_string())?;
+        let logical_window_width = window_size.width as f64 / scale_factor;
+        let logical_window_height = window_size.height as f64 / scale_factor;
+
+        let padding = 20.0;
+        let menu_bar_height = 60.0; // Account for macOS menu bar
 
         let (x, y) = match position {
-            OverlayPosition::TopLeft => (padding, padding + 60), // Account for menu bar
+            OverlayPosition::TopLeft => (padding, padding + menu_bar_height),
             OverlayPosition::TopCenter => {
-                ((screen_size.width as i32 - window_size.width as i32) / 2, padding + 60)
+                ((logical_screen_width - logical_window_width) / 2.0, padding + menu_bar_height)
             }
             OverlayPosition::TopRight => {
-                (screen_size.width as i32 - window_size.width as i32 - padding, padding + 60)
+                (logical_screen_width - logical_window_width - padding, padding + menu_bar_height)
             }
             OverlayPosition::BottomLeft => {
-                (padding, screen_size.height as i32 - window_size.height as i32 - padding)
+                (padding, logical_screen_height - logical_window_height - padding)
             }
             OverlayPosition::BottomCenter => {
                 (
-                    (screen_size.width as i32 - window_size.width as i32) / 2,
-                    screen_size.height as i32 - window_size.height as i32 - padding,
+                    (logical_screen_width - logical_window_width) / 2.0,
+                    logical_screen_height - logical_window_height - padding,
                 )
             }
             OverlayPosition::BottomRight => {
                 (
-                    screen_size.width as i32 - window_size.width as i32 - padding,
-                    screen_size.height as i32 - window_size.height as i32 - padding,
+                    logical_screen_width - logical_window_width - padding,
+                    logical_screen_height - logical_window_height - padding,
                 )
             }
         };
 
         overlay
-            .set_position(PhysicalPosition::new(x, y))
+            .set_position(LogicalPosition::new(x, y))
             .map_err(|e| e.to_string())?;
 
         Ok(())

@@ -52,6 +52,7 @@ export const useTranscriptionStore = create<TranscriptionStore>((set, get) => ({
     try {
       // Get Deepgram token from backend
       const { accessToken } = useAuthStore.getState();
+      console.log('[Transcription] Using accessToken:', accessToken ? `${accessToken.slice(0, 20)}...` : 'NULL');
       const response = await fetch(`${API_BASE_URL}/api/proxy/transcription/token`, {
         method: 'POST',
         headers: {
