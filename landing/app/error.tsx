@@ -2,6 +2,7 @@
 
 import { useEffect } from "react";
 import Link from "next/link";
+import * as Sentry from "@sentry/nextjs";
 import { Container } from "@/components/ui";
 
 interface ErrorProps {
@@ -14,10 +15,8 @@ export default function Error({ error, reset }: ErrorProps) {
     // Log error to console in development
     console.error("Application error:", error);
 
-    // TODO: Send to error tracking service (Sentry)
-    // if (typeof window !== "undefined" && window.Sentry) {
-    //   window.Sentry.captureException(error);
-    // }
+    // Send to Sentry
+    Sentry.captureException(error);
   }, [error]);
 
   return (
