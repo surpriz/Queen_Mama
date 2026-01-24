@@ -13,6 +13,7 @@ const footerLinks = {
   resources: [
     { label: "Windows Waitlist", href: "/windows-waitlist" },
     { label: "Contact", href: "/#contact" },
+    { label: "Feedback", href: "https://queenmama.featurebase.app", external: true },
     { label: "Subprocessors", href: "/subprocessors" },
   ],
   legal: [
@@ -106,6 +107,7 @@ export function Footer() {
                 <li key={link.label}>
                   <a
                     href={link.href}
+                    {...('external' in link && link.external ? { target: "_blank", rel: "noopener noreferrer" } : {})}
                     className="text-sm text-[var(--qm-text-tertiary)] hover:text-white transition-colors"
                   >
                     {link.label}

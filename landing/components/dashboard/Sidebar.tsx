@@ -122,6 +122,17 @@ export function Sidebar({ userRole }: { userRole?: UserRole }) {
             </svg>
             Download App
           </Link>
+          <a
+            href="https://queenmama.featurebase.app"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-x-3 rounded-[var(--qm-radius-md)] p-3 text-sm font-medium text-[var(--qm-text-secondary)] hover:bg-[var(--qm-surface-light)] hover:text-white transition-colors"
+          >
+            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" />
+            </svg>
+            Give Feedback
+          </a>
           <Link
             href="/"
             className="flex items-center gap-x-3 rounded-[var(--qm-radius-md)] p-3 text-sm font-medium text-[var(--qm-text-secondary)] hover:bg-[var(--qm-surface-light)] hover:text-white transition-colors"

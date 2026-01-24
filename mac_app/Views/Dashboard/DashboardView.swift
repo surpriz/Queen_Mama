@@ -306,9 +306,27 @@ struct ModernSidebarView: View {
                 .padding(.top, QMDesign.Spacing.xs)
 
                 HStack {
-                    Text("v1.0")
-                        .font(QMDesign.Typography.captionSmall)
+                    Button {
+                        if let url = URL(string: "https://queenmama.featurebase.app") {
+                            NSWorkspace.shared.open(url)
+                        }
+                    } label: {
+                        HStack(spacing: 4) {
+                            Image(systemName: "bubble.left.and.bubble.right")
+                                .font(.system(size: 10))
+                            Text("Feedback")
+                                .font(QMDesign.Typography.captionSmall)
+                        }
                         .foregroundColor(QMDesign.Colors.textTertiary)
+                    }
+                    .buttonStyle(.plain)
+                    .onHover { isHovered in
+                        if isHovered {
+                            NSCursor.pointingHand.push()
+                        } else {
+                            NSCursor.pop()
+                        }
+                    }
 
                     Spacer()
 

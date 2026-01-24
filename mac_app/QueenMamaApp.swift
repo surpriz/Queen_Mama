@@ -367,6 +367,12 @@ struct MenuBarView: View {
             }
             .keyboardShortcut("d", modifiers: [.command, .shift])
 
+            Button("Give Feedback...") {
+                if let url = URL(string: "https://queenmama.featurebase.app") {
+                    NSWorkspace.shared.open(url)
+                }
+            }
+
             Divider()
 
             Button("Quit Queen Mama") {

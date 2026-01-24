@@ -140,6 +140,38 @@ struct ModernSettingsSidebar: View {
 
             Spacer()
 
+            // Feedback button
+            Button {
+                if let url = URL(string: "https://queenmama.featurebase.app") {
+                    NSWorkspace.shared.open(url)
+                }
+            } label: {
+                HStack(spacing: QMDesign.Spacing.sm) {
+                    Image(systemName: "bubble.left.and.bubble.right")
+                        .font(.system(size: 14))
+                        .foregroundColor(QMDesign.Colors.textSecondary)
+                        .frame(width: 24)
+
+                    Text("Give Feedback")
+                        .font(QMDesign.Typography.bodySmall)
+                        .foregroundColor(QMDesign.Colors.textSecondary)
+
+                    Spacer()
+
+                    Image(systemName: "arrow.up.right")
+                        .font(.system(size: 10))
+                        .foregroundColor(QMDesign.Colors.textTertiary)
+                }
+                .padding(.horizontal, QMDesign.Spacing.sm)
+                .padding(.vertical, QMDesign.Spacing.xs)
+                .background(
+                    RoundedRectangle(cornerRadius: QMDesign.Radius.md)
+                        .fill(Color.clear)
+                )
+            }
+            .buttonStyle(.plain)
+            .padding(.horizontal, QMDesign.Spacing.sm)
+
             // Version info at bottom
             VStack(spacing: QMDesign.Spacing.xxs) {
                 Divider()
