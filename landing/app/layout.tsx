@@ -3,6 +3,7 @@ import { Inter } from "next/font/google";
 import "./globals.css";
 import { BackToTop } from "@/components/ui";
 import { SessionProvider } from "@/components/providers/SessionProvider";
+import { CookieConsent } from "@/components/CookieConsent";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -67,6 +68,7 @@ export default function RootLayout({
         <SessionProvider>
           {children}
           <BackToTop />
+          <CookieConsent />
         </SessionProvider>
       </body>
     </html>

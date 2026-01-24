@@ -51,8 +51,11 @@
     <true/>
 
     <!-- Sentry Crash Reporting -->
+    <!-- NOTE: Set SentryDSN via Xcode build settings or xcconfig: -->
+    <!-- INFOPLIST_KEY_SentryDSN = $(SENTRY_DSN) -->
+    <!-- This prevents the DSN from being committed to source control -->
     <key>SentryDSN</key>
-    <string>https://f18987df343d1e21a7e8d8f0e6866b64@o4510350814085121.ingest.de.sentry.io/4510742707568720</string>
+    <string>$(SENTRY_DSN)</string>
 
     <!-- Sparkle Auto-Update Configuration -->
     <key>SUFeedURL</key>
