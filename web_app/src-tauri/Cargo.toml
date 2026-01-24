@@ -1,0 +1,31 @@
+[package]
+name = "queen-mama-lite"
+version = "1.0.0"
+description = "Queen Mama LITE - Cross-platform AI coaching assistant"
+authors = ["Queen Mama Team"]
+edition = "2021"
+
+[lib]
+name = "queen_mama_lite_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = ["tray-icon", "image-png"] }
+tauri-plugin-global-shortcut = "2"
+tauri-plugin-store = "2"
+tauri-plugin-autostart = { version = "2", features = ["system-startup"] }
+tauri-plugin-notification = "2"
+tauri-plugin-fs = "2"
+tauri-plugin-http = "2"
+tauri-plugin-os = "2"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+tokio = { version = "1", features = ["full"] }
+uuid = { version = "1", features = ["v4"] }
+
+[features]
+default = ["custom-protocol"]
+custom-protocol = ["tauri/custom-protocol"]
