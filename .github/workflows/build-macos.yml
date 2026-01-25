@@ -82,52 +82,52 @@ jobs:
 
       - name: Build Archive
         run: |
+          # Build without signing Swift packages (they'll be re-signed in Export step)
           xcodebuild archive \
             -project $XCODE_PROJECT \
             -scheme $SCHEME \
             -configuration Release \
             -archivePath $RUNNER_TEMP/QueenMama.xcarchive \
-            CODE_SIGN_IDENTITY="Developer ID Application" \
-            DEVELOPMENT_TEAM=$TEAM_ID \
-            OTHER_CODE_SIGN_FLAGS="--timestamp --options runtime"
+            CODE_SIGN_IDENTITY=- \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=NO \
+            -skipPackagePluginValidation \
+            -skipMacroValidation
 
       - name: Export App
         run: |
           # Create export directory
           mkdir -p "$RUNNER_TEMP/export"
 
-          # Copy app from archive (already signed during archive step)
+          # Copy app from archive (not signed during archive step - we sign manually)
           cp -R "$RUNNER_TEMP/QueenMama.xcarchive/Products/Applications/QueenMama.app" "$RUNNER_TEMP/export/Queen Mama.app"
 
           APP_PATH="$RUNNER_TEMP/export/Queen Mama.app"
           SIGN_IDENTITY="Developer ID Application: Jerome LAVAL (WNNDDTBPGK)"
 
-          # Sign Sparkle framework components explicitly (nested code requires individual signing)
-          echo "🔐 Signing Sparkle framework components..."
+          echo "🔐 Signing all frameworks and nested components..."
 
-          # Sign XPC services first
-          find "$APP_PATH/Contents/Frameworks/Sparkle.framework" -name "*.xpc" -type d | while read xpc; do
-            echo "Signing: $xpc"
-            codesign --force --timestamp --options runtime --sign "$SIGN_IDENTITY" "$xpc"
+          # Sign all nested executables, XPC services, and helper apps in all frameworks
+          # This handles Sparkle, Sentry, PostHog, and any future frameworks
+          find "$APP_PATH/Contents/Frameworks" -type d \( -name "*.xpc" -o -name "*.app" \) | while read item; do
+            echo "Signing: $item"
+            codesign --force --timestamp --options runtime --sign "$SIGN_IDENTITY" "$item" || true
           done
 
-          # Sign helper apps
-          find "$APP_PATH/Contents/Frameworks/Sparkle.framework" -name "*.app" -type d | while read app; do
-            echo "Signing: $app"
-            codesign --force --timestamp --options runtime --sign "$SIGN_IDENTITY" "$app"
+          # Sign standalone executables in frameworks (like Autoupdate)
+          find "$APP_PATH/Contents/Frameworks" -type f -perm +111 ! -name "*.dylib" | while read exe; do
+            # Skip if it's inside a .app or .xpc bundle (already signed above)
+            if [[ "$exe" != *".app/"* && "$exe" != *".xpc/"* ]]; then
+              echo "Signing executable: $exe"
+              codesign --force --timestamp --options runtime --sign "$SIGN_IDENTITY" "$exe" || true
+            fi
           done
 
-          # Sign Autoupdate binary
-          if [ -f "$APP_PATH/Contents/Frameworks/Sparkle.framework/Versions/B/Autoupdate" ]; then
-            echo "Signing: Autoupdate"
-            codesign --force --timestamp --options runtime --sign "$SIGN_IDENTITY" \
-              "$APP_PATH/Contents/Frameworks/Sparkle.framework/Versions/B/Autoupdate"
-          fi
-
-          # Sign the Sparkle framework itself
-          echo "Signing: Sparkle.framework"
-          codesign --force --timestamp --options runtime --sign "$SIGN_IDENTITY" \
-            "$APP_PATH/Contents/Frameworks/Sparkle.framework"
+          # Sign all frameworks (deepest first to handle nested frameworks)
+          find "$APP_PATH/Contents/Frameworks" -type d -name "*.framework" -maxdepth 2 | sort -r | while read fw; do
+            echo "Signing framework: $fw"
+            codesign --force --timestamp --options runtime --sign "$SIGN_IDENTITY" "$fw"
+          done
 
           # Finally sign the main app with entitlements
           echo "🔐 Signing main application..."
