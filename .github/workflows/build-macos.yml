@@ -187,6 +187,30 @@ jobs:
 
           echo "📦 DMG created: $(ls -lh $RUNNER_TEMP/QueenMama.dmg)"
 
+      - name: Notarize DMG
+        timeout-minutes: 15
+        env:
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+        run: |
+          echo "📤 Notarizing DMG..."
+          NOTARIZE_OUTPUT=$(xcrun notarytool submit $RUNNER_TEMP/QueenMama.dmg \
+            --apple-id "$APPLE_ID" \
+            --team-id "$APPLE_TEAM_ID" \
+            --password "$APPLE_APP_SPECIFIC_PASSWORD" \
+            --wait 2>&1) || true
+
+          echo "$NOTARIZE_OUTPUT"
+
+          if echo "$NOTARIZE_OUTPUT" | grep -q "status: Accepted"; then
+            echo "✅ DMG notarization successful!"
+            xcrun stapler staple $RUNNER_TEMP/QueenMama.dmg
+            echo "✅ DMG stapled successfully!"
+          else
+            echo "⚠️ DMG notarization failed, continuing anyway..."
+          fi
+
       - name: Get version info
         id: version_info
         run: |
