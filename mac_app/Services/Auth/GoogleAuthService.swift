@@ -11,14 +11,17 @@ final class GoogleAuthService: NSObject, ObservableObject {
     private let clientId: String
     private var redirectScheme: String {
         // Reversed client ID format for iOS OAuth clients
+        // e.g., "499912921957-xxx.apps.googleusercontent.com" -> "com.googleusercontent.apps.499912921957-xxx"
         let parts = clientId.split(separator: ".")
-        if parts.count >= 3 {
+        if parts.count >= 4 {
+            // Reverse: [project-clientid, apps, googleusercontent, com] -> com.googleusercontent.apps.project-clientid
             return "com.googleusercontent.apps.\(parts[0])"
         }
         return "com.googleusercontent.apps"
     }
     private var redirectUri: String {
-        "\(redirectScheme):/oauth2callback"
+        // Google iOS OAuth expects this exact format with empty path
+        "\(redirectScheme):/"
     }
 
     // PKCE state
