@@ -23,23 +23,40 @@ export function AuthGate() {
   const [step, setStep] = useState<AuthStep>('idle');
   const [copied, setCopied] = useState(false);
 
+  // Debug logging
+  console.log('[AuthGate] render - step:', step, 'deviceCode:', deviceCode, 'isLoading:', isLoading);
+
+  // Monitor step changes
+  useEffect(() => {
+    console.log('[AuthGate] useEffect - step changed to:', step);
+  }, [step]);
+
   // Start auth flow
   const handleStartAuth = async () => {
+    console.log('[AuthGate] handleStartAuth called, current step:', step);
     try {
-      await startDeviceCodeFlow();
+      const result = await startDeviceCodeFlow();
+      console.log('[AuthGate] startDeviceCodeFlow returned:', result);
       setStep('waiting');
-    } catch {
+      console.log('[AuthGate] step set to waiting');
+    } catch (err) {
+      console.error('[AuthGate] startDeviceCodeFlow failed:', err);
       setStep('error');
     }
   };
 
-  // Poll for authorization
+  // Poll for authorization - start when deviceCode exists
   useEffect(() => {
-    if (!deviceCode || step !== 'waiting') return;
+    // Only poll when we have a deviceCode and not in error/success state
+    if (!deviceCode || step === 'error' || step === 'success') return;
+
+    console.log('[AuthGate] Starting poll interval for deviceCode:', deviceCode.userCode);
 
     const interval = setInterval(async () => {
+      console.log('[AuthGate] Polling for authorization...');
       const authorized = await pollDeviceAuthorization();
       if (authorized) {
+        console.log('[AuthGate] Authorization successful!');
         setStep('success');
         clearInterval(interval);
       }
@@ -53,6 +70,7 @@ export function AuthGate() {
     }, deviceCode.expiresIn * 1000);
 
     return () => {
+      console.log('[AuthGate] Cleaning up poll interval');
       clearInterval(interval);
       clearTimeout(timeout);
     };
@@ -114,9 +132,14 @@ export function AuthGate() {
           <p className="text-qm-text-secondary mt-1">AI-powered coaching assistant</p>
         </div>
 
+        {/* DEBUG: Show current state */}
+        <div className="mb-4 p-2 bg-red-500/20 rounded text-xs text-white">
+          DEBUG: step={step}, hasDeviceCode={!!deviceCode}, userCode={deviceCode?.userCode || 'none'}
+        </div>
+
         <AnimatePresence mode="wait">
-          {/* Idle State */}
-          {step === 'idle' && (
+          {/* Idle State - show when no deviceCode and not in error/success */}
+          {!deviceCode && step !== 'error' && step !== 'success' && (
             <motion.div
               key="idle"
               initial={{ opacity: 0 }}
@@ -141,8 +164,8 @@ export function AuthGate() {
             </motion.div>
           )}
 
-          {/* Waiting State - Device Code */}
-          {step === 'waiting' && deviceCode && (
+          {/* Waiting State - Device Code - show when deviceCode exists */}
+          {deviceCode && step !== 'error' && step !== 'success' && (
             <motion.div
               key="waiting"
               initial={{ opacity: 0 }}

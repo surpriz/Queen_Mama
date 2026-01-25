@@ -104,10 +104,13 @@ export const useAuthStore = create<AuthStore>()(
 
       // Start device code flow
       startDeviceCodeFlow: async () => {
+        console.log('[Auth] startDeviceCodeFlow called');
         set({ isLoading: true, error: null });
         try {
           // Get device identification
+          console.log('[Auth] Getting device ID...');
           const deviceId = await getDeviceId();
+          console.log('[Auth] Device ID:', deviceId);
           const platformName = await getPlatform();
           let deviceName = 'Queen Mama LITE';
           try {
@@ -132,9 +135,12 @@ export const useAuthStore = create<AuthStore>()(
           }
 
           const data: DeviceCodeResponse = await response.json();
+          console.log('[Auth] Device code response:', data);
           set({ deviceCode: data, isLoading: false });
+          console.log('[Auth] State updated with deviceCode');
           return data;
         } catch (error) {
+          console.error('[Auth] startDeviceCodeFlow error:', error);
           const message = error instanceof Error ? error.message : 'Unknown error';
           set({ isLoading: false, error: message });
           throw error;
