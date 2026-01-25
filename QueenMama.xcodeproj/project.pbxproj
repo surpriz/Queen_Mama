@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		7B923343FFD53C5B186B448C /* AppEnvironment.swift in Sources */ = {isa = PBXBuildFile; fileRef = E21A69063C57255B141AA522 /* AppEnvironment.swift */; };
 		000000000000000000000001 /* QueenMamaApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 100000000000000000000001 /* QueenMamaApp.swift */; };
 		000000000000000000000002 /* Session.swift in Sources */ = {isa = PBXBuildFile; fileRef = 100000000000000000000002 /* Session.swift */; };
 		000000000000000000000003 /* Mode.swift in Sources */ = {isa = PBXBuildFile; fileRef = 100000000000000000000003 /* Mode.swift */; };
@@ -67,6 +68,7 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		E21A69063C57255B141AA522 /* AppEnvironment.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppEnvironment.swift; sourceTree = "<group>"; };
 		100000000000000000000001 /* QueenMamaApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QueenMamaApp.swift; sourceTree = "<group>"; };
 		100000000000000000000002 /* Session.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Session.swift; sourceTree = "<group>"; };
 		100000000000000000000003 /* Mode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Mode.swift; sourceTree = "<group>"; };
@@ -190,6 +192,7 @@
 				5C90DF242F1A5197006B0DE0 /* Sync */,
 				5C8B7EA32F17D57E00DAE824 /* TranscriptionProviders.swift */,
 				100000000000000000000005 /* KeychainManager.swift */,
+				E21A69063C57255B141AA522 /* AppEnvironment.swift */,
 				100000000000000000000006 /* ConfigurationManager.swift */,
 				10000000000000000000002B /* URLConfigManager.swift */,
 				100000000000000000000007 /* AudioCaptureService.swift */,
@@ -424,6 +427,7 @@
 				000000000000000000000004 /* AIResponse.swift in Sources */,
 				5C8B7EA42F17D57E00DAE824 /* TranscriptionProviders.swift in Sources */,
 				000000000000000000000005 /* KeychainManager.swift in Sources */,
+				7B923343FFD53C5B186B448C /* AppEnvironment.swift in Sources */,
 				000000000000000000000006 /* ConfigurationManager.swift in Sources */,
 				000000000000000000000007 /* AudioCaptureService.swift in Sources */,
 				000000000000000000000008 /* ScreenCaptureService.swift in Sources */,
