@@ -1,5 +1,5 @@
 // Queen Mama LITE - Tab Bar Component
-// Response type selection tabs
+// Response type selection tabs with gradient background for selected state
 
 import { motion } from 'framer-motion';
 import { clsx } from 'clsx';
@@ -12,11 +12,11 @@ export interface TabBarProps {
   isProcessing: boolean;
 }
 
-// Icon components for tabs
+// Icon components for tabs - matching macOS app sparkle style for Assist
 const TabIcons: Record<TabItem, React.FC<{ className?: string }>> = {
   assist: ({ className }) => (
-    <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
+    <svg className={className} fill="currentColor" viewBox="0 0 24 24">
+      <path d="M12 2L13.09 8.26L18 6L15.74 10.91L22 12L15.74 13.09L18 18L13.09 15.74L12 22L10.91 15.74L6 18L8.26 13.09L2 12L8.26 10.91L6 6L10.91 8.26L12 2Z" />
     </svg>
   ),
   whatToSay: ({ className }) => (
@@ -38,38 +38,41 @@ const TabIcons: Record<TabItem, React.FC<{ className?: string }>> = {
 
 export function TabBar({ selectedTab, onTabSelect, isProcessing }: TabBarProps) {
   return (
-    <div className="flex items-center gap-0.5 p-1 bg-qm-surface-light rounded-qm-md mb-3">
+    <div className="flex items-center gap-1 p-1 bg-qm-surface-light rounded-qm-lg mb-3">
       {TAB_ITEMS.map((tab) => {
         const isSelected = selectedTab === tab.id;
         const Icon = TabIcons[tab.id];
 
         return (
-          <button
+          <motion.button
             key={tab.id}
             onClick={() => onTabSelect(tab.id)}
             disabled={isProcessing}
             className={clsx(
-              'relative flex-1 flex items-center justify-center gap-1 py-1.5 rounded-qm-sm',
-              'text-[10px] transition-colors duration-150',
+              'relative flex-1 flex items-center justify-center gap-1.5 py-2 rounded-qm-md',
+              'text-[11px] font-medium transition-colors duration-150',
               'disabled:opacity-50 disabled:cursor-not-allowed',
               isSelected
-                ? 'text-qm-accent font-semibold'
-                : 'text-qm-text-secondary font-medium hover:text-qm-text-primary hover:bg-qm-surface-hover'
+                ? 'text-white'
+                : 'text-qm-text-secondary hover:text-qm-text-primary hover:bg-qm-surface-hover'
             )}
+            whileHover={!isSelected ? { scale: 1.02 } : undefined}
+            whileTap={{ scale: 0.98 }}
+            transition={{ type: 'spring', stiffness: 400, damping: 25 }}
           >
-            {/* Active background with matched geometry animation */}
+            {/* Active gradient background - matching macOS app purple gradient */}
             {isSelected && (
               <motion.div
                 layoutId="activeTabBg"
-                className="absolute inset-0 bg-qm-accent/20 rounded-qm-sm"
+                className="absolute inset-0 bg-qm-gradient rounded-qm-md shadow-qm-glow-subtle"
                 initial={false}
                 transition={{ type: 'spring', stiffness: 500, damping: 35 }}
               />
             )}
 
-            <Icon className="relative w-2.5 h-2.5" />
+            <Icon className={clsx('relative w-3 h-3', isSelected && 'text-white')} />
             <span className="relative">{tab.shortLabel}</span>
-          </button>
+          </motion.button>
         );
       })}
     </div>

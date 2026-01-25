@@ -212,15 +212,34 @@ export function PillHeader({
         </IconButton>
       ) : (
         <div className="relative no-drag">
-          {/* Pulsing glow ring behind button */}
+          {/* Outer pulsing glow ring - more visible like macOS app */}
           <motion.div
-            className="absolute inset-0 rounded-full bg-qm-gradient opacity-50"
+            className="absolute -inset-1 rounded-full"
+            style={{
+              background: 'linear-gradient(135deg, #7C3AED 0%, #8B5CF6 40%, #3B82F6 100%)',
+            }}
             animate={{
-              scale: [1, 1.4, 1],
-              opacity: [0.5, 0, 0.5],
+              scale: [1, 1.5, 1],
+              opacity: [0.6, 0, 0.6],
             }}
             transition={{
               duration: 2,
+              repeat: Infinity,
+              ease: 'easeInOut',
+            }}
+          />
+          {/* Inner subtle glow */}
+          <motion.div
+            className="absolute inset-0 rounded-full"
+            style={{
+              background: 'linear-gradient(135deg, #7C3AED 0%, #8B5CF6 40%, #3B82F6 100%)',
+              filter: 'blur(4px)',
+            }}
+            animate={{
+              opacity: [0.4, 0.7, 0.4],
+            }}
+            transition={{
+              duration: 1.5,
               repeat: Infinity,
               ease: 'easeInOut',
             }}
@@ -230,7 +249,7 @@ export function PillHeader({
             variant="primary"
             size="sm"
             onClick={onToggleSession}
-            className="relative"
+            className="relative shadow-qm-glow"
           >
             <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 24 24">
               <path d="M8 5v14l11-7z" />
