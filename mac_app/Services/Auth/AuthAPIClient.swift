@@ -9,15 +9,8 @@ final class AuthAPIClient {
     private let tokenStore = AuthTokenStore.shared
 
     private init() {
-        // Configure base URL from environment or default
-        #if DEBUG
-        let defaultURL = "http://localhost:3000"
-        #else
-        // TODO: Change back to www.queenmama.co after testing
-        let defaultURL = "https://staging.queenmama.co"
-        #endif
-
-        let urlString = ProcessInfo.processInfo.environment["API_BASE_URL"] ?? defaultURL
+        // Configure base URL based on environment
+        let urlString = AppEnvironment.current.apiBaseURL
         self.baseURL = URL(string: urlString)!
 
         let config = URLSessionConfiguration.default
