@@ -63,8 +63,9 @@ export async function POST(request: Request) {
     );
 
     if (!tokenResponse) {
+      console.error("Token exchange failed for redirectUri:", redirectUri);
       return NextResponse.json(
-        { error: "google_auth_failed", message: "Failed to exchange authorization code" },
+        { error: "google_auth_failed", message: "Failed to exchange authorization code. Check server logs." },
         { status: 400 }
       );
     }
@@ -364,7 +365,13 @@ async function exchangeCodeForTokens(
 
     if (!response.ok) {
       const errorData = await response.text();
-      console.error("Google token exchange failed:", errorData);
+      console.error("Google token exchange failed:", {
+        status: response.status,
+        error: errorData,
+        clientId: clientId?.substring(0, 20) + "...",
+        redirectUri,
+        isIOSClient,
+      });
       return null;
     }
 
