@@ -14,36 +14,40 @@ function MagicLinkContent() {
     const token = searchParams.get("token");
     const redirect = searchParams.get("redirect") || "/dashboard";
 
-    if (!token) {
-      setStatus("error");
-      setErrorMessage("Missing token");
-      return;
+    async function verifyToken() {
+      if (!token) {
+        return { success: false, message: "Missing token" };
+      }
+
+      try {
+        const res = await fetch("/api/auth/magic-link/verify", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ token, redirect }),
+        });
+        const data = await res.json();
+
+        if (res.ok && data.success) {
+          return { success: true, redirect };
+        }
+        return { success: false, message: data.message || "Invalid or expired link" };
+      } catch {
+        return { success: false, message: "Connection error" };
+      }
     }
 
-    // Verify the magic link token
-    fetch("/api/auth/magic-link/verify", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ token, redirect }),
-    })
-      .then(async (res) => {
-        const data = await res.json();
-        if (res.ok && data.success) {
-          setStatus("success");
-          // Redirect after a brief moment
-          setTimeout(() => {
-            router.push(redirect);
-            router.refresh();
-          }, 1000);
-        } else {
-          setStatus("error");
-          setErrorMessage(data.message || "Invalid or expired link");
-        }
-      })
-      .catch(() => {
+    verifyToken().then((result) => {
+      if (result.success) {
+        setStatus("success");
+        setTimeout(() => {
+          router.push(result.redirect || "/dashboard");
+          router.refresh();
+        }, 1000);
+      } else {
         setStatus("error");
-        setErrorMessage("Connection error");
-      });
+        setErrorMessage(result.message || "Unknown error");
+      }
+    });
   }, [searchParams, router]);
 
   return (
