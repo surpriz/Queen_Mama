@@ -38,10 +38,17 @@ final class SyncManager: ObservableObject {
     private let queueFileURL: URL
     private var pendingQueue: [SyncableSession] = []
 
-    // Track synced session IDs
+    // Track synced session IDs (uploaded from this device)
     private let syncedSessionsKey = "synced_session_ids"
     private var syncedSessionIds: Set<String> = []
     private var failedSessionIds: Set<String> = []
+
+    // Track imported session IDs (pulled from server, originally from other devices)
+    private let importedSessionsKey = "imported_session_ids"
+    private var importedSessionIds: Set<String> = []
+
+    /// Callback to insert imported sessions into SwiftData (set by SessionListView)
+    var onSessionsImported: (([Session]) -> Void)?
 
     private var cancellables = Set<AnyCancellable>()
 
@@ -54,6 +61,7 @@ final class SyncManager: ObservableObject {
 
         loadQueue()
         loadSyncedIds()
+        loadImportedIds()
 
         // Auto-sync when coming online
         NotificationCenter.default.publisher(for: .NSReachabilityDidChange)
@@ -159,7 +167,7 @@ final class SyncManager: ObservableObject {
 
     // MARK: - Auto Sync on Launch
 
-    /// Perform initial sync: upload unsynced sessions and reconcile remote deletions
+    /// Perform initial sync: upload unsynced sessions, pull remote sessions, and reconcile deletions
     func performInitialSync(_ sessions: [Session]) async {
         guard canSync else {
             print("[Sync] Initial sync skipped - not authenticated or no PRO subscription")
@@ -180,6 +188,13 @@ final class SyncManager: ObservableObject {
 
         // 2. Fetch remote sessions and reconcile deletions
         await reconcileRemoteDeletions()
+
+        // 3. Pull sessions from other devices (bidirectional sync)
+        let localSessionIds = Set(sessions.map { $0.id.uuidString })
+        let importedCount = await pullRemoteSessions(localSessionIds: localSessionIds)
+        if importedCount > 0 {
+            print("[Sync] Imported \(importedCount) sessions from other devices")
+        }
     }
 
     /// Fetch remote sessions and mark locally-synced sessions for deletion if removed from server
@@ -227,6 +242,133 @@ final class SyncManager: ObservableObject {
     /// Clear the remote deletion list after UI has processed them
     func clearRemoteDeletions() {
         sessionIdsToDeleteRemotely.removeAll()
+    }
+
+    // MARK: - Pull Sessions from Web (Bidirectional Sync)
+
+    /// Pull sessions from the web and import them locally
+    /// Returns the number of newly imported sessions
+    @discardableResult
+    func pullRemoteSessions(localSessionIds: Set<String>) async -> Int {
+        guard canSync else {
+            print("[Sync] Pull skipped - not authenticated or no PRO subscription")
+            return 0
+        }
+
+        isSyncing = true
+        defer { isSyncing = false }
+
+        do {
+            let accessToken = try await authManager.getAccessToken()
+            let remoteSessions = try await fetchAllRemoteSessions(accessToken: accessToken)
+
+            print("[Sync] Found \(remoteSessions.count) sessions on server")
+
+            // Filter out sessions that already exist locally
+            // Only check if session exists in local SwiftData - that's the source of truth
+            // We don't check importedSessionIds or syncedSessionIds because:
+            // - The local database may have been cleared (reinstall, clean build)
+            // - We need to re-import sessions that were originally from this device
+            let sessionsToImport = remoteSessions.filter { remote in
+                !localSessionIds.contains(remote.originalId)
+            }
+
+            if sessionsToImport.isEmpty {
+                print("[Sync] No new sessions to import")
+                return 0
+            }
+
+            print("[Sync] Importing \(sessionsToImport.count) new sessions from server")
+
+            // Convert remote sessions to local Session objects
+            var importedSessions: [Session] = []
+
+            // Create date formatter that handles ISO 8601 with fractional seconds
+            let dateFormatter = ISO8601DateFormatter()
+            dateFormatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+
+            // Fallback formatter without fractional seconds
+            let fallbackFormatter = ISO8601DateFormatter()
+            fallbackFormatter.formatOptions = [.withInternetDateTime]
+
+            func parseDate(_ dateString: String) -> Date? {
+                return dateFormatter.date(from: dateString) ?? fallbackFormatter.date(from: dateString)
+            }
+
+            for remote in sessionsToImport {
+                guard let startTime = parseDate(remote.startTime) else {
+                    print("[Sync] Skipping session with invalid startTime: \(remote.originalId) - '\(remote.startTime)'")
+                    continue
+                }
+
+                let endTime = remote.endTime.flatMap { parseDate($0) }
+                let modeId = remote.modeUsed.flatMap { UUID(uuidString: $0) }
+
+                let session = Session(
+                    id: UUID(uuidString: remote.originalId) ?? UUID(),
+                    title: remote.title,
+                    startTime: startTime,
+                    endTime: endTime,
+                    transcript: remote.transcript ?? "",
+                    summary: remote.summary,
+                    actionItems: remote.actionItems ?? [],
+                    modeId: modeId
+                )
+
+                importedSessions.append(session)
+
+                // Track as imported (to avoid re-importing)
+                importedSessionIds.insert(remote.originalId)
+
+                // Also mark as synced (to avoid re-uploading back to server)
+                syncedSessionIds.insert(remote.originalId)
+            }
+
+            // Save tracking IDs
+            UserDefaults.standard.set(Array(importedSessionIds), forKey: importedSessionsKey)
+            UserDefaults.standard.set(Array(syncedSessionIds), forKey: syncedSessionsKey)
+
+            // Notify listener to insert sessions into SwiftData
+            if !importedSessions.isEmpty {
+                onSessionsImported?(importedSessions)
+            }
+
+            print("[Sync] Successfully imported \(importedSessions.count) sessions")
+            lastSyncAt = Date()
+            return importedSessions.count
+
+        } catch {
+            print("[Sync] Pull failed: \(error)")
+            lastError = error.localizedDescription
+            return 0
+        }
+    }
+
+    /// Fetch all user sessions from server (across all devices) with full data
+    private func fetchAllRemoteSessions(accessToken: String) async throws -> [RemoteFullSession] {
+        var urlComponents = URLComponents(url: URLConfigManager.shared.syncSessionsURL, resolvingAgainstBaseURL: false)!
+        urlComponents.queryItems = [
+            URLQueryItem(name: "allDevices", value: "true"),
+            URLQueryItem(name: "full", value: "true"),
+            URLQueryItem(name: "limit", value: "100")
+        ]
+
+        var request = URLRequest(url: urlComponents.url!)
+        request.httpMethod = "GET"
+        request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
+
+        let (data, response) = try await URLSession.shared.data(for: request)
+
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw SyncError.invalidResponse
+        }
+
+        guard httpResponse.statusCode == 200 else {
+            throw SyncError.serverError("Failed to fetch remote sessions: \(httpResponse.statusCode)")
+        }
+
+        let result = try JSONDecoder().decode(RemoteFullSessionsResponse.self, from: data)
+        return result.sessions
     }
 
     // MARK: - Remote Deletion (Mac → Web)
@@ -427,6 +569,10 @@ final class SyncManager: ObservableObject {
         syncedSessionIds = Set(UserDefaults.standard.stringArray(forKey: syncedSessionsKey) ?? [])
     }
 
+    private func loadImportedIds() {
+        importedSessionIds = Set(UserDefaults.standard.stringArray(forKey: importedSessionsKey) ?? [])
+    }
+
     private func markAsSynced(_ sessionId: String) {
         syncedSessionIds.insert(sessionId)
         failedSessionIds.remove(sessionId)
@@ -536,6 +682,7 @@ enum SyncError: LocalizedError {
 struct RemoteSessionInfo: Codable {
     let id: String
     let originalId: String
+    let deviceId: String?
     let title: String
     let startTime: String
     let version: Int
@@ -543,8 +690,33 @@ struct RemoteSessionInfo: Codable {
     let updatedAt: String
 }
 
+/// Full session data for import (includes transcript, summary, etc.)
+struct RemoteFullSession: Codable {
+    let id: String
+    let originalId: String
+    let deviceId: String
+    let title: String
+    let startTime: String
+    let endTime: String?
+    let duration: Int?
+    let transcript: String?
+    let summary: String?
+    let actionItems: [String]?
+    let modeUsed: String?
+    let version: Int
+    let checksum: String?
+    let updatedAt: String
+}
+
 struct RemoteSessionsResponse: Codable {
     let sessions: [RemoteSessionInfo]
+    let total: Int
+    let limit: Int
+    let offset: Int
+}
+
+struct RemoteFullSessionsResponse: Codable {
+    let sessions: [RemoteFullSession]
     let total: Int
     let limit: Int
     let offset: Int

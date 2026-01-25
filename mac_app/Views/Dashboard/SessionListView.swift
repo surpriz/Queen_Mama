@@ -41,15 +41,31 @@ struct SessionListView: View {
                 // Sync buttons (when sync is available)
                 if syncManager.canSync {
                     HStack(spacing: QMDesign.Spacing.md) {
-                        // Refresh button (fetch remote changes)
+                        // Refresh button (pull remote sessions + reconcile deletions)
                         Button(action: {
                             Task {
+                                // Get current local session IDs for deduplication
+                                let localSessionIds = Set(sessions.map { $0.id.uuidString })
+
+                                // Pull sessions from server (bidirectional sync)
+                                let importedCount = await syncManager.pullRemoteSessions(localSessionIds: localSessionIds)
+                                if importedCount > 0 {
+                                    print("[SessionList] Pulled \(importedCount) new sessions")
+                                }
+
+                                // Also reconcile any remote deletions
                                 await syncManager.reconcileRemoteDeletions()
                             }
                         }) {
                             HStack(spacing: 4) {
-                                Image(systemName: "arrow.clockwise")
-                                    .font(.system(size: 11))
+                                if syncManager.isSyncing {
+                                    ProgressView()
+                                        .scaleEffect(0.6)
+                                        .frame(width: 12, height: 12)
+                                } else {
+                                    Image(systemName: "arrow.clockwise")
+                                        .font(.system(size: 11))
+                                }
                                 Text("Refresh")
                                     .font(QMDesign.Typography.captionSmall)
                             }
@@ -57,7 +73,7 @@ struct SessionListView: View {
                         }
                         .buttonStyle(.plain)
                         .disabled(syncManager.isSyncing)
-                        .help("Sync changes from web dashboard")
+                        .help("Pull sessions from web dashboard")
 
                         Spacer()
 
@@ -161,6 +177,15 @@ struct SessionListView: View {
             Text("Delete \"\(session.title)\"? This cannot be undone.")
         }
         .onAppear {
+            // Set up callback to insert imported sessions into SwiftData
+            syncManager.onSessionsImported = { importedSessions in
+                for session in importedSessions {
+                    modelContext.insert(session)
+                }
+                try? modelContext.save()
+                print("[SessionList] Inserted \(importedSessions.count) imported sessions")
+            }
+
             // Trigger auto-sync of unsynced sessions on view load
             if syncManager.canSync {
                 Task {

@@ -191,6 +191,10 @@ export async function POST(request: Request) {
 /**
  * GET /api/sync/sessions
  * Get sync status and session list
+ *
+ * Query params:
+ * - allDevices=true: Return sessions from all devices (for bidirectional sync)
+ * - full=true: Return full session data including transcript/summary (for import)
  */
 export async function GET(request: Request) {
   try {
@@ -217,31 +221,53 @@ export async function GET(request: Request) {
     const url = new URL(request.url);
     const limit = parseInt(url.searchParams.get("limit") || "50");
     const offset = parseInt(url.searchParams.get("offset") || "0");
+    const allDevices = url.searchParams.get("allDevices") === "true";
+    const fullData = url.searchParams.get("full") === "true";
 
-    const [sessions, count] = await Promise.all([
-      prisma.syncedSession.findMany({
-        where: {
-          userId: tokenPayload.sub,
-          deviceId: tokenPayload.deviceId,
-        },
-        select: {
+    // Build where clause - optionally include all devices for bidirectional sync
+    const whereClause = allDevices
+      ? { userId: tokenPayload.sub }
+      : { userId: tokenPayload.sub, deviceId: tokenPayload.deviceId };
+
+    // Select fields - optionally include full data for import
+    const selectClause = fullData
+      ? {
           id: true,
           originalId: true,
+          deviceId: true,
+          title: true,
+          startTime: true,
+          endTime: true,
+          duration: true,
+          transcript: true,
+          summary: true,
+          actionItems: true,
+          modeUsed: true,
+          version: true,
+          checksum: true,
+          updatedAt: true,
+        }
+      : {
+          id: true,
+          originalId: true,
+          deviceId: true,
           title: true,
           startTime: true,
           version: true,
           checksum: true,
           updatedAt: true,
-        },
+        };
+
+    const [sessions, count] = await Promise.all([
+      prisma.syncedSession.findMany({
+        where: whereClause,
+        select: selectClause,
         orderBy: { startTime: "desc" },
         take: limit,
         skip: offset,
       }),
       prisma.syncedSession.count({
-        where: {
-          userId: tokenPayload.sub,
-          deviceId: tokenPayload.deviceId,
-        },
+        where: whereClause,
       }),
     ]);
 
