@@ -56,6 +56,8 @@
 		5C90DF342F1A51DE006B0DE0 /* ProFeatureBanner.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5C90DF302F1A51DE006B0DE0 /* ProFeatureBanner.swift */; };
 		5C90DF372F1A51F8006B0DE0 /* AccountStepView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5C90DF362F1A51F8006B0DE0 /* AccountStepView.swift */; };
 		5CD8E05C2F1FAB790011F4D3 /* Sentry in Frameworks */ = {isa = PBXBuildFile; productRef = 5CD8E05B2F1FAB790011F4D2 /* Sentry */; };
+		5CE1EBDB2F251D18008A4BB9 /* PostHog in Frameworks */ = {isa = PBXBuildFile; productRef = 5CE1EBDA2F251D18008A4BB9 /* PostHog */; };
+		5CE1EBDD2F251E3D008A4BB9 /* AnalyticsService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5CE1EBDC2F251E3D008A4BB9 /* AnalyticsService.swift */; };
 		6937AD307161BE7D38D20A02 /* ProxyConfigManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6FF34DCBA9126388FFC21F75 /* ProxyConfigManager.swift */; };
 		72E5F74C2ED54F91ABC5DA43 /* MarkdownRenderer.swift in Sources */ = {isa = PBXBuildFile; fileRef = AED67FF476044F25BA92C2A6 /* MarkdownRenderer.swift */; };
 /* End PBXBuildFile section */
@@ -109,6 +111,7 @@
 		5C90DF302F1A51DE006B0DE0 /* ProFeatureBanner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProFeatureBanner.swift; sourceTree = "<group>"; };
 		5C90DF312F1A51DE006B0DE0 /* UpgradePromptView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UpgradePromptView.swift; sourceTree = "<group>"; };
 		5C90DF362F1A51F8006B0DE0 /* AccountStepView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AccountStepView.swift; sourceTree = "<group>"; };
+		5CE1EBDC2F251E3D008A4BB9 /* AnalyticsService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnalyticsService.swift; sourceTree = "<group>"; };
 		6FF34DCBA9126388FFC21F75 /* ProxyConfigManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProxyConfigManager.swift; sourceTree = "<group>"; };
 		AED67FF476044F25BA92C2A6 /* MarkdownRenderer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MarkdownRenderer.swift; sourceTree = "<group>"; };
 		C4A5D6911606803AAD99FDDE /* ProxyAIProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProxyAIProvider.swift; sourceTree = "<group>"; };
@@ -120,6 +123,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				5CE1EBDB2F251D18008A4BB9 /* PostHog in Frameworks */,
 				5C4CC9402F1F6755008BDBE9 /* Sparkle in Frameworks */,
 				5CD8E05C2F1FAB790011F4D3 /* Sentry in Frameworks */,
 			);
@@ -172,6 +176,7 @@
 		400000000000000000000005 /* Services */ = {
 			isa = PBXGroup;
 			children = (
+				5CE1EBDC2F251E3D008A4BB9 /* AnalyticsService.swift */,
 				5C90DF202F1A5197006B0DE0 /* Auth */,
 				5C90DF212F1A5197006B0DE0 /* LicenseManager.swift */,
 				5C90DF242F1A5197006B0DE0 /* Sync */,
@@ -341,6 +346,7 @@
 			packageProductDependencies = (
 				5C4CC93F2F1F6755008BDBE9 /* Sparkle */,
 				5CD8E05B2F1FAB790011F4D2 /* Sentry */,
+				5CE1EBDA2F251D18008A4BB9 /* PostHog */,
 			);
 			productName = QueenMama;
 			productReference = 200000000000000000000001 /* QueenMama.app */;
@@ -373,6 +379,7 @@
 			packageReferences = (
 				5C4CC93E2F1F6755008BDBE9 /* XCRemoteSwiftPackageReference "Sparkle" */,
 				5CD8E05A2F1FAB790011F4D1 /* XCRemoteSwiftPackageReference "sentry-cocoa" */,
+				5CE1EBD92F251D18008A4BB9 /* XCRemoteSwiftPackageReference "posthog-ios" */,
 			);
 			productRefGroup = 400000000000000000000003 /* Products */;
 			projectDirPath = "";
@@ -425,6 +432,7 @@
 				5C90DF252F1A5197006B0DE0 /* AuthModels.swift in Sources */,
 				5C90DF262F1A5197006B0DE0 /* AuthTokenStore.swift in Sources */,
 				5C90DF272F1A5197006B0DE0 /* SyncManager.swift in Sources */,
+				5CE1EBDD2F251E3D008A4BB9 /* AnalyticsService.swift in Sources */,
 				5C90DF282F1A5197006B0DE0 /* AuthenticationManager.swift in Sources */,
 				5C90DF292F1A5197006B0DE0 /* AuthAPIClient.swift in Sources */,
 				5C90DF2A2F1A5197006B0DE0 /* LicenseManager.swift in Sources */,
@@ -697,6 +705,14 @@
 				minimumVersion = 8.0.0;
 			};
 		};
+		5CE1EBD92F251D18008A4BB9 /* XCRemoteSwiftPackageReference "posthog-ios" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/PostHog/posthog-ios";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 3.38.0;
+			};
+		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
@@ -709,6 +725,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 5CD8E05A2F1FAB790011F4D1 /* XCRemoteSwiftPackageReference "sentry-cocoa" */;
 			productName = Sentry;
+		};
+		5CE1EBDA2F251D18008A4BB9 /* PostHog */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 5CE1EBD92F251D18008A4BB9 /* XCRemoteSwiftPackageReference "posthog-ios" */;
+			productName = PostHog;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};
