@@ -142,32 +142,46 @@ jobs:
           codesign --verify --deep --strict "$APP_PATH" && echo "Deep verification passed!"
 
       - name: Notarize App
-        timeout-minutes: 15  # Notarization timeout
+        timeout-minutes: 15
         env:
           APPLE_ID: ${{ secrets.APPLE_ID }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
           APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
         run: |
-          echo "📤 Submitting for notarization..."
+          echo "📤 Submitting app for notarization..."
           ditto -c -k --keepParent "$RUNNER_TEMP/export/Queen Mama.app" $RUNNER_TEMP/QueenMama.zip
 
-          # Submit and capture output
-          NOTARIZE_OUTPUT=$(xcrun notarytool submit $RUNNER_TEMP/QueenMama.zip \
+          # Submit and wait for notarization
+          xcrun notarytool submit $RUNNER_TEMP/QueenMama.zip \
             --apple-id "$APPLE_ID" \
             --team-id "$APPLE_TEAM_ID" \
             --password "$APPLE_APP_SPECIFIC_PASSWORD" \
-            --wait 2>&1) || true
+            --wait \
+            --output-format json > /tmp/notarize_result.json 2>&1 || true
 
-          echo "$NOTARIZE_OUTPUT"
+          cat /tmp/notarize_result.json
 
-          # Check if notarization succeeded
-          if echo "$NOTARIZE_OUTPUT" | grep -q "status: Accepted"; then
-            echo "✅ Notarization successful!"
+          # Extract status from JSON
+          STATUS=$(cat /tmp/notarize_result.json | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('status','Unknown'))" 2>/dev/null || echo "Unknown")
+          SUBMISSION_ID=$(cat /tmp/notarize_result.json | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('id',''))" 2>/dev/null || echo "")
+
+          echo "Notarization status: $STATUS"
+          echo "Submission ID: $SUBMISSION_ID"
+
+          if [ "$STATUS" = "Accepted" ]; then
+            echo "✅ App notarization successful!"
             xcrun stapler staple "$RUNNER_TEMP/export/Queen Mama.app"
+            xcrun stapler validate "$RUNNER_TEMP/export/Queen Mama.app"
           else
-            echo "❌ Notarization failed or timed out"
-            echo "Continuing without notarization for testing..."
-            # Don't fail the build - allow testing unsigned builds
+            echo "❌ App notarization FAILED with status: $STATUS"
+            if [ -n "$SUBMISSION_ID" ]; then
+              echo "📋 Fetching notarization log..."
+              xcrun notarytool log "$SUBMISSION_ID" \
+                --apple-id "$APPLE_ID" \
+                --team-id "$APPLE_TEAM_ID" \
+                --password "$APPLE_APP_SPECIFIC_PASSWORD" || true
+            fi
+            exit 1
           fi
 
       - name: Create DMG
@@ -194,21 +208,36 @@ jobs:
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
           APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
         run: |
-          echo "📤 Notarizing DMG..."
-          NOTARIZE_OUTPUT=$(xcrun notarytool submit $RUNNER_TEMP/QueenMama.dmg \
+          echo "📤 Submitting DMG for notarization..."
+          xcrun notarytool submit $RUNNER_TEMP/QueenMama.dmg \
             --apple-id "$APPLE_ID" \
             --team-id "$APPLE_TEAM_ID" \
             --password "$APPLE_APP_SPECIFIC_PASSWORD" \
-            --wait 2>&1) || true
+            --wait \
+            --output-format json > /tmp/dmg_notarize_result.json 2>&1 || true
 
-          echo "$NOTARIZE_OUTPUT"
+          cat /tmp/dmg_notarize_result.json
 
-          if echo "$NOTARIZE_OUTPUT" | grep -q "status: Accepted"; then
+          STATUS=$(cat /tmp/dmg_notarize_result.json | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('status','Unknown'))" 2>/dev/null || echo "Unknown")
+          SUBMISSION_ID=$(cat /tmp/dmg_notarize_result.json | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('id',''))" 2>/dev/null || echo "")
+
+          echo "DMG notarization status: $STATUS"
+
+          if [ "$STATUS" = "Accepted" ]; then
             echo "✅ DMG notarization successful!"
             xcrun stapler staple $RUNNER_TEMP/QueenMama.dmg
-            echo "✅ DMG stapled successfully!"
+            xcrun stapler validate $RUNNER_TEMP/QueenMama.dmg
+            echo "✅ DMG stapled and validated!"
           else
-            echo "⚠️ DMG notarization failed, continuing anyway..."
+            echo "❌ DMG notarization FAILED with status: $STATUS"
+            if [ -n "$SUBMISSION_ID" ]; then
+              echo "📋 Fetching notarization log..."
+              xcrun notarytool log "$SUBMISSION_ID" \
+                --apple-id "$APPLE_ID" \
+                --team-id "$APPLE_TEAM_ID" \
+                --password "$APPLE_APP_SPECIFIC_PASSWORD" || true
+            fi
+            exit 1
           fi
 
       - name: Get version info
