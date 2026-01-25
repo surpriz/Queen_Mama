@@ -50,24 +50,24 @@ export function TabBar({ selectedTab, onTabSelect, isProcessing }: TabBarProps) 
             disabled={isProcessing}
             className={clsx(
               'relative flex-1 flex items-center justify-center gap-1 py-1.5 rounded-qm-sm',
-              'text-[10px] font-medium transition-colors duration-150',
+              'text-[10px] transition-colors duration-150',
               'disabled:opacity-50 disabled:cursor-not-allowed',
               isSelected
-                ? 'text-qm-accent'
-                : 'text-qm-text-secondary hover:text-qm-text-primary hover:bg-qm-surface-hover'
+                ? 'text-qm-accent font-semibold'
+                : 'text-qm-text-secondary font-medium hover:text-qm-text-primary hover:bg-qm-surface-hover'
             )}
           >
-            {/* Active background */}
+            {/* Active background with matched geometry animation */}
             {isSelected && (
               <motion.div
                 layoutId="activeTabBg"
                 className="absolute inset-0 bg-qm-accent/20 rounded-qm-sm"
                 initial={false}
-                transition={{ type: 'spring', stiffness: 500, damping: 30 }}
+                transition={{ type: 'spring', stiffness: 500, damping: 35 }}
               />
             )}
 
-            <Icon className="relative w-3 h-3" />
+            <Icon className="relative w-2.5 h-2.5" />
             <span className="relative">{tab.shortLabel}</span>
           </button>
         );

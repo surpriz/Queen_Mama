@@ -25,7 +25,10 @@ export function OverlayWindow() {
   const { isSessionActive, startSession, stopSession } = useSessionStore();
   const { responses, currentResponse, isProcessing, triggerAssist, clearResponses } = useAIStore();
   const { isConnected, connect, disconnect, sendAudio, interimText } = useTranscriptionStore();
-  const { enableScreenCapture, smartModeEnabled } = useSettingsStore();
+  const { enableScreenCapture, smartModeEnabled, autoAnswerEnabled, setAutoAnswerEnabled } = useSettingsStore();
+
+  // Overlay is always "hidden" from screen capture in Tauri native mode
+  const isHidden = true;
 
   // Handle expand/collapse
   const toggleExpanded = async () => {
@@ -116,8 +119,11 @@ export function OverlayWindow() {
         audioLevel={audioLevel}
         enableScreenCapture={enableScreenCapture}
         smartModeEnabled={smartModeEnabled}
+        autoAnswerEnabled={autoAnswerEnabled}
+        isHidden={isHidden}
         onToggleExpand={toggleExpanded}
         onToggleSession={handleToggleSession}
+        onToggleAutoAnswer={() => setAutoAnswerEnabled(!autoAnswerEnabled)}
       />
 
       {/* Expanded Content */}

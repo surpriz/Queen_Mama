@@ -54,11 +54,17 @@ html, body {
   background-clip: text;
 }
 
-/* Glass effect */
+/* Glass effect - Enhanced HUD style matching macOS */
 .glass {
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
-  background: rgba(0, 0, 0, 0.35);
+  background:
+    linear-gradient(135deg,
+      rgba(124, 58, 237, 0.05),
+      rgba(59, 130, 246, 0.02)
+    ),
+    rgba(0, 0, 0, 0.35);
+  border: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 /* Draggable region for window titlebar */
@@ -102,6 +108,44 @@ html, body {
   }
 }
 
+@keyframes pulse-ring {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(139, 92, 246, 0.5);
+  }
+  50% {
+    box-shadow: 0 0 0 8px rgba(139, 92, 246, 0);
+  }
+}
+
+@keyframes glow-pulse {
+  0%, 100% {
+    box-shadow: 0 0 12px rgba(139, 92, 246, 0.4);
+  }
+  50% {
+    box-shadow: 0 0 24px rgba(139, 92, 246, 0.7);
+  }
+}
+
+@keyframes chevron-bounce {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(2px);
+  }
+}
+
+@keyframes processing-dots {
+  0%, 80%, 100% {
+    transform: scale(0.8);
+    opacity: 0.5;
+  }
+  40% {
+    transform: scale(1.2);
+    opacity: 1;
+  }
+}
+
 .animate-pulse-glow {
   animation: pulse-glow 2s ease-in-out infinite;
 }
@@ -112,6 +156,18 @@ html, body {
 
 .animate-slide-up {
   animation: slide-up 0.3s ease-out;
+}
+
+.animate-pulse-ring {
+  animation: pulse-ring 1.5s ease-in-out infinite;
+}
+
+.animate-glow-pulse {
+  animation: glow-pulse 2s ease-in-out infinite;
+}
+
+.animate-chevron-bounce {
+  animation: chevron-bounce 1s ease-in-out infinite;
 }
 
 /* Focus states */
@@ -243,18 +299,19 @@ input::placeholder, textarea::placeholder {
 
 /* Overlay specific styles */
 .overlay-container {
-  width: 420px;
   border-radius: var(--radius-xl);
   overflow: hidden;
-  transition: height 0.25s ease-in-out;
+  transition: width 0.25s ease-in-out, height 0.25s ease-in-out;
 }
 
 .overlay-collapsed {
-  height: 100px;
+  width: var(--overlay-collapsed-width);
+  height: var(--overlay-collapsed-height);
 }
 
 .overlay-expanded {
-  height: 400px;
+  width: var(--overlay-expanded-width);
+  height: var(--overlay-expanded-height);
 }
 
 /* Response item styling */

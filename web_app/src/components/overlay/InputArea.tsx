@@ -85,14 +85,14 @@ export function InputArea({ onSubmit, isProcessing, smartModeEnabled }: InputAre
         <KeyboardShortcut shortcut="Cmd+Enter" size="sm" className="opacity-50" />
       )}
 
-      {/* Submit Button */}
+      {/* Submit Button with gradient glow */}
       <IconButton
         aria-label="Submit"
         variant="primary"
         size="sm"
         onClick={handleSubmit}
         disabled={isProcessing}
-        className="flex-shrink-0"
+        className="flex-shrink-0 hover:shadow-qm-glow-strong transition-shadow"
       >
         <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 10l7-7m0 0l7 7m-7-7v18" />

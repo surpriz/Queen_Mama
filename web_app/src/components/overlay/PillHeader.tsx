@@ -1,12 +1,14 @@
 // Queen Mama LITE - Pill Header Component
 // Collapsed header with status indicators and controls
 
-import { motion } from 'framer-motion';
+import { useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { invoke } from '@tauri-apps/api/core';
 import { clsx } from 'clsx';
 import { IconButton } from '../ui/Button';
-import { StatusBadge } from '../ui/Badge';
+import { Badge } from '../ui/Badge';
 import { AudioLevel } from '../shared/AudioLevel';
+import { OverlayPopupMenu } from './OverlayPopupMenu';
 
 export interface PillHeaderProps {
   isExpanded: boolean;
@@ -15,8 +17,11 @@ export interface PillHeaderProps {
   audioLevel: number;
   enableScreenCapture: boolean;
   smartModeEnabled: boolean;
+  autoAnswerEnabled: boolean;
+  isHidden: boolean;
   onToggleExpand: () => void;
   onToggleSession: () => void;
+  onToggleAutoAnswer: () => void;
 }
 
 export function PillHeader({
@@ -26,9 +31,14 @@ export function PillHeader({
   audioLevel,
   enableScreenCapture,
   smartModeEnabled,
+  autoAnswerEnabled,
+  isHidden,
   onToggleExpand,
   onToggleSession,
+  onToggleAutoAnswer,
 }: PillHeaderProps) {
+  const [showMenu, setShowMenu] = useState(false);
+
   // Open dashboard
   const handleOpenDashboard = async () => {
     try {
@@ -39,7 +49,7 @@ export function PillHeader({
   };
 
   return (
-    <div className="flex items-center gap-2 px-3 py-2 h-[44px] drag-region">
+    <div className="flex items-center gap-2 px-3 py-1 h-[44px] drag-region">
       {/* Logo */}
       <div className="w-7 h-7 rounded-full bg-qm-gradient flex items-center justify-center flex-shrink-0 no-drag">
         <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -70,16 +80,16 @@ export function PillHeader({
         </svg>
       </IconButton>
 
-      {/* Expand/Collapse Button */}
+      {/* Expand/Collapse Button with chevron bounce when collapsed */}
       <IconButton
         aria-label={isExpanded ? 'Collapse' : 'Expand'}
-        variant={isExpanded ? 'secondary' : 'primary'}
+        variant={isExpanded ? 'secondary' : 'ghost'}
         size="sm"
         onClick={onToggleExpand}
         className="no-drag"
       >
         <motion.svg
-          className="w-4 h-4"
+          className={clsx('w-4 h-4', !isExpanded && 'animate-chevron-bounce')}
           fill="none"
           stroke="currentColor"
           viewBox="0 0 24 24"
@@ -90,25 +100,79 @@ export function PillHeader({
         </motion.svg>
       </IconButton>
 
+      {/* More Menu Button */}
+      <div className="relative no-drag">
+        <IconButton
+          aria-label="More options"
+          variant="ghost"
+          size="sm"
+          onClick={() => setShowMenu(!showMenu)}
+        >
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z"
+            />
+          </svg>
+        </IconButton>
+
+        {/* Popup Menu */}
+        <AnimatePresence>
+          {showMenu && (
+            <OverlayPopupMenu onClose={() => setShowMenu(false)} />
+          )}
+        </AnimatePresence>
+      </div>
+
       {/* Spacer */}
       <div className="flex-1" />
 
       {/* Status Indicators */}
-      <div className="flex items-center gap-2 no-drag">
+      <div className="flex items-center gap-1.5 no-drag">
+        {/* Hidden Badge - when undetectable mode active */}
+        {isHidden && (
+          <Badge variant="default" size="sm" className="gap-1">
+            <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21"
+              />
+            </svg>
+          </Badge>
+        )}
+
+        {/* Auto-Answer Toggle */}
+        <button
+          onClick={onToggleAutoAnswer}
+          className={clsx(
+            'flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-medium transition-all',
+            autoAnswerEnabled
+              ? 'bg-qm-auto-answer/20 text-qm-auto-answer'
+              : 'bg-qm-surface-light text-qm-text-tertiary hover:bg-qm-surface-medium'
+          )}
+        >
+          <span
+            className={clsx(
+              'w-1.5 h-1.5 rounded-full',
+              autoAnswerEnabled && 'bg-qm-auto-answer animate-pulse'
+            )}
+          />
+          Auto
+        </button>
+
         {/* Smart Mode Badge */}
         {smartModeEnabled && (
-          <StatusBadge status="active" label="Smart" />
+          <Badge variant="accent" size="sm">Smart</Badge>
         )}
 
         {/* Screen Capture Badge */}
         {enableScreenCapture && (
-          <div className="flex items-center gap-1 px-2 py-1 rounded-full bg-qm-success/15">
-            <svg
-              className="w-3 h-3 text-qm-success"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
+          <Badge variant="success" size="sm" className="gap-1">
+            <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path
                 strokeLinecap="round"
                 strokeLinejoin="round"
@@ -116,7 +180,7 @@ export function PillHeader({
                 d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"
               />
             </svg>
-          </div>
+          </Badge>
         )}
 
         {/* Audio Level */}
@@ -127,7 +191,7 @@ export function PillHeader({
         {/* Connection Status */}
         <div
           className={clsx(
-            'w-2 h-2 rounded-full',
+            'w-2 h-2 rounded-full transition-all',
             isConnected ? 'bg-qm-success animate-pulse' : 'bg-qm-text-tertiary'
           )}
         />
@@ -147,22 +211,32 @@ export function PillHeader({
           </svg>
         </IconButton>
       ) : (
-        <motion.div
-          className="no-drag"
-          animate={{ scale: [1, 1.1, 1] }}
-          transition={{ duration: 1.5, repeat: Infinity }}
-        >
+        <div className="relative no-drag">
+          {/* Pulsing glow ring behind button */}
+          <motion.div
+            className="absolute inset-0 rounded-full bg-qm-gradient opacity-50"
+            animate={{
+              scale: [1, 1.4, 1],
+              opacity: [0.5, 0, 0.5],
+            }}
+            transition={{
+              duration: 2,
+              repeat: Infinity,
+              ease: 'easeInOut',
+            }}
+          />
           <IconButton
             aria-label="Start Session"
             variant="primary"
             size="sm"
             onClick={onToggleSession}
+            className="relative"
           >
             <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 24 24">
               <path d="M8 5v14l11-7z" />
             </svg>
           </IconButton>
-        </motion.div>
+        </div>
       )}
     </div>
   );

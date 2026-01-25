@@ -63,6 +63,7 @@ export interface AIResponse {
   provider: AIProvider;
   isAutomatic: boolean;
   isStreaming?: boolean;
+  hasScreenshot?: boolean;
 }
 
 // Mode Types
