@@ -1,11 +1,21 @@
 // Queen Mama LITE - Card Component
+// Enhanced with depth levels, glass variant, and hover animations
 
 import { forwardRef, HTMLAttributes } from 'react';
+import { motion, HTMLMotionProps } from 'framer-motion';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 
-export interface CardProps extends HTMLAttributes<HTMLDivElement> {
-  variant?: 'default' | 'elevated' | 'bordered';
+// Spring transition for hover animations
+const springTransition = {
+  type: 'spring' as const,
+  stiffness: 300,
+  damping: 25,
+};
+
+export interface CardProps extends Omit<HTMLMotionProps<'div'>, 'ref'> {
+  variant?: 'default' | 'elevated' | 'bordered' | 'glass';
+  depth?: 1 | 2 | 3 | 4 | 'floating';
   hoverable?: boolean;
   padding?: 'none' | 'sm' | 'md' | 'lg';
 }
@@ -15,6 +25,7 @@ export const Card = forwardRef<HTMLDivElement, CardProps>(
     {
       className,
       variant = 'default',
+      depth,
       hoverable = false,
       padding = 'md',
       children,
@@ -24,8 +35,9 @@ export const Card = forwardRef<HTMLDivElement, CardProps>(
   ) => {
     const variants = {
       default: 'bg-qm-surface-medium border-transparent',
-      elevated: 'bg-qm-bg-elevated shadow-qm-md border-transparent',
+      elevated: 'bg-qm-bg-elevated border-transparent',
       bordered: 'bg-qm-surface-light border-qm-border-subtle',
+      glass: 'glass-liquid border-qm-border-subtle',
     };
 
     const paddings = {
@@ -35,22 +47,42 @@ export const Card = forwardRef<HTMLDivElement, CardProps>(
       lg: 'p-6',
     };
 
+    // Depth shadow classes
+    const depthClasses = {
+      1: 'shadow-qm-depth-1',
+      2: 'shadow-qm-depth-2',
+      3: 'shadow-qm-depth-3',
+      4: 'shadow-qm-depth-4',
+      floating: 'shadow-qm-depth-floating',
+    };
+
+    // Hover animation variants
+    const hoverAnimation = hoverable
+      ? {
+          y: -2,
+          boxShadow: '0 12px 28px rgba(0, 0, 0, 0.25), 0 6px 12px rgba(0, 0, 0, 0.15)',
+        }
+      : undefined;
+
     return (
-      <div
+      <motion.div
         ref={ref}
         className={twMerge(
           clsx(
-            'rounded-qm-lg border transition-all duration-150 ease-in-out',
+            'rounded-qm-lg border',
             variants[variant],
             paddings[padding],
-            hoverable && 'hover:bg-qm-surface-hover cursor-pointer',
+            depth && depthClasses[depth],
+            hoverable && 'cursor-pointer',
             className
           )
         )}
+        whileHover={hoverAnimation}
+        transition={springTransition}
         {...props}
       >
         {children}
-      </div>
+      </motion.div>
     );
   }
 );

@@ -1,5 +1,5 @@
 // Queen Mama LITE - Overlay Window Component
-// Main overlay container with collapsed/expanded states
+// Enhanced with spring physics, staggered animations, and liquid glass
 
 import { useState, useEffect } from 'react';
 import { listen } from '@tauri-apps/api/event';
@@ -15,6 +15,46 @@ import { useTranscriptionStore } from '../../stores/transcriptionStore';
 import { useSettingsStore } from '../../stores/settingsStore';
 import { audioCaptureService } from '../../services/audio/AudioCaptureService';
 import type { TabItem, AIResponseType } from '../../types';
+
+// Spring physics for premium expand/collapse
+const springTransition = {
+  type: 'spring' as const,
+  stiffness: 300,
+  damping: 30,
+};
+
+// Stagger children animation
+const containerVariants = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.05,
+      delayChildren: 0.1,
+    },
+  },
+  exit: {
+    opacity: 0,
+    transition: {
+      staggerChildren: 0.03,
+      staggerDirection: -1,
+    },
+  },
+};
+
+const childVariants = {
+  hidden: { opacity: 0, y: 8 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: springTransition,
+  },
+  exit: {
+    opacity: 0,
+    y: -4,
+    transition: { duration: 0.15 },
+  },
+};
 
 export function OverlayWindow() {
   const [isExpanded, setIsExpanded] = useState(false);
@@ -105,11 +145,14 @@ export function OverlayWindow() {
   }, []);
 
   return (
-    <div
-      className={`
-        overlay-container glass border border-qm-border-subtle
-        ${isExpanded ? 'overlay-expanded' : 'overlay-collapsed'}
-      `}
+    <motion.div
+      className="overlay-container glass-liquid border border-qm-border-subtle shadow-qm-depth-floating"
+      initial={false}
+      animate={{
+        width: isExpanded ? 420 : 380,
+        height: isExpanded ? 480 : 52,
+      }}
+      transition={springTransition}
     >
       {/* Header - Always visible */}
       <PillHeader
@@ -126,41 +169,47 @@ export function OverlayWindow() {
         onToggleAutoAnswer={() => setAutoAnswerEnabled(!autoAnswerEnabled)}
       />
 
-      {/* Expanded Content */}
-      <AnimatePresence>
+      {/* Expanded Content with staggered reveal */}
+      <AnimatePresence mode="wait">
         {isExpanded && (
           <motion.div
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: 'auto' }}
-            exit={{ opacity: 0, height: 0 }}
-            transition={{ duration: 0.25, ease: 'easeInOut' }}
-            className="px-3 pb-3"
+            className="px-3 pb-3 overflow-hidden"
+            variants={containerVariants}
+            initial="hidden"
+            animate="visible"
+            exit="exit"
           >
             {/* Tab Bar */}
-            <TabBar
-              selectedTab={selectedTab}
-              onTabSelect={handleTabSelect}
-              isProcessing={isProcessing}
-            />
+            <motion.div variants={childVariants}>
+              <TabBar
+                selectedTab={selectedTab}
+                onTabSelect={handleTabSelect}
+                isProcessing={isProcessing}
+              />
+            </motion.div>
 
             {/* Response History */}
-            <ResponseHistory
-              responses={responses}
-              currentResponse={currentResponse}
-              isProcessing={isProcessing}
-              interimText={interimText}
-            />
+            <motion.div variants={childVariants}>
+              <ResponseHistory
+                responses={responses}
+                currentResponse={currentResponse}
+                isProcessing={isProcessing}
+                interimText={interimText}
+              />
+            </motion.div>
 
             {/* Input Area */}
-            <InputArea
-              onSubmit={handleSubmit}
-              isProcessing={isProcessing}
-              smartModeEnabled={smartModeEnabled}
-            />
+            <motion.div variants={childVariants}>
+              <InputArea
+                onSubmit={handleSubmit}
+                isProcessing={isProcessing}
+                smartModeEnabled={smartModeEnabled}
+              />
+            </motion.div>
           </motion.div>
         )}
       </AnimatePresence>
-    </div>
+    </motion.div>
   );
 }
 

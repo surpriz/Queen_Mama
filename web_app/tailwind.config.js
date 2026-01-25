@@ -115,6 +115,17 @@ export default {
         'qm-lg': '0 8px 16px rgba(0, 0, 0, 0.25)',
         'qm-glow': '0 0 12px rgba(139, 92, 246, 0.4)',
         'qm-glow-strong': '0 0 20px rgba(139, 92, 246, 0.6)',
+        // Semantic depth system
+        'qm-depth-1': '0 1px 2px rgba(0, 0, 0, 0.3)',
+        'qm-depth-2': '0 2px 4px rgba(0, 0, 0, 0.25), 0 1px 2px rgba(0, 0, 0, 0.2)',
+        'qm-depth-3': '0 4px 8px rgba(0, 0, 0, 0.2), 0 2px 4px rgba(0, 0, 0, 0.15)',
+        'qm-depth-4': '0 8px 16px rgba(0, 0, 0, 0.18), 0 4px 8px rgba(0, 0, 0, 0.12)',
+        'qm-depth-floating': '0 12px 28px rgba(0, 0, 0, 0.25), 0 6px 12px rgba(0, 0, 0, 0.15), 0 2px 4px rgba(0, 0, 0, 0.1)',
+        // Subtle glow variants
+        'qm-glow-subtle': '0 0 8px rgba(139, 92, 246, 0.2)',
+        'qm-glow-success': '0 0 10px rgba(16, 185, 129, 0.2)',
+        'qm-glow-error': '0 0 10px rgba(239, 68, 68, 0.2)',
+        'qm-glow-auto': '0 0 10px rgba(249, 115, 22, 0.2)',
       },
     },
   },

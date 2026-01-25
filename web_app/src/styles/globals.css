@@ -67,6 +67,48 @@ html, body {
   border: 1px solid rgba(255, 255, 255, 0.08);
 }
 
+/* Liquid Glass - Premium Linear/Raycast style */
+.glass-liquid {
+  backdrop-filter: blur(24px) saturate(1.2);
+  -webkit-backdrop-filter: blur(24px) saturate(1.2);
+  background:
+    /* Light reflection at top */
+    linear-gradient(180deg, rgba(255, 255, 255, 0.06) 0%, transparent 40%),
+    /* Gradient tint */
+    var(--gradient-glass-tint),
+    /* Mesh gradient for depth */
+    var(--gradient-mesh),
+    /* Base dark glass */
+    rgba(0, 0, 0, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow:
+    /* Outer shadow for depth */
+    0 8px 32px rgba(0, 0, 0, 0.3),
+    /* Inset highlight at top */
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+/* Subtle depth variants */
+.depth-1 { box-shadow: var(--shadow-depth-1); }
+.depth-2 { box-shadow: var(--shadow-depth-2); }
+.depth-3 { box-shadow: var(--shadow-depth-3); }
+.depth-4 { box-shadow: var(--shadow-depth-4); }
+.depth-floating { box-shadow: var(--shadow-depth-floating); }
+
+/* Glow auras - Subtle status indicators */
+.glow-accent {
+  box-shadow: 0 0 0 1px rgba(139, 92, 246, 0.2), var(--shadow-glow-subtle);
+}
+.glow-success {
+  box-shadow: 0 0 0 1px rgba(16, 185, 129, 0.2), var(--shadow-glow-success);
+}
+.glow-error {
+  box-shadow: 0 0 0 1px rgba(239, 68, 68, 0.2), var(--shadow-glow-error);
+}
+.glow-auto {
+  box-shadow: 0 0 0 1px rgba(249, 115, 22, 0.2), var(--shadow-glow-auto);
+}
+
 /* Draggable region for window titlebar */
 .drag-region {
   -webkit-app-region: drag;
@@ -170,11 +212,42 @@ html, body {
   animation: chevron-bounce 1s ease-in-out infinite;
 }
 
-/* Focus states */
+/* Focus states - Keyboard navigation only */
+button:focus,
+input:focus,
+textarea:focus {
+  outline: none;
+}
+
 button:focus-visible,
-input:focus-visible {
+input:focus-visible,
+textarea:focus-visible,
+[tabindex]:focus-visible {
   outline: 2px solid var(--color-accent);
   outline-offset: 2px;
+  box-shadow: 0 0 0 4px rgba(139, 92, 246, 0.15);
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  .animate-pulse-glow,
+  .animate-pulse-ring,
+  .animate-glow-pulse,
+  .animate-chevron-bounce,
+  .animate-spin,
+  .animate-pulse,
+  .animate-ping {
+    animation: none !important;
+  }
 }
 
 /* Input styles */
