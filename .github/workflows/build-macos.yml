@@ -106,31 +106,39 @@ jobs:
           SIGN_IDENTITY="Developer ID Application: Jerome LAVAL (WNNDDTBPGK)"
 
           echo "🔐 Signing all frameworks and nested components..."
+          echo "📂 Contents of Frameworks directory:"
+          find "$APP_PATH/Contents/Frameworks" -type f -perm +111 | head -50
 
-          # Sign all nested executables, XPC services, and helper apps in all frameworks
-          # This handles Sparkle, Sentry, PostHog, and any future frameworks
-          find "$APP_PATH/Contents/Frameworks" -type d \( -name "*.xpc" -o -name "*.app" \) | while read item; do
-            echo "Signing: $item"
-            codesign --force --timestamp --options runtime --sign "$SIGN_IDENTITY" "$item" || true
+          # Step 1: Sign ALL executable binaries first (deepest paths first)
+          echo "🔐 Step 1: Signing all executable binaries..."
+          find "$APP_PATH/Contents/Frameworks" -type f -perm +111 | sort -r | while read exe; do
+            echo "Signing binary: $exe"
+            codesign --force --timestamp --options runtime --sign "$SIGN_IDENTITY" "$exe"
           done
 
-          # Sign standalone executables in frameworks (like Autoupdate)
-          find "$APP_PATH/Contents/Frameworks" -type f -perm +111 ! -name "*.dylib" | while read exe; do
-            # Skip if it's inside a .app or .xpc bundle (already signed above)
-            if [[ "$exe" != *".app/"* && "$exe" != *".xpc/"* ]]; then
-              echo "Signing executable: $exe"
-              codesign --force --timestamp --options runtime --sign "$SIGN_IDENTITY" "$exe" || true
-            fi
+          # Step 2: Sign XPC services (after their binaries are signed)
+          echo "🔐 Step 2: Signing XPC services..."
+          find "$APP_PATH/Contents/Frameworks" -type d -name "*.xpc" | while read xpc; do
+            echo "Signing XPC: $xpc"
+            codesign --force --timestamp --options runtime --sign "$SIGN_IDENTITY" "$xpc"
           done
 
-          # Sign all frameworks (deepest first to handle nested frameworks)
-          find "$APP_PATH/Contents/Frameworks" -type d -name "*.framework" -maxdepth 2 | sort -r | while read fw; do
+          # Step 3: Sign helper apps (after their contents are signed)
+          echo "🔐 Step 3: Signing helper apps..."
+          find "$APP_PATH/Contents/Frameworks" -type d -name "*.app" | while read app; do
+            echo "Signing helper app: $app"
+            codesign --force --timestamp --options runtime --sign "$SIGN_IDENTITY" "$app"
+          done
+
+          # Step 4: Sign all frameworks (deepest first)
+          echo "🔐 Step 4: Signing frameworks..."
+          find "$APP_PATH/Contents/Frameworks" -type d -name "*.framework" | sort -r | while read fw; do
             echo "Signing framework: $fw"
             codesign --force --timestamp --options runtime --sign "$SIGN_IDENTITY" "$fw"
           done
 
-          # Finally sign the main app with entitlements
-          echo "🔐 Signing main application..."
+          # Step 5: Sign the main app with entitlements
+          echo "🔐 Step 5: Signing main application..."
           codesign --force --timestamp --options runtime \
             --sign "$SIGN_IDENTITY" \
             --entitlements "mac_app/QueenMama.entitlements" \
