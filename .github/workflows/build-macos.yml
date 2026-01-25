@@ -187,10 +187,64 @@ jobs:
 
           echo "📦 DMG created: $(ls -lh $RUNNER_TEMP/QueenMama.dmg)"
 
+      - name: Get version info
+        id: version_info
+        run: |
+          TAG_NAME="${{ steps.release_type.outputs.tag_name }}"
+          # Extract version without 'v' prefix
+          VERSION="${TAG_NAME#v}"
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+          # Get build number from Info.plist
+          BUILD_NUMBER=$(defaults read "$RUNNER_TEMP/export/Queen Mama.app/Contents/Info" CFBundleVersion)
+          echo "build_number=$BUILD_NUMBER" >> $GITHUB_OUTPUT
+
+          # Get DMG size
+          DMG_SIZE=$(stat -f%z "$RUNNER_TEMP/QueenMama.dmg")
+          echo "dmg_size=$DMG_SIZE" >> $GITHUB_OUTPUT
+
+          echo "📦 Version: $VERSION, Build: $BUILD_NUMBER, DMG Size: $DMG_SIZE bytes"
+
+      - name: Sign DMG for Sparkle
+        id: sparkle_sign
+        env:
+          SPARKLE_PRIVATE_KEY: ${{ secrets.SPARKLE_PRIVATE_KEY }}
+        run: |
+          if [ -z "$SPARKLE_PRIVATE_KEY" ]; then
+            echo "⚠️ SPARKLE_PRIVATE_KEY not set, skipping Sparkle signing"
+            echo "signature=" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+
+          # Download Sparkle tools
+          echo "📥 Downloading Sparkle tools..."
+          curl -L -o /tmp/Sparkle.tar.xz "https://github.com/sparkle-project/Sparkle/releases/download/2.6.4/Sparkle-2.6.4.tar.xz"
+          mkdir -p /tmp/sparkle
+          tar -xf /tmp/Sparkle.tar.xz -C /tmp/sparkle
+
+          # Save private key to temp file
+          echo "$SPARKLE_PRIVATE_KEY" > /tmp/sparkle_private_key
+
+          # Sign the DMG
+          echo "🔐 Signing DMG for Sparkle updates..."
+          SIGNATURE=$(/tmp/sparkle/bin/sign_update "$RUNNER_TEMP/QueenMama.dmg" --ed-key-file /tmp/sparkle_private_key | grep "sparkle:edSignature" | sed 's/.*sparkle:edSignature="\([^"]*\)".*/\1/')
+
+          # Clean up private key
+          rm -f /tmp/sparkle_private_key
+
+          echo "✅ Sparkle signature generated"
+          echo "signature=$SIGNATURE" >> $GITHUB_OUTPUT
+
+      - name: Rename DMG with version
+        run: |
+          VERSION="${{ steps.version_info.outputs.version }}"
+          mv "$RUNNER_TEMP/QueenMama.dmg" "$RUNNER_TEMP/QueenMama-${VERSION}.dmg"
+          echo "📦 DMG renamed to: QueenMama-${VERSION}.dmg"
+
       - name: Create Release
         uses: softprops/action-gh-release@v1
         with:
-          files: ${{ runner.temp }}/QueenMama.dmg
+          files: ${{ runner.temp }}/QueenMama-${{ steps.version_info.outputs.version }}.dmg
           prerelease: ${{ steps.release_type.outputs.is_prerelease }}
           body: |
             ## Queen Mama ${{ steps.release_type.outputs.tag_name }}
@@ -201,6 +255,108 @@ jobs:
             **Requis:** macOS 14.2+
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Update appcast.xml
+        if: steps.sparkle_sign.outputs.signature != '' && steps.release_type.outputs.is_prerelease == 'false'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          VERSION="${{ steps.version_info.outputs.version }}"
+          BUILD_NUMBER="${{ steps.version_info.outputs.build_number }}"
+          DMG_SIZE="${{ steps.version_info.outputs.dmg_size }}"
+          SIGNATURE="${{ steps.sparkle_sign.outputs.signature }}"
+          TAG_NAME="${{ steps.release_type.outputs.tag_name }}"
+
+          echo "📝 Updating appcast.xml for version $VERSION..."
+
+          # Configure git
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+
+          # Checkout main branch
+          git fetch origin main
+          git checkout main
+
+          # Use Python to safely update XML
+          python3 << PYTHON_SCRIPT
+          import xml.etree.ElementTree as ET
+          from datetime import datetime, timezone
+
+          # Parse existing appcast
+          tree = ET.parse('landing/public/appcast.xml')
+          root = tree.getroot()
+
+          # Register Sparkle namespace
+          ET.register_namespace('sparkle', 'http://www.andymatuschak.org/xml-namespaces/sparkle')
+          ET.register_namespace('dc', 'http://purl.org/dc/elements/1.1/')
+
+          channel = root.find('channel')
+
+          # Check if this version already exists
+          ns = {'sparkle': 'http://www.andymatuschak.org/xml-namespaces/sparkle'}
+          existing = False
+          for item in channel.findall('item'):
+              short_ver = item.find('sparkle:shortVersionString', ns)
+              if short_ver is not None and short_ver.text == "$VERSION":
+                  existing = True
+                  print(f"Version $VERSION already exists in appcast.xml, updating...")
+                  # Update existing item
+                  item.find('sparkle:version', ns).text = "$BUILD_NUMBER"
+                  enc = item.find('enclosure')
+                  enc.set('{http://www.andymatuschak.org/xml-namespaces/sparkle}edSignature', "$SIGNATURE")
+                  enc.set('length', "$DMG_SIZE")
+                  enc.set('url', "https://github.com/surpriz/Queen_Mama/releases/download/$TAG_NAME/QueenMama-$VERSION.dmg")
+                  break
+
+          if not existing:
+              # Create new item
+              item = ET.SubElement(channel, 'item')
+
+              title = ET.SubElement(item, 'title')
+              title.text = "Version $VERSION"
+
+              desc = ET.SubElement(item, 'description')
+              desc.text = """
+          Queen Mama $VERSION - Nouvelle version disponible.
+          Consultez les notes de version sur GitHub pour plus de détails.
+              """
+
+              pub_date = ET.SubElement(item, 'pubDate')
+              pub_date.text = datetime.now(timezone.utc).strftime('%a, %d %b %Y %H:%M:%S +0000')
+
+              version = ET.SubElement(item, '{http://www.andymatuschak.org/xml-namespaces/sparkle}version')
+              version.text = "$BUILD_NUMBER"
+
+              short_version = ET.SubElement(item, '{http://www.andymatuschak.org/xml-namespaces/sparkle}shortVersionString')
+              short_version.text = "$VERSION"
+
+              min_sys = ET.SubElement(item, '{http://www.andymatuschak.org/xml-namespaces/sparkle}minimumSystemVersion')
+              min_sys.text = "14.2"
+
+              enclosure = ET.SubElement(item, 'enclosure')
+              enclosure.set('url', "https://github.com/surpriz/Queen_Mama/releases/download/$TAG_NAME/QueenMama-$VERSION.dmg")
+              enclosure.set('{http://www.andymatuschak.org/xml-namespaces/sparkle}edSignature', "$SIGNATURE")
+              enclosure.set('length', "$DMG_SIZE")
+              enclosure.set('type', 'application/octet-stream')
+
+              print(f"Added new version $VERSION to appcast.xml")
+
+          # Write back
+          tree.write('landing/public/appcast.xml', encoding='utf-8', xml_declaration=True)
+          print("✅ appcast.xml updated successfully")
+          PYTHON_SCRIPT
+
+          # Commit and push
+          git add landing/public/appcast.xml
+          git commit -m "Update appcast.xml for version $VERSION
+
+          Sparkle auto-update feed updated automatically by CI.
+
+          Co-Authored-By: github-actions[bot] <github-actions[bot]@users.noreply.github.com>"
+
+          git push origin main
+
+          echo "✅ appcast.xml updated and pushed to main"
 
       - name: Cleanup
         if: always()

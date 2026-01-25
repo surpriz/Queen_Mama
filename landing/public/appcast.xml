@@ -4,61 +4,10 @@
     <title>Queen Mama Updates</title>
     <link>https://queenmama.co/appcast.xml</link>
     <description>Most recent updates to Queen Mama</description>
-    <language>en</language>
+    <language>fr</language>
 
-    <!--
-    ===========================================
-    HOW TO ADD A NEW RELEASE:
-    ===========================================
-
-    1. Build your app: Product → Archive in Xcode
-    2. Export with Developer ID signing
-    3. Create DMG: create-dmg "Queen Mama.app" --volname "Queen Mama"
-    4. Sign DMG for Sparkle: ./bin/sign_update QueenMama-X.Y.Z.dmg
-       Output: sparkle:edSignature="xxxxx" length="12345678"
-    5. Create GitHub Release:
-       - Tag: vX.Y.Z
-       - Upload the DMG as release asset
-    6. Update this appcast.xml:
-       - Copy the <item> template below
-       - Update version numbers
-       - Update sparkle:edSignature from step 4
-       - Update length from step 4
-       - Update the GitHub download URL
-    7. Commit and push to deploy
-
-    ===========================================
-    -->
-
-    <item>
-      <title>Version 1.0.0</title>
-      <description><![CDATA[
-        <h2>Queen Mama 1.0.0 - Initial Release</h2>
-        <p>Your AI-powered secret weapon for high-stakes conversations.</p>
-        <h3>Features</h3>
-        <ul>
-          <li>Real-time transcription with Deepgram Nova-3</li>
-          <li>AI coaching with GPT-4o, Claude, and Gemini</li>
-          <li>Undetectable overlay for screen sharing</li>
-          <li>Session recording and cloud sync</li>
-          <li>Keyboard shortcuts for quick access</li>
-        </ul>
-        <h3>Requirements</h3>
-        <ul>
-          <li>macOS 14.2 (Sonoma) or later</li>
-          <li>Apple Silicon or Intel Mac</li>
-        </ul>
-      ]]></description>
-      <pubDate>Mon, 20 Jan 2026 12:00:00 +0000</pubDate>
-      <sparkle:version>1</sparkle:version>
-      <sparkle:shortVersionString>1.0.0</sparkle:shortVersionString>
-      <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
-      <enclosure
-        url="https://github.com/surpriz/Queen_Mama/releases/download/v1.0.0/QueenMama-1.0.0.dmg"
-        sparkle:edSignature="PENDING_SIGNATURE"
-        length="0"
-        type="application/octet-stream"/>
-    </item>
+    <!-- Les nouvelles versions sont ajoutées automatiquement par le CI/CD -->
+    <!-- Voir .github/workflows/README.md pour plus d'informations -->
 
   </channel>
 </rss>

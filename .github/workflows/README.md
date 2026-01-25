@@ -144,6 +144,7 @@ git push origin v1.0.7
 | `APPLE_ID` | Email du compte Apple Developer (jerome0laval@icloud.com) |
 | `APPLE_TEAM_ID` | ID de l'équipe (WNNDDTBPGK) |
 | `APPLE_APP_SPECIFIC_PASSWORD` | Mot de passe d'application Apple pour notarisation |
+| `SPARKLE_PRIVATE_KEY` | Clé privée EdDSA pour signer les updates Sparkle (optionnel mais requis pour auto-update) |
 
 ### Générer/Mettre à jour les secrets
 
@@ -159,6 +160,57 @@ openssl rand -base64 32
 # 2. Section "Mots de passe d'application"
 # 3. Générer un nouveau mot de passe
 ```
+
+### Configurer Sparkle pour les mises à jour automatiques
+
+La clé Sparkle est déjà configurée. La clé publique est dans `mac_app/Info.plist` (`SUPublicEDKey`).
+
+Si vous avez besoin de régénérer les clés (attention: cela cassera les updates pour les utilisateurs existants):
+
+```bash
+# 1. Télécharger Sparkle
+curl -L -o Sparkle.tar.xz "https://github.com/sparkle-project/Sparkle/releases/download/2.6.4/Sparkle-2.6.4.tar.xz"
+tar -xf Sparkle.tar.xz
+
+# 2. Générer une nouvelle paire de clés
+./bin/generate_keys
+# Output:
+# Private key: (base64 string) ← SAUVEGARDER DANS GITHUB SECRETS
+# Public key: (base64 string) ← METTRE DANS Info.plist SUPublicEDKey
+
+# 3. Ajouter la clé privée dans GitHub Secrets:
+# Settings → Secrets and variables → Actions → New repository secret
+# Name: SPARKLE_PRIVATE_KEY
+# Value: (la clé privée générée)
+```
+
+**Important:** La clé privée actuelle doit correspondre à la clé publique dans Info.plist.
+Si vous ne la trouvez pas, contactez le propriétaire du projet.
+
+---
+
+## Mises à Jour Automatiques (Sparkle)
+
+Queen Mama utilise **Sparkle** pour notifier les utilisateurs des nouvelles versions.
+
+### Comment ça fonctionne
+
+1. L'app vérifie `https://queenmama.co/appcast.xml` toutes les 24h
+2. Si une nouvelle version est disponible (version > version installée), une notification apparaît
+3. L'utilisateur peut télécharger et installer la mise à jour en un clic
+
+### Flux automatisé (CI/CD)
+
+Quand vous poussez un tag de **production** (ex: `v1.0.8` sans suffixe beta/rc):
+
+1. GitHub Actions build et notarise le DMG
+2. Le DMG est signé avec la clé Sparkle (`SPARKLE_PRIVATE_KEY`)
+3. La GitHub Release est créée avec le DMG versionné
+4. Le fichier `appcast.xml` est automatiquement mis à jour et poussé sur `main`
+5. Vercel déploie le nouvel appcast sur `queenmama.co`
+6. Les utilisateurs reçoivent la notification de mise à jour
+
+**Note:** Les pre-releases (beta, rc, alpha) ne mettent PAS à jour l'appcast.xml pour éviter de notifier les utilisateurs en production.
 
 ---
 
