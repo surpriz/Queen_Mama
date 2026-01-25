@@ -314,6 +314,8 @@ enum AuthError: LocalizedError {
     case invalidCredentials
     case accountBlocked
     case oauthUserNeedsDeviceCode
+    case oauthUserNeedsGoogle
+    case credentialsAccountExists
     case deviceLimitReached
     case networkError(Error)
     case serverError(String)
@@ -333,6 +335,10 @@ enum AuthError: LocalizedError {
             return "Your account has been blocked"
         case .oauthUserNeedsDeviceCode:
             return "Please use the device code flow to sign in"
+        case .oauthUserNeedsGoogle:
+            return "This account uses Google Sign-In. Please sign in with Google."
+        case .credentialsAccountExists:
+            return "This email already has a password account. Please sign in with email and password."
         case .deviceLimitReached:
             return "Maximum device limit reached"
         case .networkError(let error):
@@ -346,7 +352,7 @@ enum AuthError: LocalizedError {
         case .emailAlreadyExists:
             return "An account with this email already exists. Try signing in instead."
         case .oauthAccountExists:
-            return "This email uses Google or GitHub login. Use 'Connect Account' instead."
+            return "This email uses Google Sign-In. Please sign in with Google."
         case .weakPassword(let message):
             return message
         }

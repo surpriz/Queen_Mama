@@ -61,6 +61,9 @@
 		5CE1EBDD2F251E3D008A4BB9 /* AnalyticsService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5CE1EBDC2F251E3D008A4BB9 /* AnalyticsService.swift */; };
 		6937AD307161BE7D38D20A02 /* ProxyConfigManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6FF34DCBA9126388FFC21F75 /* ProxyConfigManager.swift */; };
 		72E5F74C2ED54F91ABC5DA43 /* MarkdownRenderer.swift in Sources */ = {isa = PBXBuildFile; fileRef = AED67FF476044F25BA92C2A6 /* MarkdownRenderer.swift */; };
+		5C90DF502F2B8A00006B0DE0 /* GoogleAuthService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5C90DF512F2B8A00006B0DE0 /* GoogleAuthService.swift */; };
+		5C90DF522F2B8A00006B0DE0 /* SignInChoiceView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5C90DF532F2B8A00006B0DE0 /* SignInChoiceView.swift */; };
+		5C90DF542F2B8A00006B0DE0 /* EmailSignInView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5C90DF552F2B8A00006B0DE0 /* EmailSignInView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -118,6 +121,9 @@
 		AED67FF476044F25BA92C2A6 /* MarkdownRenderer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MarkdownRenderer.swift; sourceTree = "<group>"; };
 		C4A5D6911606803AAD99FDDE /* ProxyAIProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProxyAIProvider.swift; sourceTree = "<group>"; };
 		F31BD8E8B721652533B20139 /* ProxyAPIClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProxyAPIClient.swift; sourceTree = "<group>"; };
+		5C90DF512F2B8A00006B0DE0 /* GoogleAuthService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GoogleAuthService.swift; sourceTree = "<group>"; };
+		5C90DF532F2B8A00006B0DE0 /* SignInChoiceView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SignInChoiceView.swift; sourceTree = "<group>"; };
+		5C90DF552F2B8A00006B0DE0 /* EmailSignInView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EmailSignInView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -278,6 +284,8 @@
 			isa = PBXGroup;
 			children = (
 				100000000000000000000029 /* AuthGateView.swift */,
+				5C90DF532F2B8A00006B0DE0 /* SignInChoiceView.swift */,
+				5C90DF552F2B8A00006B0DE0 /* EmailSignInView.swift */,
 				5C90DF412F1A5300006B0DE0 /* RegistrationFormView.swift */,
 			);
 			path = Components;
@@ -309,6 +317,7 @@
 				5C90DF1C2F1A5197006B0DE0 /* AuthenticationManager.swift */,
 				5C90DF1D2F1A5197006B0DE0 /* AuthTokenStore.swift */,
 				5C90DF1F2F1A5197006B0DE0 /* DeviceIdentifier.swift */,
+				5C90DF512F2B8A00006B0DE0 /* GoogleAuthService.swift */,
 			);
 			path = Auth;
 			sourceTree = "<group>";
@@ -459,6 +468,9 @@
 				000000000000000000000029 /* AuthGateView.swift in Sources */,
 				5C90DF402F1A5300006B0DE0 /* RegistrationFormView.swift in Sources */,
 				10000000000000000000002A /* URLConfigManager.swift in Sources */,
+				5C90DF502F2B8A00006B0DE0 /* GoogleAuthService.swift in Sources */,
+				5C90DF522F2B8A00006B0DE0 /* SignInChoiceView.swift in Sources */,
+				5C90DF542F2B8A00006B0DE0 /* EmailSignInView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

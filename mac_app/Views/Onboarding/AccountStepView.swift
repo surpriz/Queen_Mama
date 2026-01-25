@@ -1,155 +1,17 @@
 import SwiftUI
 
-/// Onboarding step for account connection - Device code flow or Registration
+/// Onboarding step for account connection - New streamlined auth with Google/Email options
 struct AccountStepView: View {
     let onContinue: () -> Void
 
     @StateObject private var authManager = AuthenticationManager.shared
-    @State private var isLoading = false
-    @State private var errorMessage = ""
-    @State private var deviceCodeResponse: DeviceCodeResponse?
-    @State private var isButtonHovered = false
-    @State private var showRegistrationForm = false
 
     var body: some View {
-        if showRegistrationForm {
-            // Registration form
-            ScrollView {
-                VStack(spacing: QMDesign.Spacing.lg) {
-                    RegistrationFormView(showRegistrationForm: $showRegistrationForm)
-
-                    // Skip option
-                    Button(action: onContinue) {
-                        Text("Skip for now")
-                            .font(QMDesign.Typography.bodySmall)
-                            .foregroundColor(QMDesign.Colors.textTertiary)
-                    }
-                    .buttonStyle(.plain)
-                    .padding(.bottom, QMDesign.Spacing.lg)
-                }
-            }
-            .onChange(of: authManager.authState) { oldState, newState in
-                if case .authenticated = newState {
-                    // Auto-continue when registration succeeds
-                    onContinue()
-                }
-            }
-        } else {
-            // Device code flow
-            deviceCodeFlowView
-        }
-    }
-
-    private var deviceCodeFlowView: some View {
-        VStack(spacing: QMDesign.Spacing.xl) {
-            Spacer()
-
-            // Header
-            VStack(spacing: QMDesign.Spacing.md) {
-                ZStack {
-                    Circle()
-                        .fill(QMDesign.Colors.primaryGradient.opacity(0.1))
-                        .frame(width: 80, height: 80)
-                    Image(systemName: "person.crop.circle.badge.checkmark")
-                        .font(.system(size: 32))
-                        .foregroundStyle(QMDesign.Colors.primaryGradient)
-                }
-
-                Text("Connect Your Account")
-                    .font(QMDesign.Typography.titleMedium)
-                    .foregroundColor(QMDesign.Colors.textPrimary)
-
-                Text("Sign in to unlock cloud sync, session history, and PRO features.")
-                    .font(QMDesign.Typography.bodySmall)
-                    .foregroundColor(QMDesign.Colors.textSecondary)
-                    .multilineTextAlignment(.center)
-                    .padding(.horizontal, QMDesign.Spacing.xl)
-            }
-
-            // Content based on auth state
-            if case .authenticated = authManager.authState {
-                AuthenticatedView(
-                    user: authManager.currentUser,
-                    onContinue: onContinue
-                )
-                .padding(.horizontal, QMDesign.Spacing.xl)
-            } else if let response = deviceCodeResponse {
-                DeviceCodeDisplayView(
-                    response: response,
-                    onCancel: cancelDeviceCode
-                )
-                .padding(.horizontal, QMDesign.Spacing.xl)
-            } else {
-                // Connect button + Create account link
-                VStack(spacing: QMDesign.Spacing.md) {
-                    ConnectAccountView(
-                        isLoading: isLoading,
-                        errorMessage: errorMessage,
-                        onConnect: startDeviceCodeFlow
-                    )
-
-                    // Create account link
-                    Button(action: { showRegistrationForm = true }) {
-                        HStack(spacing: QMDesign.Spacing.xxs) {
-                            Text("Don't have an account?")
-                                .foregroundColor(QMDesign.Colors.textSecondary)
-                            Text("Create one")
-                                .foregroundStyle(QMDesign.Colors.primaryGradient)
-                        }
-                        .font(QMDesign.Typography.bodySmall)
-                    }
-                    .buttonStyle(.plain)
-                }
-                .padding(.horizontal, QMDesign.Spacing.xl)
-            }
-
-            Spacer()
-
-            // Skip option
-            if !authManager.isAuthenticated {
-                Button(action: onContinue) {
-                    Text("Skip for now")
-                        .font(QMDesign.Typography.bodySmall)
-                        .foregroundColor(QMDesign.Colors.textTertiary)
-                }
-                .buttonStyle(.plain)
-                .padding(.bottom, QMDesign.Spacing.xxl)
-            }
-        }
-        .padding(.horizontal, QMDesign.Spacing.lg)
-        .onChange(of: authManager.authState) { oldState, newState in
-            if case .authenticated = newState {
-                deviceCodeResponse = nil
-                isLoading = false
-            }
-        }
-    }
-
-    // MARK: - Actions
-
-    private func startDeviceCodeFlow() {
-        isLoading = true
-        errorMessage = ""
-
-        Task {
-            do {
-                let response = try await authManager.startDeviceCodeFlow()
-                deviceCodeResponse = response
-
-                // Auto-open browser to authorization page
-                if let url = URL(string: response.verificationUrl) {
-                    NSWorkspace.shared.open(url)
-                }
-            } catch {
-                errorMessage = error.localizedDescription
-            }
-            isLoading = false
-        }
-    }
-
-    private func cancelDeviceCode() {
-        authManager.cancelDeviceCodeFlow()
-        deviceCodeResponse = nil
+        SignInChoiceView(
+            onAuthenticated: onContinue,
+            allowSkip: true,
+            onSkip: onContinue
+        )
     }
 }
 

@@ -53,11 +53,19 @@ export async function POST(request: Request) {
     if (existingUser) {
       // Check if it's an OAuth user (no password)
       if (!existingUser.password) {
+        // Find which OAuth provider they use
+        const account = await prisma.account.findFirst({
+          where: { userId: existingUser.id },
+          select: { provider: true },
+        });
+
         return NextResponse.json(
           {
             error: "oauth_account_exists",
-            message: "This email uses Google or GitHub login. Use 'Connect Account' instead.",
-            requiresDeviceCode: true,
+            authMethod: account?.provider === "google" ? "google" : "oauth",
+            message: account?.provider === "google"
+              ? "This email already has a Google account. Please sign in with Google."
+              : "This email uses social login. Please use the appropriate sign-in method.",
           },
           { status: 400 }
         );
@@ -66,6 +74,7 @@ export async function POST(request: Request) {
       return NextResponse.json(
         {
           error: "email_exists",
+          authMethod: "credentials",
           message: "An account with this email already exists. Try signing in instead.",
         },
         { status: 400 }

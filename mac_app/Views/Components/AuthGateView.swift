@@ -26,34 +26,11 @@ struct AuthGateView<Content: View>: View {
     }
 }
 
-/// View shown when user is not authenticated
+/// View shown when user is not authenticated - uses new SignInChoiceView
 struct UnauthenticatedOverlay: View {
-    @StateObject private var authManager = AuthenticationManager.shared
-    @State private var isConnecting = false
-    @State private var deviceCodeResponse: DeviceCodeResponse?
-    @State private var connectionError: String?
-    @State private var showCopied = false
-    @State private var showRegistrationForm = false
-
     var body: some View {
-        if showRegistrationForm {
-            // Registration form
-            ScrollView {
-                RegistrationFormView(showRegistrationForm: $showRegistrationForm)
-            }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .background(QMDesign.Colors.backgroundPrimary)
-        } else {
-            // Device code flow (existing UI)
-            deviceCodeFlowView
-        }
-    }
-
-    private var deviceCodeFlowView: some View {
         VStack(spacing: QMDesign.Spacing.xl) {
-            Spacer()
-
-            // Logo and branding
+            // Logo and branding at top
             VStack(spacing: QMDesign.Spacing.md) {
                 ZStack {
                     Circle()
@@ -72,146 +49,15 @@ struct UnauthenticatedOverlay: View {
                     .font(QMDesign.Typography.bodyMedium)
                     .foregroundColor(QMDesign.Colors.textSecondary)
             }
+            .padding(.top, QMDesign.Spacing.xxl)
 
-            // Auth prompt
-            VStack(spacing: QMDesign.Spacing.lg) {
-                VStack(spacing: QMDesign.Spacing.sm) {
-                    Image(systemName: "person.crop.circle.badge.xmark")
-                        .font(.system(size: 48))
-                        .foregroundStyle(QMDesign.Colors.primaryGradient)
+            // Sign-in options
+            SignInChoiceView(
+                onAuthenticated: {},
+                allowSkip: false
+            )
 
-                    Text("Sign In Required")
-                        .font(QMDesign.Typography.headline)
-                        .foregroundColor(QMDesign.Colors.textPrimary)
-
-                    Text("Connect your account to access Queen Mama features including AI assistance, transcription, and more.")
-                        .font(QMDesign.Typography.bodySmall)
-                        .foregroundColor(QMDesign.Colors.textSecondary)
-                        .multilineTextAlignment(.center)
-                        .frame(maxWidth: 400)
-                }
-
-                if let response = deviceCodeResponse {
-                    // Device code display
-                    VStack(spacing: QMDesign.Spacing.md) {
-                        HStack(spacing: QMDesign.Spacing.sm) {
-                            Image(systemName: "safari")
-                                .foregroundStyle(QMDesign.Colors.primaryGradient)
-                            Text("Browser opened - enter this code:")
-                                .font(QMDesign.Typography.caption)
-                                .foregroundColor(QMDesign.Colors.textSecondary)
-                        }
-
-                        // Code display
-                        HStack(spacing: QMDesign.Spacing.xs) {
-                            ForEach(Array(response.userCode), id: \.self) { char in
-                                AuthGateCodeCharView(char: char)
-                            }
-                        }
-
-                        // Copy button
-                        Button(action: { copyCode(response.userCode) }) {
-                            HStack(spacing: QMDesign.Spacing.xs) {
-                                Image(systemName: showCopied ? "checkmark" : "doc.on.doc")
-                                Text(showCopied ? "Copied!" : "Copy code")
-                            }
-                            .font(QMDesign.Typography.captionSmall)
-                            .foregroundColor(showCopied ? QMDesign.Colors.success : QMDesign.Colors.textSecondary)
-                        }
-                        .buttonStyle(.plain)
-
-                        // Open link manually
-                        Link(destination: URL(string: response.verificationUrl)!) {
-                            HStack(spacing: QMDesign.Spacing.xs) {
-                                Image(systemName: "arrow.up.right.square")
-                                Text("Open link manually")
-                            }
-                            .font(QMDesign.Typography.captionSmall)
-                            .foregroundStyle(QMDesign.Colors.primaryGradient)
-                        }
-
-                        HStack(spacing: QMDesign.Spacing.sm) {
-                            ProgressView()
-                                .scaleEffect(0.7)
-                            Text("Waiting for authorization...")
-                                .font(QMDesign.Typography.caption)
-                                .foregroundColor(QMDesign.Colors.textSecondary)
-                        }
-
-                        Button(action: cancelDeviceCode) {
-                            Text("Cancel")
-                                .font(QMDesign.Typography.bodySmall)
-                                .foregroundColor(QMDesign.Colors.textSecondary)
-                        }
-                        .buttonStyle(.plain)
-                    }
-                    .padding(QMDesign.Spacing.lg)
-                    .background(
-                        RoundedRectangle(cornerRadius: QMDesign.Radius.lg)
-                            .fill(QMDesign.Colors.surfaceLight)
-                    )
-                } else {
-                    // Error message
-                    if let error = connectionError {
-                        HStack(spacing: QMDesign.Spacing.xs) {
-                            Image(systemName: "exclamationmark.circle.fill")
-                            Text(error)
-                        }
-                        .font(QMDesign.Typography.caption)
-                        .foregroundColor(QMDesign.Colors.error)
-                        .padding(QMDesign.Spacing.sm)
-                        .background(
-                            RoundedRectangle(cornerRadius: QMDesign.Radius.sm)
-                                .fill(QMDesign.Colors.error.opacity(0.1))
-                        )
-                    }
-
-                    // Connect button
-                    Button(action: startDeviceCodeFlow) {
-                        HStack(spacing: QMDesign.Spacing.sm) {
-                            if isConnecting {
-                                ProgressView()
-                                    .scaleEffect(0.8)
-                                    .progressViewStyle(CircularProgressViewStyle(tint: .white))
-                            } else {
-                                Image(systemName: "arrow.up.right.square")
-                            }
-                            Text(isConnecting ? "Opening browser..." : "Connect Account")
-                        }
-                        .font(QMDesign.Typography.labelMedium)
-                        .foregroundColor(.white)
-                        .padding(.horizontal, QMDesign.Spacing.xl)
-                        .padding(.vertical, QMDesign.Spacing.md)
-                        .background(
-                            RoundedRectangle(cornerRadius: QMDesign.Radius.md)
-                                .fill(QMDesign.Colors.primaryGradient)
-                        )
-                    }
-                    .buttonStyle(.plain)
-                    .disabled(isConnecting)
-
-                    Text("Works with email, Google, or GitHub accounts")
-                        .font(QMDesign.Typography.captionSmall)
-                        .foregroundColor(QMDesign.Colors.textTertiary)
-
-                    // Create account link
-                    Button(action: { showRegistrationForm = true }) {
-                        HStack(spacing: QMDesign.Spacing.xxs) {
-                            Text("Don't have an account?")
-                                .foregroundColor(QMDesign.Colors.textSecondary)
-                            Text("Create one")
-                                .foregroundStyle(QMDesign.Colors.primaryGradient)
-                        }
-                        .font(QMDesign.Typography.bodySmall)
-                    }
-                    .buttonStyle(.plain)
-                    .padding(.top, QMDesign.Spacing.sm)
-                }
-            }
-
-            Spacer()
-
-            // Free tier info
+            // Free tier info at bottom
             VStack(spacing: QMDesign.Spacing.sm) {
                 Text("Free tier includes:")
                     .font(QMDesign.Typography.caption)
@@ -227,80 +73,10 @@ struct UnauthenticatedOverlay: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(QMDesign.Colors.backgroundPrimary)
-        .onChange(of: authManager.authState) { oldState, newState in
-            // Clear state when authenticated
-            if case .authenticated = newState {
-                deviceCodeResponse = nil
-                isConnecting = false
-                showRegistrationForm = false
-            }
-        }
-    }
-
-    private func startDeviceCodeFlow() {
-        isConnecting = true
-        connectionError = nil
-
-        Task {
-            do {
-                let response = try await authManager.startDeviceCodeFlow()
-                deviceCodeResponse = response
-
-                // Auto-open browser
-                if let url = URL(string: response.verificationUrl) {
-                    NSWorkspace.shared.open(url)
-                }
-            } catch {
-                connectionError = error.localizedDescription
-            }
-            isConnecting = false
-        }
-    }
-
-    private func cancelDeviceCode() {
-        authManager.cancelDeviceCodeFlow()
-        deviceCodeResponse = nil
-    }
-
-    private func copyCode(_ code: String) {
-        NSPasteboard.general.clearContents()
-        NSPasteboard.general.setString(code, forType: .string)
-        showCopied = true
-
-        DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
-            showCopied = false
-        }
     }
 }
 
 // MARK: - Helper Views
-
-private struct AuthGateCodeCharView: View {
-    let char: Character
-
-    var body: some View {
-        let isDash = char == "-"
-
-        Text(String(char))
-            .font(.system(size: 24, weight: .bold, design: .monospaced))
-            .foregroundStyle(isDash ? AnyShapeStyle(QMDesign.Colors.textTertiary) : AnyShapeStyle(QMDesign.Colors.primaryGradient))
-            .frame(width: isDash ? 16 : 36, height: 44)
-            .background(
-                Group {
-                    if isDash {
-                        Color.clear
-                    } else {
-                        RoundedRectangle(cornerRadius: QMDesign.Radius.sm)
-                            .fill(QMDesign.Colors.surfaceLight)
-                            .overlay(
-                                RoundedRectangle(cornerRadius: QMDesign.Radius.sm)
-                                    .stroke(QMDesign.Colors.borderSubtle, lineWidth: 1)
-                            )
-                    }
-                }
-            )
-    }
-}
 
 private struct FeatureBadge: View {
     let icon: String

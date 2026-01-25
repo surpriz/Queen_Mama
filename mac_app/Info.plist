@@ -57,6 +57,24 @@
     <key>SentryDSN</key>
     <string>$(SENTRY_DSN)</string>
 
+    <!-- URL Scheme for OAuth Callbacks -->
+    <key>CFBundleURLTypes</key>
+    <array>
+        <dict>
+            <key>CFBundleURLName</key>
+            <string>com.queenmama.app.oauth</string>
+            <key>CFBundleURLSchemes</key>
+            <array>
+                <string>queenmama</string>
+                <string>com.googleusercontent.apps.499912921957-jskmos4jm1cpfgu6h7pmomeqvtltj9jq</string>
+            </array>
+        </dict>
+    </array>
+
+    <!-- Google OAuth Client ID (iOS type for native macOS) -->
+    <key>GOOGLE_CLIENT_ID</key>
+    <string>499912921957-jskmos4jm1cpfgu6h7pmomeqvtltj9jq.apps.googleusercontent.com</string>
+
     <!-- Sparkle Auto-Update Configuration -->
     <key>SUFeedURL</key>
     <string>https://www.queenmama.co/appcast.xml</string>

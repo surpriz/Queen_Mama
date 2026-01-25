@@ -346,3 +346,127 @@ extension AuthAPIClient {
         }
     }
 }
+
+// MARK: - Email Check
+
+extension AuthAPIClient {
+    /// Check if an email exists and what authentication method it uses
+    func checkEmail(_ email: String) async throws -> EmailCheckResponse {
+        print("[AuthAPI] Checking email: \(email)")
+        let body: [String: Any] = ["email": email]
+
+        return try await postPublic(
+            endpoint: "/api/auth/check-email",
+            body: body
+        )
+    }
+
+    /// Post without authentication (for public endpoints)
+    private func postPublic<T: Decodable>(
+        endpoint: String,
+        body: [String: Any]
+    ) async throws -> T {
+        let url = baseURL.appendingPathComponent(endpoint)
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.httpBody = try JSONSerialization.data(withJSONObject: body)
+
+        return try await perform(request)
+    }
+}
+
+// MARK: - Google OAuth
+
+extension AuthAPIClient {
+    /// Exchange Google authorization code for tokens
+    func exchangeGoogleAuth(
+        code: String,
+        codeVerifier: String,
+        redirectUri: String,
+        deviceInfo: DeviceInfo
+    ) async throws -> GoogleCallbackResponse {
+        print("[AuthAPI] Exchanging Google auth code for tokens")
+
+        let body: [String: Any] = [
+            "authorizationCode": code,
+            "codeVerifier": codeVerifier,
+            "redirectUri": redirectUri,
+            "deviceId": deviceInfo.deviceId,
+            "deviceName": deviceInfo.name,
+            "platform": deviceInfo.platform,
+            "osVersion": deviceInfo.osVersion ?? "",
+            "appVersion": deviceInfo.appVersion ?? ""
+        ]
+
+        return try await postGoogleCallback(
+            endpoint: "/api/auth/macos/google-callback",
+            body: body
+        )
+    }
+
+    private func postGoogleCallback(
+        endpoint: String,
+        body: [String: Any]
+    ) async throws -> GoogleCallbackResponse {
+        let url = baseURL.appendingPathComponent(endpoint)
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.httpBody = try JSONSerialization.data(withJSONObject: body)
+
+        let (data, response) = try await session.data(for: request)
+
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw AuthError.serverError("Invalid response")
+        }
+
+        switch httpResponse.statusCode {
+        case 200, 201:
+            let decoded = try JSONDecoder().decode(GoogleCallbackResponse.self, from: data)
+            return decoded
+
+        case 400:
+            let errorResponse = try? JSONDecoder().decode(GoogleErrorResponse.self, from: data)
+            if errorResponse?.error == "credentials_account_exists" {
+                throw AuthError.credentialsAccountExists
+            }
+            throw AuthError.serverError(errorResponse?.message ?? "Google authentication failed")
+
+        case 403:
+            let errorResponse = try? JSONDecoder().decode(ErrorResponse.self, from: data)
+            if errorResponse?.error == "account_blocked" {
+                throw AuthError.accountBlocked
+            }
+            if errorResponse?.error == "device_limit" {
+                throw AuthError.deviceLimitReached
+            }
+            throw AuthError.serverError(errorResponse?.message ?? "Access denied")
+
+        default:
+            let errorResponse = try? JSONDecoder().decode(ErrorResponse.self, from: data)
+            throw AuthError.serverError(errorResponse?.message ?? "Google authentication failed")
+        }
+    }
+}
+
+// MARK: - Response Types
+
+struct EmailCheckResponse: Decodable {
+    let exists: Bool
+    let authMethod: String? // "credentials", "google", or null
+}
+
+struct GoogleCallbackResponse: Decodable {
+    let accessToken: String
+    let refreshToken: String
+    let expiresIn: Int
+    let user: AuthUser
+    let isNewUser: Bool
+}
+
+private struct GoogleErrorResponse: Decodable {
+    let error: String
+    let authMethod: String?
+    let message: String?
+}

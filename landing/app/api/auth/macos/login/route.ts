@@ -50,11 +50,19 @@ export async function POST(request: Request) {
 
     // Check if user has password (OAuth users don't)
     if (!user.password) {
+      // Check what OAuth provider they use
+      const account = await prisma.account.findFirst({
+        where: { userId: user.id },
+        select: { provider: true },
+      });
+
       return NextResponse.json(
         {
           error: "oauth_user",
-          message: "This account uses social login. Please use the device code flow instead.",
-          requiresDeviceCode: true,
+          authMethod: account?.provider === "google" ? "google" : "oauth",
+          message: account?.provider === "google"
+            ? "This account uses Google Sign-In. Please sign in with Google."
+            : "This account uses social login. Please use the appropriate sign-in method.",
         },
         { status: 400 }
       );

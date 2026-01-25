@@ -230,3 +230,30 @@ export const resetPasswordSchema = z
 
 export type ForgotPasswordInput = z.infer<typeof forgotPasswordSchema>;
 export type ResetPasswordInput = z.infer<typeof resetPasswordSchema>;
+
+// ===========================================
+// EMAIL CHECK SCHEMAS
+// ===========================================
+
+export const checkEmailSchema = z.object({
+  email: z.string().email("Invalid email address"),
+});
+
+export type CheckEmailInput = z.infer<typeof checkEmailSchema>;
+
+// ===========================================
+// GOOGLE OAUTH SCHEMAS
+// ===========================================
+
+export const macosGoogleCallbackSchema = z.object({
+  authorizationCode: z.string().min(1, "Authorization code is required"),
+  codeVerifier: z.string().min(43, "Code verifier must be at least 43 characters"), // PKCE minimum
+  redirectUri: z.string().url("Invalid redirect URI"),
+  deviceId: z.string().uuid("Invalid device ID"),
+  deviceName: z.string().min(1).max(100),
+  platform: z.enum(["macOS", "iOS", "iPadOS"]).default("macOS"),
+  osVersion: z.string().optional(),
+  appVersion: z.string().optional(),
+});
+
+export type MacosGoogleCallbackInput = z.infer<typeof macosGoogleCallbackSchema>;

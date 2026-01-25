@@ -310,4 +310,58 @@ final class AuthenticationManager: ObservableObject {
 
         return token
     }
+
+    // MARK: - Google Sign-In
+
+    /// Login with Google using ASWebAuthenticationSession
+    func loginWithGoogle() async throws {
+        authState = .authenticating
+
+        do {
+            // Start Google OAuth flow
+            let googleResult = try await GoogleAuthService.shared.startGoogleSignIn()
+
+            // Exchange authorization code for tokens with our backend
+            let response = try await api.exchangeGoogleAuth(
+                code: googleResult.authorizationCode,
+                codeVerifier: googleResult.codeVerifier,
+                redirectUri: googleResult.redirectUri,
+                deviceInfo: deviceInfo
+            )
+
+            // Store tokens
+            let tokens = AuthTokens(
+                accessToken: response.accessToken,
+                refreshToken: response.refreshToken,
+                expiresIn: response.expiresIn
+            )
+            tokenStore.storeTokens(tokens, user: response.user)
+
+            // Update state
+            currentUser = response.user
+            isAuthenticated = true
+            authState = .authenticated(user: response.user)
+
+            // Notify other services
+            NotificationCenter.default.post(name: .userDidAuthenticate, object: nil)
+
+            print("[Auth] Google login successful, isNewUser: \(response.isNewUser)")
+
+        } catch let error as GoogleAuthError where error == .userCancelled {
+            // User cancelled - just return to unauthenticated
+            authState = .unauthenticated
+            throw error
+
+        } catch {
+            authState = .error(message: error.localizedDescription)
+            throw error
+        }
+    }
+
+    // MARK: - Email Check
+
+    /// Check if an email exists and what authentication method it uses
+    func checkEmailAuthMethod(_ email: String) async throws -> EmailCheckResponse {
+        return try await api.checkEmail(email)
+    }
 }
