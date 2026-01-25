@@ -4,6 +4,7 @@ import SwiftUI
 struct UpgradePromptView: View {
     @Environment(\.dismiss) private var dismiss
     @StateObject private var licenseManager = LicenseManager.shared
+    @State private var isLoading = false
 
     let feature: String?
     let onUpgrade: (() -> Void)?
@@ -75,10 +76,17 @@ struct UpgradePromptView: View {
             VStack(spacing: QMDesign.Spacing.sm) {
                 Button(action: handleUpgrade) {
                     HStack(spacing: QMDesign.Spacing.sm) {
-                        Text("Upgrade Now")
+                        if isLoading {
+                            ProgressView()
+                                .scaleEffect(0.8)
+                                .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                        }
+                        Text(isLoading ? "Opening..." : "Upgrade Now")
                             .font(QMDesign.Typography.labelMedium)
-                        Image(systemName: "arrow.right")
-                            .font(.system(size: 14, weight: .semibold))
+                        if !isLoading {
+                            Image(systemName: "arrow.right")
+                                .font(.system(size: 14, weight: .semibold))
+                        }
                     }
                     .foregroundColor(.white)
                     .frame(maxWidth: .infinity)
@@ -89,6 +97,7 @@ struct UpgradePromptView: View {
                     )
                 }
                 .buttonStyle(.plain)
+                .disabled(isLoading)
 
                 Button(action: { dismiss() }) {
                     Text("Maybe Later")
@@ -111,12 +120,38 @@ struct UpgradePromptView: View {
     }
 
     private func handleUpgrade() {
-        // Open billing page in browser
-        if let url = URL(string: "https://www.queenmama.co/dashboard/billing") {
-            NSWorkspace.shared.open(url)
+        isLoading = true
+        print("[Upgrade] Starting magic link flow...")
+
+        Task {
+            do {
+                // Generate magic link for auto-login
+                print("[Upgrade] Calling generateMagicLink...")
+                let response = try await AuthAPIClient.shared.generateMagicLink(redirect: "/dashboard/billing")
+                print("[Upgrade] Magic link generated: \(response.url)")
+                if let url = URL(string: response.url) {
+                    NSWorkspace.shared.open(url)
+                }
+            } catch {
+                // Fallback to direct URL if magic link fails
+                print("[Upgrade] Magic link failed: \(error)")
+                #if DEBUG
+                let fallbackUrl = "http://localhost:3000/dashboard/billing"
+                #else
+                let fallbackUrl = "https://www.queenmama.co/dashboard/billing"
+                #endif
+                print("[Upgrade] Using fallback URL: \(fallbackUrl)")
+                if let url = URL(string: fallbackUrl) {
+                    NSWorkspace.shared.open(url)
+                }
+            }
+
+            await MainActor.run {
+                isLoading = false
+                onUpgrade?()
+                dismiss()
+            }
         }
-        onUpgrade?()
-        dismiss()
     }
 }
 

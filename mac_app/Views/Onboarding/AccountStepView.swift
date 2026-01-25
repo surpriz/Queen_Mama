@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// Onboarding step for account connection - Device code flow only
+/// Onboarding step for account connection - Device code flow or Registration
 struct AccountStepView: View {
     let onContinue: () -> Void
 
@@ -9,8 +9,38 @@ struct AccountStepView: View {
     @State private var errorMessage = ""
     @State private var deviceCodeResponse: DeviceCodeResponse?
     @State private var isButtonHovered = false
+    @State private var showRegistrationForm = false
 
     var body: some View {
+        if showRegistrationForm {
+            // Registration form
+            ScrollView {
+                VStack(spacing: QMDesign.Spacing.lg) {
+                    RegistrationFormView(showRegistrationForm: $showRegistrationForm)
+
+                    // Skip option
+                    Button(action: onContinue) {
+                        Text("Skip for now")
+                            .font(QMDesign.Typography.bodySmall)
+                            .foregroundColor(QMDesign.Colors.textTertiary)
+                    }
+                    .buttonStyle(.plain)
+                    .padding(.bottom, QMDesign.Spacing.lg)
+                }
+            }
+            .onChange(of: authManager.authState) { oldState, newState in
+                if case .authenticated = newState {
+                    // Auto-continue when registration succeeds
+                    onContinue()
+                }
+            }
+        } else {
+            // Device code flow
+            deviceCodeFlowView
+        }
+    }
+
+    private var deviceCodeFlowView: some View {
         VStack(spacing: QMDesign.Spacing.xl) {
             Spacer()
 
@@ -50,12 +80,26 @@ struct AccountStepView: View {
                 )
                 .padding(.horizontal, QMDesign.Spacing.xl)
             } else {
-                // Connect button
-                ConnectAccountView(
-                    isLoading: isLoading,
-                    errorMessage: errorMessage,
-                    onConnect: startDeviceCodeFlow
-                )
+                // Connect button + Create account link
+                VStack(spacing: QMDesign.Spacing.md) {
+                    ConnectAccountView(
+                        isLoading: isLoading,
+                        errorMessage: errorMessage,
+                        onConnect: startDeviceCodeFlow
+                    )
+
+                    // Create account link
+                    Button(action: { showRegistrationForm = true }) {
+                        HStack(spacing: QMDesign.Spacing.xxs) {
+                            Text("Don't have an account?")
+                                .foregroundColor(QMDesign.Colors.textSecondary)
+                            Text("Create one")
+                                .foregroundStyle(QMDesign.Colors.primaryGradient)
+                        }
+                        .font(QMDesign.Typography.bodySmall)
+                    }
+                    .buttonStyle(.plain)
+                }
                 .padding(.horizontal, QMDesign.Spacing.xl)
             }
 
@@ -73,6 +117,12 @@ struct AccountStepView: View {
             }
         }
         .padding(.horizontal, QMDesign.Spacing.lg)
+        .onChange(of: authManager.authState) { oldState, newState in
+            if case .authenticated = newState {
+                deviceCodeResponse = nil
+                isLoading = false
+            }
+        }
     }
 
     // MARK: - Actions

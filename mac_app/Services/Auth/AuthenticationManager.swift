@@ -104,6 +104,42 @@ final class AuthenticationManager: ObservableObject {
         }
     }
 
+    // MARK: - Registration
+
+    /// Register a new account with email and password
+    func registerWithCredentials(name: String, email: String, password: String) async throws {
+        authState = .authenticating
+
+        do {
+            let response = try await api.register(
+                name: name,
+                email: email,
+                password: password,
+                deviceInfo: deviceInfo
+            )
+
+            // Store tokens
+            let tokens = AuthTokens(
+                accessToken: response.accessToken,
+                refreshToken: response.refreshToken,
+                expiresIn: response.expiresIn
+            )
+            tokenStore.storeTokens(tokens, user: response.user)
+
+            // Update state
+            currentUser = response.user
+            isAuthenticated = true
+            authState = .authenticated(user: response.user)
+
+            // Notify other services
+            NotificationCenter.default.post(name: .userDidAuthenticate, object: nil)
+
+        } catch {
+            authState = .error(message: error.localizedDescription)
+            throw error
+        }
+    }
+
     // MARK: - Device Code Flow
 
     /// Start the device code flow for OAuth users

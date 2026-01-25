@@ -64,7 +64,16 @@ struct QueenMamaApp: App {
 
     @StateObject private var appState = AppState()
     @StateObject private var sessionManager = SessionManager()
-    @State private var showingOnboarding = !ConfigurationManager.shared.hasCompletedOnboarding
+    @StateObject private var authManager = AuthenticationManager.shared
+
+    // Start with checking state, will be updated after auth check
+    @State private var launchState: LaunchState = .checking
+
+    enum LaunchState {
+        case checking      // Checking existing auth
+        case onboarding    // Not authenticated, show onboarding
+        case dashboard     // Authenticated, show dashboard
+    }
 
     var sharedModelContainer: ModelContainer = {
         let schema = Schema([
@@ -86,12 +95,21 @@ struct QueenMamaApp: App {
         // Main Dashboard Window
         WindowGroup("Queen Mama", id: "dashboard") {
             Group {
-                if showingOnboarding {
+                switch launchState {
+                case .checking:
+                    // Show loading while checking auth
+                    LaunchLoadingView()
+                        .onAppear {
+                            checkAuthAndSetLaunchState()
+                        }
+
+                case .onboarding:
                     OnboardingView {
-                        showingOnboarding = false
+                        launchState = .dashboard
                     }
                     .environmentObject(appState)
-                } else {
+
+                case .dashboard:
                     DashboardView()
                         .environmentObject(appState)
                         .environmentObject(sessionManager)
@@ -110,7 +128,7 @@ struct QueenMamaApp: App {
         }
         .modelContainer(sharedModelContainer)
         .windowStyle(.hiddenTitleBar)
-        .defaultSize(width: showingOnboarding ? 800 : 900, height: showingOnboarding ? 600 : 700)
+        .defaultSize(width: launchState == .onboarding ? 800 : 900, height: launchState == .onboarding ? 600 : 700)
 
         // Menu Bar Extra
         MenuBarExtra("Queen Mama", systemImage: appState.isSessionActive ? "waveform.circle.fill" : "waveform.circle") {
@@ -130,6 +148,64 @@ struct QueenMamaApp: App {
     init() {
         // Register global keyboard shortcuts
         KeyboardShortcutManager.shared.registerGlobalShortcuts()
+    }
+
+    private func checkAuthAndSetLaunchState() {
+        Task { @MainActor in
+            // Wait for auth state to be determined (not .unknown)
+            // The auth check is started in AppDelegate.applicationDidFinishLaunching
+            var attempts = 0
+            let maxAttempts = 20 // Max 2 seconds wait
+
+            while attempts < maxAttempts {
+                switch authManager.authState {
+                case .unknown:
+                    // Still checking, wait a bit
+                    try? await Task.sleep(nanoseconds: 100_000_000) // 0.1s
+                    attempts += 1
+
+                case .authenticated(_):
+                    print("[App] User authenticated, skipping onboarding")
+                    launchState = .dashboard
+                    return
+
+                case .unauthenticated, .error(_), .authenticating, .deviceCodePending(_, _, _):
+                    print("[App] User not authenticated, showing onboarding")
+                    launchState = .onboarding
+                    return
+                }
+            }
+
+            // Timeout - default to onboarding
+            print("[App] Auth check timeout, showing onboarding")
+            launchState = .onboarding
+        }
+    }
+}
+
+// MARK: - Launch Loading View
+struct LaunchLoadingView: View {
+    var body: some View {
+        ZStack {
+            QMDesign.Colors.backgroundPrimary
+                .ignoresSafeArea()
+
+            VStack(spacing: QMDesign.Spacing.lg) {
+                // App icon or logo
+                Image(systemName: "waveform.circle.fill")
+                    .font(.system(size: 64))
+                    .foregroundStyle(QMDesign.Colors.primaryGradient)
+
+                ProgressView()
+                    .scaleEffect(1.2)
+                    .progressViewStyle(CircularProgressViewStyle(tint: QMDesign.Colors.accent))
+
+                Text("Loading...")
+                    .font(QMDesign.Typography.bodyMedium)
+                    .foregroundColor(QMDesign.Colors.textSecondary)
+            }
+        }
+        .frame(minWidth: 400, minHeight: 300)
     }
 }
 

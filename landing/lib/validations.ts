@@ -105,6 +105,22 @@ export const macosLoginSchema = z.object({
   appVersion: z.string().optional(),
 });
 
+export const macosRegisterSchema = z.object({
+  name: z.string().min(2, "Name must be at least 2 characters"),
+  email: z.string().email("Invalid email address"),
+  password: z
+    .string()
+    .min(8, "Password must be at least 8 characters")
+    .regex(/[A-Z]/, "Password must contain at least one uppercase letter")
+    .regex(/[a-z]/, "Password must contain at least one lowercase letter")
+    .regex(/[0-9]/, "Password must contain at least one number"),
+  deviceId: z.string().uuid("Invalid device ID"),
+  deviceName: z.string().min(1).max(100),
+  platform: z.enum(["macOS", "iOS", "iPadOS"]).default("macOS"),
+  osVersion: z.string().optional(),
+  appVersion: z.string().optional(),
+});
+
 export const macosRefreshSchema = z.object({
   refreshToken: z.string().min(1, "Refresh token is required"),
 });
@@ -180,6 +196,7 @@ export type DeviceCodeRequest = z.infer<typeof deviceCodeRequestSchema>;
 export type DeviceCodePoll = z.infer<typeof deviceCodePollSchema>;
 export type DeviceAuthorize = z.infer<typeof deviceAuthorizeSchema>;
 export type MacosLogin = z.infer<typeof macosLoginSchema>;
+export type MacosRegister = z.infer<typeof macosRegisterSchema>;
 export type MacosRefresh = z.infer<typeof macosRefreshSchema>;
 export type MacosLogout = z.infer<typeof macosLogoutSchema>;
 export type LicenseValidate = z.infer<typeof licenseValidateSchema>;

@@ -40,6 +40,7 @@
 		000000000000000000000027 /* SecureStorage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 100000000000000000000027 /* SecureStorage.swift */; };
 		000000000000000000000028 /* UpdaterManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 100000000000000000000028 /* UpdaterManager.swift */; };
 		000000000000000000000029 /* AuthGateView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 100000000000000000000029 /* AuthGateView.swift */; };
+		5C90DF402F1A5300006B0DE0 /* RegistrationFormView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5C90DF412F1A5300006B0DE0 /* RegistrationFormView.swift */; };
 		075FD1B28F548EA76E2128F9 /* ProxyAPIClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = F31BD8E8B721652533B20139 /* ProxyAPIClient.swift */; };
 		10000000000000000000002A /* URLConfigManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 10000000000000000000002B /* URLConfigManager.swift */; };
 		3BB6D98AB2453F3BF23375A2 /* ProxyAIProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = C4A5D6911606803AAD99FDDE /* ProxyAIProvider.swift */; };
@@ -98,6 +99,7 @@
 		100000000000000000000027 /* SecureStorage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SecureStorage.swift; sourceTree = "<group>"; };
 		100000000000000000000028 /* UpdaterManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UpdaterManager.swift; sourceTree = "<group>"; };
 		100000000000000000000029 /* AuthGateView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthGateView.swift; sourceTree = "<group>"; };
+		5C90DF412F1A5300006B0DE0 /* RegistrationFormView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RegistrationFormView.swift; sourceTree = "<group>"; };
 		10000000000000000000002B /* URLConfigManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = URLConfigManager.swift; sourceTree = "<group>"; };
 		200000000000000000000001 /* QueenMama.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = QueenMama.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		5C8B7EA32F17D57E00DAE824 /* TranscriptionProviders.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TranscriptionProviders.swift; sourceTree = "<group>"; };
@@ -276,6 +278,7 @@
 			isa = PBXGroup;
 			children = (
 				100000000000000000000029 /* AuthGateView.swift */,
+				5C90DF412F1A5300006B0DE0 /* RegistrationFormView.swift */,
 			);
 			path = Components;
 			sourceTree = "<group>";
@@ -454,6 +457,7 @@
 				000000000000000000000027 /* SecureStorage.swift in Sources */,
 				000000000000000000000028 /* UpdaterManager.swift in Sources */,
 				000000000000000000000029 /* AuthGateView.swift in Sources */,
+				5C90DF402F1A5300006B0DE0 /* RegistrationFormView.swift in Sources */,
 				10000000000000000000002A /* URLConfigManager.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

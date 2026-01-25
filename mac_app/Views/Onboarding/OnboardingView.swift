@@ -33,9 +33,28 @@ struct OnboardingView: View {
             .ignoresSafeArea()
 
             VStack(spacing: 0) {
+                // Top bar with Skip button
+                HStack {
+                    Spacer()
+                    Button(action: skipOnboarding) {
+                        Text("Skip")
+                            .font(QMDesign.Typography.bodySmall)
+                            .foregroundColor(QMDesign.Colors.textSecondary)
+                            .padding(.horizontal, QMDesign.Spacing.md)
+                            .padding(.vertical, QMDesign.Spacing.sm)
+                            .background(
+                                Capsule()
+                                    .fill(QMDesign.Colors.surfaceLight)
+                            )
+                    }
+                    .buttonStyle(.plain)
+                    .padding(.trailing, QMDesign.Spacing.lg)
+                    .padding(.top, QMDesign.Spacing.md)
+                }
+
                 // Step Indicator
                 OnboardingStepIndicator(currentStep: currentStep)
-                    .padding(.top, QMDesign.Spacing.lg)
+                    .padding(.top, QMDesign.Spacing.sm)
                     .padding(.bottom, QMDesign.Spacing.md)
 
                 // Content - use Group instead of TabView to avoid macOS tab bar
@@ -58,6 +77,10 @@ struct OnboardingView: View {
             }
         }
         .frame(minWidth: 700, minHeight: 720)
+    }
+
+    private func skipOnboarding() {
+        onComplete()
     }
 
     private func goToStep(_ step: OnboardingStep) {
@@ -502,89 +525,732 @@ struct PermissionCard: View {
     }
 }
 
-// MARK: - Quick Tour Step
+// MARK: - Quick Tour Step (Interactive Carousel)
 
 struct QuickTourStepView: View {
     let onContinue: () -> Void
+    @State private var currentPage = 0
     @State private var isButtonHovered = false
 
+    private let totalPages = 5
+
     var body: some View {
-        VStack(spacing: QMDesign.Spacing.xl) {
-            Spacer()
-
-            // Header
-            VStack(spacing: QMDesign.Spacing.md) {
-                ZStack {
-                    Circle()
-                        .fill(QMDesign.Colors.primaryGradient.opacity(0.1))
-                        .frame(width: 80, height: 80)
-                    Image(systemName: "lightbulb.fill")
-                        .font(.system(size: 32))
-                        .foregroundStyle(QMDesign.Colors.primaryGradient)
+        VStack(spacing: 0) {
+            // Tour Content - Takes available space
+            Group {
+                switch currentPage {
+                case 0: WidgetTourScreen()
+                case 1: AIFeaturesTourScreen()
+                case 2: DashboardTourScreen()
+                case 3: ModesTourScreen()
+                case 4: ShortcutsTourScreen()
+                default: WidgetTourScreen()
                 }
-
-                Text("Quick Tour")
-                    .font(QMDesign.Typography.titleMedium)
-                    .foregroundColor(QMDesign.Colors.textPrimary)
             }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .animation(QMDesign.Animation.smooth, value: currentPage)
 
-            // Tips
+            // Fixed Bottom Navigation Area
             VStack(spacing: QMDesign.Spacing.md) {
-                TourTipCard(
-                    icon: "command",
-                    shortcut: "Cmd+Shift+S",
-                    title: "Start Session",
-                    description: "Begin recording and transcription"
-                )
+                // Page Indicator
+                TourPageIndicator(currentPage: currentPage, totalPages: totalPages)
 
-                TourTipCard(
-                    icon: "option",
-                    shortcut: "Cmd+\\",
-                    title: "Toggle Widget",
-                    description: "Show or hide the overlay widget"
-                )
+                // Navigation Buttons
+                HStack(spacing: QMDesign.Spacing.md) {
+                    // Back Button
+                    if currentPage > 0 {
+                        Button(action: { currentPage -= 1 }) {
+                            HStack(spacing: QMDesign.Spacing.xs) {
+                                Image(systemName: "arrow.left")
+                                    .font(.system(size: 12, weight: .semibold))
+                                Text("Back")
+                                    .font(QMDesign.Typography.labelMedium)
+                            }
+                            .padding(.horizontal, QMDesign.Spacing.lg)
+                            .padding(.vertical, QMDesign.Spacing.sm)
+                            .background(
+                                Capsule()
+                                    .fill(QMDesign.Colors.surfaceMedium)
+                            )
+                            .foregroundColor(QMDesign.Colors.textSecondary)
+                        }
+                        .buttonStyle(.plain)
+                    } else {
+                        // Invisible placeholder to keep layout consistent
+                        Color.clear.frame(width: 80, height: 36)
+                    }
 
-                TourTipCard(
-                    icon: "return",
-                    shortcut: "Cmd+Enter",
-                    title: "Ask AI",
-                    description: "Get assistance based on current context"
-                )
+                    Spacer()
 
-                TourTipCard(
-                    icon: "r.circle",
-                    shortcut: "Cmd+R",
-                    title: "Clear Context",
-                    description: "Reset transcript and context"
-                )
-            }
-            .padding(.horizontal, QMDesign.Spacing.xl)
-
-            Spacer()
-
-            // Continue Button
-            Button(action: onContinue) {
-                HStack(spacing: QMDesign.Spacing.sm) {
-                    Text("Got it!")
-                        .font(QMDesign.Typography.labelMedium)
-                    Image(systemName: "arrow.right")
-                        .font(.system(size: 14, weight: .semibold))
+                    // Next/Continue Button
+                    Button(action: {
+                        if currentPage < totalPages - 1 {
+                            withAnimation(QMDesign.Animation.smooth) {
+                                currentPage += 1
+                            }
+                        } else {
+                            onContinue()
+                        }
+                    }) {
+                        HStack(spacing: QMDesign.Spacing.sm) {
+                            Text(currentPage < totalPages - 1 ? "Next" : "Got it!")
+                                .font(QMDesign.Typography.labelMedium)
+                            Image(systemName: "arrow.right")
+                                .font(.system(size: 14, weight: .semibold))
+                        }
+                        .padding(.horizontal, QMDesign.Spacing.xl)
+                        .padding(.vertical, QMDesign.Spacing.md)
+                        .background(
+                            Capsule()
+                                .fill(QMDesign.Colors.primaryGradient)
+                        )
+                        .foregroundColor(.white)
+                        .scaleEffect(isButtonHovered ? 1.05 : 1.0)
+                    }
+                    .buttonStyle(.plain)
+                    .onHover { isButtonHovered = $0 }
+                    .animation(QMDesign.Animation.smooth, value: isButtonHovered)
                 }
                 .padding(.horizontal, QMDesign.Spacing.xl)
-                .padding(.vertical, QMDesign.Spacing.md)
+            }
+            .padding(.vertical, QMDesign.Spacing.lg)
+            .background(
+                // Subtle gradient fade from content
+                LinearGradient(
+                    colors: [Color.clear, QMDesign.Colors.backgroundPrimary.opacity(0.8)],
+                    startPoint: .top,
+                    endPoint: .bottom
+                )
+                .frame(height: 20)
+                .offset(y: -20),
+                alignment: .top
+            )
+        }
+    }
+}
+
+// MARK: - Tour Page Indicator
+
+struct TourPageIndicator: View {
+    let currentPage: Int
+    let totalPages: Int
+
+    var body: some View {
+        HStack(spacing: QMDesign.Spacing.xs) {
+            ForEach(0..<totalPages, id: \.self) { index in
+                Capsule()
+                    .fill(index == currentPage ? QMDesign.Colors.accent : QMDesign.Colors.surfaceMedium)
+                    .frame(width: index == currentPage ? 24 : 8, height: 8)
+                    .animation(QMDesign.Animation.smooth, value: currentPage)
+            }
+        }
+    }
+}
+
+// MARK: - Tour Screen 1: Widget
+
+struct WidgetTourScreen: View {
+    var body: some View {
+        ScrollView {
+            VStack(spacing: QMDesign.Spacing.lg) {
+                // Header
+                TourScreenHeader(
+                    icon: "rectangle.on.rectangle",
+                    title: "The Floating Widget",
+                    subtitle: "Your always-visible AI assistant"
+                )
+
+                // Widget Visual Mockup
+                VStack(spacing: QMDesign.Spacing.md) {
+                    // Collapsed Widget Mockup
+                    VStack(alignment: .leading, spacing: QMDesign.Spacing.xs) {
+                        Text("Collapsed Mode")
+                            .font(QMDesign.Typography.caption)
+                            .foregroundColor(QMDesign.Colors.textTertiary)
+
+                        WidgetMockupCollapsed()
+                    }
+
+                    Image(systemName: "arrow.down")
+                        .font(.system(size: 16))
+                        .foregroundColor(QMDesign.Colors.textTertiary)
+
+                    // Expanded Widget Mockup
+                    VStack(alignment: .leading, spacing: QMDesign.Spacing.xs) {
+                        Text("Expanded Mode")
+                            .font(QMDesign.Typography.caption)
+                            .foregroundColor(QMDesign.Colors.textTertiary)
+
+                        WidgetMockupExpanded()
+                    }
+                }
+                .padding(.horizontal, QMDesign.Spacing.xl)
+
+                // Key Points
+                VStack(spacing: QMDesign.Spacing.sm) {
+                    TourBulletPoint(icon: "eye.slash.fill", text: "Invisible to screen sharing & recordings")
+                    TourBulletPoint(icon: "pin.fill", text: "Always stays on top of other windows")
+                    TourBulletPoint(icon: "arrow.up.and.down.and.arrow.left.and.right", text: "Drag to reposition anywhere")
+                }
+                .padding(.horizontal, QMDesign.Spacing.xl)
+
+                // Shortcut
+                HStack {
+                    Text("Toggle with")
+                        .font(QMDesign.Typography.bodySmall)
+                        .foregroundColor(QMDesign.Colors.textSecondary)
+                    KeyboardShortcutBadge(shortcut: "Cmd+\\")
+                }
+                .padding(.top, QMDesign.Spacing.sm)
+            }
+            .padding(.top, QMDesign.Spacing.lg)
+            .padding(.bottom, QMDesign.Spacing.xxxl) // Extra space for fixed nav
+        }
+    }
+}
+
+// MARK: - Tour Screen 2: AI Features
+
+struct AIFeaturesTourScreen: View {
+    var body: some View {
+        ScrollView {
+            VStack(spacing: QMDesign.Spacing.lg) {
+                // Header
+                TourScreenHeader(
+                    icon: "sparkles",
+                    title: "4 Types of AI Help",
+                    subtitle: "Different responses for different needs"
+                )
+
+                // Feature Cards
+                VStack(spacing: QMDesign.Spacing.md) {
+                    AIFeatureCard(
+                        icon: "sparkles",
+                        iconColor: QMDesign.Colors.accent,
+                        title: "Assist",
+                        description: "Get contextual suggestions based on the conversation",
+                        example: "\"Based on what was discussed, you could mention...\""
+                    )
+
+                    AIFeatureCard(
+                        icon: "text.bubble.fill",
+                        iconColor: QMDesign.Colors.success,
+                        title: "What to Say",
+                        description: "Direct response suggestions you can use",
+                        example: "\"You might say: 'That's a great point, and...'\""
+                    )
+
+                    AIFeatureCard(
+                        icon: "questionmark.bubble.fill",
+                        iconColor: QMDesign.Colors.info,
+                        title: "Follow-up Questions",
+                        description: "Smart questions to keep the conversation going",
+                        example: "\"Ask: 'How does this impact...?'\""
+                    )
+
+                    AIFeatureCard(
+                        icon: "arrow.counterclockwise",
+                        iconColor: QMDesign.Colors.warning,
+                        title: "Recap",
+                        description: "Summary of key points discussed so far",
+                        example: "\"Key points: 1) Budget is $50k, 2) Timeline is Q2...\""
+                    )
+                }
+                .padding(.horizontal, QMDesign.Spacing.xl)
+
+                // Shortcut
+                HStack {
+                    Text("Trigger AI with")
+                        .font(QMDesign.Typography.bodySmall)
+                        .foregroundColor(QMDesign.Colors.textSecondary)
+                    KeyboardShortcutBadge(shortcut: "Cmd+Enter")
+                }
+                .padding(.top, QMDesign.Spacing.sm)
+            }
+            .padding(.top, QMDesign.Spacing.lg)
+            .padding(.bottom, QMDesign.Spacing.xxxl)
+        }
+    }
+}
+
+// MARK: - Tour Screen 3: Dashboard
+
+struct DashboardTourScreen: View {
+    var body: some View {
+        ScrollView {
+            VStack(spacing: QMDesign.Spacing.lg) {
+                // Header
+                TourScreenHeader(
+                    icon: "rectangle.3.group",
+                    title: "The Dashboard",
+                    subtitle: "Your command center"
+                )
+
+                // Dashboard Mockup
+                DashboardMockup()
+                    .padding(.horizontal, QMDesign.Spacing.xl)
+
+                // Features List
+                VStack(spacing: QMDesign.Spacing.sm) {
+                    TourBulletPoint(icon: "play.circle.fill", text: "Start and stop recording sessions")
+                    TourBulletPoint(icon: "clock.fill", text: "View past sessions and transcripts")
+                    TourBulletPoint(icon: "square.and.arrow.up", text: "Export transcripts (TXT, JSON, SRT)")
+                    TourBulletPoint(icon: "waveform", text: "Monitor live audio levels")
+                    TourBulletPoint(icon: "gearshape.fill", text: "Access all settings")
+                }
+                .padding(.horizontal, QMDesign.Spacing.xl)
+            }
+            .padding(.top, QMDesign.Spacing.lg)
+            .padding(.bottom, QMDesign.Spacing.xxxl)
+        }
+    }
+}
+
+// MARK: - Tour Screen 4: Modes
+
+struct ModesTourScreen: View {
+    var body: some View {
+        ScrollView {
+            VStack(spacing: QMDesign.Spacing.lg) {
+                // Header
+                TourScreenHeader(
+                    icon: "person.2.fill",
+                    title: "AI Modes",
+                    subtitle: "Customize AI behavior for different situations"
+                )
+
+                // Mode Cards
+                VStack(spacing: QMDesign.Spacing.sm) {
+                    ModeCard(
+                        name: "Default",
+                        icon: "star.fill",
+                        description: "Balanced, helpful assistance for any situation"
+                    )
+                    ModeCard(
+                        name: "Professional",
+                        icon: "briefcase.fill",
+                        description: "Formal tone for business meetings"
+                    )
+                    ModeCard(
+                        name: "Interview",
+                        icon: "person.badge.clock.fill",
+                        description: "Helps prepare answers during job interviews"
+                    )
+                    ModeCard(
+                        name: "Sales",
+                        icon: "chart.line.uptrend.xyaxis",
+                        description: "Persuasive suggestions for sales calls"
+                    )
+                }
+                .padding(.horizontal, QMDesign.Spacing.xl)
+
+                // Custom Modes Info
+                HStack(alignment: .top, spacing: QMDesign.Spacing.sm) {
+                    Image(systemName: "plus.circle.fill")
+                        .foregroundStyle(QMDesign.Colors.primaryGradient)
+                    Text("Create your own custom modes with personalized system prompts in the Dashboard.")
+                        .font(QMDesign.Typography.caption)
+                        .foregroundColor(QMDesign.Colors.textSecondary)
+                }
+                .padding(QMDesign.Spacing.md)
+                .background(
+                    RoundedRectangle(cornerRadius: QMDesign.Radius.md)
+                        .fill(QMDesign.Colors.accent.opacity(0.05))
+                )
+                .padding(.horizontal, QMDesign.Spacing.xl)
+            }
+            .padding(.top, QMDesign.Spacing.lg)
+            .padding(.bottom, QMDesign.Spacing.xxxl)
+        }
+    }
+}
+
+// MARK: - Tour Screen 5: Shortcuts
+
+struct ShortcutsTourScreen: View {
+    var body: some View {
+        ScrollView {
+            VStack(spacing: QMDesign.Spacing.lg) {
+                // Header
+                TourScreenHeader(
+                    icon: "keyboard",
+                    title: "Keyboard Shortcuts",
+                    subtitle: "Master Queen Mama with these shortcuts"
+                )
+
+                // Shortcuts Grid
+                VStack(spacing: QMDesign.Spacing.md) {
+                    TourTipCard(
+                        icon: "command",
+                        shortcut: "Cmd+Shift+S",
+                        title: "Start/Stop Session",
+                        description: "Begin or end recording and transcription"
+                    )
+
+                    TourTipCard(
+                        icon: "option",
+                        shortcut: "Cmd+\\",
+                        title: "Toggle Widget",
+                        description: "Show or hide the overlay widget"
+                    )
+
+                    TourTipCard(
+                        icon: "return",
+                        shortcut: "Cmd+Enter",
+                        title: "Ask AI",
+                        description: "Get AI assistance based on current context"
+                    )
+
+                    TourTipCard(
+                        icon: "r.circle",
+                        shortcut: "Cmd+R",
+                        title: "Clear Context",
+                        description: "Reset transcript and start fresh"
+                    )
+
+                    TourTipCard(
+                        icon: "arrow.up.arrow.down",
+                        shortcut: "Cmd+Arrows",
+                        title: "Move Widget",
+                        description: "Reposition the widget on screen"
+                    )
+                }
+                .padding(.horizontal, QMDesign.Spacing.xl)
+            }
+            .padding(.top, QMDesign.Spacing.lg)
+            .padding(.bottom, QMDesign.Spacing.xxxl)
+        }
+    }
+}
+
+// MARK: - Tour Helper Components
+
+struct TourScreenHeader: View {
+    let icon: String
+    let title: String
+    let subtitle: String
+
+    var body: some View {
+        VStack(spacing: QMDesign.Spacing.md) {
+            ZStack {
+                Circle()
+                    .fill(QMDesign.Colors.primaryGradient.opacity(0.1))
+                    .frame(width: 72, height: 72)
+                Image(systemName: icon)
+                    .font(.system(size: 28))
+                    .foregroundStyle(QMDesign.Colors.primaryGradient)
+            }
+
+            VStack(spacing: QMDesign.Spacing.xs) {
+                Text(title)
+                    .font(QMDesign.Typography.titleMedium)
+                    .foregroundColor(QMDesign.Colors.textPrimary)
+
+                Text(subtitle)
+                    .font(QMDesign.Typography.bodySmall)
+                    .foregroundColor(QMDesign.Colors.textSecondary)
+            }
+        }
+        .padding(.bottom, QMDesign.Spacing.sm)
+    }
+}
+
+struct TourBulletPoint: View {
+    let icon: String
+    let text: String
+
+    var body: some View {
+        HStack(spacing: QMDesign.Spacing.sm) {
+            Image(systemName: icon)
+                .font(.system(size: 14))
+                .foregroundStyle(QMDesign.Colors.primaryGradient)
+                .frame(width: 20)
+
+            Text(text)
+                .font(QMDesign.Typography.bodySmall)
+                .foregroundColor(QMDesign.Colors.textSecondary)
+
+            Spacer()
+        }
+    }
+}
+
+struct AIFeatureCard: View {
+    let icon: String
+    let iconColor: Color
+    let title: String
+    let description: String
+    let example: String
+
+    var body: some View {
+        HStack(alignment: .top, spacing: QMDesign.Spacing.md) {
+            ZStack {
+                Circle()
+                    .fill(iconColor.opacity(0.15))
+                    .frame(width: 36, height: 36)
+                Image(systemName: icon)
+                    .font(.system(size: 16))
+                    .foregroundColor(iconColor)
+            }
+
+            VStack(alignment: .leading, spacing: QMDesign.Spacing.xxs) {
+                Text(title)
+                    .font(QMDesign.Typography.labelMedium)
+                    .foregroundColor(QMDesign.Colors.textPrimary)
+
+                Text(description)
+                    .font(QMDesign.Typography.caption)
+                    .foregroundColor(QMDesign.Colors.textSecondary)
+
+                Text(example)
+                    .font(QMDesign.Typography.captionSmall)
+                    .foregroundColor(QMDesign.Colors.textTertiary)
+                    .italic()
+                    .padding(.top, 2)
+            }
+
+            Spacer()
+        }
+        .padding(QMDesign.Spacing.sm)
+        .background(
+            RoundedRectangle(cornerRadius: QMDesign.Radius.md)
+                .fill(QMDesign.Colors.surfaceLight)
+        )
+    }
+}
+
+struct ModeCard: View {
+    let name: String
+    let icon: String
+    let description: String
+
+    var body: some View {
+        HStack(spacing: QMDesign.Spacing.md) {
+            ZStack {
+                Circle()
+                    .fill(QMDesign.Colors.primaryGradient.opacity(0.1))
+                    .frame(width: 36, height: 36)
+                Image(systemName: icon)
+                    .font(.system(size: 14))
+                    .foregroundStyle(QMDesign.Colors.primaryGradient)
+            }
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text(name)
+                    .font(QMDesign.Typography.labelMedium)
+                    .foregroundColor(QMDesign.Colors.textPrimary)
+
+                Text(description)
+                    .font(QMDesign.Typography.caption)
+                    .foregroundColor(QMDesign.Colors.textTertiary)
+            }
+
+            Spacer()
+        }
+        .padding(QMDesign.Spacing.sm)
+        .background(
+            RoundedRectangle(cornerRadius: QMDesign.Radius.md)
+                .fill(QMDesign.Colors.surfaceLight)
+        )
+    }
+}
+
+// MARK: - Widget Mockups
+
+struct WidgetMockupCollapsed: View {
+    var body: some View {
+        HStack(spacing: QMDesign.Spacing.sm) {
+            // Status indicator
+            Circle()
+                .fill(QMDesign.Colors.success)
+                .frame(width: 8, height: 8)
+
+            // Waveform placeholder
+            HStack(spacing: 2) {
+                ForEach(0..<8, id: \.self) { i in
+                    RoundedRectangle(cornerRadius: 1)
+                        .fill(QMDesign.Colors.accent.opacity(0.6))
+                        .frame(width: 3, height: CGFloat.random(in: 8...16))
+                }
+            }
+
+            Spacer()
+
+            // Mode badge
+            Text("Default")
+                .font(QMDesign.Typography.captionSmall)
+                .foregroundColor(QMDesign.Colors.textTertiary)
+                .padding(.horizontal, 6)
+                .padding(.vertical, 2)
                 .background(
                     Capsule()
-                        .fill(QMDesign.Colors.primaryGradient)
+                        .fill(QMDesign.Colors.surfaceMedium)
                 )
-                .foregroundColor(.white)
-                .scaleEffect(isButtonHovered ? 1.05 : 1.0)
-            }
-            .buttonStyle(.plain)
-            .onHover { isButtonHovered = $0 }
-            .animation(QMDesign.Animation.smooth, value: isButtonHovered)
-            .padding(.bottom, QMDesign.Spacing.xxl)
+
+            // Expand button
+            Image(systemName: "chevron.down")
+                .font(.system(size: 10))
+                .foregroundColor(QMDesign.Colors.textTertiary)
         }
-        .padding(.horizontal, QMDesign.Spacing.lg)
+        .padding(.horizontal, QMDesign.Spacing.md)
+        .padding(.vertical, QMDesign.Spacing.sm)
+        .frame(width: 280)
+        .background(
+            RoundedRectangle(cornerRadius: QMDesign.Radius.lg)
+                .fill(QMDesign.Colors.backgroundSecondary)
+                .overlay(
+                    RoundedRectangle(cornerRadius: QMDesign.Radius.lg)
+                        .stroke(
+                            LinearGradient(
+                                colors: [QMDesign.Colors.gradientStart.opacity(0.3), QMDesign.Colors.gradientEnd.opacity(0.3)],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            ),
+                            lineWidth: 1
+                        )
+                )
+        )
+        .shadow(color: .black.opacity(0.3), radius: 10, y: 5)
+    }
+}
+
+struct WidgetMockupExpanded: View {
+    var body: some View {
+        VStack(spacing: 0) {
+            // Header
+            HStack {
+                Circle()
+                    .fill(QMDesign.Colors.success)
+                    .frame(width: 8, height: 8)
+
+                Text("Recording...")
+                    .font(QMDesign.Typography.captionSmall)
+                    .foregroundColor(QMDesign.Colors.textSecondary)
+
+                Spacer()
+
+                Image(systemName: "chevron.up")
+                    .font(.system(size: 10))
+                    .foregroundColor(QMDesign.Colors.textTertiary)
+            }
+            .padding(.horizontal, QMDesign.Spacing.md)
+            .padding(.vertical, QMDesign.Spacing.sm)
+
+            Divider()
+                .background(QMDesign.Colors.borderSubtle)
+
+            // Tab Bar
+            HStack(spacing: 0) {
+                ForEach(["Assist", "Say", "Follow-up", "Recap"], id: \.self) { tab in
+                    Text(tab)
+                        .font(QMDesign.Typography.captionSmall)
+                        .foregroundColor(tab == "Assist" ? QMDesign.Colors.accent : QMDesign.Colors.textTertiary)
+                        .padding(.horizontal, QMDesign.Spacing.sm)
+                        .padding(.vertical, QMDesign.Spacing.xs)
+                        .background(
+                            tab == "Assist" ?
+                            RoundedRectangle(cornerRadius: QMDesign.Radius.sm)
+                                .fill(QMDesign.Colors.accent.opacity(0.1)) : nil
+                        )
+                }
+            }
+            .padding(.horizontal, QMDesign.Spacing.sm)
+            .padding(.vertical, QMDesign.Spacing.xs)
+
+            Divider()
+                .background(QMDesign.Colors.borderSubtle)
+
+            // Content Area
+            VStack(alignment: .leading, spacing: QMDesign.Spacing.xs) {
+                Text("AI Response")
+                    .font(QMDesign.Typography.caption)
+                    .foregroundColor(QMDesign.Colors.textSecondary)
+
+                Text("Based on the discussion about project timeline, you might want to mention...")
+                    .font(QMDesign.Typography.captionSmall)
+                    .foregroundColor(QMDesign.Colors.textTertiary)
+                    .lineLimit(2)
+            }
+            .padding(QMDesign.Spacing.md)
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .frame(width: 280)
+        .background(
+            RoundedRectangle(cornerRadius: QMDesign.Radius.lg)
+                .fill(QMDesign.Colors.backgroundSecondary)
+                .overlay(
+                    RoundedRectangle(cornerRadius: QMDesign.Radius.lg)
+                        .stroke(
+                            LinearGradient(
+                                colors: [QMDesign.Colors.gradientStart.opacity(0.3), QMDesign.Colors.gradientEnd.opacity(0.3)],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            ),
+                            lineWidth: 1
+                        )
+                )
+        )
+        .shadow(color: .black.opacity(0.3), radius: 10, y: 5)
+    }
+}
+
+struct DashboardMockup: View {
+    var body: some View {
+        HStack(spacing: 0) {
+            // Sidebar
+            VStack(alignment: .leading, spacing: QMDesign.Spacing.sm) {
+                // Sidebar items
+                ForEach(["Sessions", "Modes", "Settings"], id: \.self) { item in
+                    HStack(spacing: QMDesign.Spacing.xs) {
+                        Circle()
+                            .fill(item == "Sessions" ? QMDesign.Colors.accent : QMDesign.Colors.surfaceMedium)
+                            .frame(width: 6, height: 6)
+                        Text(item)
+                            .font(QMDesign.Typography.captionSmall)
+                            .foregroundColor(item == "Sessions" ? QMDesign.Colors.textPrimary : QMDesign.Colors.textTertiary)
+                    }
+                }
+            }
+            .padding(QMDesign.Spacing.sm)
+            .frame(width: 80)
+            .background(QMDesign.Colors.surfaceLight)
+
+            // Main Content
+            VStack(alignment: .leading, spacing: QMDesign.Spacing.sm) {
+                // Header
+                HStack {
+                    Text("Sessions")
+                        .font(QMDesign.Typography.labelSmall)
+                        .foregroundColor(QMDesign.Colors.textPrimary)
+                    Spacer()
+                    RoundedRectangle(cornerRadius: QMDesign.Radius.sm)
+                        .fill(QMDesign.Colors.primaryGradient)
+                        .frame(width: 50, height: 16)
+                        .overlay(
+                            Text("Start")
+                                .font(.system(size: 8, weight: .semibold))
+                                .foregroundColor(.white)
+                        )
+                }
+
+                // Session Cards
+                ForEach(0..<2, id: \.self) { _ in
+                    RoundedRectangle(cornerRadius: QMDesign.Radius.sm)
+                        .fill(QMDesign.Colors.surfaceLight)
+                        .frame(height: 24)
+                }
+            }
+            .padding(QMDesign.Spacing.sm)
+        }
+        .frame(height: 120)
+        .background(
+            RoundedRectangle(cornerRadius: QMDesign.Radius.md)
+                .fill(QMDesign.Colors.backgroundSecondary)
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: QMDesign.Radius.md)
+                .stroke(QMDesign.Colors.borderSubtle, lineWidth: 1)
+        )
     }
 }
 
@@ -710,5 +1376,150 @@ struct ReadyStepView: View {
             .padding(.bottom, QMDesign.Spacing.xxl)
         }
         .padding(.horizontal, QMDesign.Spacing.lg)
+    }
+}
+
+// MARK: - Feature Tour Sheet (Standalone)
+
+/// A standalone sheet to review the feature tour from the Dashboard
+struct FeatureTourSheet: View {
+    @Environment(\.dismiss) private var dismiss
+    @State private var currentPage = 0
+    @State private var isButtonHovered = false
+
+    private let totalPages = 5
+
+    var body: some View {
+        ZStack {
+            // Background
+            QMDesign.Colors.backgroundPrimary
+                .ignoresSafeArea()
+
+            LinearGradient(
+                colors: [
+                    QMDesign.Colors.accent.opacity(0.05),
+                    Color.clear,
+                    QMDesign.Colors.gradientEnd.opacity(0.03)
+                ],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+            .ignoresSafeArea()
+
+            VStack(spacing: 0) {
+                // Header with close button
+                HStack {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Feature Tour")
+                            .font(QMDesign.Typography.titleSmall)
+                            .foregroundColor(QMDesign.Colors.textPrimary)
+                        Text("Learn how to use Queen Mama")
+                            .font(QMDesign.Typography.caption)
+                            .foregroundColor(QMDesign.Colors.textTertiary)
+                    }
+
+                    Spacer()
+
+                    Button(action: { dismiss() }) {
+                        Image(systemName: "xmark.circle.fill")
+                            .font(.system(size: 20))
+                            .foregroundColor(QMDesign.Colors.textTertiary)
+                    }
+                    .buttonStyle(.plain)
+                    .onHover { isHovered in
+                        if isHovered {
+                            NSCursor.pointingHand.push()
+                        } else {
+                            NSCursor.pop()
+                        }
+                    }
+                }
+                .padding(QMDesign.Spacing.lg)
+
+                Divider()
+                    .background(QMDesign.Colors.borderSubtle)
+
+                // Tour Content
+                Group {
+                    switch currentPage {
+                    case 0: WidgetTourScreen()
+                    case 1: AIFeaturesTourScreen()
+                    case 2: DashboardTourScreen()
+                    case 3: ModesTourScreen()
+                    case 4: ShortcutsTourScreen()
+                    default: WidgetTourScreen()
+                    }
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .animation(QMDesign.Animation.smooth, value: currentPage)
+
+                // Fixed Bottom Navigation
+                VStack(spacing: QMDesign.Spacing.md) {
+                    TourPageIndicator(currentPage: currentPage, totalPages: totalPages)
+
+                    HStack(spacing: QMDesign.Spacing.md) {
+                        // Back Button
+                        if currentPage > 0 {
+                            Button(action: {
+                                withAnimation(QMDesign.Animation.smooth) {
+                                    currentPage -= 1
+                                }
+                            }) {
+                                HStack(spacing: QMDesign.Spacing.xs) {
+                                    Image(systemName: "arrow.left")
+                                        .font(.system(size: 12, weight: .semibold))
+                                    Text("Back")
+                                        .font(QMDesign.Typography.labelMedium)
+                                }
+                                .padding(.horizontal, QMDesign.Spacing.lg)
+                                .padding(.vertical, QMDesign.Spacing.sm)
+                                .background(
+                                    Capsule()
+                                        .fill(QMDesign.Colors.surfaceMedium)
+                                )
+                                .foregroundColor(QMDesign.Colors.textSecondary)
+                            }
+                            .buttonStyle(.plain)
+                        } else {
+                            Color.clear.frame(width: 80, height: 36)
+                        }
+
+                        Spacer()
+
+                        // Next/Done Button
+                        Button(action: {
+                            if currentPage < totalPages - 1 {
+                                withAnimation(QMDesign.Animation.smooth) {
+                                    currentPage += 1
+                                }
+                            } else {
+                                dismiss()
+                            }
+                        }) {
+                            HStack(spacing: QMDesign.Spacing.sm) {
+                                Text(currentPage < totalPages - 1 ? "Next" : "Done")
+                                    .font(QMDesign.Typography.labelMedium)
+                                Image(systemName: currentPage < totalPages - 1 ? "arrow.right" : "checkmark")
+                                    .font(.system(size: 14, weight: .semibold))
+                            }
+                            .padding(.horizontal, QMDesign.Spacing.xl)
+                            .padding(.vertical, QMDesign.Spacing.md)
+                            .background(
+                                Capsule()
+                                    .fill(QMDesign.Colors.primaryGradient)
+                            )
+                            .foregroundColor(.white)
+                            .scaleEffect(isButtonHovered ? 1.05 : 1.0)
+                        }
+                        .buttonStyle(.plain)
+                        .onHover { isButtonHovered = $0 }
+                        .animation(QMDesign.Animation.smooth, value: isButtonHovered)
+                    }
+                    .padding(.horizontal, QMDesign.Spacing.xl)
+                }
+                .padding(.vertical, QMDesign.Spacing.lg)
+            }
+        }
+        .frame(width: 650, height: 680)
     }
 }

@@ -215,6 +215,7 @@ struct ModernSidebarView: View {
     @ObservedObject var audioService: AudioCaptureService
     @StateObject private var licenseManager = LicenseManager.shared
     @StateObject private var authManager = AuthenticationManager.shared
+    @State private var showTourSheet = false
 
     var body: some View {
         VStack(spacing: 0) {
@@ -328,6 +329,28 @@ struct ModernSidebarView: View {
                         }
                     }
 
+                    // Tour/Help button
+                    Button {
+                        showTourSheet = true
+                    } label: {
+                        HStack(spacing: 4) {
+                            Image(systemName: "lightbulb")
+                                .font(.system(size: 10))
+                            Text("Tour")
+                                .font(QMDesign.Typography.captionSmall)
+                        }
+                        .foregroundColor(QMDesign.Colors.textTertiary)
+                    }
+                    .buttonStyle(.plain)
+                    .onHover { isHovered in
+                        if isHovered {
+                            NSCursor.pointingHand.push()
+                        } else {
+                            NSCursor.pop()
+                        }
+                    }
+                    .help("Review the feature tour")
+
                     Spacer()
 
                     // Keyboard shortcut hint
@@ -338,6 +361,9 @@ struct ModernSidebarView: View {
             }
         }
         .background(QMDesign.Colors.backgroundSecondary)
+        .sheet(isPresented: $showTourSheet) {
+            FeatureTourSheet()
+        }
     }
 
     private func formatDuration(from date: Date) -> String {

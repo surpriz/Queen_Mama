@@ -33,8 +33,23 @@ struct UnauthenticatedOverlay: View {
     @State private var deviceCodeResponse: DeviceCodeResponse?
     @State private var connectionError: String?
     @State private var showCopied = false
+    @State private var showRegistrationForm = false
 
     var body: some View {
+        if showRegistrationForm {
+            // Registration form
+            ScrollView {
+                RegistrationFormView(showRegistrationForm: $showRegistrationForm)
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .background(QMDesign.Colors.backgroundPrimary)
+        } else {
+            // Device code flow (existing UI)
+            deviceCodeFlowView
+        }
+    }
+
+    private var deviceCodeFlowView: some View {
         VStack(spacing: QMDesign.Spacing.xl) {
             Spacer()
 
@@ -178,6 +193,19 @@ struct UnauthenticatedOverlay: View {
                     Text("Works with email, Google, or GitHub accounts")
                         .font(QMDesign.Typography.captionSmall)
                         .foregroundColor(QMDesign.Colors.textTertiary)
+
+                    // Create account link
+                    Button(action: { showRegistrationForm = true }) {
+                        HStack(spacing: QMDesign.Spacing.xxs) {
+                            Text("Don't have an account?")
+                                .foregroundColor(QMDesign.Colors.textSecondary)
+                            Text("Create one")
+                                .foregroundStyle(QMDesign.Colors.primaryGradient)
+                        }
+                        .font(QMDesign.Typography.bodySmall)
+                    }
+                    .buttonStyle(.plain)
+                    .padding(.top, QMDesign.Spacing.sm)
                 }
             }
 
@@ -200,10 +228,11 @@ struct UnauthenticatedOverlay: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(QMDesign.Colors.backgroundPrimary)
         .onChange(of: authManager.authState) { oldState, newState in
-            // Clear device code when authenticated
+            // Clear state when authenticated
             if case .authenticated = newState {
                 deviceCodeResponse = nil
                 isConnecting = false
+                showRegistrationForm = false
             }
         }
     }

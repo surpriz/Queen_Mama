@@ -69,6 +69,63 @@ final class AuthAPIClient {
         )
     }
 
+    // MARK: - Registration
+
+    func register(name: String, email: String, password: String, deviceInfo: DeviceInfo) async throws -> RegistrationResponse {
+        let body: [String: Any] = [
+            "name": name,
+            "email": email,
+            "password": password,
+            "deviceId": deviceInfo.deviceId,
+            "deviceName": deviceInfo.name,
+            "platform": deviceInfo.platform,
+            "osVersion": deviceInfo.osVersion ?? "",
+            "appVersion": deviceInfo.appVersion ?? ""
+        ]
+
+        return try await postForRegistration(
+            endpoint: "/api/auth/macos/register",
+            body: body
+        )
+    }
+
+    private func postForRegistration(endpoint: String, body: [String: Any]) async throws -> RegistrationResponse {
+        let url = baseURL.appendingPathComponent(endpoint)
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.httpBody = try JSONSerialization.data(withJSONObject: body)
+
+        let (data, response) = try await session.data(for: request)
+
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw AuthError.serverError("Invalid response")
+        }
+
+        // Handle specific registration error codes
+        switch httpResponse.statusCode {
+        case 200, 201:
+            return try JSONDecoder().decode(RegistrationResponse.self, from: data)
+
+        case 400:
+            let errorResponse = try? JSONDecoder().decode(RegistrationErrorResponse.self, from: data)
+            switch errorResponse?.error {
+            case "email_exists":
+                throw AuthError.emailAlreadyExists
+            case "oauth_account_exists":
+                throw AuthError.oauthAccountExists
+            case "weak_password":
+                throw AuthError.weakPassword(errorResponse?.message ?? "Password does not meet requirements")
+            default:
+                throw AuthError.serverError(errorResponse?.message ?? "Registration failed")
+            }
+
+        default:
+            let errorResponse = try? JSONDecoder().decode(RegistrationErrorResponse.self, from: data)
+            throw AuthError.serverError(errorResponse?.message ?? "Registration failed")
+        }
+    }
+
     // MARK: - Token Refresh
 
     func refreshTokens(_ refreshToken: String) async throws -> RefreshResponse {
@@ -248,10 +305,44 @@ private struct ErrorResponse: Decodable {
     let message: String?
 }
 
+private struct RegistrationErrorResponse: Decodable {
+    let error: String
+    let message: String?
+    let field: String?
+    let requiresDeviceCode: Bool?
+}
+
 private struct EmptyResponse: Decodable {}
 
 struct UsageRecordResponse: Decodable {
     let success: Bool
     let recorded: Int
     let usage: UsageStats?
+}
+
+struct MagicLinkResponse: Decodable {
+    let url: String
+    let expiresIn: Int
+}
+
+// MARK: - Magic Link
+
+extension AuthAPIClient {
+    /// Generate a magic link for auto-login on the web
+    func generateMagicLink(redirect: String) async throws -> MagicLinkResponse {
+        print("[AuthAPI] Generating magic link for redirect: \(redirect)")
+        let body: [String: Any] = ["redirect": redirect]
+        do {
+            let response: MagicLinkResponse = try await post(
+                endpoint: "/api/auth/magic-link/generate",
+                body: body,
+                requiresAuth: true
+            )
+            print("[AuthAPI] Magic link generated successfully: \(response.url)")
+            return response
+        } catch {
+            print("[AuthAPI] Magic link generation failed: \(error)")
+            throw error
+        }
+    }
 }

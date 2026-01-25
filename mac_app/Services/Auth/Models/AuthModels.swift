@@ -78,6 +78,15 @@ struct LoginResponse: Codable {
     let user: AuthUser
 }
 
+struct RegistrationResponse: Codable {
+    let accessToken: String
+    let refreshToken: String
+    let expiresIn: Int
+    let user: AuthUser
+    let message: String
+    let emailVerificationRequired: Bool
+}
+
 struct RefreshResponse: Codable {
     let accessToken: String
     let refreshToken: String
@@ -310,6 +319,9 @@ enum AuthError: LocalizedError {
     case serverError(String)
     case tokenExpired
     case invalidToken
+    case emailAlreadyExists
+    case oauthAccountExists
+    case weakPassword(String)
 
     var errorDescription: String? {
         switch self {
@@ -331,6 +343,12 @@ enum AuthError: LocalizedError {
             return "Session expired. Please sign in again."
         case .invalidToken:
             return "Invalid session. Please sign in again."
+        case .emailAlreadyExists:
+            return "An account with this email already exists. Try signing in instead."
+        case .oauthAccountExists:
+            return "This email uses Google or GitHub login. Use 'Connect Account' instead."
+        case .weakPassword(let message):
+            return message
         }
     }
 }
