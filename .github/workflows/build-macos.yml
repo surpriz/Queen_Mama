@@ -45,7 +45,7 @@ jobs:
           fi
 
       - name: Select Xcode
-        run: sudo xcode-select -s /Applications/Xcode_15.4.app
+        run: sudo xcode-select -s /Applications/Xcode_16.2.app
 
       - name: Install Certificate
         env:
@@ -82,55 +82,63 @@ jobs:
 
       - name: Build Archive
         run: |
+          # Build without signing Swift packages (they'll be re-signed in Export step)
           xcodebuild archive \
             -project $XCODE_PROJECT \
             -scheme $SCHEME \
             -configuration Release \
             -archivePath $RUNNER_TEMP/QueenMama.xcarchive \
-            CODE_SIGN_IDENTITY="Developer ID Application" \
-            DEVELOPMENT_TEAM=$TEAM_ID \
-            OTHER_CODE_SIGN_FLAGS="--timestamp --options runtime"
+            CODE_SIGN_IDENTITY=- \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=NO \
+            -skipPackagePluginValidation \
+            -skipMacroValidation
 
       - name: Export App
         run: |
           # Create export directory
           mkdir -p "$RUNNER_TEMP/export"
 
-          # Copy app from archive (already signed during archive step)
+          # Copy app from archive (not signed during archive step - we sign manually)
           cp -R "$RUNNER_TEMP/QueenMama.xcarchive/Products/Applications/QueenMama.app" "$RUNNER_TEMP/export/Queen Mama.app"
 
           APP_PATH="$RUNNER_TEMP/export/Queen Mama.app"
           SIGN_IDENTITY="Developer ID Application: Jerome LAVAL (WNNDDTBPGK)"
 
-          # Sign Sparkle framework components explicitly (nested code requires individual signing)
-          echo "🔐 Signing Sparkle framework components..."
+          echo "🔐 Signing all frameworks and nested components..."
+          echo "📂 Contents of Frameworks directory:"
+          find "$APP_PATH/Contents/Frameworks" -type f -perm +111 | head -50
 
-          # Sign XPC services first
-          find "$APP_PATH/Contents/Frameworks/Sparkle.framework" -name "*.xpc" -type d | while read xpc; do
-            echo "Signing: $xpc"
+          # Step 1: Sign ALL executable binaries first (deepest paths first)
+          echo "🔐 Step 1: Signing all executable binaries..."
+          find "$APP_PATH/Contents/Frameworks" -type f -perm +111 | sort -r | while read exe; do
+            echo "Signing binary: $exe"
+            codesign --force --timestamp --options runtime --sign "$SIGN_IDENTITY" "$exe"
+          done
+
+          # Step 2: Sign XPC services (after their binaries are signed)
+          echo "🔐 Step 2: Signing XPC services..."
+          find "$APP_PATH/Contents/Frameworks" -type d -name "*.xpc" | while read xpc; do
+            echo "Signing XPC: $xpc"
             codesign --force --timestamp --options runtime --sign "$SIGN_IDENTITY" "$xpc"
           done
 
-          # Sign helper apps
-          find "$APP_PATH/Contents/Frameworks/Sparkle.framework" -name "*.app" -type d | while read app; do
-            echo "Signing: $app"
+          # Step 3: Sign helper apps (after their contents are signed)
+          echo "🔐 Step 3: Signing helper apps..."
+          find "$APP_PATH/Contents/Frameworks" -type d -name "*.app" | while read app; do
+            echo "Signing helper app: $app"
             codesign --force --timestamp --options runtime --sign "$SIGN_IDENTITY" "$app"
           done
 
-          # Sign Autoupdate binary
-          if [ -f "$APP_PATH/Contents/Frameworks/Sparkle.framework/Versions/B/Autoupdate" ]; then
-            echo "Signing: Autoupdate"
-            codesign --force --timestamp --options runtime --sign "$SIGN_IDENTITY" \
-              "$APP_PATH/Contents/Frameworks/Sparkle.framework/Versions/B/Autoupdate"
-          fi
+          # Step 4: Sign all frameworks (deepest first)
+          echo "🔐 Step 4: Signing frameworks..."
+          find "$APP_PATH/Contents/Frameworks" -type d -name "*.framework" | sort -r | while read fw; do
+            echo "Signing framework: $fw"
+            codesign --force --timestamp --options runtime --sign "$SIGN_IDENTITY" "$fw"
+          done
 
-          # Sign the Sparkle framework itself
-          echo "Signing: Sparkle.framework"
-          codesign --force --timestamp --options runtime --sign "$SIGN_IDENTITY" \
-            "$APP_PATH/Contents/Frameworks/Sparkle.framework"
-
-          # Finally sign the main app with entitlements
-          echo "🔐 Signing main application..."
+          # Step 5: Sign the main app with entitlements
+          echo "🔐 Step 5: Signing main application..."
           codesign --force --timestamp --options runtime \
             --sign "$SIGN_IDENTITY" \
             --entitlements "mac_app/QueenMama.entitlements" \
@@ -142,32 +150,46 @@ jobs:
           codesign --verify --deep --strict "$APP_PATH" && echo "Deep verification passed!"
 
       - name: Notarize App
-        timeout-minutes: 15  # Notarization timeout
+        timeout-minutes: 15
         env:
           APPLE_ID: ${{ secrets.APPLE_ID }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
           APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
         run: |
-          echo "📤 Submitting for notarization..."
+          echo "📤 Submitting app for notarization..."
           ditto -c -k --keepParent "$RUNNER_TEMP/export/Queen Mama.app" $RUNNER_TEMP/QueenMama.zip
 
-          # Submit and capture output
-          NOTARIZE_OUTPUT=$(xcrun notarytool submit $RUNNER_TEMP/QueenMama.zip \
+          # Submit and wait for notarization
+          xcrun notarytool submit $RUNNER_TEMP/QueenMama.zip \
             --apple-id "$APPLE_ID" \
             --team-id "$APPLE_TEAM_ID" \
             --password "$APPLE_APP_SPECIFIC_PASSWORD" \
-            --wait 2>&1) || true
+            --wait \
+            --output-format json > /tmp/notarize_result.json 2>&1 || true
 
-          echo "$NOTARIZE_OUTPUT"
+          cat /tmp/notarize_result.json
 
-          # Check if notarization succeeded
-          if echo "$NOTARIZE_OUTPUT" | grep -q "status: Accepted"; then
-            echo "✅ Notarization successful!"
+          # Extract status from JSON
+          STATUS=$(cat /tmp/notarize_result.json | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('status','Unknown'))" 2>/dev/null || echo "Unknown")
+          SUBMISSION_ID=$(cat /tmp/notarize_result.json | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('id',''))" 2>/dev/null || echo "")
+
+          echo "Notarization status: $STATUS"
+          echo "Submission ID: $SUBMISSION_ID"
+
+          if [ "$STATUS" = "Accepted" ]; then
+            echo "✅ App notarization successful!"
             xcrun stapler staple "$RUNNER_TEMP/export/Queen Mama.app"
+            xcrun stapler validate "$RUNNER_TEMP/export/Queen Mama.app"
           else
-            echo "❌ Notarization failed or timed out"
-            echo "Continuing without notarization for testing..."
-            # Don't fail the build - allow testing unsigned builds
+            echo "❌ App notarization FAILED with status: $STATUS"
+            if [ -n "$SUBMISSION_ID" ]; then
+              echo "📋 Fetching notarization log..."
+              xcrun notarytool log "$SUBMISSION_ID" \
+                --apple-id "$APPLE_ID" \
+                --team-id "$APPLE_TEAM_ID" \
+                --password "$APPLE_APP_SPECIFIC_PASSWORD" || true
+            fi
+            exit 1
           fi
 
       - name: Create DMG
@@ -186,6 +208,45 @@ jobs:
             $RUNNER_TEMP/QueenMama.dmg
 
           echo "📦 DMG created: $(ls -lh $RUNNER_TEMP/QueenMama.dmg)"
+
+      - name: Notarize DMG
+        timeout-minutes: 15
+        env:
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+        run: |
+          echo "📤 Submitting DMG for notarization..."
+          xcrun notarytool submit $RUNNER_TEMP/QueenMama.dmg \
+            --apple-id "$APPLE_ID" \
+            --team-id "$APPLE_TEAM_ID" \
+            --password "$APPLE_APP_SPECIFIC_PASSWORD" \
+            --wait \
+            --output-format json > /tmp/dmg_notarize_result.json 2>&1 || true
+
+          cat /tmp/dmg_notarize_result.json
+
+          STATUS=$(cat /tmp/dmg_notarize_result.json | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('status','Unknown'))" 2>/dev/null || echo "Unknown")
+          SUBMISSION_ID=$(cat /tmp/dmg_notarize_result.json | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('id',''))" 2>/dev/null || echo "")
+
+          echo "DMG notarization status: $STATUS"
+
+          if [ "$STATUS" = "Accepted" ]; then
+            echo "✅ DMG notarization successful!"
+            xcrun stapler staple $RUNNER_TEMP/QueenMama.dmg
+            xcrun stapler validate $RUNNER_TEMP/QueenMama.dmg
+            echo "✅ DMG stapled and validated!"
+          else
+            echo "❌ DMG notarization FAILED with status: $STATUS"
+            if [ -n "$SUBMISSION_ID" ]; then
+              echo "📋 Fetching notarization log..."
+              xcrun notarytool log "$SUBMISSION_ID" \
+                --apple-id "$APPLE_ID" \
+                --team-id "$APPLE_TEAM_ID" \
+                --password "$APPLE_APP_SPECIFIC_PASSWORD" || true
+            fi
+            exit 1
+          fi
 
       - name: Get version info
         id: version_info
