@@ -361,3 +361,6 @@ bin/*.key
 # Claude AI documentation files (not for version control)
 **/CLAUDE.md
 CLAUDE.md
+
+# Internal documentation (contains sensitive/strategic info)
+docs/
