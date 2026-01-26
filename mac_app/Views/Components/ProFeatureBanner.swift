@@ -284,6 +284,10 @@ private struct FeatureGatedModifier: ViewModifier {
         case .autoAnswer: return "Auto-Answer"
         case .sessionSync: return "Session Sync"
         case .aiRequest: return "AI Requests"
+        case .undetectable: return "Undetectable Mode"
+        case .screenshot: return "Screenshot"
+        case .sessionStart: return "Session Start"
+        case .knowledgeBase: return "Knowledge Base"
         }
     }
 }

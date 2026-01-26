@@ -324,6 +324,7 @@ private struct FeatureGatedModifier: ViewModifier {
         case .undetectable: return "Undetectable Mode"
         case .screenshot: return "Screenshot"
         case .sessionStart: return "Session Start"
+        case .knowledgeBase: return "Knowledge Base"
         }
     }
 }
