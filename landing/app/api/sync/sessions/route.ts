@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { verifyAccessToken } from "@/lib/device-auth";
 import { sessionSyncSchema, sessionSyncBatchSchema } from "@/lib/validations";
+import { queueExtractionForSession } from "@/lib/knowledge-extraction";
 
 /**
  * POST /api/sync/sessions
@@ -164,6 +165,15 @@ export async function POST(request: Request) {
           syncedId: syncedSession.id,
           status: "synced",
         });
+
+        // Trigger knowledge extraction for Enterprise users (async, don't block sync)
+        if (
+          user.subscription?.plan === "ENTERPRISE" &&
+          session.transcript &&
+          session.transcript.length > 100
+        ) {
+          queueExtractionForSession(syncedSession.id, user.id);
+        }
       } catch (error) {
         console.error("Session sync error:", error);
         errors.push({

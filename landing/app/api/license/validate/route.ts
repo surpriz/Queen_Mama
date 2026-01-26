@@ -22,6 +22,7 @@ const PLAN_FEATURES = {
     maxTranscriptSize: 10240, // 10KB
     undetectableEnabled: false, // Enterprise only
     screenshotEnabled: false, // Screenshot requires PRO or higher
+    knowledgeBaseEnabled: false, // Enterprise only
   },
   PRO: {
     smartModeEnabled: false, // Smart Mode is Enterprise only
@@ -35,6 +36,7 @@ const PLAN_FEATURES = {
     maxTranscriptSize: 1048576, // 1MB
     undetectableEnabled: false, // Enterprise only
     screenshotEnabled: true,
+    knowledgeBaseEnabled: false, // Enterprise only
   },
   ENTERPRISE: {
     smartModeEnabled: true,
@@ -48,6 +50,7 @@ const PLAN_FEATURES = {
     maxTranscriptSize: 10485760, // 10MB
     undetectableEnabled: true,
     screenshotEnabled: true,
+    knowledgeBaseEnabled: true, // Context Intelligence enabled
   },
 } as const;
 

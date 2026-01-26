@@ -10,6 +10,11 @@ import {
   type AIProviderType,
   type CascadeModel,
 } from "@/lib/ai-providers";
+import {
+  retrieveRelevantKnowledge,
+  formatKnowledgeForPrompt,
+  recordKnowledgeUsage,
+} from "@/lib/knowledge-retrieval";
 
 // CORS headers for desktop app requests
 const corsHeaders = {
@@ -144,6 +149,35 @@ export async function POST(request: Request) {
     // Calculate tokens
     const requestMaxTokens = Math.min(maxTokens || tierConfig.maxTokens, tierConfig.maxTokens);
 
+    // ============================================
+    // CONTEXT INTELLIGENCE: Inject personalized knowledge for Enterprise
+    // ============================================
+    let enhancedSystemPrompt = systemPrompt;
+    let usedAtomIds: string[] = [];
+
+    if (plan === "ENTERPRISE") {
+      try {
+        const relevantKnowledge = await retrieveRelevantKnowledge(
+          user.id,
+          userMessage,
+          { maxResults: 5, minSimilarity: 0.6, boostHelpful: true }
+        );
+
+        if (relevantKnowledge.length > 0) {
+          const knowledgeContext = formatKnowledgeForPrompt(relevantKnowledge);
+          enhancedSystemPrompt = systemPrompt + "\n" + knowledgeContext;
+          usedAtomIds = relevantKnowledge.map((k) => k.id);
+
+          console.log(
+            `[AI Stream] Injected ${relevantKnowledge.length} knowledge atoms for user ${user.id}`
+          );
+        }
+      } catch (error) {
+        // Don't fail the request if knowledge retrieval fails
+        console.error("[AI Stream] Knowledge retrieval error:", error);
+      }
+    }
+
     // Create SSE stream with cascade fallback
     const encoder = new TextEncoder();
     const userId = user.id;
@@ -177,7 +211,7 @@ export async function POST(request: Request) {
                   provider,
                   apiKey,
                   model,
-                  systemPrompt,
+                  enhancedSystemPrompt,
                   userMessage,
                   screenshot,
                   requestMaxTokens
@@ -187,7 +221,7 @@ export async function POST(request: Request) {
                 providerStream = await streamAnthropic(
                   apiKey,
                   model,
-                  systemPrompt,
+                  enhancedSystemPrompt,
                   userMessage,
                   screenshot,
                   requestMaxTokens,
@@ -239,6 +273,11 @@ export async function POST(request: Request) {
               },
             })
             .catch(console.error);
+
+          // Record knowledge atom usage (for Context Intelligence)
+          if (usedAtomIds.length > 0) {
+            recordKnowledgeUsage(usedAtomIds).catch(console.error);
+          }
 
           if (smartMode) {
             prisma.usageLog

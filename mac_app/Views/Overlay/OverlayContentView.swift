@@ -903,6 +903,21 @@ struct ModernResponseItemView: View {
     let isStreaming: Bool
     var isAutomatic: Bool = false
     var onDismiss: (() -> Void)?
+    var responseId: String? = nil
+    var onFeedback: ((Bool) -> Void)? = nil
+
+    @State private var feedbackState: FeedbackState = .none
+
+    enum FeedbackState {
+        case none
+        case helpful
+        case notHelpful
+    }
+
+    // Check if Knowledge Base feedback is available (Enterprise only)
+    private var feedbackAvailable: Bool {
+        LicenseManager.shared.isFeatureAvailable(.knowledgeBase)
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: QMDesign.Spacing.xs) {
@@ -970,6 +985,64 @@ struct ModernResponseItemView: View {
             // Content
             MarkdownText(content: content)
                 .frame(maxWidth: .infinity, alignment: .leading)
+
+            // Feedback buttons (Enterprise only, after streaming completes)
+            if feedbackAvailable && !isStreaming && !content.isEmpty {
+                HStack(spacing: QMDesign.Spacing.xs) {
+                    Spacer()
+
+                    if feedbackState == .none {
+                        // Show feedback buttons
+                        Button(action: {
+                            feedbackState = .helpful
+                            onFeedback?(true)
+                        }) {
+                            HStack(spacing: 3) {
+                                Image(systemName: "hand.thumbsup")
+                                    .font(.system(size: 10))
+                                Text("Helpful")
+                                    .font(QMDesign.Typography.captionSmall)
+                            }
+                            .foregroundColor(QMDesign.Colors.textTertiary)
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 4)
+                            .background(
+                                Capsule()
+                                    .fill(QMDesign.Colors.surfaceHover)
+                            )
+                        }
+                        .buttonStyle(.plain)
+
+                        Button(action: {
+                            feedbackState = .notHelpful
+                            onFeedback?(false)
+                        }) {
+                            HStack(spacing: 3) {
+                                Image(systemName: "hand.thumbsdown")
+                                    .font(.system(size: 10))
+                            }
+                            .foregroundColor(QMDesign.Colors.textTertiary)
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 4)
+                            .background(
+                                Capsule()
+                                    .fill(QMDesign.Colors.surfaceHover)
+                            )
+                        }
+                        .buttonStyle(.plain)
+                    } else {
+                        // Show feedback confirmation
+                        HStack(spacing: 4) {
+                            Image(systemName: feedbackState == .helpful ? "hand.thumbsup.fill" : "hand.thumbsdown.fill")
+                                .font(.system(size: 10))
+                            Text(feedbackState == .helpful ? "Thanks!" : "Got it")
+                                .font(QMDesign.Typography.captionSmall)
+                        }
+                        .foregroundColor(feedbackState == .helpful ? QMDesign.Colors.success : QMDesign.Colors.textTertiary)
+                    }
+                }
+                .padding(.top, QMDesign.Spacing.xs)
+            }
         }
         .padding(QMDesign.Spacing.sm)
         .background(

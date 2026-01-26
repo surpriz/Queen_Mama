@@ -167,6 +167,10 @@ final class LicenseManager: ObservableObject {
         case .sessionStart:
             // Session start requires authentication
             return authManager.isAuthenticated ? .allowed : .blocked
+
+        case .knowledgeBase:
+            // Knowledge Base (Context Intelligence) is Enterprise-only
+            return features.knowledgeBaseEnabled ? .allowed : .requiresEnterprise
         }
     }
 

@@ -32,6 +32,11 @@ model User {
   devices        Device[]
   refreshTokens  RefreshToken[]
 
+  // Context Intelligence (Enterprise)
+  knowledgeAtoms  KnowledgeAtom[]
+  aiFeedbacks     AIFeedback[]
+  profile         UserProfile?
+
   stripeCustomerId String? @unique
 
   @@index([role])
@@ -254,8 +259,9 @@ model SyncedSession {
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
 
-  user        User               @relation(fields: [userId], references: [id], onDelete: Cascade)
-  aiResponses SyncedAIResponse[]
+  user           User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  aiResponses    SyncedAIResponse[]
+  knowledgeAtoms KnowledgeAtom[]    // Knowledge extracted from this session
 
   @@unique([userId, deviceId, originalId])
   @@index([userId, startTime])
@@ -311,4 +317,65 @@ enum WaitlistPlatform {
   LINUX
   IOS
   ANDROID
+}
+
+// ============================================
+// CONTEXT INTELLIGENCE SYSTEM (Enterprise)
+// ============================================
+
+// Knowledge atoms extracted from user sessions
+model KnowledgeAtom {
+  id            String        @id @default(cuid())
+  userId        String
+  sessionId     String?
+  type          KnowledgeType
+  content       String        @db.Text
+  embedding     Float[]       // Vector for semantic search (pgvector)
+  metadata      Json?         // {context, outcome, confidence}
+  usageCount    Int           @default(0)
+  helpfulCount  Int           @default(0)
+  lastUsedAt    DateTime?
+  createdAt     DateTime      @default(now())
+
+  user          User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  session       SyncedSession? @relation(fields: [sessionId], references: [id], onDelete: SetNull)
+
+  @@index([userId, type])
+  @@index([userId, createdAt])
+}
+
+enum KnowledgeType {
+  OBJECTION_RESPONSE    // How user handles objections
+  TALKING_POINT         // Effective recurring arguments
+  QUESTION              // Pertinent questions to ask
+  CLOSING_TECHNIQUE     // Closing techniques
+  TOPIC_EXPERTISE       // Demonstrated expertise on a topic
+}
+
+// Feedback on AI responses
+model AIFeedback {
+  id            String       @id @default(cuid())
+  userId        String
+  responseId    String?      // FK to SyncedAIResponse
+  sessionId     String?
+  isHelpful     Boolean      // Thumbs up = true, down = false
+  atomsUsed     String[]     // IDs of atoms used for this response
+  createdAt     DateTime     @default(now())
+
+  user          User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+}
+
+// User profile for personalization
+model UserProfile {
+  id              String   @id @default(cuid())
+  userId          String   @unique
+  role            String?  // "Sales Rep", "Account Manager", etc.
+  industry        String?  // "SaaS", "Finance", etc.
+  communicationStyle String? // "formal", "casual"
+  topExpertise    String[] // Mastered topics
+  updatedAt       DateTime @updatedAt
+
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
