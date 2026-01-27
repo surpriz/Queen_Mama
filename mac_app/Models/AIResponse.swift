@@ -65,41 +65,89 @@ final class AIResponse: Identifiable {
         }
 
         var systemPromptAddition: String {
-            let languageInstruction = "\n\nIMPORTANT: Respond in the SAME LANGUAGE as the transcript or screen content. If French, respond in French."
+            let languageInstruction = "\n\nIMPORTANT: Respond in the SAME LANGUAGE as the content. French → French."
 
             switch self {
             case .assist:
                 return """
-                Provide general guidance and help understanding the current conversation or screen content.
-                Analyze both the transcript (if available) and screen content to give contextual advice.
-                Be helpful but concise.
+                ## YOUR TASK: Provide ACTIONABLE help
+
+                **If you see an EXAM QUESTION:**
+                • Give the answer directly: "**Answer: [X]**"
+                • Add 1-2 bullet explanation why
+                • Cite relevant concepts/services
+
+                **If you see CODE:**
+                • Explain what it does or identify the bug
+                • Provide fix if needed
+
+                **If you see a DOCUMENT/FORM:**
+                • Help complete it or explain requirements
+
+                **If you see a CONVERSATION:**
+                • Suggest what to say next
+                • Identify key points to address
+
+                ## FORMAT:
+                • Use bullet points (•)
+                • **Bold** important terms
+                • Max 4-5 short bullets
+                • NO walls of text
+                • NO describing what you see - HELP instead
                 """ + languageInstruction
+
             case .whatToSay:
                 return """
-                Generate specific phrases the user can say right now.
-                Provide 2-3 natural, conversational options.
-                Each suggestion should be ready to use verbatim.
-                Format as a numbered list.
+                ## YOUR TASK: Give ready-to-use phrases
+
+                Provide 2-3 options the user can say RIGHT NOW:
+
+                **1.** "[Exact phrase to say]"
+
+                **2.** "[Alternative phrase]"
+
+                **3.** "[Different approach]"
+
+                Keep each under 2 sentences. Natural, conversational tone.
                 """ + languageInstruction
+
             case .followUp:
                 return """
-                Suggest 3-5 follow-up questions the user could ask.
-                Questions should be relevant to the current conversation or screen content.
-                Make them open-ended to encourage discussion.
-                Format as a numbered list.
+                ## YOUR TASK: Suggest follow-up questions
+
+                Provide 3-4 relevant questions:
+
+                **1.** [Open-ended question]
+
+                **2.** [Clarifying question]
+
+                **3.** [Strategic question]
+
+                Make them specific to the context, not generic.
                 """ + languageInstruction
+
             case .recap:
                 return """
-                Provide a concise summary of the conversation or screen content so far.
-                Include:
-                - Key points discussed or visible
-                - Decisions made
-                - Action items identified
-                - Any important details mentioned
-                Format with clear sections.
+                ## YOUR TASK: Summarize key points
+
+                **Points clés:**
+                • [Key point 1]
+                • [Key point 2]
+
+                **Décisions:**
+                • [Decision if any]
+
+                **Actions:**
+                • [Action item if any]
+
+                Keep it scannable. Max 6-8 bullets total.
                 """ + languageInstruction
+
             case .custom:
-                return languageInstruction
+                return """
+                Answer the user's specific question directly.
+                Use bullet points for clarity.
+                """ + languageInstruction
             }
         }
     }
@@ -217,28 +265,52 @@ SMART MODE ENABLED: Please provide enhanced, thorough analysis:
                 truncatedTranscript = transcript
             }
 
-            message += "## Current Conversation Transcript:\n\(truncatedTranscript)\n\n"
+            message += "## Transcript:\n\(truncatedTranscript)\n\n"
         }
 
         if screenshot != nil {
-            message += "[Screenshot attached]\n\n"
+            message += "[Screenshot attached - analyze it]\n\n"
         }
 
         if let customPrompt, !customPrompt.isEmpty {
-            message += "## User's Question:\n\(customPrompt)"
+            message += "## Question: \(customPrompt)"
         } else if isCustomMode {
-            // For custom modes, use minimal prompt - let the system prompt control behavior
+            // For custom modes, use minimal prompt
             if transcript.isEmpty && screenshot != nil {
-                message += "Process the screenshot according to your instructions."
+                message += "Help me with what's on screen. Be direct and actionable."
             } else {
-                message += "Process the above content according to your instructions."
+                message += "Help me with this. Be direct and actionable."
             }
         } else {
-            // For built-in modes, use the standard prompts
+            // For built-in modes, use action-oriented prompts
             if transcript.isEmpty && screenshot != nil {
-                message += "Analyze the screenshot and provide \(responseType.rawValue.lowercased()) based on what you see."
+                // Screenshot-only mode: Be very direct
+                switch responseType {
+                case .assist:
+                    message += "Look at this screenshot and HELP me. If it's a question, give me the answer. If it's code, explain or fix it. If it's a form, help me fill it. Be direct - don't describe what you see."
+                case .whatToSay:
+                    message += "Based on this screenshot, what should I say or respond?"
+                case .followUp:
+                    message += "Based on this screenshot, what questions should I ask?"
+                case .recap:
+                    message += "Summarize the key points from this screenshot."
+                case .custom:
+                    message += "Help me with this screenshot."
+                }
             } else {
-                message += "Based on the above context, please provide \(responseType.rawValue.lowercased())."
+                // Has transcript
+                switch responseType {
+                case .assist:
+                    message += "Help me with this conversation. What should I know or do?"
+                case .whatToSay:
+                    message += "What should I say next in this conversation?"
+                case .followUp:
+                    message += "What follow-up questions should I ask?"
+                case .recap:
+                    message += "Summarize the key points of this conversation."
+                case .custom:
+                    message += "Help me with this."
+                }
             }
         }
 
