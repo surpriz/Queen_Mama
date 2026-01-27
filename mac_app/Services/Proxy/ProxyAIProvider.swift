@@ -69,29 +69,37 @@ final class ProxyAIProvider: AIProvider {
 
     nonisolated func generateStreamingResponse(context: AIContext) -> AsyncThrowingStream<String, Error> {
         AsyncThrowingStream { continuation in
-            Task { @MainActor in
-                guard AuthenticationManager.shared.isAuthenticated else {
+            Task {
+                // Check auth on main actor, then stream on background
+                let isAuthenticated = await MainActor.run { AuthenticationManager.shared.isAuthenticated }
+                guard isAuthenticated else {
                     continuation.finish(throwing: AIProviderError.notAuthenticated)
                     return
                 }
 
-                guard self.isConfigured else {
+                let isConfigured = await MainActor.run { self.isConfigured }
+                guard isConfigured else {
                     continuation.finish(throwing: AIProviderError.notAuthenticated)
                     return
                 }
+
+                // Get values needed for streaming (on main actor)
+                let providerName = await MainActor.run { self.providerName }
+                let maxTokens = await MainActor.run { self.configManager.maxTokens }
 
                 do {
                     // Debug logging for system prompt
                     print("[ProxyAIProvider] Mode name: \(context.mode?.name ?? "nil")")
                     print("[ProxyAIProvider] System prompt (first 500 chars): \(String(context.systemPrompt.prefix(500)))")
 
+                    // Stream processing happens on background thread
                     for try await chunk in self.proxyClient.streamAIResponse(
-                        provider: self.providerName,
+                        provider: providerName,
                         smartMode: context.smartMode,
                         systemPrompt: context.systemPrompt,
                         userMessage: context.userMessage,
                         screenshot: context.screenshot,
-                        maxTokens: self.configManager.maxTokens
+                        maxTokens: maxTokens
                     ) {
                         continuation.yield(chunk)
                     }

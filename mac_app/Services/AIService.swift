@@ -175,35 +175,41 @@ final class AIService: ObservableObject {
         smartMode: Bool? = nil
     ) -> AsyncThrowingStream<String, Error> {
         AsyncThrowingStream { continuation in
-            Task { @MainActor in
-                let licenseManager = LicenseManager.shared
-                let isSmartMode = smartMode ?? ConfigurationManager.shared.smartModeEnabled
+            Task {
+                // Perform license checks on main actor
+                let (canProceed, licenseError, isSmartMode) = await MainActor.run { () -> (Bool, Error?, Bool) in
+                    let licenseManager = LicenseManager.shared
+                    let smartModeEnabled = smartMode ?? ConfigurationManager.shared.smartModeEnabled
 
-                // License checks
-                let authAccess = licenseManager.canUse(.aiRequest)
-                if case .blocked = authAccess {
-                    continuation.finish(throwing: AILicenseError.requiresAuthentication)
-                    return
-                }
-
-                if case .limitReached(let used, let limit) = authAccess {
-                    continuation.finish(throwing: AILicenseError.dailyLimitReached(used: used, limit: limit))
-                    return
-                }
-
-                // Check Smart Mode access if enabled
-                if isSmartMode {
-                    let smartModeAccess = licenseManager.canUse(.smartMode)
-                    switch smartModeAccess {
-                    case .requiresEnterprise:
-                        continuation.finish(throwing: AILicenseError.requiresEnterprise)
-                        return
-                    case .limitReached(let used, let limit):
-                        continuation.finish(throwing: AILicenseError.smartModeLimitReached(used: used, limit: limit))
-                        return
-                    default:
-                        break
+                    // License checks
+                    let authAccess = licenseManager.canUse(.aiRequest)
+                    if case .blocked = authAccess {
+                        return (false, AILicenseError.requiresAuthentication, smartModeEnabled)
                     }
+
+                    if case .limitReached(let used, let limit) = authAccess {
+                        return (false, AILicenseError.dailyLimitReached(used: used, limit: limit), smartModeEnabled)
+                    }
+
+                    // Check Smart Mode access if enabled
+                    if smartModeEnabled {
+                        let smartModeAccess = licenseManager.canUse(.smartMode)
+                        switch smartModeAccess {
+                        case .requiresEnterprise:
+                            return (false, AILicenseError.requiresEnterprise, smartModeEnabled)
+                        case .limitReached(let used, let limit):
+                            return (false, AILicenseError.smartModeLimitReached(used: used, limit: limit), smartModeEnabled)
+                        default:
+                            break
+                        }
+                    }
+
+                    return (true, nil, smartModeEnabled)
+                }
+
+                if !canProceed {
+                    continuation.finish(throwing: licenseError!)
+                    return
                 }
 
                 print("[AIService] Starting streaming response for type: \(type.rawValue)")
@@ -211,9 +217,12 @@ final class AIService: ObservableObject {
                 print("[AIService] Backend handles provider cascade internally")
                 print("[AIService] Transcript length: \(transcript.count) chars")
 
-                self.isProcessing = true
-                self.currentResponse = ""
-                self.errorMessage = nil
+                // Update UI state on main actor
+                await MainActor.run {
+                    self.isProcessing = true
+                    self.currentResponse = ""
+                    self.errorMessage = nil
+                }
 
                 let context = AIContext(
                     transcript: transcript,
@@ -227,42 +236,77 @@ final class AIService: ObservableObject {
                 // Single request to backend - no client-side cascade needed
                 // Backend handles provider fallback (OpenAI → Grok → Anthropic)
                 do {
+                    // Accumulate chunks on background thread, batch UI updates
+                    var accumulatedResponse = ""
+                    var chunkBuffer = ""
+                    var lastUIUpdate = Date()
+                    let uiUpdateInterval: TimeInterval = 0.05  // Update UI every 50ms max
+
                     for try await chunk in self.proxyProvider.generateStreamingResponse(context: context) {
-                        self.currentResponse += chunk
+                        accumulatedResponse += chunk
+                        chunkBuffer += chunk
                         continuation.yield(chunk)
+
+                        // Batch UI updates to avoid main thread blocking
+                        let now = Date()
+                        if now.timeIntervalSince(lastUIUpdate) >= uiUpdateInterval {
+                            let bufferedContent = chunkBuffer
+                            await MainActor.run {
+                                self.currentResponse += bufferedContent
+                            }
+                            chunkBuffer = ""
+                            lastUIUpdate = now
+                        }
                     }
 
-                    self.lastProvider = self.proxyProvider.providerType
+                    // Flush remaining buffer
+                    if !chunkBuffer.isEmpty {
+                        await MainActor.run {
+                            self.currentResponse += chunkBuffer
+                        }
+                    }
+
+                    let providerType = await MainActor.run { self.proxyProvider.providerType }
                     print("[AIService] Successfully completed via backend proxy")
-                    print("[AIService] Response length: \(self.currentResponse.count) chars")
-                    print("[AIService] Response preview: \(self.currentResponse.prefix(200))...")
+                    print("[AIService] Response length: \(accumulatedResponse.count) chars")
+                    print("[AIService] Response preview: \(accumulatedResponse.prefix(200))...")
 
-                    // Record successful usage
-                    licenseManager.recordUsage(.aiRequest, provider: self.proxyProvider.providerType.rawValue)
-                    if isSmartMode {
-                        licenseManager.recordUsage(.smartMode, provider: self.proxyProvider.providerType.rawValue)
+                    // Final UI updates and persistence on main actor
+                    await MainActor.run {
+                        let licenseManager = LicenseManager.shared
+
+                        self.lastProvider = providerType
+
+                        // Record successful usage
+                        licenseManager.recordUsage(.aiRequest, provider: providerType.rawValue)
+                        if isSmartMode {
+                            licenseManager.recordUsage(.smartMode, provider: providerType.rawValue)
+                        }
+
+                        // Save completed response
+                        let response = AIResponse(
+                            type: type,
+                            content: accumulatedResponse,
+                            provider: providerType
+                        )
+                        self.responses.insert(response, at: 0)
+
+                        // Persist to SwiftData
+                        if let ctx = self.modelContext {
+                            ctx.insert(response)
+                            try? ctx.save()
+                        }
+
+                        self.isProcessing = false
                     }
 
-                    // Save completed response
-                    let response = AIResponse(
-                        type: type,
-                        content: self.currentResponse,
-                        provider: self.proxyProvider.providerType
-                    )
-                    self.responses.insert(response, at: 0)
-
-                    // Persist to SwiftData
-                    if let ctx = self.modelContext {
-                        ctx.insert(response)
-                        try? ctx.save()
-                    }
-
-                    self.isProcessing = false
                     continuation.finish()
                 } catch {
                     print("[AIService] Backend proxy streaming failed: \(error)")
-                    self.currentResponse = ""
-                    self.isProcessing = false
+                    await MainActor.run {
+                        self.currentResponse = ""
+                        self.isProcessing = false
+                    }
                     continuation.finish(throwing: error)
                 }
             }
@@ -440,35 +484,47 @@ final class AIService: ObservableObject {
         screenshot: Data? = nil
     ) -> AsyncThrowingStream<String, Error> {
         AsyncThrowingStream { continuation in
-            Task { @MainActor in
-                let licenseManager = LicenseManager.shared
+            Task {
+                // Perform license checks on main actor
+                let (canProceed, licenseError) = await MainActor.run { () -> (Bool, Error?) in
+                    let licenseManager = LicenseManager.shared
 
-                // License checks
-                guard licenseManager.isFeatureAvailable(.proactiveSuggestions) else {
-                    continuation.finish(throwing: AILicenseError.requiresEnterprise)
+                    // License checks
+                    guard licenseManager.isFeatureAvailable(.proactiveSuggestions) else {
+                        return (false, AILicenseError.requiresEnterprise)
+                    }
+
+                    let authAccess = licenseManager.canUse(.aiRequest)
+                    if case .blocked = authAccess {
+                        return (false, AILicenseError.requiresAuthentication)
+                    }
+                    if case .limitReached(let used, let limit) = authAccess {
+                        return (false, AILicenseError.dailyLimitReached(used: used, limit: limit))
+                    }
+
+                    return (true, nil)
+                }
+
+                if !canProceed {
+                    continuation.finish(throwing: licenseError!)
                     return
                 }
 
-                let authAccess = licenseManager.canUse(.aiRequest)
-                if case .blocked = authAccess {
-                    continuation.finish(throwing: AILicenseError.requiresAuthentication)
-                    return
+                // Update UI state on main actor
+                await MainActor.run {
+                    self.isProcessing = true
+                    self.currentResponse = ""
+                    self.errorMessage = nil
                 }
-                if case .limitReached(let used, let limit) = authAccess {
-                    continuation.finish(throwing: AILicenseError.dailyLimitReached(used: used, limit: limit))
-                    return
-                }
-
-                self.isProcessing = true
-                self.currentResponse = ""
-                self.errorMessage = nil
 
                 // Build context with moment-specific prompt addition
                 let momentPromptAddition = moment.type.promptAddition
-                let triggerContext = MomentDetectionService.shared.extractTriggerContext(
-                    from: transcript,
-                    trigger: moment.triggerPhrase
-                )
+                let triggerContext = await MainActor.run {
+                    MomentDetectionService.shared.extractTriggerContext(
+                        from: transcript,
+                        trigger: moment.triggerPhrase
+                    )
+                }
 
                 let customPrompt = """
                 \(momentPromptAddition)
@@ -495,37 +551,72 @@ final class AIService: ObservableObject {
                 print("[AIService] Backend handles provider cascade internally")
 
                 do {
+                    // Accumulate chunks on background thread, batch UI updates
+                    var accumulatedResponse = ""
+                    var chunkBuffer = ""
+                    var lastUIUpdate = Date()
+                    let uiUpdateInterval: TimeInterval = 0.05  // Update UI every 50ms max
+
                     for try await chunk in self.proxyProvider.generateStreamingResponse(context: context) {
-                        self.currentResponse += chunk
+                        accumulatedResponse += chunk
+                        chunkBuffer += chunk
                         continuation.yield(chunk)
+
+                        // Batch UI updates to avoid main thread blocking
+                        let now = Date()
+                        if now.timeIntervalSince(lastUIUpdate) >= uiUpdateInterval {
+                            let bufferedContent = chunkBuffer
+                            await MainActor.run {
+                                self.currentResponse += bufferedContent
+                            }
+                            chunkBuffer = ""
+                            lastUIUpdate = now
+                        }
                     }
 
-                    self.lastProvider = self.proxyProvider.providerType
+                    // Flush remaining buffer
+                    if !chunkBuffer.isEmpty {
+                        await MainActor.run {
+                            self.currentResponse += chunkBuffer
+                        }
+                    }
+
+                    let providerType = await MainActor.run { self.proxyProvider.providerType }
                     print("[AIService] Proactive response completed via backend proxy")
 
-                    // Record successful usage
-                    licenseManager.recordUsage(.aiRequest, provider: self.proxyProvider.providerType.rawValue)
+                    // Final UI updates and persistence on main actor
+                    await MainActor.run {
+                        let licenseManager = LicenseManager.shared
 
-                    // Save completed response (marked as automatic)
-                    let response = AIResponse(
-                        automatic: moment.type.suggestedResponseType,
-                        content: self.currentResponse,
-                        provider: self.proxyProvider.providerType
-                    )
-                    self.responses.insert(response, at: 0)
+                        self.lastProvider = providerType
 
-                    // Persist to SwiftData
-                    if let ctx = self.modelContext {
-                        ctx.insert(response)
-                        try? ctx.save()
+                        // Record successful usage
+                        licenseManager.recordUsage(.aiRequest, provider: providerType.rawValue)
+
+                        // Save completed response (marked as automatic)
+                        let response = AIResponse(
+                            automatic: moment.type.suggestedResponseType,
+                            content: accumulatedResponse,
+                            provider: providerType
+                        )
+                        self.responses.insert(response, at: 0)
+
+                        // Persist to SwiftData
+                        if let ctx = self.modelContext {
+                            ctx.insert(response)
+                            try? ctx.save()
+                        }
+
+                        self.isProcessing = false
                     }
 
-                    self.isProcessing = false
                     continuation.finish()
                 } catch {
                     print("[AIService] Proactive response failed: \(error)")
-                    self.currentResponse = ""
-                    self.isProcessing = false
+                    await MainActor.run {
+                        self.currentResponse = ""
+                        self.isProcessing = false
+                    }
                     continuation.finish(throwing: error)
                 }
             }
