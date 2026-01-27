@@ -45,6 +45,7 @@ struct OverlayContentView: View {
                 isExpanded: overlayController.isExpanded,
                 isSessionActive: appState.isSessionActive,
                 isFinalizingSession: appState.isFinalizingSession,
+                detectedMoment: appState.autoAnswerService.lastDetectedMoment,
                 enableScreenCapture: $enableScreenCapture,
                 isAutoAnswerEnabled: isAutoAnswerEnabled,
                 isSmartModeEnabled: isSmartModeEnabled,
@@ -230,6 +231,7 @@ struct ModernPillHeaderView: View {
     let isExpanded: Bool
     let isSessionActive: Bool
     let isFinalizingSession: Bool
+    let detectedMoment: MomentDetectionService.DetectedMoment?
     @Binding var enableScreenCapture: Bool
     @Binding var isAutoAnswerEnabled: Bool
     @Binding var isSmartModeEnabled: Bool
@@ -249,6 +251,7 @@ struct ModernPillHeaderView: View {
     @State private var isChevronPulsing = false  // Pulsing animation for expand hint
     @State private var isPlayPulsing = false  // Pulsing animation for play button
     @State private var showExpandPreview = false  // Hover preview state
+    @State private var isMomentPulsing = false  // Pulsing animation for moment detection
     @Environment(\.openWindow) private var openWindow
 
     // Observe ConfigurationManager for undetectability
@@ -353,6 +356,44 @@ struct ModernPillHeaderView: View {
 
             // Status Indicators
             HStack(spacing: 4) {
+                // Proactive Moment Badge (Enterprise)
+                if let moment = detectedMoment {
+                    HStack(spacing: 3) {
+                        Circle()
+                            .fill(Color(
+                                red: moment.type.color.red,
+                                green: moment.type.color.green,
+                                blue: moment.type.color.blue
+                            ))
+                            .frame(width: 6, height: 6)
+                            .scaleEffect(isMomentPulsing ? 1.4 : 1.0)
+                            .opacity(isMomentPulsing ? 0.6 : 1.0)
+                            .animation(.easeInOut(duration: 0.8).repeatForever(autoreverses: true), value: isMomentPulsing)
+                            .onAppear { isMomentPulsing = true }
+
+                        Image(systemName: moment.type.icon)
+                            .font(.system(size: 9, weight: .semibold))
+                        Text(moment.type.label)
+                            .font(.system(size: 9, weight: .medium))
+                    }
+                    .padding(.horizontal, 6)
+                    .padding(.vertical, 3)
+                    .background(
+                        Capsule()
+                            .fill(Color(
+                                red: moment.type.color.red,
+                                green: moment.type.color.green,
+                                blue: moment.type.color.blue
+                            ).opacity(0.2))
+                    )
+                    .foregroundColor(Color(
+                        red: moment.type.color.red,
+                        green: moment.type.color.green,
+                        blue: moment.type.color.blue
+                    ))
+                    .help("Proactive: \(moment.type.label) detected")
+                }
+
                 // Undetectability Mode Indicator
                 if config.isUndetectabilityEnabled {
                     StatusBadge(

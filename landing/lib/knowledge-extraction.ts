@@ -9,9 +9,10 @@ import { prisma } from "@/lib/prisma";
 import { getProviderApiKey, PROVIDER_URLS } from "@/lib/ai-providers";
 import { generateEmbedding } from "@/lib/embeddings";
 import { KnowledgeType } from "@prisma/client";
+import { checkAtomLimit, makeRoomForNewAtoms, LIMITS } from "@/lib/knowledge-management";
 
-// Use GPT-4.1-nano for cost-effective extraction
-const EXTRACTION_MODEL = "gpt-4.1-nano";
+// Use GPT-4o-mini for cost-effective extraction
+const EXTRACTION_MODEL = "gpt-4o-mini";
 
 export interface ExtractedKnowledge {
   type: KnowledgeType;
@@ -83,13 +84,42 @@ export async function extractKnowledgeFromSession(
 
   try {
     // 1. Extract knowledge using LLM
-    const extractedKnowledge = await analyzeTranscript(transcript);
+    let extractedKnowledge = await analyzeTranscript(transcript);
 
     if (extractedKnowledge.length === 0) {
       return result;
     }
 
-    // 2. Generate embeddings and store atoms
+    // 2. Check atom limit and make room if necessary
+    const limitStatus = await checkAtomLimit(userId);
+    console.log(
+      `[KnowledgeExtraction] Atom limit status: ${limitStatus.current}/${limitStatus.limit} (${limitStatus.remaining} remaining)`
+    );
+
+    if (limitStatus.remaining < extractedKnowledge.length) {
+      // Try to free space by purging low-quality atoms
+      const freed = await makeRoomForNewAtoms(userId, extractedKnowledge.length);
+      console.log(`[KnowledgeExtraction] Freed ${freed} slots for new atoms`);
+
+      if (freed < extractedKnowledge.length) {
+        // Still not enough space, prioritize by confidence and limit
+        extractedKnowledge = extractedKnowledge
+          .sort((a, b) => b.confidence - a.confidence)
+          .slice(0, freed);
+        console.log(
+          `[KnowledgeExtraction] Limited extraction to ${extractedKnowledge.length} highest confidence atoms`
+        );
+
+        if (extractedKnowledge.length === 0) {
+          result.errors.push(
+            `Knowledge limit reached (${LIMITS.MAX_ATOMS_PER_USER}). Delete or wait for auto-cleanup.`
+          );
+          return result;
+        }
+      }
+    }
+
+    // 3. Generate embeddings and store atoms
     for (const knowledge of extractedKnowledge) {
       try {
         // Generate embedding for the content
@@ -141,6 +171,9 @@ async function analyzeTranscript(transcript: string): Promise<ExtractedKnowledge
     ? transcript.slice(-maxTranscriptLength)
     : transcript;
 
+  console.log("[KnowledgeExtraction] Calling OpenAI with model:", EXTRACTION_MODEL);
+  console.log("[KnowledgeExtraction] Transcript length:", truncatedTranscript.length, "chars");
+
   const response = await fetch(PROVIDER_URLS.openai, {
     method: "POST",
     headers: {
@@ -152,14 +185,14 @@ async function analyzeTranscript(transcript: string): Promise<ExtractedKnowledge
       messages: [
         {
           role: "system",
-          content: "You are an expert conversation analyst. Always respond with valid JSON only.",
+          content: "You are an expert conversation analyst. Always respond with valid JSON containing an 'atoms' array.",
         },
         {
           role: "user",
           content: EXTRACTION_PROMPT + truncatedTranscript,
         },
       ],
-      temperature: 0.3, // Lower temperature for more consistent extraction
+      temperature: 0.3,
       max_tokens: 2000,
       response_format: { type: "json_object" },
     }),
@@ -167,10 +200,13 @@ async function analyzeTranscript(transcript: string): Promise<ExtractedKnowledge
 
   if (!response.ok) {
     const error = await response.text();
+    console.error("[KnowledgeExtraction] OpenAI API error:", response.status, error);
     throw new Error(`LLM extraction failed: ${error}`);
   }
 
   const data = await response.json();
+  console.log("[KnowledgeExtraction] OpenAI response status:", response.status);
+
   const content = data.choices[0]?.message?.content;
 
   if (!content) {
@@ -178,31 +214,40 @@ async function analyzeTranscript(transcript: string): Promise<ExtractedKnowledge
   }
 
   try {
+    console.log("[KnowledgeExtraction] Raw LLM response:", content);
+
     const parsed = JSON.parse(content);
-    const atoms = parsed.atoms || parsed.knowledge || parsed;
+    console.log("[KnowledgeExtraction] Parsed JSON:", JSON.stringify(parsed, null, 2));
+
+    const atoms = parsed.atoms || parsed.knowledge || parsed.extracted || parsed.results || (Array.isArray(parsed) ? parsed : []);
 
     if (!Array.isArray(atoms)) {
+      console.log("[KnowledgeExtraction] No array found in response, keys:", Object.keys(parsed));
       return [];
     }
 
-    // Validate and filter results
-    return atoms
+    console.log("[KnowledgeExtraction] Found", atoms.length, "potential atoms");
+
+    // Validate and filter results - lowered threshold to 0.4 for better extraction
+    const filtered = atoms
       .filter((atom: Record<string, unknown>) => {
-        return (
-          atom.type &&
-          atom.content &&
-          typeof atom.confidence === "number" &&
-          atom.confidence >= 0.6
-        );
+        const isValid = atom.type && atom.content && typeof atom.confidence === "number" && atom.confidence >= 0.4;
+        if (!isValid) {
+          console.log("[KnowledgeExtraction] Filtered out atom:", { type: atom.type, confidence: atom.confidence, hasContent: !!atom.content });
+        }
+        return isValid;
       })
       .map((atom: Record<string, unknown>) => ({
         type: mapKnowledgeType(atom.type as string),
-        content: String(atom.content).slice(0, 1000), // Limit content length
+        content: String(atom.content).slice(0, 1000),
         context: atom.context ? String(atom.context).slice(0, 500) : undefined,
         confidence: Number(atom.confidence),
       }));
-  } catch {
-    console.error("[KnowledgeExtraction] Failed to parse LLM response:", content);
+
+    console.log("[KnowledgeExtraction] After filtering:", filtered.length, "atoms");
+    return filtered;
+  } catch (e) {
+    console.error("[KnowledgeExtraction] Failed to parse LLM response:", e, "Content:", content);
     return [];
   }
 }

@@ -157,10 +157,11 @@ export async function POST(request: Request) {
 
     if (plan === "ENTERPRISE") {
       try {
+        console.log(`[AI Stream] Context Intelligence: Searching knowledge for Enterprise user ${user.id}`);
         const relevantKnowledge = await retrieveRelevantKnowledge(
           user.id,
           userMessage,
-          { maxResults: 5, minSimilarity: 0.6, boostHelpful: true }
+          { maxResults: 5, minSimilarity: 0.4, boostHelpful: true }
         );
 
         if (relevantKnowledge.length > 0) {

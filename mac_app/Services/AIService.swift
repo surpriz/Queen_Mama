@@ -493,6 +493,120 @@ final class AIService: ObservableObject {
         }
     }
 
+    // MARK: - Proactive Response (Enterprise)
+
+    /// Generate a proactive response based on a detected conversation moment
+    /// Returns a streaming response with moment-specific context
+    func generateProactiveResponse(
+        transcript: String,
+        moment: MomentDetectionService.DetectedMoment,
+        mode: Mode?,
+        screenshot: Data? = nil
+    ) -> AsyncThrowingStream<String, Error> {
+        AsyncThrowingStream { continuation in
+            Task { @MainActor in
+                let licenseManager = LicenseManager.shared
+
+                // License checks
+                guard licenseManager.isFeatureAvailable(.proactiveSuggestions) else {
+                    continuation.finish(throwing: AILicenseError.requiresEnterprise)
+                    return
+                }
+
+                let authAccess = licenseManager.canUse(.aiRequest)
+                if case .blocked = authAccess {
+                    continuation.finish(throwing: AILicenseError.requiresAuthentication)
+                    return
+                }
+                if case .limitReached(let used, let limit) = authAccess {
+                    continuation.finish(throwing: AILicenseError.dailyLimitReached(used: used, limit: limit))
+                    return
+                }
+
+                self.isProcessing = true
+                self.currentResponse = ""
+                self.errorMessage = nil
+
+                // Build context with moment-specific prompt addition
+                let momentPromptAddition = moment.type.promptAddition
+                let triggerContext = MomentDetectionService.shared.extractTriggerContext(
+                    from: transcript,
+                    trigger: moment.triggerPhrase
+                )
+
+                let customPrompt = """
+                \(momentPromptAddition)
+
+                TRIGGER DETECTED: "\(triggerContext)"
+                Confidence: \(String(format: "%.0f%%", moment.confidence * 100))
+
+                Based on this trigger and the conversation context, provide an appropriate response.
+                Be concise (2-4 sentences) and immediately actionable.
+                """
+
+                let context = AIContext(
+                    transcript: transcript,
+                    screenshot: screenshot,
+                    mode: mode,
+                    responseType: moment.type.suggestedResponseType,
+                    customPrompt: customPrompt,
+                    smartMode: false  // Use standard mode for speed
+                )
+
+                // Try each configured provider
+                let providers = self.getProviders(smartMode: false)
+                var succeeded = false
+
+                print("[AIService] Generating proactive response for moment: \(moment.type.label)")
+                print("[AIService] Trigger phrase: \"\(moment.triggerPhrase)\"")
+                print("[AIService] Using providers: \(providers.map { $0.providerType.displayName })")
+
+                for provider in providers {
+                    print("[AIService] Proactive: trying \(provider.providerType.displayName)")
+                    do {
+                        for try await chunk in provider.generateStreamingResponse(context: context) {
+                            self.currentResponse += chunk
+                            continuation.yield(chunk)
+                        }
+                        self.lastProvider = provider.providerType
+                        succeeded = true
+                        print("[AIService] Proactive response completed with \(provider.providerType.displayName)")
+
+                        // Record successful usage
+                        licenseManager.recordUsage(.aiRequest, provider: provider.providerType.rawValue)
+
+                        // Save completed response (marked as automatic)
+                        let response = AIResponse(
+                            automatic: moment.type.suggestedResponseType,
+                            content: self.currentResponse,
+                            provider: provider.providerType
+                        )
+                        self.responses.insert(response, at: 0)
+
+                        // Persist to SwiftData
+                        if let ctx = self.modelContext {
+                            ctx.insert(response)
+                            try? ctx.save()
+                        }
+                        break
+                    } catch {
+                        print("[AIService] Proactive provider \(provider.providerType.displayName) failed: \(error)")
+                        self.currentResponse = ""
+                        continue
+                    }
+                }
+
+                self.isProcessing = false
+
+                if succeeded {
+                    continuation.finish()
+                } else {
+                    continuation.finish(throwing: AIProviderError.allProvidersFailed)
+                }
+            }
+        }
+    }
+
     // MARK: - History Management
 
     func clearResponses() {

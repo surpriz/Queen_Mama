@@ -4,6 +4,8 @@ import { redirect } from "next/navigation";
 import { GlassCard } from "@/components/ui";
 import { KnowledgeType } from "@prisma/client";
 import { DeleteAtomButton } from "./DeleteAtomButton";
+import { ManagementPanel } from "./ManagementPanel";
+import { LIMITS } from "@/lib/knowledge-management";
 
 export const metadata = {
   title: "Knowledge Base - Queen Mama",
@@ -136,6 +138,9 @@ export default async function KnowledgePage() {
         </p>
       </div>
 
+      {/* Management Panel */}
+      <ManagementPanel />
+
       {/* Stats Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <GlassCard padding="sm">
@@ -147,7 +152,7 @@ export default async function KnowledgePage() {
             </div>
             <div>
               <p className="text-sm text-[var(--qm-text-tertiary)]">Total Knowledge</p>
-              <p className="text-xl font-semibold text-white">{totalAtoms}</p>
+              <p className="text-xl font-semibold text-white">{totalAtoms} <span className="text-sm text-[var(--qm-text-tertiary)] font-normal">/ {LIMITS.MAX_ATOMS_PER_USER}</span></p>
             </div>
           </div>
         </GlassCard>

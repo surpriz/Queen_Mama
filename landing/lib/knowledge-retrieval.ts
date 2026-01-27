@@ -28,7 +28,7 @@ export interface RetrievalOptions {
 
 const DEFAULT_OPTIONS: Required<RetrievalOptions> = {
   maxResults: 5,
-  minSimilarity: 0.6,
+  minSimilarity: 0.4, // Lowered for better recall
   types: [],
   boostHelpful: true,
 };
@@ -43,11 +43,14 @@ export async function retrieveRelevantKnowledge(
 ): Promise<RetrievedKnowledge[]> {
   const opts = { ...DEFAULT_OPTIONS, ...options };
 
+  console.log(`[KnowledgeRetrieval] Searching for user ${userId}, query: "${query.slice(0, 50)}..."`);
+
   // 1. Generate embedding for the query
   let queryEmbedding: number[];
   try {
     const result = await generateEmbedding(query);
     queryEmbedding = result.embedding;
+    console.log(`[KnowledgeRetrieval] Generated query embedding (${queryEmbedding.length} dimensions)`);
   } catch (error) {
     console.error("[KnowledgeRetrieval] Failed to generate query embedding:", error);
     return [];
@@ -77,6 +80,8 @@ export async function retrieveRelevantKnowledge(
     orderBy: { createdAt: "desc" },
     take: 100, // Limit to recent atoms for performance
   });
+
+  console.log(`[KnowledgeRetrieval] Found ${atoms.length} atoms for user`);
 
   if (atoms.length === 0) {
     return [];
@@ -112,6 +117,9 @@ export async function retrieveRelevantKnowledge(
     .filter((atom) => atom.similarity >= opts.minSimilarity)
     .sort((a, b) => b.finalScore - a.finalScore)
     .slice(0, opts.maxResults);
+
+  console.log(`[KnowledgeRetrieval] Similarity scores: ${scoredAtoms.map(a => a.similarity.toFixed(3)).join(", ")}`);
+  console.log(`[KnowledgeRetrieval] After filtering (min: ${opts.minSimilarity}): ${filtered.length} atoms`);
 
   return filtered.map(({ finalScore, ...atom }) => atom);
 }
