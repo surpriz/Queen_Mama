@@ -37,54 +37,18 @@ final class AIService: ObservableObject {
     // SwiftData
     var modelContext: ModelContext?
 
-    // MARK: - Proxy Providers (new architecture)
+    // MARK: - Proxy Provider (single provider architecture)
 
-    // Proxy providers route through backend - created dynamically based on config
-    // QueenMama uses OpenAI exclusively - no user provider selection
-    private var proxyProviders: [AIProvider] {
-        let configManager = ProxyConfigManager.shared
+    // Single proxy provider that routes ALL requests through the backend
+    // The backend handles provider cascade (OpenAI → Grok → Anthropic) internally
+    // Client no longer needs to iterate through providers - backend manages resilience
+    private lazy var proxyProvider: ProxyAIProvider = {
+        // Use OpenAI as the nominal provider type - actual provider is determined by backend cascade
+        ProxyAIProvider(provider: .openai)
+    }()
 
-        // Create proxy providers for each available backend provider
-        // Backend determines provider order (OpenAI only for QueenMama)
-        let availableProviders = configManager.availableAIProviders
-
-        return availableProviders.compactMap { providerName -> AIProvider? in
-            // Map backend provider names (lowercase) to Swift enum
-            guard let type = Self.mapBackendProviderToType(providerName) else {
-                print("[AIService] Unknown provider from backend: \(providerName)")
-                return nil
-            }
-            return ProxyAIProvider(provider: type)
-        }
-    }
-
-    // Map backend provider names to AIProviderType
-    // Backend uses: "openai", "anthropic", "gemini", "grok"
-    // Swift enum uses: "OpenAI", "Anthropic", "Google Gemini", "xAI Grok"
-    private static func mapBackendProviderToType(_ name: String) -> AIProviderType? {
-        switch name.lowercased() {
-        case "openai":
-            return .openai
-        case "anthropic":
-            return .anthropic
-        case "gemini":
-            return .gemini
-        case "grok", "xai":
-            return .grok
-        default:
-            return nil
-        }
-    }
-
-    // Dynamic provider selection based on mode (proxy-based)
-    private func getProviders(smartMode: Bool) -> [AIProvider] {
-        // With proxy architecture, all providers are accessed through the backend
-        // Smart mode is handled by the backend based on the request
-        return proxyProviders
-    }
-
-    private var configuredProviders: [AIProvider] {
-        proxyProviders
+    private var isProxyConfigured: Bool {
+        !ProxyConfigManager.shared.availableAIProviders.isEmpty
     }
 
     // MARK: - Initialization
@@ -127,7 +91,7 @@ final class AIService: ObservableObject {
     // MARK: - Public Methods
 
     func hasConfiguredProviders() -> Bool {
-        !configuredProviders.isEmpty
+        isProxyConfigured
     }
 
     func generateResponse(
@@ -181,34 +145,25 @@ final class AIService: ObservableObject {
             smartMode: useSmartMode
         )
 
-        // Try each configured provider in order based on mode
-        var lastError: Error?
-        let providers = getProviders(smartMode: useSmartMode)
+        // Single request to backend - backend handles provider cascade internally
+        print("[AIService] Sending request to backend proxy (mode: \(useSmartMode ? "Smart" : "Standard"))")
 
-        print("[AIService] Using \(useSmartMode ? "Smart" : "Standard") mode providers: \(providers.map { $0.providerType.displayName })")
+        do {
+            let response = try await proxyProvider.generateResponse(context: context)
+            lastProvider = response.provider
 
-        for provider in providers {
-            do {
-                print("[AIService] Trying provider: \(provider.providerType.displayName)")
-                let response = try await provider.generateResponse(context: context)
-                lastProvider = provider.providerType
-
-                // Record successful usage
-                licenseManager.recordUsage(.aiRequest, provider: provider.providerType.rawValue)
-                if useSmartMode {
-                    licenseManager.recordUsage(.smartMode, provider: provider.providerType.rawValue)
-                }
-
-                responses.insert(response, at: 0)
-                return response
-            } catch {
-                lastError = error
-                print("[AIService] Provider \(provider.providerType.displayName) failed: \(error)")
-                continue
+            // Record successful usage
+            licenseManager.recordUsage(.aiRequest, provider: response.provider.rawValue)
+            if useSmartMode {
+                licenseManager.recordUsage(.smartMode, provider: response.provider.rawValue)
             }
-        }
 
-        throw lastError ?? AIProviderError.allProvidersFailed
+            responses.insert(response, at: 0)
+            return response
+        } catch {
+            print("[AIService] Backend proxy failed: \(error)")
+            throw error
+        }
     }
 
     func generateStreamingResponse(
@@ -251,11 +206,9 @@ final class AIService: ObservableObject {
                     }
                 }
 
-                let providers = self.getProviders(smartMode: isSmartMode)
-
                 print("[AIService] Starting streaming response for type: \(type.rawValue)")
                 print("[AIService] Smart Mode: \(isSmartMode)")
-                print("[AIService] Using providers: \(providers.map { $0.providerType.displayName })")
+                print("[AIService] Backend handles provider cascade internally")
                 print("[AIService] Transcript length: \(transcript.count) chars")
 
                 self.isProcessing = true
@@ -271,54 +224,46 @@ final class AIService: ObservableObject {
                     smartMode: isSmartMode
                 )
 
-                var succeeded = false
-
-                for provider in providers {
-                    print("[AIService] Trying provider: \(provider.providerType.displayName)")
-                    do {
-                        for try await chunk in provider.generateStreamingResponse(context: context) {
-                            self.currentResponse += chunk
-                            continuation.yield(chunk)
-                        }
-                        self.lastProvider = provider.providerType
-                        succeeded = true
-                        print("[AIService] Successfully completed with \(provider.providerType.displayName)")
-                        print("[AIService] Response length: \(self.currentResponse.count) chars")
-                        print("[AIService] Response preview: \(self.currentResponse.prefix(200))...")
-
-                        // Record successful usage
-                        licenseManager.recordUsage(.aiRequest, provider: provider.providerType.rawValue)
-                        if isSmartMode {
-                            licenseManager.recordUsage(.smartMode, provider: provider.providerType.rawValue)
-                        }
-
-                        // Save completed response
-                        let response = AIResponse(
-                            type: type,
-                            content: self.currentResponse,
-                            provider: provider.providerType
-                        )
-                        self.responses.insert(response, at: 0)
-
-                        // Persist to SwiftData
-                        if let context = self.modelContext {
-                            context.insert(response)
-                            try? context.save()
-                        }
-                        break
-                    } catch {
-                        print("[AIService] Streaming provider \(provider.providerType.displayName) failed: \(error)")
-                        self.currentResponse = ""
-                        continue
+                // Single request to backend - no client-side cascade needed
+                // Backend handles provider fallback (OpenAI → Grok → Anthropic)
+                do {
+                    for try await chunk in self.proxyProvider.generateStreamingResponse(context: context) {
+                        self.currentResponse += chunk
+                        continuation.yield(chunk)
                     }
-                }
 
-                self.isProcessing = false
+                    self.lastProvider = self.proxyProvider.providerType
+                    print("[AIService] Successfully completed via backend proxy")
+                    print("[AIService] Response length: \(self.currentResponse.count) chars")
+                    print("[AIService] Response preview: \(self.currentResponse.prefix(200))...")
 
-                if succeeded {
+                    // Record successful usage
+                    licenseManager.recordUsage(.aiRequest, provider: self.proxyProvider.providerType.rawValue)
+                    if isSmartMode {
+                        licenseManager.recordUsage(.smartMode, provider: self.proxyProvider.providerType.rawValue)
+                    }
+
+                    // Save completed response
+                    let response = AIResponse(
+                        type: type,
+                        content: self.currentResponse,
+                        provider: self.proxyProvider.providerType
+                    )
+                    self.responses.insert(response, at: 0)
+
+                    // Persist to SwiftData
+                    if let ctx = self.modelContext {
+                        ctx.insert(response)
+                        try? ctx.save()
+                    }
+
+                    self.isProcessing = false
                     continuation.finish()
-                } else {
-                    continuation.finish(throwing: AIProviderError.allProvidersFailed)
+                } catch {
+                    print("[AIService] Backend proxy streaming failed: \(error)")
+                    self.currentResponse = ""
+                    self.isProcessing = false
+                    continuation.finish(throwing: error)
                 }
             }
         }
@@ -438,47 +383,38 @@ final class AIService: ObservableObject {
             smartMode: false  // Don't use smart mode for auto responses (faster)
         )
 
-        // Try each configured provider in order
-        var lastError: Error?
-        let providers = getProviders(smartMode: false)
+        // Single request to backend - backend handles provider cascade
+        print("[AIService] Generating auto-response via backend proxy")
 
-        print("[AIService] Generating auto-response with providers: \(providers.map { $0.providerType.displayName })")
+        do {
+            let result = try await proxyProvider.generateResponse(context: context)
+            lastProvider = result.provider
 
-        for provider in providers {
-            do {
-                print("[AIService] Auto-response: trying \(provider.providerType.displayName)")
-                let result = try await provider.generateResponse(context: context)
-                lastProvider = provider.providerType
+            // Record usage
+            licenseManager.recordUsage(.aiRequest, provider: result.provider.rawValue)
 
-                // Record usage
-                licenseManager.recordUsage(.aiRequest, provider: provider.providerType.rawValue)
+            // Create response marked as automatic
+            let response = AIResponse(
+                automatic: .assist,
+                content: result.content,
+                provider: result.provider
+            )
 
-                // Create response marked as automatic
-                let response = AIResponse(
-                    automatic: .assist,
-                    content: result.content,
-                    provider: provider.providerType
-                )
+            // Insert at beginning of responses list
+            responses.insert(response, at: 0)
 
-                // Insert at beginning of responses list
-                responses.insert(response, at: 0)
-
-                // Persist to SwiftData
-                if let context = self.modelContext {
-                    context.insert(response)
-                    try? context.save()
-                }
-
-                print("[AIService] Auto-response generated successfully")
-                return response
-            } catch {
-                lastError = error
-                print("[AIService] Auto-response provider \(provider.providerType.displayName) failed: \(error)")
-                continue
+            // Persist to SwiftData
+            if let ctx = self.modelContext {
+                ctx.insert(response)
+                try? ctx.save()
             }
-        }
 
-        throw lastError ?? AIProviderError.allProvidersFailed
+            print("[AIService] Auto-response generated successfully")
+            return response
+        } catch {
+            print("[AIService] Auto-response failed: \(error)")
+            throw error
+        }
     }
 
     /// Remove a specific response from history (used for dismissing auto responses)
@@ -553,55 +489,44 @@ final class AIService: ObservableObject {
                     smartMode: false  // Use standard mode for speed
                 )
 
-                // Try each configured provider
-                let providers = self.getProviders(smartMode: false)
-                var succeeded = false
-
+                // Single request to backend - backend handles provider cascade
                 print("[AIService] Generating proactive response for moment: \(moment.type.label)")
                 print("[AIService] Trigger phrase: \"\(moment.triggerPhrase)\"")
-                print("[AIService] Using providers: \(providers.map { $0.providerType.displayName })")
+                print("[AIService] Backend handles provider cascade internally")
 
-                for provider in providers {
-                    print("[AIService] Proactive: trying \(provider.providerType.displayName)")
-                    do {
-                        for try await chunk in provider.generateStreamingResponse(context: context) {
-                            self.currentResponse += chunk
-                            continuation.yield(chunk)
-                        }
-                        self.lastProvider = provider.providerType
-                        succeeded = true
-                        print("[AIService] Proactive response completed with \(provider.providerType.displayName)")
-
-                        // Record successful usage
-                        licenseManager.recordUsage(.aiRequest, provider: provider.providerType.rawValue)
-
-                        // Save completed response (marked as automatic)
-                        let response = AIResponse(
-                            automatic: moment.type.suggestedResponseType,
-                            content: self.currentResponse,
-                            provider: provider.providerType
-                        )
-                        self.responses.insert(response, at: 0)
-
-                        // Persist to SwiftData
-                        if let ctx = self.modelContext {
-                            ctx.insert(response)
-                            try? ctx.save()
-                        }
-                        break
-                    } catch {
-                        print("[AIService] Proactive provider \(provider.providerType.displayName) failed: \(error)")
-                        self.currentResponse = ""
-                        continue
+                do {
+                    for try await chunk in self.proxyProvider.generateStreamingResponse(context: context) {
+                        self.currentResponse += chunk
+                        continuation.yield(chunk)
                     }
-                }
 
-                self.isProcessing = false
+                    self.lastProvider = self.proxyProvider.providerType
+                    print("[AIService] Proactive response completed via backend proxy")
 
-                if succeeded {
+                    // Record successful usage
+                    licenseManager.recordUsage(.aiRequest, provider: self.proxyProvider.providerType.rawValue)
+
+                    // Save completed response (marked as automatic)
+                    let response = AIResponse(
+                        automatic: moment.type.suggestedResponseType,
+                        content: self.currentResponse,
+                        provider: self.proxyProvider.providerType
+                    )
+                    self.responses.insert(response, at: 0)
+
+                    // Persist to SwiftData
+                    if let ctx = self.modelContext {
+                        ctx.insert(response)
+                        try? ctx.save()
+                    }
+
+                    self.isProcessing = false
                     continuation.finish()
-                } else {
-                    continuation.finish(throwing: AIProviderError.allProvidersFailed)
+                } catch {
+                    print("[AIService] Proactive response failed: \(error)")
+                    self.currentResponse = ""
+                    self.isProcessing = false
+                    continuation.finish(throwing: error)
                 }
             }
         }

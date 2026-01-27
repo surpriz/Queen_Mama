@@ -360,12 +360,18 @@ async function streamOpenAICompatible(
   // Newer OpenAI models (gpt-5-*, gpt-4.1-*, o4-*) require max_completion_tokens
   const useNewTokenParam = model.startsWith("gpt-5") || model.startsWith("gpt-4.1") || model.startsWith("o4-");
 
+  // GPT-5 models only support temperature=1 (default), so omit for those models
+  const supportsTemperature = !model.startsWith("gpt-5");
+
   const requestBody: Record<string, unknown> = {
     model,
     messages,
-    temperature: 0.7,
     stream: true,
   };
+
+  if (supportsTemperature) {
+    requestBody.temperature = 0.7;
+  }
 
   if (useNewTokenParam) {
     requestBody.max_completion_tokens = maxTokens;
@@ -389,35 +395,42 @@ async function streamOpenAICompatible(
     throw new Error(`${provider} error ${response.status}: ${errorText}`);
   }
 
-  // Transform the stream to extract content
+  // Transform the stream to extract content using push-based approach
+  // Using start() instead of pull() to avoid timing issues with SSE streaming
   const reader = response.body.getReader();
   const encoder = new TextEncoder();
   const decoder = new TextDecoder();
 
   return new ReadableStream({
-    async pull(controller) {
-      const { done, value } = await reader.read();
-      if (done) {
-        controller.close();
-        return;
-      }
-
-      const chunk = decoder.decode(value, { stream: true });
-      const lines = chunk.split("\n").filter((line) => line.startsWith("data: "));
-
-      for (const line of lines) {
-        const jsonStr = line.slice(6);
-        if (jsonStr === "[DONE]") continue;
-
-        try {
-          const data = JSON.parse(jsonStr);
-          const content = data.choices?.[0]?.delta?.content;
-          if (content) {
-            controller.enqueue(encoder.encode(`data: ${JSON.stringify({ content })}\n\n`));
+    async start(controller) {
+      try {
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) {
+            controller.close();
+            return;
           }
-        } catch {
-          // Ignore parse errors
+
+          const chunk = decoder.decode(value, { stream: true });
+          const lines = chunk.split("\n").filter((line) => line.startsWith("data: "));
+
+          for (const line of lines) {
+            const jsonStr = line.slice(6);
+            if (jsonStr === "[DONE]") continue;
+
+            try {
+              const data = JSON.parse(jsonStr);
+              const content = data.choices?.[0]?.delta?.content;
+              if (content) {
+                controller.enqueue(encoder.encode(`data: ${JSON.stringify({ content })}\n\n`));
+              }
+            } catch {
+              // Ignore parse errors
+            }
+          }
         }
+      } catch (error) {
+        controller.error(error);
       }
     },
   });
@@ -490,36 +503,43 @@ async function streamAnthropic(
     throw new Error(`Anthropic error ${response.status}: ${errorText}`);
   }
 
+  // Using push-based start() instead of pull() to avoid SSE timing issues
   const reader = response.body.getReader();
   const encoder = new TextEncoder();
   const decoder = new TextDecoder();
 
   return new ReadableStream({
-    async pull(controller) {
-      const { done, value } = await reader.read();
-      if (done) {
-        controller.close();
-        return;
-      }
+    async start(controller) {
+      try {
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) {
+            controller.close();
+            return;
+          }
 
-      const chunk = decoder.decode(value, { stream: true });
-      const lines = chunk.split("\n").filter((line) => line.startsWith("data: "));
+          const chunk = decoder.decode(value, { stream: true });
+          const lines = chunk.split("\n").filter((line) => line.startsWith("data: "));
 
-      for (const line of lines) {
-        const jsonStr = line.slice(6);
-        try {
-          const data = JSON.parse(jsonStr);
+          for (const line of lines) {
+            const jsonStr = line.slice(6);
+            try {
+              const data = JSON.parse(jsonStr);
 
-          // Handle content_block_delta for text
-          if (data.type === "content_block_delta" && data.delta?.type === "text_delta") {
-            const content = data.delta.text;
-            if (content) {
-              controller.enqueue(encoder.encode(`data: ${JSON.stringify({ content })}\n\n`));
+              // Handle content_block_delta for text
+              if (data.type === "content_block_delta" && data.delta?.type === "text_delta") {
+                const content = data.delta.text;
+                if (content) {
+                  controller.enqueue(encoder.encode(`data: ${JSON.stringify({ content })}\n\n`));
+                }
+              }
+            } catch {
+              // Ignore parse errors
             }
           }
-        } catch {
-          // Ignore parse errors
         }
+      } catch (error) {
+        controller.error(error);
       }
     },
   });

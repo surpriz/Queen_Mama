@@ -948,6 +948,7 @@ struct ModernResponseItemView: View {
     var onFeedback: ((Bool) -> Void)? = nil
 
     @State private var feedbackState: FeedbackState = .none
+    @State private var showCopied: Bool = false
 
     enum FeedbackState {
         case none
@@ -993,6 +994,22 @@ struct ModernResponseItemView: View {
                         .font(.system(size: 9))
                         .foregroundColor(QMDesign.Colors.textTertiary)
                 }
+
+                // Copy button
+                Button(action: {
+                    NSPasteboard.general.clearContents()
+                    NSPasteboard.general.setString(content, forType: .string)
+                    showCopied = true
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+                        showCopied = false
+                    }
+                }) {
+                    Image(systemName: showCopied ? "checkmark" : "doc.on.doc")
+                        .font(.system(size: 9))
+                        .foregroundColor(showCopied ? QMDesign.Colors.success : QMDesign.Colors.textTertiary)
+                }
+                .buttonStyle(.plain)
+                .help("Copy to clipboard")
 
                 // Timestamp
                 Text(formatTimestamp(timestamp))
@@ -1128,6 +1145,8 @@ struct StatusSection: View {
     let onExport: () -> Void
     let onClear: () -> Void
 
+    @State private var exportFeedback: Bool = false
+
     var body: some View {
         HStack(spacing: QMDesign.Spacing.xs) {
             // Warning if no session
@@ -1151,15 +1170,22 @@ struct StatusSection: View {
 
             // History controls
             if responseCount > 0 {
-                Button(action: onExport) {
+                Button(action: {
+                    onExport()
+                    exportFeedback = true
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+                        exportFeedback = false
+                    }
+                }) {
                     HStack(spacing: 3) {
-                        Image(systemName: QMDesign.Icons.export)
+                        Image(systemName: exportFeedback ? "checkmark" : QMDesign.Icons.export)
                             .font(.system(size: 9))
-                        Text("Export")
+                        Text(exportFeedback ? "Copied!" : "Export")
                             .font(QMDesign.Typography.captionSmall)
                     }
                 }
                 .buttonStyle(.qmGhost)
+                .foregroundColor(exportFeedback ? QMDesign.Colors.success : nil)
 
                 Button(action: onClear) {
                     HStack(spacing: 3) {

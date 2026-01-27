@@ -215,13 +215,18 @@ export function buildOpenAIRequestBody(params: {
 }): object {
   // Newer OpenAI models (gpt-5-*, gpt-4.1-*, o4-*) require max_completion_tokens
   const useNewTokenParam = params.model.startsWith("gpt-5") || params.model.startsWith("gpt-4.1") || params.model.startsWith("o4-");
+  // GPT-5 models only support temperature=1 (default), so omit for those
+  const supportsTemperature = !params.model.startsWith("gpt-5");
 
   const body: Record<string, unknown> = {
     model: params.model,
     messages: params.messages,
-    temperature: params.temperature ?? 0.7,
     stream: params.stream,
   };
+
+  if (supportsTemperature) {
+    body.temperature = params.temperature ?? 0.7;
+  }
 
   if (useNewTokenParam) {
     body.max_completion_tokens = params.maxTokens;

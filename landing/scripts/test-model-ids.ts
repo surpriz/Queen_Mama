@@ -22,10 +22,18 @@ const MODEL_TESTS = {
     getBody: (model: string) => {
       // Newer models (gpt-5-*, gpt-4.1-*, o4-*) require max_completion_tokens
       const useNewTokenParam = model.startsWith("gpt-5") || model.startsWith("gpt-4.1") || model.startsWith("o4-");
+      // GPT-5 models only support temperature=1 (default)
+      const supportsTemperature = !model.startsWith("gpt-5");
+
       const body: Record<string, unknown> = {
         model,
         messages: [{ role: "user", content: "Say 'test ok' in 2 words" }],
       };
+
+      if (supportsTemperature) {
+        body.temperature = 0.7;
+      }
+
       if (useNewTokenParam) {
         body.max_completion_tokens = 10;
       } else {
