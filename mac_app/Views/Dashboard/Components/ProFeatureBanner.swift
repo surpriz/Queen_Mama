@@ -325,6 +325,7 @@ private struct FeatureGatedModifier: ViewModifier {
         case .screenshot: return "Screenshot"
         case .sessionStart: return "Session Start"
         case .knowledgeBase: return "Knowledge Base"
+        case .proactiveSuggestions: return "Proactive Suggestions"
         }
     }
 }

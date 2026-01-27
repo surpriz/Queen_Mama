@@ -466,7 +466,7 @@ class AppState: ObservableObject {
             autoAnswerService.recordProactiveEngagement()
 
             // Track in analytics
-            AnalyticsService.shared.track(
+            AnalyticsService.shared.capture(
                 "proactive_suggestion_shown",
                 properties: [
                     "moment_type": moment.type.rawValue,
@@ -485,7 +485,7 @@ class AppState: ObservableObject {
         autoAnswerService.recordProactiveDismiss()
         autoAnswerService.lastDetectedMoment = nil
 
-        AnalyticsService.shared.track("proactive_suggestion_dismissed", properties: [:])
+        AnalyticsService.shared.capture("proactive_suggestion_dismissed", properties: [:])
     }
 }
 

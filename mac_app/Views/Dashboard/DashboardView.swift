@@ -306,6 +306,41 @@ struct ModernSidebarView: View {
                 .padding(.horizontal, QMDesign.Spacing.sm)
                 .padding(.top, QMDesign.Spacing.xs)
 
+                // Web Dashboard Button
+                Button {
+                    #if DEBUG
+                    let dashboardURL = "http://localhost:3000/dashboard"
+                    #else
+                    let dashboardURL = "https://queenmama.app/dashboard"
+                    #endif
+                    if let url = URL(string: dashboardURL) {
+                        NSWorkspace.shared.open(url)
+                    }
+                } label: {
+                    HStack(spacing: QMDesign.Spacing.xs) {
+                        Image(systemName: "globe")
+                            .font(.system(size: 11, weight: .medium))
+                        Text("Web Dashboard")
+                            .font(QMDesign.Typography.captionSmall)
+                    }
+                    .foregroundColor(.white)
+                    .padding(.horizontal, QMDesign.Spacing.sm)
+                    .padding(.vertical, QMDesign.Spacing.xs)
+                    .background(
+                        Capsule()
+                            .fill(QMDesign.Colors.accent.opacity(0.8))
+                    )
+                }
+                .buttonStyle(.plain)
+                .onHover { isHovered in
+                    if isHovered {
+                        NSCursor.pointingHand.push()
+                    } else {
+                        NSCursor.pop()
+                    }
+                }
+                .help("Open web dashboard in browser")
+
                 HStack {
                     Button {
                         if let url = URL(string: "https://queenmama.featurebase.app") {
