@@ -357,8 +357,8 @@ async function streamOpenAICompatible(
   const startTime = Date.now();
   console.log(`[${provider}] Calling API with model: ${model}, screenshot: ${!!screenshot}, maxTokens: ${maxTokens}`);
 
-  // Newer OpenAI models (gpt-5-*, o4-*) require max_completion_tokens
-  const useNewTokenParam = model.startsWith("gpt-5") || model.startsWith("o4-");
+  // Newer OpenAI models (gpt-5-*, gpt-4.1-*, o4-*) require max_completion_tokens
+  const useNewTokenParam = model.startsWith("gpt-5") || model.startsWith("gpt-4.1") || model.startsWith("o4-");
 
   const requestBody: Record<string, unknown> = {
     model,

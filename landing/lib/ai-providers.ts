@@ -26,19 +26,19 @@ export interface CascadeModel {
 }
 
 export const MODEL_CASCADE = {
-  // Standard Mode: Fast, cheap, good enough
+  // Standard Mode: Fast, high quality, vision-capable
   standard: [
-    { provider: "openai", model: "gpt-4.1-nano" },           // Primary: Fastest, cheapest, 1M context
+    { provider: "openai", model: "gpt-5-mini" },             // Primary: Fast, High intelligence, 400K context, Vision ✅
     { provider: "grok", model: "grok-4-1-fast-non-reasoning" }, // Fallback 1: Different provider
-    { provider: "openai", model: "gpt-5-nano" },             // Fallback 2: OpenAI backup
+    { provider: "openai", model: "gpt-4.1-mini" },           // Fallback 2: OpenAI backup (1M context)
     { provider: "anthropic", model: "claude-haiku-4-5-20251001" }, // Last resort: Claude
   ] as CascadeModel[],
 
   // Smart Mode: Enhanced reasoning for Enterprise
   smart: [
-    { provider: "openai", model: "o4-mini" },                // Primary: Best reasoning/speed
+    { provider: "openai", model: "o4-mini" },                // Primary: Best reasoning/speed, Vision ✅
     { provider: "grok", model: "grok-4-1-fast-reasoning" },  // Fallback 1: Different provider
-    { provider: "openai", model: "gpt-5-mini" },             // Fallback 2: OpenAI backup
+    { provider: "openai", model: "gpt-5" },                  // Fallback 2: Higher intelligence
     { provider: "anthropic", model: "claude-sonnet-4-5-20250929" }, // Last resort: Claude
   ] as CascadeModel[],
 } as const;
@@ -46,8 +46,8 @@ export const MODEL_CASCADE = {
 // Legacy AI_MODELS for backward compatibility
 export const AI_MODELS = {
   openai: {
-    standard: "gpt-4.1-nano",
-    smart: "o4-mini",
+    standard: "gpt-5-mini",  // Fast, High intelligence, 400K context, Vision ✅
+    smart: "o4-mini",        // Best reasoning/speed balance
   },
   anthropic: {
     standard: "claude-haiku-4-5-20251001",
@@ -213,8 +213,8 @@ export function buildOpenAIRequestBody(params: {
   stream: boolean;
   temperature?: number;
 }): object {
-  // Newer OpenAI models (gpt-5-*, o4-*) require max_completion_tokens
-  const useNewTokenParam = params.model.startsWith("gpt-5") || params.model.startsWith("o4-");
+  // Newer OpenAI models (gpt-5-*, gpt-4.1-*, o4-*) require max_completion_tokens
+  const useNewTokenParam = params.model.startsWith("gpt-5") || params.model.startsWith("gpt-4.1") || params.model.startsWith("o4-");
 
   const body: Record<string, unknown> = {
     model: params.model,

@@ -13,15 +13,15 @@ import { ApiKeyProvider } from "@prisma/client";
 const MODEL_TESTS = {
   openai: {
     url: "https://api.openai.com/v1/chat/completions",
-    models: ["gpt-4.1-nano", "gpt-5-nano", "o4-mini", "gpt-5-mini"],
+    models: ["gpt-5-mini", "gpt-4.1-mini", "o4-mini", "gpt-5"],
     dbProvider: "OPENAI" as ApiKeyProvider,
     getHeaders: (apiKey: string) => ({
       Authorization: `Bearer ${apiKey}`,
       "Content-Type": "application/json",
     }),
     getBody: (model: string) => {
-      // Newer models (gpt-5-*, o4-*) require max_completion_tokens
-      const useNewTokenParam = model.startsWith("gpt-5") || model.startsWith("o4-");
+      // Newer models (gpt-5-*, gpt-4.1-*, o4-*) require max_completion_tokens
+      const useNewTokenParam = model.startsWith("gpt-5") || model.startsWith("gpt-4.1") || model.startsWith("o4-");
       const body: Record<string, unknown> = {
         model,
         messages: [{ role: "user", content: "Say 'test ok' in 2 words" }],
