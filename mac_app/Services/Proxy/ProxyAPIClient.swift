@@ -247,7 +247,10 @@ final class ProxyAPIClient: @unchecked Sendable {
         return try await perform(request)
     }
 
-    private func perform<T: Decodable>(_ request: URLRequest) async throws -> T {
+    private func perform<T: Decodable>(_ request: URLRequest, retryCount: Int = 0) async throws -> T {
+        let maxRetries = 3
+        let retryDelay: [TimeInterval] = [1.0, 2.0, 4.0] // Exponential backoff: 1s, 2s, 4s
+
         let (data, response) = try await session.data(for: request)
 
         guard let httpResponse = response as? HTTPURLResponse else {
@@ -265,9 +268,39 @@ final class ProxyAPIClient: @unchecked Sendable {
             let errorResponse = try? JSONDecoder().decode(ErrorResponse.self, from: data)
             throw ProxyError.accessDenied(errorResponse?.message ?? "Access denied")
 
-        case 503:
+        case 502, 503, 504:
+            // Gateway/service errors - retry with exponential backoff
+            if retryCount < maxRetries {
+                let delay = retryDelay[retryCount]
+                print("[ProxyAPI] HTTP \(httpResponse.statusCode) error. Retrying in \(delay)s... (attempt \(retryCount + 1)/\(maxRetries))")
+
+                // Log retry attempt to Sentry (breadcrumb only)
+                await MainActor.run {
+                    CrashReporter.shared.addBreadcrumb(
+                        category: "proxy_api",
+                        message: "HTTP \(httpResponse.statusCode) - Retry \(retryCount + 1)/\(maxRetries)"
+                    )
+                }
+
+                try await Task.sleep(nanoseconds: UInt64(delay * 1_000_000_000))
+                return try await perform(request, retryCount: retryCount + 1)
+            }
+
+            // Max retries reached - report to Sentry
             let errorResponse = try? JSONDecoder().decode(ErrorResponse.self, from: data)
-            throw ProxyError.providerNotConfigured(errorResponse?.message ?? "Provider not configured")
+            let errorMessage = errorResponse?.message ?? "Service unavailable"
+            print("[ProxyAPI] HTTP \(httpResponse.statusCode) error. Max retries reached. Error: \(errorMessage)")
+
+            let error = ProxyError.requestFailed(httpResponse.statusCode, errorMessage)
+            await MainActor.run {
+                CrashReporter.shared.captureError(error, extras: [
+                    "status_code": httpResponse.statusCode,
+                    "retry_count": retryCount,
+                    "endpoint": request.url?.path ?? "unknown"
+                ])
+            }
+
+            throw error
 
         default:
             let errorResponse = try? JSONDecoder().decode(ErrorResponse.self, from: data)

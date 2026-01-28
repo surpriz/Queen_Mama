@@ -2,6 +2,36 @@ import Foundation
 import Combine
 import SwiftData
 
+// MARK: - SwiftData Save Helper (inline until SwiftDataHelper is added to Xcode project)
+private actor SwiftDataSaveHelper {
+    private var saveWorkItem: DispatchWorkItem?
+    private let saveDebounceInterval: TimeInterval = 0.3
+
+    func save(context: ModelContext?, immediate: Bool) {
+        guard let context = context else { return }
+
+        if immediate {
+            saveWorkItem?.cancel()
+            saveWorkItem = nil
+
+            Task.detached(priority: .userInitiated) {
+                try? context.save()
+            }
+        } else {
+            saveWorkItem?.cancel()
+
+            let workItem = DispatchWorkItem {
+                Task.detached(priority: .utility) {
+                    try? context.save()
+                }
+            }
+
+            saveWorkItem = workItem
+            DispatchQueue.main.asyncAfter(deadline: .now() + saveDebounceInterval, execute: workItem)
+        }
+    }
+}
+
 // MARK: - License Errors
 
 enum AILicenseError: LocalizedError {
@@ -36,6 +66,7 @@ final class AIService: ObservableObject {
 
     // SwiftData
     var modelContext: ModelContext?
+    private let dbHelper = SwiftDataSaveHelper()
 
     // MARK: - Proxy Provider (single provider architecture)
 
@@ -291,10 +322,10 @@ final class AIService: ObservableObject {
                         )
                         self.responses.insert(response, at: 0)
 
-                        // Persist to SwiftData
+                        // Persist to SwiftData (use debounced save)
                         if let ctx = self.modelContext {
                             ctx.insert(response)
-                            try? ctx.save()
+                            Task { await self.dbHelper.save(context: ctx, immediate: false) }
                         }
 
                         self.isProcessing = false
@@ -447,10 +478,10 @@ final class AIService: ObservableObject {
             // Insert at beginning of responses list
             responses.insert(response, at: 0)
 
-            // Persist to SwiftData
+            // Persist to SwiftData (use immediate save for auto-response)
             if let ctx = self.modelContext {
                 ctx.insert(response)
-                try? ctx.save()
+                Task { await dbHelper.save(context: ctx, immediate: true) }
             }
 
             print("[AIService] Auto-response generated successfully")
@@ -465,10 +496,10 @@ final class AIService: ObservableObject {
     func dismissResponse(_ response: AIResponse) {
         responses.removeAll { $0.id == response.id }
 
-        // Remove from SwiftData
+        // Remove from SwiftData (use immediate save for delete)
         if let context = modelContext {
             context.delete(response)
-            try? context.save()
+            Task { await dbHelper.save(context: context, immediate: true) }
             print("[AIService] Dismissed response: \(response.id)")
         }
     }
@@ -601,10 +632,10 @@ final class AIService: ObservableObject {
                         )
                         self.responses.insert(response, at: 0)
 
-                        // Persist to SwiftData
+                        // Persist to SwiftData (use debounced save)
                         if let ctx = self.modelContext {
                             ctx.insert(response)
-                            try? ctx.save()
+                            Task { await self.dbHelper.save(context: ctx, immediate: false) }
                         }
 
                         self.isProcessing = false
@@ -633,7 +664,8 @@ final class AIService: ObservableObject {
         if let context = modelContext {
             do {
                 try context.delete(model: AIResponse.self)
-                try context.save()
+                // Use immediate save for bulk delete
+                Task { await dbHelper.save(context: context, immediate: true) }
                 print("[AIService] Cleared all responses from history")
             } catch {
                 print("[AIService] Failed to clear history: \(error)")
