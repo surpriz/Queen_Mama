@@ -18,6 +18,13 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         // Initialize analytics (PostHog)
         AnalyticsService.shared.start()
 
+        // Initialize Sparkle updater and check for updates in background
+        // This ensures users get update notifications without opening Settings
+        _ = UpdaterManager.shared
+        DispatchQueue.main.asyncAfter(deadline: .now() + 5) {
+            UpdaterManager.shared.checkForUpdatesInBackground()
+        }
+
         // Restore authentication state on launch
         Task { @MainActor in
             await AuthenticationManager.shared.checkExistingAuth()

@@ -44,6 +44,40 @@ jobs:
             echo "🚀 Building PRODUCTION RELEASE: $TAG_NAME"
           fi
 
+      - name: Calculate next build number
+        id: build_number
+        run: |
+          # Fetch the current highest build number from appcast.xml
+          CURRENT_BUILD=$(curl -sL "https://www.queenmama.co/appcast.xml" | grep -o 'sparkle:version>[0-9]*<' | grep -o '[0-9]*' | sort -n | tail -1)
+
+          if [ -z "$CURRENT_BUILD" ]; then
+            CURRENT_BUILD=15  # Fallback to current known build
+          fi
+
+          NEXT_BUILD=$((CURRENT_BUILD + 1))
+          echo "current_build=$CURRENT_BUILD" >> $GITHUB_OUTPUT
+          echo "next_build=$NEXT_BUILD" >> $GITHUB_OUTPUT
+          echo "📊 Current build: $CURRENT_BUILD, Next build: $NEXT_BUILD"
+
+      - name: Update Info.plist with new build number
+        run: |
+          TAG_NAME="${GITHUB_REF_NAME:-${{ github.event.inputs.version }}}"
+          VERSION="${TAG_NAME#v}"
+          BUILD_NUMBER="${{ steps.build_number.outputs.next_build }}"
+
+          # Update CFBundleShortVersionString
+          /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString $VERSION" mac_app/Info.plist
+
+          # Update CFBundleVersion (build number)
+          /usr/libexec/PlistBuddy -c "Set :CFBundleVersion $BUILD_NUMBER" mac_app/Info.plist
+
+          echo "📝 Updated Info.plist: Version=$VERSION, Build=$BUILD_NUMBER"
+
+          # Verify
+          echo "Verification:"
+          /usr/libexec/PlistBuddy -c "Print :CFBundleShortVersionString" mac_app/Info.plist
+          /usr/libexec/PlistBuddy -c "Print :CFBundleVersion" mac_app/Info.plist
+
       - name: Select Xcode
         run: sudo xcode-select -s /Applications/Xcode_16.2.app
 

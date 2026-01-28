@@ -82,7 +82,8 @@
     <string>J3GGTERWgV6iyXa+LuzXf3j4HWJ6M/Mb9WqSciHBeYc=</string>
     <key>SUEnableAutomaticChecks</key>
     <true/>
+    <!-- Check for updates every hour instead of every 24 hours -->
     <key>SUScheduledCheckInterval</key>
-    <integer>86400</integer>
+    <integer>3600</integer>
 </dict>
 </plist>
