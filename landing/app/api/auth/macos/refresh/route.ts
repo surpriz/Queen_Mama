@@ -72,8 +72,76 @@ export async function POST(request: Request) {
       );
     }
 
-    // Check if revoked
+    // Check if revoked (with 2-minute grace period for retry scenarios)
+    // This handles cases where the server rotated the token but the client
+    // didn't receive the response (network timeout, etc.)
     if (storedToken.revokedAt) {
+      const gracePeriodMs = 2 * 60 * 1000; // 2 minutes
+      const timeSinceRevocation = Date.now() - storedToken.revokedAt.getTime();
+
+      if (timeSinceRevocation > gracePeriodMs) {
+        return NextResponse.json(
+          { error: "token_revoked", message: "Token has been revoked" },
+          { status: 401, headers: corsHeaders }
+        );
+      }
+
+      // Token was recently revoked - likely a retry after failed refresh
+      // Find and return the newer token for this device
+      const newerToken = await prisma.refreshToken.findFirst({
+        where: {
+          userId: storedToken.userId,
+          deviceId: storedToken.device.id,
+          revokedAt: null,
+          expiresAt: { gt: new Date() },
+        },
+        orderBy: { createdAt: "desc" },
+      });
+
+      if (newerToken) {
+        console.log("[Refresh] Grace period retry - returning existing newer token");
+        // Generate new access token with existing refresh token
+        const accessToken = await signAccessToken({
+          userId: storedToken.user.id,
+          email: storedToken.user.email,
+          name: storedToken.user.name,
+          role: storedToken.user.role,
+          deviceId: storedToken.device.deviceId,
+        });
+
+        // Return the newer refresh token that was already generated
+        // Client needs to get the new token to stay in sync
+        const newRefreshToken = generateRefreshToken();
+        const newRefreshTokenHash = hashRefreshToken(newRefreshToken);
+
+        await prisma.$transaction([
+          prisma.refreshToken.update({
+            where: { id: newerToken.id },
+            data: { revokedAt: new Date() },
+          }),
+          prisma.refreshToken.create({
+            data: {
+              tokenHash: newRefreshTokenHash,
+              userId: storedToken.userId,
+              deviceId: storedToken.device.id,
+              expiresAt: new Date(
+                Date.now() + AUTH_CONSTANTS.REFRESH_TOKEN_EXPIRY_DAYS * 24 * 60 * 60 * 1000
+              ),
+            },
+          }),
+        ]);
+
+        return NextResponse.json(
+          {
+            accessToken,
+            refreshToken: newRefreshToken,
+            expiresIn: AUTH_CONSTANTS.ACCESS_TOKEN_EXPIRY_SECONDS,
+          },
+          { headers: corsHeaders }
+        );
+      }
+
+      // No newer token found, truly revoked
       return NextResponse.json(
         { error: "token_revoked", message: "Token has been revoked" },
         { status: 401, headers: corsHeaders }

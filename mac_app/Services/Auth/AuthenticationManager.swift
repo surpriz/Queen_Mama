@@ -35,25 +35,51 @@ final class AuthenticationManager: ObservableObject {
         // Check for stored credentials
         guard tokenStore.hasStoredCredentials,
               let storedUser = tokenStore.storedUser else {
+            print("[Auth] No stored credentials found")
             authState = .unauthenticated
             return
         }
+
+        print("[Auth] Found stored credentials for user: \(storedUser.email)")
 
         // Try to validate/refresh tokens
         do {
             if !tokenStore.isAccessTokenValid {
                 // Need to refresh
                 guard let refreshToken = tokenStore.refreshToken else {
+                    print("[Auth] No refresh token available")
                     throw AuthError.tokenExpired
                 }
 
+                print("[Auth] Access token expired, refreshing...")
                 let response = try await api.refreshTokens(refreshToken)
                 tokenStore.accessToken = response.accessToken
                 tokenStore.accessTokenExpiry = Date().addingTimeInterval(TimeInterval(response.expiresIn))
                 tokenStore.refreshToken = response.refreshToken
+                print("[Auth] Token refresh successful")
             }
 
             // Successfully authenticated
+            currentUser = storedUser
+            isAuthenticated = true
+            authState = .authenticated(user: storedUser)
+            print("[Auth] Authentication restored for: \(storedUser.email)")
+
+            // Notify other services
+            NotificationCenter.default.post(name: .userDidAuthenticate, object: nil)
+
+        } catch let error as AuthError {
+            // Auth-specific errors: clear credentials
+            print("[Auth] Authentication error: \(error) - clearing credentials")
+            tokenStore.clearAll()
+            authState = .unauthenticated
+
+        } catch let error as URLError {
+            // Network errors: keep credentials, user can retry later
+            print("[Auth] Network error during auth check: \(error.localizedDescription)")
+            print("[Auth] Keeping credentials - will retry on next action")
+
+            // Still mark as authenticated with stored user (offline mode)
             currentUser = storedUser
             isAuthenticated = true
             authState = .authenticated(user: storedUser)
@@ -62,10 +88,26 @@ final class AuthenticationManager: ObservableObject {
             NotificationCenter.default.post(name: .userDidAuthenticate, object: nil)
 
         } catch {
-            print("[Auth] Existing auth validation failed: \(error)")
-            // Clear invalid credentials
-            tokenStore.clearAll()
-            authState = .unauthenticated
+            // Check if it's a server-side auth rejection
+            let errorString = String(describing: error).lowercased()
+            let isAuthRejection = errorString.contains("invalid_token") ||
+                                  errorString.contains("token_revoked") ||
+                                  errorString.contains("token_expired") ||
+                                  errorString.contains("401") ||
+                                  errorString.contains("403")
+
+            if isAuthRejection {
+                print("[Auth] Server rejected credentials: \(error) - clearing")
+                tokenStore.clearAll()
+                authState = .unauthenticated
+            } else {
+                // Unknown error but possibly transient - keep credentials
+                print("[Auth] Unknown error: \(error) - keeping credentials")
+                currentUser = storedUser
+                isAuthenticated = true
+                authState = .authenticated(user: storedUser)
+                NotificationCenter.default.post(name: .userDidAuthenticate, object: nil)
+            }
         }
     }
 
