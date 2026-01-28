@@ -98,12 +98,19 @@ final class AuthTokenStore {
     // MARK: - Store/Clear All
 
     func storeTokens(_ tokens: AuthTokens, user: AuthUser) {
+        print("[TokenStore] Storing tokens for user: \(user.email)")
+
         _accessToken = tokens.accessToken
         _accessTokenExpiry = tokens.expiresAt
 
         refreshToken = tokens.refreshToken
         storedUser = user
         storedTokenExpiry = tokens.expiresAt
+
+        // Verify storage
+        let hasRefresh = self.refreshToken != nil
+        let hasUser = self.storedUser != nil
+        print("[TokenStore] Storage verification - refreshToken: \(hasRefresh), user: \(hasUser)")
     }
 
     func clearAll() {
@@ -115,7 +122,10 @@ final class AuthTokenStore {
     }
 
     var hasStoredCredentials: Bool {
-        refreshToken != nil && storedUser != nil
+        let hasRefresh = refreshToken != nil
+        let hasUser = storedUser != nil
+        print("[TokenStore] hasStoredCredentials check - refreshToken: \(hasRefresh), user: \(hasUser)")
+        return hasRefresh && hasUser
     }
 
     // MARK: - Keychain Operations
@@ -146,8 +156,10 @@ final class AuthTokenStore {
 
         let status = SecItemAdd(query as CFDictionary, nil)
         guard status == errSecSuccess else {
+            print("[TokenStore] Keychain save FAILED for \(account): OSStatus \(status)")
             throw KeychainError.unexpectedStatus(status)
         }
+        print("[TokenStore] Keychain save SUCCESS for \(account)")
     }
 
     private func getData(account: String) throws -> Data {
