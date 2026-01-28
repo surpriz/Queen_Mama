@@ -5,8 +5,7 @@ directories:
   output: release
   buildResources: resources
 files:
-  - dist-electron/**/*
-  - dist/**/*
+  - out/**/*
   - package.json
 win:
   target:

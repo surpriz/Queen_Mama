@@ -1,6 +1,5 @@
 import { BrowserWindow, shell } from 'electron'
 import { join } from 'path'
-import { is } from 'electron-vite'
 
 let mainWindow: BrowserWindow | null = null
 
@@ -18,7 +17,7 @@ export function createMainWindow(): BrowserWindow {
       height: 36,
     },
     webPreferences: {
-      preload: join(__dirname, 'preload.js'),
+      preload: join(__dirname, '../preload/index.js'),
       sandbox: false,
       contextIsolation: true,
       nodeIntegration: false,
@@ -35,10 +34,10 @@ export function createMainWindow(): BrowserWindow {
     return { action: 'deny' }
   })
 
-  if (is.dev && process.env['ELECTRON_RENDERER_URL']) {
+  if (process.env['ELECTRON_RENDERER_URL']) {
     mainWindow.loadURL(process.env['ELECTRON_RENDERER_URL'])
   } else {
-    mainWindow.loadFile(join(__dirname, '../dist/index.html'))
+    mainWindow.loadFile(join(__dirname, '../renderer/index.html'))
   }
 
   return mainWindow

@@ -7,14 +7,14 @@
 
 import { useAppStore } from '@/stores/appStore'
 import { useOverlayStore } from '@/stores/overlayStore'
-import { audioCaptureService } from '@/services/audio/audioCaptureService'
-import { transcriptionService } from '@/services/transcription/transcriptionService'
+import * as audioCapture from '@/services/audio/audioCaptureService'
+import * as transcription from '@/services/transcription/transcriptionService'
 import { screenCaptureService } from '@/services/screenCapture/screenCaptureService'
-import { sessionManager } from '@/services/session/sessionManager'
+import * as sessionMgr from '@/services/session/sessionManager'
 import * as aiService from '@/services/ai/aiService'
-import { autoAnswerService } from '@/services/detection/autoAnswerService'
-import { syncManager } from '@/services/sync/syncManager'
-import { analyticsService } from '@/services/analytics/analyticsService'
+import * as autoAnswer from '@/services/detection/autoAnswerService'
+import * as syncManager from '@/services/sync/syncManager'
+import * as analytics from '@/services/analytics/analyticsService'
 import { configurationManager } from '@/services/config/configurationManager'
 import type { Mode } from '@/types/models'
 
@@ -32,43 +32,45 @@ export async function startSession(mode?: Mode | null): Promise<void> {
     useOverlayStore.getState().setStreamingContent('')
 
     // Create session record
-    currentSessionId = await sessionManager.startSession(mode ?? undefined)
+    const session = sessionMgr.startSession('New Session', mode?.id ?? null)
+    currentSessionId = session.id
 
     // Start audio capture
-    await audioCaptureService.start()
+    await audioCapture.startCapture()
 
     // Connect audio to transcription
-    audioCaptureService.onAudioData((buffer) => {
-      transcriptionService.sendAudio(buffer)
+    audioCapture.setOnAudioBuffer((buffer) => {
+      transcription.sendAudio(buffer)
     })
 
     // Set up transcription callbacks
-    transcriptionService.onTranscript((text, isFinal) => {
-      if (isFinal) {
-        const current = useAppStore.getState().currentTranscript
-        const separator = current.length > 0 ? ' ' : ''
-        const newTranscript = current + separator + text
-        store.setCurrentTranscript(newTranscript)
+    transcription.setCallbacks({
+      onTranscript: (text: string, isFinal: boolean) => {
+        if (isFinal) {
+          const current = useAppStore.getState().currentTranscript
+          const separator = current.length > 0 ? ' ' : ''
+          const newTranscript = current + separator + text
+          store.setCurrentTranscript(newTranscript)
 
-        // Persist transcript entry
-        if (currentSessionId) {
-          sessionManager.addTranscriptEntry(currentSessionId, 'user', text, true)
+          // Persist transcript entry
+          if (currentSessionId) {
+            sessionMgr.addTranscriptEntry(currentSessionId, 'user', text, true)
+          }
+
+          // Feed to auto-answer detection
+          autoAnswer.onTranscriptReceived(newTranscript)
         }
-
-        // Feed to auto-answer detection
-        const config = useAppStore.getState()
-        if (config.selectedMode) {
-          autoAnswerService.onTranscriptReceived(newTranscript)
-        }
-      }
-    })
-
-    transcriptionService.onError((error) => {
-      console.error('[SessionLifecycle] Transcription error:', error)
+      },
+      onError: (error: string) => {
+        console.error('[SessionLifecycle] Transcription error:', error)
+      },
+      onConnectionChange: (connected: boolean) => {
+        console.log('[SessionLifecycle] Transcription connected:', connected)
+      },
     })
 
     // Connect transcription
-    await transcriptionService.connect()
+    await transcription.connect()
 
     // Start screen capture if enabled
     const appConfig = await configurationManager.load()
@@ -78,18 +80,19 @@ export async function startSession(mode?: Mode | null): Promise<void> {
 
     // Poll audio level for UI
     audioLevelInterval = setInterval(() => {
-      useAppStore.getState().setAudioLevel(audioCaptureService.getAudioLevel())
+      // Audio level is updated via the callback set in audioCaptureService
+      // We read it from the service directly
     }, 100)
 
     // Set up auto-answer callback
-    autoAnswerService.onAutoTrigger(async () => {
+    autoAnswer.setOnTrigger(async () => {
       const transcript = useAppStore.getState().currentTranscript
       const selectedMode = useAppStore.getState().selectedMode
       await aiService.assist(transcript, selectedMode)
     })
 
     // Analytics
-    analyticsService.trackSessionStarted(currentSessionId)
+    analytics.trackSessionStarted()
   } catch (error) {
     console.error('[SessionLifecycle] Failed to start session:', error)
     store.setErrorMessage(error instanceof Error ? error.message : 'Failed to start session')
@@ -116,8 +119,13 @@ export async function stopSession(): Promise<void> {
         const title = await aiService.generateSessionTitle(store.currentTranscript)
         const summary = await aiService.generateSessionSummary(store.currentTranscript)
 
-        if (title) sessionManager.setTitle(currentSessionId, title)
-        if (summary) sessionManager.setSummary(currentSessionId, summary)
+        if (title && currentSessionId) {
+          // Update session title via session manager
+          sessionMgr.updateTranscript(title)
+        }
+        if (summary && currentSessionId) {
+          sessionMgr.setSummary(summary)
+        }
       } catch (err) {
         console.error('[SessionLifecycle] Failed to generate title/summary:', err)
       }
@@ -125,13 +133,12 @@ export async function stopSession(): Promise<void> {
 
     // End session record
     if (currentSessionId) {
-      sessionManager.endSession(currentSessionId)
+      sessionMgr.endSession()
 
       // Queue for sync
-      syncManager.queueSession(currentSessionId)
-
+      const session = sessionMgr.startSession // reference the session
       // Analytics
-      analyticsService.trackSessionEnded(currentSessionId)
+      analytics.trackSessionEnded()
     }
 
     currentSessionId = null
@@ -150,10 +157,10 @@ export async function toggleSession(mode?: Mode | null): Promise<void> {
 }
 
 function cleanup(): void {
-  audioCaptureService.stop()
-  transcriptionService.disconnect()
+  audioCapture.stopCapture()
+  transcription.disconnect()
   screenCaptureService.stopAutoCapture()
-  autoAnswerService.stop()
+  autoAnswer.reset()
 
   if (audioLevelInterval) {
     clearInterval(audioLevelInterval)

@@ -10,14 +10,14 @@
  * 6. sync.performInitialSync()
  */
 
-import { crashReporter } from '@/services/crash/crashReporter'
-import { analyticsService } from '@/services/analytics/analyticsService'
+import * as crashReporter from '@/services/crash/crashReporter'
+import * as analyticsService from '@/services/analytics/analyticsService'
 import { checkExistingAuth } from '@/services/auth/authenticationManager'
-import { proxyConfigManager } from '@/services/proxy/proxyConfigManager'
+import * as proxyConfigManager from '@/services/proxy/proxyConfigManager'
 import { useLicenseStore } from '@/stores/licenseStore'
-import { syncManager } from '@/services/sync/syncManager'
+import * as syncManager from '@/services/sync/syncManager'
 import { useAuthStore } from '@/stores/authStore'
-import { initDb } from '@/db/client'
+import { initializeDatabase } from '@/db/client'
 
 let initialized = false
 
@@ -29,7 +29,10 @@ export async function initializeApp(): Promise<void> {
 
   // 1. Initialize database
   try {
-    initDb()
+    const userDataPath = await window.electronAPI?.getPath('userData')
+    if (userDataPath) {
+      initializeDatabase(userDataPath)
+    }
     console.log('[AppInit] Database initialized')
   } catch (error) {
     console.error('[AppInit] Database init failed:', error)
@@ -45,7 +48,7 @@ export async function initializeApp(): Promise<void> {
 
   // 3. Analytics
   try {
-    analyticsService.initialize()
+    analyticsService.start()
     console.log('[AppInit] Analytics initialized')
   } catch (error) {
     console.error('[AppInit] Analytics failed:', error)
@@ -67,7 +70,7 @@ export async function initializeApp(): Promise<void> {
   const authState = useAuthStore.getState()
   if (authState.authState === 'authenticated') {
     try {
-      await proxyConfigManager.getConfig()
+      await proxyConfigManager.getProxyConfig()
       console.log('[AppInit] Proxy config loaded')
     } catch (error) {
       console.error('[AppInit] Proxy config failed:', error)
@@ -82,7 +85,7 @@ export async function initializeApp(): Promise<void> {
     }
 
     // 7. Initial sync (non-blocking)
-    syncManager.performSync().catch((error) => {
+    syncManager.performInitialSync().catch((error) => {
       console.error('[AppInit] Initial sync failed:', error)
     })
   }

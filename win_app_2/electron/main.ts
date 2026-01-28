@@ -1,9 +1,9 @@
-import { app, BrowserWindow, ipcMain } from 'electron'
-import { electronApp, optimizer } from 'electron-vite'
+import { app, BrowserWindow, ipcMain, globalShortcut } from 'electron'
 import {
   createMainWindow,
   getMainWindow,
 } from './windows/mainWindow'
+import { initAutoUpdater } from './services/updater'
 import {
   createOverlayWindow,
   toggleOverlay,
@@ -35,12 +35,7 @@ if (!gotTheLock) {
 
   app.whenReady().then(() => {
     // Set app user model id for Windows
-    electronApp.setAppUserModelId('com.queenmama.windows')
-
-    // Default open or close DevTools by F12 in development
-    app.on('browser-window-created', (_, window) => {
-      optimizer.watchWindowShortcuts(window)
-    })
+    app.setAppUserModelId('com.queenmama.windows')
 
     // Register all IPC handlers
     registerIPCHandlers()
@@ -72,7 +67,6 @@ if (!gotTheLock) {
 
     // Auto-updater (delayed start)
     try {
-      const { initAutoUpdater } = require('./services/updater')
       initAutoUpdater(mainWindow)
     } catch (error) {
       console.error('[Main] Auto-updater init failed:', error)
@@ -92,8 +86,6 @@ if (!gotTheLock) {
 
   // Clean up on quit
   app.on('will-quit', () => {
-    // Unregister all shortcuts
-    const { globalShortcut } = require('electron')
     globalShortcut.unregisterAll()
   })
 }

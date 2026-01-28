@@ -1,6 +1,5 @@
 import { BrowserWindow, screen } from 'electron'
 import { join } from 'path'
-import { is } from 'electron-vite'
 
 let overlayWindow: BrowserWindow | null = null
 
@@ -29,7 +28,7 @@ export function createOverlayWindow(): BrowserWindow {
     focusable: true,
     backgroundColor: '#00000000',
     webPreferences: {
-      preload: join(__dirname, 'preload.js'),
+      preload: join(__dirname, '../preload/index.js'),
       sandbox: false,
       contextIsolation: true,
       nodeIntegration: false,
@@ -39,10 +38,10 @@ export function createOverlayWindow(): BrowserWindow {
 
   overlayWindow.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true })
 
-  if (is.dev && process.env['ELECTRON_RENDERER_URL']) {
+  if (process.env['ELECTRON_RENDERER_URL']) {
     overlayWindow.loadURL(`${process.env['ELECTRON_RENDERER_URL']}#/overlay`)
   } else {
-    overlayWindow.loadFile(join(__dirname, '../dist/index.html'), {
+    overlayWindow.loadFile(join(__dirname, '../renderer/index.html'), {
       hash: '/overlay',
     })
   }
