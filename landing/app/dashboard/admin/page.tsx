@@ -176,6 +176,11 @@ export default async function AdminPage() {
             Manage API Keys
           </button>
         </Link>
+        <Link href="/dashboard/admin/knowledge">
+          <button className="px-6 py-3 rounded-[var(--qm-radius-md)] border border-[var(--qm-accent)] text-[var(--qm-accent)] hover:bg-[var(--qm-accent)]/10 font-medium transition-colors">
+            Knowledge Base
+          </button>
+        </Link>
       </div>
     </div>
   );

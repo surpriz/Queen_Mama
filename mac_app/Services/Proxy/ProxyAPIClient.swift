@@ -7,6 +7,7 @@ final class ProxyAPIClient: @unchecked Sendable {
 
     private let baseURL: URL
     private let session: URLSession
+    private let streamingSession: URLSession  // Separate session with longer timeout for AI streaming
     private let tokenStore = AuthTokenStore.shared
 
     // Cache for proxy configuration
@@ -27,10 +28,18 @@ final class ProxyAPIClient: @unchecked Sendable {
         let urlString = ProcessInfo.processInfo.environment["API_BASE_URL"] ?? defaultURL
         self.baseURL = URL(string: urlString)!
 
+        // Standard session for quick API calls (config, tokens, etc.)
         let config = URLSessionConfiguration.default
-        config.timeoutIntervalForRequest = 30  // 30s timeout - fast models should respond in <10s
+        config.timeoutIntervalForRequest = 30  // 30s timeout for regular API calls
         config.timeoutIntervalForResource = 120
         self.session = URLSession(configuration: config)
+
+        // Streaming session with longer timeout for AI responses
+        // GPT-5-mini with large screenshots can take 40-60 seconds
+        let streamingConfig = URLSessionConfiguration.default
+        streamingConfig.timeoutIntervalForRequest = 90  // 90s timeout for streaming
+        streamingConfig.timeoutIntervalForResource = 180
+        self.streamingSession = URLSession(configuration: streamingConfig)
     }
 
     // MARK: - Configuration
@@ -158,7 +167,7 @@ final class ProxyAPIClient: @unchecked Sendable {
                     }
                     request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
 
-                    let (asyncBytes, response) = try await session.bytes(for: request)
+                    let (asyncBytes, response) = try await streamingSession.bytes(for: request)
 
                     guard let httpResponse = response as? HTTPURLResponse else {
                         continuation.finish(throwing: ProxyError.invalidResponse)

@@ -306,6 +306,9 @@ struct ModernSidebarView: View {
                 .padding(.horizontal, QMDesign.Spacing.sm)
                 .padding(.top, QMDesign.Spacing.xs)
 
+                // Web Dashboard Button
+                WebDashboardButton()
+
                 HStack {
                     Button {
                         if let url = URL(string: "https://queenmama.featurebase.app") {
@@ -662,6 +665,81 @@ struct AuthWarningBanner: View {
                 .foregroundColor(QMDesign.Colors.warning.opacity(0.3)),
             alignment: .bottom
         )
+    }
+}
+
+// MARK: - Web Dashboard Button
+
+struct WebDashboardButton: View {
+    @State private var isLoading = false
+    @State private var isHovered = false
+
+    var body: some View {
+        Button {
+            openWebDashboard()
+        } label: {
+            HStack(spacing: QMDesign.Spacing.xs) {
+                if isLoading {
+                    ProgressView()
+                        .scaleEffect(0.6)
+                        .frame(width: 11, height: 11)
+                } else {
+                    Image(systemName: "globe")
+                        .font(.system(size: 11, weight: .medium))
+                }
+                Text("Web Dashboard")
+                    .font(QMDesign.Typography.captionSmall)
+            }
+            .foregroundColor(.white)
+            .padding(.horizontal, QMDesign.Spacing.sm)
+            .padding(.vertical, QMDesign.Spacing.xs)
+            .background(
+                Capsule()
+                    .fill(QMDesign.Colors.accent.opacity(isHovered ? 1.0 : 0.8))
+            )
+            .scaleEffect(isHovered ? 1.03 : 1.0)
+        }
+        .buttonStyle(.plain)
+        .disabled(isLoading)
+        .onHover { hovering in
+            isHovered = hovering
+            if hovering {
+                NSCursor.pointingHand.push()
+            } else {
+                NSCursor.pop()
+            }
+        }
+        .animation(QMDesign.Animation.quick, value: isHovered)
+        .help("Open web dashboard in browser (auto sign-in)")
+    }
+
+    private func openWebDashboard() {
+        isLoading = true
+
+        Task {
+            do {
+                // Generate magic link for auto-login
+                let response = try await AuthAPIClient.shared.generateMagicLink(redirect: "/dashboard")
+                if let url = URL(string: response.url) {
+                    NSWorkspace.shared.open(url)
+                }
+            } catch {
+                // Fallback to direct URL if magic link fails
+                print("[WebDashboard] Magic link failed: \(error), using fallback")
+                #if DEBUG
+                let fallbackUrl = "http://localhost:3000/dashboard"
+                #else
+                let fallbackUrl = "https://queenmama.app/dashboard"
+                #endif
+                if let url = URL(string: fallbackUrl) {
+                    NSWorkspace.shared.open(url)
+                }
+            }
+
+            await MainActor.run {
+                isLoading = false
+            }
+        }
     }
 }
 

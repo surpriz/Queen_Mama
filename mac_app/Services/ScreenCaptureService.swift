@@ -192,9 +192,10 @@ final class ScreenCaptureService: NSObject, ObservableObject {
         let nsImage = NSImage(cgImage: image, size: NSSize(width: image.width, height: image.height))
         latestScreenshot = nsImage
 
-        // COST OPTIMIZATION: Resize to max 1280x720 for AI (sufficient for analysis)
-        let maxWidth: CGFloat = 1280
-        let maxHeight: CGFloat = 720
+        // COST OPTIMIZATION: Resize to max 1024x576 for AI (sufficient for text/UI analysis)
+        // Reduced from 1280x720 to improve response latency (smaller upload = faster)
+        let maxWidth: CGFloat = 1024
+        let maxHeight: CGFloat = 576
         let scaleFactor = min(
             maxWidth / CGFloat(image.width),
             maxHeight / CGFloat(image.height),
@@ -214,10 +215,11 @@ final class ScreenCaptureService: NSObject, ObservableObject {
         )
         resizedImage.unlockFocus()
 
-        // COST OPTIMIZATION: Compress to 60% (reduced from 70%)
+        // COST OPTIMIZATION: Compress to 50% for faster uploads (reduced from 60%)
+        // GPT-5-mini can still read text/UI clearly at this quality
         guard let tiffData = resizedImage.tiffRepresentation,
               let bitmap = NSBitmapImageRep(data: tiffData),
-              let jpegData = bitmap.representation(using: .jpeg, properties: [.compressionFactor: 0.6]) else {
+              let jpegData = bitmap.representation(using: .jpeg, properties: [.compressionFactor: 0.5]) else {
             throw ScreenCaptureError.screenshotFailed
         }
 

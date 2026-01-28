@@ -45,6 +45,7 @@ struct OverlayContentView: View {
                 isExpanded: overlayController.isExpanded,
                 isSessionActive: appState.isSessionActive,
                 isFinalizingSession: appState.isFinalizingSession,
+                detectedMoment: appState.autoAnswerService.lastDetectedMoment,
                 enableScreenCapture: $enableScreenCapture,
                 isAutoAnswerEnabled: isAutoAnswerEnabled,
                 isSmartModeEnabled: isSmartModeEnabled,
@@ -230,6 +231,7 @@ struct ModernPillHeaderView: View {
     let isExpanded: Bool
     let isSessionActive: Bool
     let isFinalizingSession: Bool
+    let detectedMoment: MomentDetectionService.DetectedMoment?
     @Binding var enableScreenCapture: Bool
     @Binding var isAutoAnswerEnabled: Bool
     @Binding var isSmartModeEnabled: Bool
@@ -249,6 +251,7 @@ struct ModernPillHeaderView: View {
     @State private var isChevronPulsing = false  // Pulsing animation for expand hint
     @State private var isPlayPulsing = false  // Pulsing animation for play button
     @State private var showExpandPreview = false  // Hover preview state
+    @State private var isMomentPulsing = false  // Pulsing animation for moment detection
     @Environment(\.openWindow) private var openWindow
 
     // Observe ConfigurationManager for undetectability
@@ -353,6 +356,44 @@ struct ModernPillHeaderView: View {
 
             // Status Indicators
             HStack(spacing: 4) {
+                // Proactive Moment Badge (Enterprise)
+                if let moment = detectedMoment {
+                    HStack(spacing: 3) {
+                        Circle()
+                            .fill(Color(
+                                red: moment.type.color.red,
+                                green: moment.type.color.green,
+                                blue: moment.type.color.blue
+                            ))
+                            .frame(width: 6, height: 6)
+                            .scaleEffect(isMomentPulsing ? 1.4 : 1.0)
+                            .opacity(isMomentPulsing ? 0.6 : 1.0)
+                            .animation(.easeInOut(duration: 0.8).repeatForever(autoreverses: true), value: isMomentPulsing)
+                            .onAppear { isMomentPulsing = true }
+
+                        Image(systemName: moment.type.icon)
+                            .font(.system(size: 9, weight: .semibold))
+                        Text(moment.type.label)
+                            .font(.system(size: 9, weight: .medium))
+                    }
+                    .padding(.horizontal, 6)
+                    .padding(.vertical, 3)
+                    .background(
+                        Capsule()
+                            .fill(Color(
+                                red: moment.type.color.red,
+                                green: moment.type.color.green,
+                                blue: moment.type.color.blue
+                            ).opacity(0.2))
+                    )
+                    .foregroundColor(Color(
+                        red: moment.type.color.red,
+                        green: moment.type.color.green,
+                        blue: moment.type.color.blue
+                    ))
+                    .help("Proactive: \(moment.type.label) detected")
+                }
+
                 // Undetectability Mode Indicator
                 if config.isUndetectabilityEnabled {
                     StatusBadge(
@@ -903,6 +944,22 @@ struct ModernResponseItemView: View {
     let isStreaming: Bool
     var isAutomatic: Bool = false
     var onDismiss: (() -> Void)?
+    var responseId: String? = nil
+    var onFeedback: ((Bool) -> Void)? = nil
+
+    @State private var feedbackState: FeedbackState = .none
+    @State private var showCopied: Bool = false
+
+    enum FeedbackState {
+        case none
+        case helpful
+        case notHelpful
+    }
+
+    // Check if Knowledge Base feedback is available (Enterprise only)
+    private var feedbackAvailable: Bool {
+        LicenseManager.shared.isFeatureAvailable(.knowledgeBase)
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: QMDesign.Spacing.xs) {
@@ -938,6 +995,22 @@ struct ModernResponseItemView: View {
                         .foregroundColor(QMDesign.Colors.textTertiary)
                 }
 
+                // Copy button
+                Button(action: {
+                    NSPasteboard.general.clearContents()
+                    NSPasteboard.general.setString(content, forType: .string)
+                    showCopied = true
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+                        showCopied = false
+                    }
+                }) {
+                    Image(systemName: showCopied ? "checkmark" : "doc.on.doc")
+                        .font(.system(size: 9))
+                        .foregroundColor(showCopied ? QMDesign.Colors.success : QMDesign.Colors.textTertiary)
+                }
+                .buttonStyle(.plain)
+                .help("Copy to clipboard")
+
                 // Timestamp
                 Text(formatTimestamp(timestamp))
                     .font(QMDesign.Typography.captionSmall)
@@ -970,6 +1043,64 @@ struct ModernResponseItemView: View {
             // Content
             MarkdownText(content: content)
                 .frame(maxWidth: .infinity, alignment: .leading)
+
+            // Feedback buttons (Enterprise only, after streaming completes)
+            if feedbackAvailable && !isStreaming && !content.isEmpty {
+                HStack(spacing: QMDesign.Spacing.xs) {
+                    Spacer()
+
+                    if feedbackState == .none {
+                        // Show feedback buttons
+                        Button(action: {
+                            feedbackState = .helpful
+                            onFeedback?(true)
+                        }) {
+                            HStack(spacing: 3) {
+                                Image(systemName: "hand.thumbsup")
+                                    .font(.system(size: 10))
+                                Text("Helpful")
+                                    .font(QMDesign.Typography.captionSmall)
+                            }
+                            .foregroundColor(QMDesign.Colors.textTertiary)
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 4)
+                            .background(
+                                Capsule()
+                                    .fill(QMDesign.Colors.surfaceHover)
+                            )
+                        }
+                        .buttonStyle(.plain)
+
+                        Button(action: {
+                            feedbackState = .notHelpful
+                            onFeedback?(false)
+                        }) {
+                            HStack(spacing: 3) {
+                                Image(systemName: "hand.thumbsdown")
+                                    .font(.system(size: 10))
+                            }
+                            .foregroundColor(QMDesign.Colors.textTertiary)
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 4)
+                            .background(
+                                Capsule()
+                                    .fill(QMDesign.Colors.surfaceHover)
+                            )
+                        }
+                        .buttonStyle(.plain)
+                    } else {
+                        // Show feedback confirmation
+                        HStack(spacing: 4) {
+                            Image(systemName: feedbackState == .helpful ? "hand.thumbsup.fill" : "hand.thumbsdown.fill")
+                                .font(.system(size: 10))
+                            Text(feedbackState == .helpful ? "Thanks!" : "Got it")
+                                .font(QMDesign.Typography.captionSmall)
+                        }
+                        .foregroundColor(feedbackState == .helpful ? QMDesign.Colors.success : QMDesign.Colors.textTertiary)
+                    }
+                }
+                .padding(.top, QMDesign.Spacing.xs)
+            }
         }
         .padding(QMDesign.Spacing.sm)
         .background(
@@ -1014,6 +1145,8 @@ struct StatusSection: View {
     let onExport: () -> Void
     let onClear: () -> Void
 
+    @State private var exportFeedback: Bool = false
+
     var body: some View {
         HStack(spacing: QMDesign.Spacing.xs) {
             // Warning if no session
@@ -1037,15 +1170,22 @@ struct StatusSection: View {
 
             // History controls
             if responseCount > 0 {
-                Button(action: onExport) {
+                Button(action: {
+                    onExport()
+                    exportFeedback = true
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+                        exportFeedback = false
+                    }
+                }) {
                     HStack(spacing: 3) {
-                        Image(systemName: QMDesign.Icons.export)
+                        Image(systemName: exportFeedback ? "checkmark" : QMDesign.Icons.export)
                             .font(.system(size: 9))
-                        Text("Export")
+                        Text(exportFeedback ? "Copied!" : "Export")
                             .font(QMDesign.Typography.captionSmall)
                     }
                 }
                 .buttonStyle(.qmGhost)
+                .foregroundColor(exportFeedback ? QMDesign.Colors.success : nil)
 
                 Button(action: onClear) {
                     HStack(spacing: 3) {

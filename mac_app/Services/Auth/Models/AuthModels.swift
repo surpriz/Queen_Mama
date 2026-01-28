@@ -154,12 +154,15 @@ struct LicenseFeatures: Codable, Equatable {
     let maxTranscriptSize: Int?
     let undetectableEnabled: Bool
     let screenshotEnabled: Bool
+    let knowledgeBaseEnabled: Bool  // Context Intelligence (Enterprise)
+    let proactiveSuggestionsEnabled: Bool  // Proactive AI suggestions (Enterprise)
 
     // Custom decoding to handle servers that don't send new fields yet
     enum CodingKeys: String, CodingKey {
         case smartModeEnabled, smartModeLimit, customModesEnabled, exportFormats
         case autoAnswerEnabled, sessionSyncEnabled, dailyAiRequestLimit
         case maxSyncedSessions, maxTranscriptSize, undetectableEnabled, screenshotEnabled
+        case knowledgeBaseEnabled, proactiveSuggestionsEnabled
     }
 
     init(from decoder: Decoder) throws {
@@ -176,6 +179,8 @@ struct LicenseFeatures: Codable, Equatable {
         // Default to false if not present (backward compatibility)
         undetectableEnabled = try container.decodeIfPresent(Bool.self, forKey: .undetectableEnabled) ?? false
         screenshotEnabled = try container.decodeIfPresent(Bool.self, forKey: .screenshotEnabled) ?? true
+        knowledgeBaseEnabled = try container.decodeIfPresent(Bool.self, forKey: .knowledgeBaseEnabled) ?? false
+        proactiveSuggestionsEnabled = try container.decodeIfPresent(Bool.self, forKey: .proactiveSuggestionsEnabled) ?? false
     }
 
     init(
@@ -189,7 +194,9 @@ struct LicenseFeatures: Codable, Equatable {
         maxSyncedSessions: Int?,
         maxTranscriptSize: Int?,
         undetectableEnabled: Bool = false,
-        screenshotEnabled: Bool = true
+        screenshotEnabled: Bool = true,
+        knowledgeBaseEnabled: Bool = false,
+        proactiveSuggestionsEnabled: Bool = false
     ) {
         self.smartModeEnabled = smartModeEnabled
         self.smartModeLimit = smartModeLimit
@@ -202,6 +209,8 @@ struct LicenseFeatures: Codable, Equatable {
         self.maxTranscriptSize = maxTranscriptSize
         self.undetectableEnabled = undetectableEnabled
         self.screenshotEnabled = screenshotEnabled
+        self.knowledgeBaseEnabled = knowledgeBaseEnabled
+        self.proactiveSuggestionsEnabled = proactiveSuggestionsEnabled
     }
 
     // 4-tier model: Free users get basic features only
@@ -216,7 +225,9 @@ struct LicenseFeatures: Codable, Equatable {
         maxSyncedSessions: 0,
         maxTranscriptSize: 10240,
         undetectableEnabled: false, // Enterprise only
-        screenshotEnabled: true
+        screenshotEnabled: true,
+        knowledgeBaseEnabled: false, // Enterprise only
+        proactiveSuggestionsEnabled: false // Enterprise only
     )
 
     // PRO tier: Unlimited standard AI, sync, custom modes - but no premium features
@@ -231,7 +242,9 @@ struct LicenseFeatures: Codable, Equatable {
         maxSyncedSessions: nil, // unlimited
         maxTranscriptSize: 1048576,
         undetectableEnabled: false, // Enterprise only
-        screenshotEnabled: true
+        screenshotEnabled: true,
+        knowledgeBaseEnabled: false, // Enterprise only
+        proactiveSuggestionsEnabled: false // Enterprise only
     )
 
     // Enterprise tier: All features unlocked
@@ -246,7 +259,9 @@ struct LicenseFeatures: Codable, Equatable {
         maxSyncedSessions: nil, // unlimited
         maxTranscriptSize: 10485760, // 10MB
         undetectableEnabled: true,
-        screenshotEnabled: true
+        screenshotEnabled: true,
+        knowledgeBaseEnabled: true, // Context Intelligence enabled
+        proactiveSuggestionsEnabled: true // Proactive suggestions enabled
     )
 }
 
@@ -274,6 +289,8 @@ enum Feature {
     case undetectable
     case screenshot
     case sessionStart
+    case knowledgeBase  // Context Intelligence feedback (Enterprise)
+    case proactiveSuggestions  // Proactive AI suggestions (Enterprise)
 }
 
 enum FeatureAccess: Equatable {

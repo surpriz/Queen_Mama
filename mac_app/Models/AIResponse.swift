@@ -65,41 +65,33 @@ final class AIResponse: Identifiable {
         }
 
         var systemPromptAddition: String {
-            let languageInstruction = "\n\nIMPORTANT: Respond in the SAME LANGUAGE as the transcript or screen content. If French, respond in French."
-
             switch self {
             case .assist:
                 return """
-                Provide general guidance and help understanding the current conversation or screen content.
-                Analyze both the transcript (if available) and screen content to give contextual advice.
-                Be helpful but concise.
-                """ + languageInstruction
+                Help with what's on screen. If it's a question, give the answer. If it's code, explain or fix it.
+                1-2 sentences max, bullets only if needed. Match the language of the content.
+                """
+
             case .whatToSay:
                 return """
-                Generate specific phrases the user can say right now.
-                Provide 2-3 natural, conversational options.
-                Each suggestion should be ready to use verbatim.
-                Format as a numbered list.
-                """ + languageInstruction
+                Give 2-3 short phrases the user can say right now. Keep each under 15 words.
+                Match the language of the content.
+                """
+
             case .followUp:
                 return """
-                Suggest 3-5 follow-up questions the user could ask.
-                Questions should be relevant to the current conversation or screen content.
-                Make them open-ended to encourage discussion.
-                Format as a numbered list.
-                """ + languageInstruction
+                Suggest 3 relevant follow-up questions. Keep them specific, not generic.
+                Match the language of the content.
+                """
+
             case .recap:
                 return """
-                Provide a concise summary of the conversation or screen content so far.
-                Include:
-                - Key points discussed or visible
-                - Decisions made
-                - Action items identified
-                - Any important details mentioned
-                Format with clear sections.
-                """ + languageInstruction
+                Summarize the key points in 3-5 bullets max. Include any decisions or action items.
+                Match the language of the content.
+                """
+
             case .custom:
-                return languageInstruction
+                return "Answer directly. Match the language of the content."
             }
         }
     }
@@ -217,28 +209,30 @@ SMART MODE ENABLED: Please provide enhanced, thorough analysis:
                 truncatedTranscript = transcript
             }
 
-            message += "## Current Conversation Transcript:\n\(truncatedTranscript)\n\n"
+            message += "## Transcript:\n\(truncatedTranscript)\n\n"
         }
 
         if screenshot != nil {
-            message += "[Screenshot attached]\n\n"
+            message += "[Screenshot attached - analyze it]\n\n"
         }
 
         if let customPrompt, !customPrompt.isEmpty {
-            message += "## User's Question:\n\(customPrompt)"
+            message += customPrompt
         } else if isCustomMode {
-            // For custom modes, use minimal prompt - let the system prompt control behavior
-            if transcript.isEmpty && screenshot != nil {
-                message += "Process the screenshot according to your instructions."
-            } else {
-                message += "Process the above content according to your instructions."
-            }
+            message += "Help me with this."
         } else {
-            // For built-in modes, use the standard prompts
-            if transcript.isEmpty && screenshot != nil {
-                message += "Analyze the screenshot and provide \(responseType.rawValue.lowercased()) based on what you see."
-            } else {
-                message += "Based on the above context, please provide \(responseType.rawValue.lowercased())."
+            // Keep it simple - the system prompt already has instructions
+            switch responseType {
+            case .assist:
+                message += "Help me."
+            case .whatToSay:
+                message += "What should I say?"
+            case .followUp:
+                message += "What questions should I ask?"
+            case .recap:
+                message += "Summarize this."
+            case .custom:
+                message += "Help me."
             }
         }
 

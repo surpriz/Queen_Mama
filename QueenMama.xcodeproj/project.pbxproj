@@ -7,7 +7,6 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		7B923343FFD53C5B186B448C /* AppEnvironment.swift in Sources */ = {isa = PBXBuildFile; fileRef = E21A69063C57255B141AA522 /* AppEnvironment.swift */; };
 		000000000000000000000001 /* QueenMamaApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 100000000000000000000001 /* QueenMamaApp.swift */; };
 		000000000000000000000002 /* Session.swift in Sources */ = {isa = PBXBuildFile; fileRef = 100000000000000000000002 /* Session.swift */; };
 		000000000000000000000003 /* Mode.swift in Sources */ = {isa = PBXBuildFile; fileRef = 100000000000000000000003 /* Mode.swift */; };
@@ -41,7 +40,6 @@
 		000000000000000000000027 /* SecureStorage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 100000000000000000000027 /* SecureStorage.swift */; };
 		000000000000000000000028 /* UpdaterManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 100000000000000000000028 /* UpdaterManager.swift */; };
 		000000000000000000000029 /* AuthGateView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 100000000000000000000029 /* AuthGateView.swift */; };
-		5C90DF402F1A5300006B0DE0 /* RegistrationFormView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5C90DF412F1A5300006B0DE0 /* RegistrationFormView.swift */; };
 		075FD1B28F548EA76E2128F9 /* ProxyAPIClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = F31BD8E8B721652533B20139 /* ProxyAPIClient.swift */; };
 		10000000000000000000002A /* URLConfigManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 10000000000000000000002B /* URLConfigManager.swift */; };
 		3BB6D98AB2453F3BF23375A2 /* ProxyAIProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = C4A5D6911606803AAD99FDDE /* ProxyAIProvider.swift */; };
@@ -57,18 +55,20 @@
 		5C90DF332F1A51DE006B0DE0 /* UpgradePromptView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5C90DF312F1A51DE006B0DE0 /* UpgradePromptView.swift */; };
 		5C90DF342F1A51DE006B0DE0 /* ProFeatureBanner.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5C90DF302F1A51DE006B0DE0 /* ProFeatureBanner.swift */; };
 		5C90DF372F1A51F8006B0DE0 /* AccountStepView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5C90DF362F1A51F8006B0DE0 /* AccountStepView.swift */; };
+		5C90DF402F1A5300006B0DE0 /* RegistrationFormView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5C90DF412F1A5300006B0DE0 /* RegistrationFormView.swift */; };
+		5C90DF502F2B8A00006B0DE0 /* GoogleAuthService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5C90DF512F2B8A00006B0DE0 /* GoogleAuthService.swift */; };
+		5C90DF522F2B8A00006B0DE0 /* SignInChoiceView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5C90DF532F2B8A00006B0DE0 /* SignInChoiceView.swift */; };
+		5C90DF542F2B8A00006B0DE0 /* EmailSignInView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5C90DF552F2B8A00006B0DE0 /* EmailSignInView.swift */; };
+		5CA0E38F2F28F23B001CC3B0 /* MomentDetectionService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5CA0E38E2F28F23B001CC3B0 /* MomentDetectionService.swift */; };
 		5CD8E05C2F1FAB790011F4D3 /* Sentry in Frameworks */ = {isa = PBXBuildFile; productRef = 5CD8E05B2F1FAB790011F4D2 /* Sentry */; };
 		5CE1EBDB2F251D18008A4BB9 /* PostHog in Frameworks */ = {isa = PBXBuildFile; productRef = 5CE1EBDA2F251D18008A4BB9 /* PostHog */; };
 		5CE1EBDD2F251E3D008A4BB9 /* AnalyticsService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5CE1EBDC2F251E3D008A4BB9 /* AnalyticsService.swift */; };
 		6937AD307161BE7D38D20A02 /* ProxyConfigManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6FF34DCBA9126388FFC21F75 /* ProxyConfigManager.swift */; };
 		72E5F74C2ED54F91ABC5DA43 /* MarkdownRenderer.swift in Sources */ = {isa = PBXBuildFile; fileRef = AED67FF476044F25BA92C2A6 /* MarkdownRenderer.swift */; };
-		5C90DF502F2B8A00006B0DE0 /* GoogleAuthService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5C90DF512F2B8A00006B0DE0 /* GoogleAuthService.swift */; };
-		5C90DF522F2B8A00006B0DE0 /* SignInChoiceView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5C90DF532F2B8A00006B0DE0 /* SignInChoiceView.swift */; };
-		5C90DF542F2B8A00006B0DE0 /* EmailSignInView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5C90DF552F2B8A00006B0DE0 /* EmailSignInView.swift */; };
+		7B923343FFD53C5B186B448C /* AppEnvironment.swift in Sources */ = {isa = PBXBuildFile; fileRef = E21A69063C57255B141AA522 /* AppEnvironment.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
-		E21A69063C57255B141AA522 /* AppEnvironment.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppEnvironment.swift; sourceTree = "<group>"; };
 		100000000000000000000001 /* QueenMamaApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QueenMamaApp.swift; sourceTree = "<group>"; };
 		100000000000000000000002 /* Session.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Session.swift; sourceTree = "<group>"; };
 		100000000000000000000003 /* Mode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Mode.swift; sourceTree = "<group>"; };
@@ -104,7 +104,6 @@
 		100000000000000000000027 /* SecureStorage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SecureStorage.swift; sourceTree = "<group>"; };
 		100000000000000000000028 /* UpdaterManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UpdaterManager.swift; sourceTree = "<group>"; };
 		100000000000000000000029 /* AuthGateView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthGateView.swift; sourceTree = "<group>"; };
-		5C90DF412F1A5300006B0DE0 /* RegistrationFormView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RegistrationFormView.swift; sourceTree = "<group>"; };
 		10000000000000000000002B /* URLConfigManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = URLConfigManager.swift; sourceTree = "<group>"; };
 		200000000000000000000001 /* QueenMama.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = QueenMama.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		5C8B7EA32F17D57E00DAE824 /* TranscriptionProviders.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TranscriptionProviders.swift; sourceTree = "<group>"; };
@@ -118,14 +117,17 @@
 		5C90DF302F1A51DE006B0DE0 /* ProFeatureBanner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProFeatureBanner.swift; sourceTree = "<group>"; };
 		5C90DF312F1A51DE006B0DE0 /* UpgradePromptView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UpgradePromptView.swift; sourceTree = "<group>"; };
 		5C90DF362F1A51F8006B0DE0 /* AccountStepView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AccountStepView.swift; sourceTree = "<group>"; };
+		5C90DF412F1A5300006B0DE0 /* RegistrationFormView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RegistrationFormView.swift; sourceTree = "<group>"; };
+		5C90DF512F2B8A00006B0DE0 /* GoogleAuthService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GoogleAuthService.swift; sourceTree = "<group>"; };
+		5C90DF532F2B8A00006B0DE0 /* SignInChoiceView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SignInChoiceView.swift; sourceTree = "<group>"; };
+		5C90DF552F2B8A00006B0DE0 /* EmailSignInView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EmailSignInView.swift; sourceTree = "<group>"; };
+		5CA0E38E2F28F23B001CC3B0 /* MomentDetectionService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MomentDetectionService.swift; sourceTree = "<group>"; };
 		5CE1EBDC2F251E3D008A4BB9 /* AnalyticsService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnalyticsService.swift; sourceTree = "<group>"; };
 		6FF34DCBA9126388FFC21F75 /* ProxyConfigManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProxyConfigManager.swift; sourceTree = "<group>"; };
 		AED67FF476044F25BA92C2A6 /* MarkdownRenderer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MarkdownRenderer.swift; sourceTree = "<group>"; };
 		C4A5D6911606803AAD99FDDE /* ProxyAIProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProxyAIProvider.swift; sourceTree = "<group>"; };
+		E21A69063C57255B141AA522 /* AppEnvironment.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppEnvironment.swift; sourceTree = "<group>"; };
 		F31BD8E8B721652533B20139 /* ProxyAPIClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProxyAPIClient.swift; sourceTree = "<group>"; };
-		5C90DF512F2B8A00006B0DE0 /* GoogleAuthService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GoogleAuthService.swift; sourceTree = "<group>"; };
-		5C90DF532F2B8A00006B0DE0 /* SignInChoiceView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SignInChoiceView.swift; sourceTree = "<group>"; };
-		5C90DF552F2B8A00006B0DE0 /* EmailSignInView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EmailSignInView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -186,6 +188,7 @@
 		400000000000000000000005 /* Services */ = {
 			isa = PBXGroup;
 			children = (
+				5CA0E38E2F28F23B001CC3B0 /* MomentDetectionService.swift */,
 				5CE1EBDC2F251E3D008A4BB9 /* AnalyticsService.swift */,
 				5C90DF202F1A5197006B0DE0 /* Auth */,
 				5C90DF212F1A5197006B0DE0 /* LicenseManager.swift */,
@@ -444,6 +447,7 @@
 				5C90DF342F1A51DE006B0DE0 /* ProFeatureBanner.swift in Sources */,
 				000000000000000000000012 /* LiveSessionView.swift in Sources */,
 				000000000000000000000013 /* SettingsView.swift in Sources */,
+				5CA0E38F2F28F23B001CC3B0 /* MomentDetectionService.swift in Sources */,
 				000000000000000000000014 /* ModesListView.swift in Sources */,
 				5C90DF252F1A5197006B0DE0 /* AuthModels.swift in Sources */,
 				5C90DF262F1A5197006B0DE0 /* AuthTokenStore.swift in Sources */,

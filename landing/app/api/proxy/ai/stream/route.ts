@@ -10,6 +10,11 @@ import {
   type AIProviderType,
   type CascadeModel,
 } from "@/lib/ai-providers";
+import {
+  retrieveRelevantKnowledge,
+  formatKnowledgeForPrompt,
+  recordKnowledgeUsage,
+} from "@/lib/knowledge-retrieval";
 
 // CORS headers for desktop app requests
 const corsHeaders = {
@@ -144,6 +149,36 @@ export async function POST(request: Request) {
     // Calculate tokens
     const requestMaxTokens = Math.min(maxTokens || tierConfig.maxTokens, tierConfig.maxTokens);
 
+    // ============================================
+    // CONTEXT INTELLIGENCE: Inject personalized knowledge for Enterprise
+    // ============================================
+    let enhancedSystemPrompt = systemPrompt;
+    let usedAtomIds: string[] = [];
+
+    if (plan === "ENTERPRISE") {
+      try {
+        console.log(`[AI Stream] Context Intelligence: Searching knowledge for Enterprise user ${user.id}`);
+        const relevantKnowledge = await retrieveRelevantKnowledge(
+          user.id,
+          userMessage,
+          { maxResults: 5, minSimilarity: 0.4, boostHelpful: true }
+        );
+
+        if (relevantKnowledge.length > 0) {
+          const knowledgeContext = formatKnowledgeForPrompt(relevantKnowledge);
+          enhancedSystemPrompt = systemPrompt + "\n" + knowledgeContext;
+          usedAtomIds = relevantKnowledge.map((k) => k.id);
+
+          console.log(
+            `[AI Stream] Injected ${relevantKnowledge.length} knowledge atoms for user ${user.id}`
+          );
+        }
+      } catch (error) {
+        // Don't fail the request if knowledge retrieval fails
+        console.error("[AI Stream] Knowledge retrieval error:", error);
+      }
+    }
+
     // Create SSE stream with cascade fallback
     const encoder = new TextEncoder();
     const userId = user.id;
@@ -177,7 +212,7 @@ export async function POST(request: Request) {
                   provider,
                   apiKey,
                   model,
-                  systemPrompt,
+                  enhancedSystemPrompt,
                   userMessage,
                   screenshot,
                   requestMaxTokens
@@ -187,7 +222,7 @@ export async function POST(request: Request) {
                 providerStream = await streamAnthropic(
                   apiKey,
                   model,
-                  systemPrompt,
+                  enhancedSystemPrompt,
                   userMessage,
                   screenshot,
                   requestMaxTokens,
@@ -239,6 +274,11 @@ export async function POST(request: Request) {
               },
             })
             .catch(console.error);
+
+          // Record knowledge atom usage (for Context Intelligence)
+          if (usedAtomIds.length > 0) {
+            recordKnowledgeUsage(usedAtomIds).catch(console.error);
+          }
 
           if (smartMode) {
             prisma.usageLog
@@ -317,15 +357,21 @@ async function streamOpenAICompatible(
   const startTime = Date.now();
   console.log(`[${provider}] Calling API with model: ${model}, screenshot: ${!!screenshot}, maxTokens: ${maxTokens}`);
 
-  // Newer OpenAI models (gpt-5-*, o4-*) require max_completion_tokens
-  const useNewTokenParam = model.startsWith("gpt-5") || model.startsWith("o4-");
+  // Newer OpenAI models (gpt-5-*, gpt-4.1-*, o4-*) require max_completion_tokens
+  const useNewTokenParam = model.startsWith("gpt-5") || model.startsWith("gpt-4.1") || model.startsWith("o4-");
+
+  // GPT-5 models only support temperature=1 (default), so omit for those models
+  const supportsTemperature = !model.startsWith("gpt-5");
 
   const requestBody: Record<string, unknown> = {
     model,
     messages,
-    temperature: 0.7,
     stream: true,
   };
+
+  if (supportsTemperature) {
+    requestBody.temperature = 0.7;
+  }
 
   if (useNewTokenParam) {
     requestBody.max_completion_tokens = maxTokens;
@@ -349,35 +395,42 @@ async function streamOpenAICompatible(
     throw new Error(`${provider} error ${response.status}: ${errorText}`);
   }
 
-  // Transform the stream to extract content
+  // Transform the stream to extract content using push-based approach
+  // Using start() instead of pull() to avoid timing issues with SSE streaming
   const reader = response.body.getReader();
   const encoder = new TextEncoder();
   const decoder = new TextDecoder();
 
   return new ReadableStream({
-    async pull(controller) {
-      const { done, value } = await reader.read();
-      if (done) {
-        controller.close();
-        return;
-      }
-
-      const chunk = decoder.decode(value, { stream: true });
-      const lines = chunk.split("\n").filter((line) => line.startsWith("data: "));
-
-      for (const line of lines) {
-        const jsonStr = line.slice(6);
-        if (jsonStr === "[DONE]") continue;
-
-        try {
-          const data = JSON.parse(jsonStr);
-          const content = data.choices?.[0]?.delta?.content;
-          if (content) {
-            controller.enqueue(encoder.encode(`data: ${JSON.stringify({ content })}\n\n`));
+    async start(controller) {
+      try {
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) {
+            controller.close();
+            return;
           }
-        } catch {
-          // Ignore parse errors
+
+          const chunk = decoder.decode(value, { stream: true });
+          const lines = chunk.split("\n").filter((line) => line.startsWith("data: "));
+
+          for (const line of lines) {
+            const jsonStr = line.slice(6);
+            if (jsonStr === "[DONE]") continue;
+
+            try {
+              const data = JSON.parse(jsonStr);
+              const content = data.choices?.[0]?.delta?.content;
+              if (content) {
+                controller.enqueue(encoder.encode(`data: ${JSON.stringify({ content })}\n\n`));
+              }
+            } catch {
+              // Ignore parse errors
+            }
+          }
         }
+      } catch (error) {
+        controller.error(error);
       }
     },
   });
@@ -450,36 +503,43 @@ async function streamAnthropic(
     throw new Error(`Anthropic error ${response.status}: ${errorText}`);
   }
 
+  // Using push-based start() instead of pull() to avoid SSE timing issues
   const reader = response.body.getReader();
   const encoder = new TextEncoder();
   const decoder = new TextDecoder();
 
   return new ReadableStream({
-    async pull(controller) {
-      const { done, value } = await reader.read();
-      if (done) {
-        controller.close();
-        return;
-      }
+    async start(controller) {
+      try {
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) {
+            controller.close();
+            return;
+          }
 
-      const chunk = decoder.decode(value, { stream: true });
-      const lines = chunk.split("\n").filter((line) => line.startsWith("data: "));
+          const chunk = decoder.decode(value, { stream: true });
+          const lines = chunk.split("\n").filter((line) => line.startsWith("data: "));
 
-      for (const line of lines) {
-        const jsonStr = line.slice(6);
-        try {
-          const data = JSON.parse(jsonStr);
+          for (const line of lines) {
+            const jsonStr = line.slice(6);
+            try {
+              const data = JSON.parse(jsonStr);
 
-          // Handle content_block_delta for text
-          if (data.type === "content_block_delta" && data.delta?.type === "text_delta") {
-            const content = data.delta.text;
-            if (content) {
-              controller.enqueue(encoder.encode(`data: ${JSON.stringify({ content })}\n\n`));
+              // Handle content_block_delta for text
+              if (data.type === "content_block_delta" && data.delta?.type === "text_delta") {
+                const content = data.delta.text;
+                if (content) {
+                  controller.enqueue(encoder.encode(`data: ${JSON.stringify({ content })}\n\n`));
+                }
+              }
+            } catch {
+              // Ignore parse errors
             }
           }
-        } catch {
-          // Ignore parse errors
         }
+      } catch (error) {
+        controller.error(error);
       }
     },
   });

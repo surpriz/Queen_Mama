@@ -167,6 +167,14 @@ final class LicenseManager: ObservableObject {
         case .sessionStart:
             // Session start requires authentication
             return authManager.isAuthenticated ? .allowed : .blocked
+
+        case .knowledgeBase:
+            // Knowledge Base (Context Intelligence) is Enterprise-only
+            return features.knowledgeBaseEnabled ? .allowed : .requiresEnterprise
+
+        case .proactiveSuggestions:
+            // Proactive AI suggestions are Enterprise-only
+            return features.proactiveSuggestionsEnabled ? .allowed : .requiresEnterprise
         }
     }
 
@@ -316,7 +324,9 @@ final class LicenseManager: ObservableObject {
         json += "\"maxSyncedSessions\":\(features.maxSyncedSessions.map { String($0) } ?? "null"),"
         json += "\"maxTranscriptSize\":\(features.maxTranscriptSize.map { String($0) } ?? "null"),"
         json += "\"undetectableEnabled\":\(features.undetectableEnabled),"
-        json += "\"screenshotEnabled\":\(features.screenshotEnabled)"
+        json += "\"screenshotEnabled\":\(features.screenshotEnabled),"
+        json += "\"knowledgeBaseEnabled\":\(features.knowledgeBaseEnabled),"
+        json += "\"proactiveSuggestionsEnabled\":\(features.proactiveSuggestionsEnabled)"
         json += "}"
         return json
     }

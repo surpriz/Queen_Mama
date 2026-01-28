@@ -26,6 +26,9 @@ final class AutoAnswerService: ObservableObject {
     @Published var lastAutoAnswerTime: Date?
     @Published var isPendingTrigger = false
 
+    /// Last detected moment for proactive suggestions
+    @Published var lastDetectedMoment: MomentDetectionService.DetectedMoment?
+
     // MARK: - Configuration
 
     /// Minimum seconds of silence before triggering
@@ -46,6 +49,17 @@ final class AutoAnswerService: ObservableObject {
     /// Response type to use for auto-answers
     var responseType: AIResponse.ResponseType = .assist
 
+    // MARK: - Proactive Mode Configuration
+
+    /// Whether proactive suggestions are enabled (Enterprise only)
+    var proactiveEnabled = false
+
+    /// Cooldown period between proactive suggestions (seconds)
+    var proactiveCooldown: TimeInterval = 15.0
+
+    /// Minimum confidence for proactive moment detection
+    var proactiveSensitivity: Float = 0.7
+
     // MARK: - Internal State
 
     private var lastSpeechTime = Date()
@@ -54,10 +68,20 @@ final class AutoAnswerService: ObservableObject {
     private var currentTranscript = ""
     private var wordCount = 0
 
+    // Proactive tracking
+    private var lastProactiveTriggerTime: Date?
+    private var lastMomentType: MomentDetectionService.ConversationMoment?
+    private var lastMomentTime: Date?
+    private var consecutiveDismisses = 0
+    private var proactivePausedUntil: Date?
+
     // MARK: - Callbacks
 
     /// Called when auto-answer should be triggered
     var onTrigger: (() -> Void)?
+
+    /// Called when a proactive moment is detected (Enterprise)
+    var onMomentDetected: ((MomentDetectionService.DetectedMoment) -> Void)?
 
     // MARK: - Initialization
 
@@ -67,7 +91,7 @@ final class AutoAnswerService: ObservableObject {
 
     /// Called when new transcript text is received (final)
     func onTranscriptReceived(_ text: String) {
-        guard isEnabled else { return }
+        guard isEnabled || proactiveEnabled else { return }
 
         currentTranscript = text
         wordCount = text.split(separator: " ").count
@@ -76,11 +100,18 @@ final class AutoAnswerService: ObservableObject {
         // Cancel any pending trigger since new speech was detected
         cancelPendingTrigger()
 
-        // Check for immediate triggers
-        checkImmediateTriggers(text)
+        // Check for proactive moments (Enterprise feature)
+        if proactiveEnabled {
+            checkProactiveMoments(text)
+        }
 
-        // Start silence timer
-        startSilenceTimer()
+        // Check for immediate triggers (Auto-Answer)
+        if isEnabled {
+            checkImmediateTriggers(text)
+
+            // Start silence timer
+            startSilenceTimer()
+        }
     }
 
     /// Called when interim transcript is received (not final)
@@ -202,6 +233,91 @@ final class AutoAnswerService: ObservableObject {
         }
         isPendingTrigger = false
     }
+
+    // MARK: - Proactive Mode Methods
+
+    /// Check for proactive moments in the transcript
+    private func checkProactiveMoments(_ text: String) {
+        guard proactiveEnabled else { return }
+
+        // Check if paused due to consecutive dismisses
+        if let pausedUntil = proactivePausedUntil, Date() < pausedUntil {
+            return
+        }
+
+        // Check cooldown
+        if let lastTrigger = lastProactiveTriggerTime {
+            let elapsed = Date().timeIntervalSince(lastTrigger)
+            guard elapsed >= proactiveCooldown else {
+                return
+            }
+        }
+
+        // Detect moments
+        let sensitivity = 1.0 - Double(proactiveSensitivity) + 0.5 // Convert 0.5-1.0 to 0.5-1.0 threshold
+        let threshold = Float(max(0.5, min(1.0, sensitivity)))
+
+        guard let moment = MomentDetectionService.shared.detect(
+            in: text,
+            minConfidence: threshold
+        ) else {
+            return
+        }
+
+        // Check if this moment type is enabled
+        guard ConfigurationManager.shared.isMomentTypeEnabled(moment.type.rawValue) else {
+            return
+        }
+
+        // Don't repeat same moment type too quickly (30s)
+        if let lastType = lastMomentType, lastType == moment.type,
+           let lastTime = lastMomentTime,
+           Date().timeIntervalSince(lastTime) < 30 {
+            print("[AutoAnswer] Skipping duplicate moment type: \(moment.type.rawValue)")
+            return
+        }
+
+        // Trigger proactive suggestion
+        print("[AutoAnswer] Proactive moment detected: \(moment.type.label) (confidence: \(String(format: "%.2f", moment.confidence)))")
+        print("[AutoAnswer] Trigger phrase: \"\(moment.triggerPhrase)\"")
+
+        lastDetectedMoment = moment
+        lastProactiveTriggerTime = Date()
+        lastMomentType = moment.type
+        lastMomentTime = Date()
+
+        onMomentDetected?(moment)
+    }
+
+    /// Record that user dismissed a proactive suggestion
+    func recordProactiveDismiss() {
+        consecutiveDismisses += 1
+        print("[AutoAnswer] Proactive dismiss #\(consecutiveDismisses)")
+
+        // After 3 consecutive dismisses, pause for 5 minutes
+        if consecutiveDismisses >= 3 {
+            let pauseDuration: TimeInterval = 5 * 60 // 5 minutes
+            proactivePausedUntil = Date().addingTimeInterval(pauseDuration)
+            consecutiveDismisses = 0
+            print("[AutoAnswer] Proactive suggestions paused for 5 minutes due to consecutive dismisses")
+        }
+    }
+
+    /// Record that user engaged with a proactive suggestion (thumbs up/down, didn't dismiss)
+    func recordProactiveEngagement() {
+        consecutiveDismisses = 0
+        proactivePausedUntil = nil
+    }
+
+    /// Reset proactive state
+    func resetProactiveState() {
+        lastProactiveTriggerTime = nil
+        lastMomentType = nil
+        lastMomentTime = nil
+        lastDetectedMoment = nil
+        consecutiveDismisses = 0
+        proactivePausedUntil = nil
+    }
 }
 
 // MARK: - Auto Answer Trigger Reason
@@ -211,6 +327,7 @@ enum AutoAnswerTrigger: String, CaseIterable {
     case question = "Question Detection"
     case sentenceEnd = "Sentence Completion"
     case manual = "Manual"
+    case proactive = "Proactive Suggestion"
 
     var icon: String {
         switch self {
@@ -218,6 +335,7 @@ enum AutoAnswerTrigger: String, CaseIterable {
         case .question: return "questionmark.circle"
         case .sentenceEnd: return "text.badge.checkmark"
         case .manual: return "hand.tap"
+        case .proactive: return "sparkles"
         }
     }
 }

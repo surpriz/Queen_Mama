@@ -361,3 +361,10 @@ bin/*.key
 # Claude AI documentation files (not for version control)
 **/CLAUDE.md
 CLAUDE.md
+
+# Claude Code local settings (user-specific)
+.claude/*.local.json
+.claude/settings.local.json
+
+# Internal documentation (contains sensitive/strategic info)
+docs/

@@ -159,6 +159,34 @@ class OverlayWindowController: NSObject, ObservableObject, NSWindowDelegate {
         setExpanded(!isExpanded)
     }
 
+    /// Expand the overlay automatically for a proactive suggestion
+    /// Called when a conversation moment is detected
+    func expandForProactiveSuggestion(moment: MomentDetectionService.DetectedMoment) {
+        // Make sure overlay is visible first
+        if !isVisible {
+            panel?.orderFront(nil)
+            isVisible = true
+        }
+
+        // Expand if not already expanded
+        if !isExpanded {
+            setExpanded(true)
+        }
+
+        // Pulse animation to draw attention
+        NSAnimationContext.runAnimationGroup { context in
+            context.duration = 0.15
+            panel?.animator().alphaValue = 0.7
+        } completionHandler: { [weak self] in
+            NSAnimationContext.runAnimationGroup { context in
+                context.duration = 0.15
+                self?.panel?.animator().alphaValue = 1.0
+            }
+        }
+
+        print("[OverlayWindow] Expanded for proactive suggestion: \(moment.type.label)")
+    }
+
     func moveToPosition(_ position: OverlayPosition) {
         guard let panel, let screen = NSScreen.main else { return }
 

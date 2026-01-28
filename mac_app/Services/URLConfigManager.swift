@@ -38,4 +38,12 @@ final class URLConfigManager: @unchecked Sendable {
     var syncSessionsURL: URL {
         apiBaseURL.appendingPathComponent("api/sync/sessions")
     }
+
+    var feedbackURL: URL {
+        apiBaseURL.appendingPathComponent("api/feedback")
+    }
+
+    var knowledgeURL: URL {
+        apiBaseURL.appendingPathComponent("api/knowledge")
+    }
 }

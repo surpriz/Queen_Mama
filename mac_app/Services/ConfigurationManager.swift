@@ -59,6 +59,36 @@ final class ConfigurationManager: ObservableObject {
         didSet { defaults.set(autoAnswerResponseType, forKey: Keys.autoAnswerResponseType) }
     }
 
+    // MARK: - Proactive Suggestions Settings (Enterprise)
+
+    @Published var proactiveEnabled: Bool {
+        didSet { defaults.set(proactiveEnabled, forKey: Keys.proactiveEnabled) }
+    }
+
+    @Published var proactiveSensitivity: Double {
+        didSet { defaults.set(proactiveSensitivity, forKey: Keys.proactiveSensitivity) }
+    }
+
+    @Published var proactiveCooldown: Int {
+        didSet { defaults.set(proactiveCooldown, forKey: Keys.proactiveCooldown) }
+    }
+
+    @Published var proactiveObjectionsEnabled: Bool {
+        didSet { defaults.set(proactiveObjectionsEnabled, forKey: Keys.proactiveObjections) }
+    }
+
+    @Published var proactiveQuestionsEnabled: Bool {
+        didSet { defaults.set(proactiveQuestionsEnabled, forKey: Keys.proactiveQuestions) }
+    }
+
+    @Published var proactiveHesitationsEnabled: Bool {
+        didSet { defaults.set(proactiveHesitationsEnabled, forKey: Keys.proactiveHesitations) }
+    }
+
+    @Published var proactiveClosingEnabled: Bool {
+        didSet { defaults.set(proactiveClosingEnabled, forKey: Keys.proactiveClosing) }
+    }
+
     // MARK: - Keyboard Shortcuts
 
     @Published var shortcutToggleWidget: String {
@@ -93,6 +123,14 @@ final class ConfigurationManager: ObservableObject {
         static let autoAnswerSilenceThreshold = "auto_answer_silence_threshold"
         static let autoAnswerCooldown = "auto_answer_cooldown"
         static let autoAnswerResponseType = "auto_answer_response_type"
+        // Proactive Suggestions
+        static let proactiveEnabled = "proactive_enabled"
+        static let proactiveSensitivity = "proactive_sensitivity"
+        static let proactiveCooldown = "proactive_cooldown"
+        static let proactiveObjections = "proactive_objections"
+        static let proactiveQuestions = "proactive_questions"
+        static let proactiveHesitations = "proactive_hesitations"
+        static let proactiveClosing = "proactive_closing"
     }
 
     // MARK: - Initialization
@@ -124,6 +162,15 @@ final class ConfigurationManager: ObservableObject {
         self.autoAnswerSilenceThreshold = defaults.object(forKey: Keys.autoAnswerSilenceThreshold) as? Double ?? 2.5
         self.autoAnswerCooldown = defaults.object(forKey: Keys.autoAnswerCooldown) as? Double ?? 10.0
         self.autoAnswerResponseType = defaults.string(forKey: Keys.autoAnswerResponseType) ?? "assist"
+
+        // Proactive Suggestions settings (Enterprise only)
+        self.proactiveEnabled = defaults.object(forKey: Keys.proactiveEnabled) as? Bool ?? false
+        self.proactiveSensitivity = defaults.object(forKey: Keys.proactiveSensitivity) as? Double ?? 0.7
+        self.proactiveCooldown = defaults.object(forKey: Keys.proactiveCooldown) as? Int ?? 15
+        self.proactiveObjectionsEnabled = defaults.object(forKey: Keys.proactiveObjections) as? Bool ?? true
+        self.proactiveQuestionsEnabled = defaults.object(forKey: Keys.proactiveQuestions) as? Bool ?? true
+        self.proactiveHesitationsEnabled = defaults.object(forKey: Keys.proactiveHesitations) as? Bool ?? false
+        self.proactiveClosingEnabled = defaults.object(forKey: Keys.proactiveClosing) as? Bool ?? true
     }
 
     // MARK: - Onboarding
@@ -163,5 +210,31 @@ final class ConfigurationManager: ObservableObject {
         autoAnswerSilenceThreshold = 2.5
         autoAnswerCooldown = 10.0
         autoAnswerResponseType = "assist"
+        // Proactive Suggestions
+        proactiveEnabled = false
+        proactiveSensitivity = 0.7
+        proactiveCooldown = 15
+        proactiveObjectionsEnabled = true
+        proactiveQuestionsEnabled = true
+        proactiveHesitationsEnabled = false
+        proactiveClosingEnabled = true
+    }
+
+    // MARK: - Proactive Moment Check
+
+    /// Check if a specific moment type is enabled for proactive suggestions
+    func isMomentTypeEnabled(_ momentType: String) -> Bool {
+        switch momentType {
+        case "objection":
+            return proactiveObjectionsEnabled
+        case "expertiseQuestion":
+            return proactiveQuestionsEnabled
+        case "hesitation":
+            return proactiveHesitationsEnabled
+        case "closingOpportunity":
+            return proactiveClosingEnabled
+        default:
+            return false
+        }
     }
 }

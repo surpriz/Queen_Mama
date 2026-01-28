@@ -283,6 +283,19 @@ class AppState: ObservableObject {
                     await self?.handleAutoAnswer()
                 }
             }
+
+            // Wire up proactive moment detection (Enterprise)
+            autoAnswerService.onMomentDetected = { [weak self] moment in
+                Task { @MainActor in
+                    await self?.handleProactiveMoment(moment)
+                }
+            }
+
+            // Configure proactive settings from ConfigurationManager
+            let config = ConfigurationManager.shared
+            autoAnswerService.proactiveEnabled = config.proactiveEnabled && LicenseManager.shared.isFeatureAvailable(.proactiveSuggestions)
+            autoAnswerService.proactiveCooldown = TimeInterval(config.proactiveCooldown)
+            autoAnswerService.proactiveSensitivity = Float(config.proactiveSensitivity)
         } catch {
             errorMessage = error.localizedDescription
             await stopSession()
@@ -295,6 +308,7 @@ class AppState: ObservableObject {
         screenService.stopCapture()
         transcriptionService.disconnect()
         autoAnswerService.reset()  // Reset auto-answer state
+        autoAnswerService.resetProactiveState()  // Reset proactive state
         isSessionActive = false
 
         // 2. Get the current session before finalizing
@@ -403,6 +417,75 @@ class AppState: ObservableObject {
         } catch {
             print("[AppState] Auto-response failed: \(error)")
         }
+    }
+
+    // MARK: - Proactive Mode (Enterprise)
+
+    /// Handle proactive moment detected by MomentDetectionService
+    private func handleProactiveMoment(_ moment: MomentDetectionService.DetectedMoment) async {
+        // Check enterprise license for proactive suggestions
+        guard LicenseManager.shared.isFeatureAvailable(.proactiveSuggestions) else {
+            print("[AppState] Proactive suggestions require Enterprise license")
+            return
+        }
+
+        // Don't trigger if already processing
+        guard !aiService.isProcessing else {
+            print("[AppState] Skipping proactive - AI already processing")
+            autoAnswerService.lastDetectedMoment = nil
+            return
+        }
+
+        // Need some transcript content
+        guard !currentTranscript.isEmpty else {
+            print("[AppState] Skipping proactive - no transcript")
+            autoAnswerService.lastDetectedMoment = nil
+            return
+        }
+
+        print("[AppState] Proactive moment detected: \(moment.type.label)")
+        print("[AppState] Confidence: \(String(format: "%.1f%%", moment.confidence * 100))")
+        print("[AppState] Trigger: \"\(moment.triggerPhrase)\"")
+
+        // Auto-expand overlay for proactive suggestion
+        OverlayWindowController.shared.expandForProactiveSuggestion(moment: moment)
+
+        // Generate proactive response
+        do {
+            for try await chunk in aiService.generateProactiveResponse(
+                transcript: currentTranscript,
+                moment: moment,
+                mode: selectedMode,
+                screenshot: nil
+            ) {
+                _ = chunk // Response updates are handled by AIService
+            }
+            print("[AppState] Proactive response completed")
+
+            // Record engagement (user saw the suggestion)
+            autoAnswerService.recordProactiveEngagement()
+
+            // Track in analytics
+            AnalyticsService.shared.capture(
+                "proactive_suggestion_shown",
+                properties: [
+                    "moment_type": moment.type.rawValue,
+                    "confidence": moment.confidence,
+                    "trigger_phrase": moment.triggerPhrase
+                ]
+            )
+        } catch {
+            print("[AppState] Proactive response failed: \(error)")
+            autoAnswerService.lastDetectedMoment = nil
+        }
+    }
+
+    /// User dismissed a proactive suggestion
+    func dismissProactiveSuggestion() {
+        autoAnswerService.recordProactiveDismiss()
+        autoAnswerService.lastDetectedMoment = nil
+
+        AnalyticsService.shared.capture("proactive_suggestion_dismissed", properties: [:])
     }
 }
 
