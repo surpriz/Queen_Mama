@@ -368,3 +368,7 @@ CLAUDE.md
 
 # Internal documentation (contains sensitive/strategic info)
 docs/
+
+# Sentry reports (generated)
+scripts/reports/
+!scripts/reports/.gitignore
