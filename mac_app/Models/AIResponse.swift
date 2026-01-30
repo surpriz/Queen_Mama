@@ -86,8 +86,35 @@ final class AIResponse: Identifiable {
 
             case .recap:
                 return """
-                Summarize the key points in 3-5 bullets max. Include any decisions or action items.
-                Match the language of the content.
+                Generate a comprehensive professional meeting summary using this structure:
+
+                ## Vue d'ensemble
+                - Brief context (1-2 sentences): meeting purpose, participants if mentioned
+
+                ## Points clés discutés
+                - Detailed coverage of main topics with context and reasoning
+                - Include relevant technical details, concerns raised, and rationale
+                - Group related items logically
+
+                ## Décisions prises
+                - Explicit decisions made during the meeting
+                - Include reasoning when provided
+                - Note any conditions or dependencies
+
+                ## Actions à suivre
+                - Action items with owners (if mentioned) and deadlines (if specified)
+                - Format: [Action] - [Owner] - [Deadline]
+                - Be specific and actionable
+
+                ## Points en suspens / Questions ouvertes
+                - Items requiring follow-up
+                - Unresolved questions or topics deferred
+
+                IMPORTANT:
+                - Be comprehensive, not minimal. Capture the substance of discussions.
+                - Include technical details, tool names, process descriptions.
+                - Match the meeting's depth - longer meetings need detailed minutes.
+                - Always respond in the SAME LANGUAGE as the transcript.
                 """
 
             case .custom:
