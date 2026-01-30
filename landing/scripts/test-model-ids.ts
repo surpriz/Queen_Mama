@@ -1,6 +1,6 @@
 /**
  * Test script to verify model IDs work with their respective APIs
- * Run with: npx tsx scripts/test-model-ids.ts
+ * Run with: npx tsx landing/scripts/test-model-ids.ts
  */
 
 import { config } from "dotenv";
@@ -58,7 +58,19 @@ const MODEL_TESTS = {
   },
   anthropic: {
     url: "https://api.anthropic.com/v1/messages",
-    models: ["claude-haiku-4-5-20251001", "claude-sonnet-4-5-20250929"],
+    models: [
+      // Latest models (Claude 4.5 family)
+      "claude-opus-4-5-20251101",     // Opus 4.5 - Premium model with maximum intelligence
+      "claude-sonnet-4-5-20250929",   // Sonnet 4.5 - Best balance for complex agents/coding
+      "claude-haiku-4-5-20251001",    // Haiku 4.5 - Fastest with near-frontier intelligence
+
+      // Legacy models (still available but deprecated)
+      "claude-opus-4-1-20250805",     // Opus 4.1
+      "claude-sonnet-4-20250514",     // Sonnet 4
+      "claude-3-7-sonnet-20250219",   // Sonnet 3.7
+      "claude-opus-4-20250514",       // Opus 4
+      "claude-3-haiku-20240307",      // Haiku 3
+    ],
     dbProvider: "ANTHROPIC" as ApiKeyProvider,
     getHeaders: (apiKey: string) => ({
       "x-api-key": apiKey,
