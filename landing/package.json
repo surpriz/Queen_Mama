@@ -9,7 +9,7 @@
     "lint": "eslint",
     "postinstall": "prisma generate",
     "test:models": "tsx scripts/test-model-ids.ts",
-    "benchmark:openai": "tsx scripts/benchmark-openai.ts"
+    "benchmark": "tsx scripts/benchmark-models.ts"
   },
   "dependencies": {
     "@auth/prisma-adapter": "^2.11.1",

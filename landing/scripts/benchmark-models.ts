@@ -1,6 +1,6 @@
 /**
  * Comprehensive Multi-Provider Model Benchmark
- * Tests OpenAI, Anthropic, and Grok models with detailed performance metrics
+ * Tests OpenAI, Anthropic, Grok, and Moonshot models with detailed performance metrics
  *
  * Run with: npx tsx landing/scripts/benchmark-models.ts
  *
@@ -8,6 +8,7 @@
  * - OpenAI (7 models: gpt-5, gpt-4.1, gpt-4o, o4-mini, o1-mini)
  * - Anthropic (8 models: Claude 4.5, 4.1, 4, 3.7, 3 families)
  * - Grok (6 models: grok-4, grok-3, grok-code families)
+ * - Moonshot (3 models: Kimi K2.5, K2 Turbo, K2 Standard)
  *
  * Metrics measured:
  * - TTFB (Time to First Byte): Latency before first token
@@ -72,10 +73,20 @@ const GROK_MODELS = {
   ],
 } as const;
 
+// Moonshot models to test (Kimi)
+const MOONSHOT_MODELS = {
+  latest: [
+    "kimi-k2.5-0127",               // K2.5 latest - 1T params, agent swarm (262K context)
+    "kimi-k2-turbo",                // K2 Turbo - Speed-sensitive ($1.15/$8.00)
+    "kimi-k2-0905",                 // K2 Standard - Best value ($0.60/$2.50)
+  ],
+} as const;
+
 // API endpoints
 const OPENAI_API_URL = "https://api.openai.com/v1/chat/completions";
 const ANTHROPIC_API_URL = "https://api.anthropic.com/v1/messages";
 const GROK_API_URL = "https://api.x.ai/v1/chat/completions";
+const MOONSHOT_API_URL = "https://api.moonshot.ai/v1/chat/completions";
 
 // Test prompts
 const TEST_PROMPT = "Explain quantum computing in one short sentence.";
@@ -86,7 +97,7 @@ const TEST_IMAGE_BASE64 =
   "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8DwHwAFBQIAX8jx0gAAAABJRU5ErkJggg==";
 
 interface BenchmarkResult {
-  provider: "openai" | "anthropic" | "grok";
+  provider: "openai" | "anthropic" | "grok" | "moonshot";
   model: string;
   category: "standard" | "smart" | "latest" | "legacy" | "specialized";
   textOnly: {
@@ -167,6 +178,26 @@ async function getGrokKey(): Promise<string | null> {
     return decryptApiKey(adminKey.encryptedKey);
   } catch (error) {
     console.error("Error fetching Grok key:", error);
+    return null;
+  }
+}
+
+// Get Moonshot API key from database
+async function getMoonshotKey(): Promise<string | null> {
+  try {
+    const adminKey = await prisma.adminApiKey.findUnique({
+      where: { provider: "MOONSHOT" as ApiKeyProvider },
+      select: { encryptedKey: true, isActive: true },
+    });
+
+    if (!adminKey || !adminKey.isActive) {
+      console.error("❌ No active Moonshot API key in database");
+      return null;
+    }
+
+    return decryptApiKey(adminKey.encryptedKey);
+  } catch (error) {
+    console.error("Error fetching Moonshot key:", error);
     return null;
   }
 }
@@ -570,6 +601,125 @@ async function testGrokModel(
 }
 
 // ============================================================================
+// MOONSHOT-SPECIFIC FUNCTIONS
+// ============================================================================
+
+// Test a Moonshot model (uses OpenAI-compatible API)
+async function testMoonshotModel(
+  apiKey: string,
+  model: string,
+  withVision: boolean
+): Promise<{
+  success: boolean;
+  ttfb?: number;
+  totalTime?: number;
+  tokenCount?: number;
+  tokensPerSec?: number;
+  error?: string;
+}> {
+  const startTime = Date.now();
+  let firstByteTime: number | undefined;
+  let tokenCount = 0;
+
+  try {
+    const body: Record<string, unknown> = {
+      model,
+      stream: true,
+      max_tokens: 100,
+      temperature: 0.7,
+    };
+
+    if (withVision) {
+      body.messages = [
+        {
+          role: "user",
+          content: [
+            { type: "text", text: TEST_PROMPT_VISION },
+            {
+              type: "image_url",
+              image_url: { url: `data:image/png;base64,${TEST_IMAGE_BASE64}` },
+            },
+          ],
+        },
+      ];
+    } else {
+      body.messages = [{ role: "user", content: TEST_PROMPT }];
+    }
+
+    const response = await fetch(MOONSHOT_API_URL, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(body),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      return {
+        success: false,
+        error: `HTTP ${response.status}: ${errorText.substring(0, 200)}`,
+      };
+    }
+
+    if (!response.body) {
+      return {
+        success: false,
+        error: "No response body",
+      };
+    }
+
+    // Process streaming response (OpenAI-compatible format)
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+
+    while (true) {
+      const { done, value } = await reader.read();
+
+      if (!firstByteTime && value) {
+        firstByteTime = Date.now() - startTime;
+      }
+
+      if (done) break;
+
+      const chunk = decoder.decode(value, { stream: true });
+      const lines = chunk.split("\n").filter((line) => line.startsWith("data: "));
+
+      for (const line of lines) {
+        const jsonStr = line.slice(6);
+        if (jsonStr === "[DONE]") continue;
+
+        try {
+          const data = JSON.parse(jsonStr);
+          if (data.choices?.[0]?.delta?.content) {
+            tokenCount++;
+          }
+        } catch {
+          // Ignore parse errors
+        }
+      }
+    }
+
+    const totalTime = Date.now() - startTime;
+    const tokensPerSec = tokenCount > 0 ? (tokenCount / totalTime) * 1000 : 0;
+
+    return {
+      success: true,
+      ttfb: firstByteTime,
+      totalTime,
+      tokenCount,
+      tokensPerSec: Math.round(tokensPerSec * 10) / 10,
+    };
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : String(error),
+    };
+  }
+}
+
+// ============================================================================
 // UTILITY FUNCTIONS
 // ============================================================================
 
@@ -581,7 +731,7 @@ function formatDuration(ms: number): string {
 
 async function main() {
   console.log("🔬 Multi-Provider Model Benchmark");
-  console.log("   OpenAI + Anthropic + Grok Comprehensive Testing");
+  console.log("   OpenAI + Anthropic + Grok + Moonshot Comprehensive Testing");
   console.log("=".repeat(80));
   console.log("");
 
@@ -867,6 +1017,62 @@ async function main() {
     console.log("⚠️  Skipping Grok tests (no API key)\n");
   }
 
+  // ============================================================================
+  // MOONSHOT (Kimi) TESTING
+  // ============================================================================
+
+  console.log("\n" + "=".repeat(80));
+  console.log("🌙 MOONSHOT (Kimi) MODELS");
+  console.log("=".repeat(80) + "\n");
+
+  const moonshotKey = await getMoonshotKey();
+
+  if (moonshotKey) {
+    console.log("✅ Moonshot API key loaded\n");
+
+    // Test Moonshot latest models
+    console.log("🚀 Testing MOONSHOT LATEST models...\n");
+    for (const model of MOONSHOT_MODELS.latest) {
+      console.log(`   Testing ${model}...`);
+
+      process.stdout.write("      • Text only:  ");
+      const textResult = await testMoonshotModel(moonshotKey, model, false);
+      if (textResult.success) {
+        console.log(
+          `✅ TTFB: ${formatDuration(textResult.ttfb!)} | Total: ${formatDuration(
+            textResult.totalTime!
+          )} | ${textResult.tokensPerSec} tok/s`
+        );
+      } else {
+        console.log(`❌ ${textResult.error}`);
+      }
+
+      process.stdout.write("      • With vision: ");
+      const visionResult = await testMoonshotModel(moonshotKey, model, true);
+      if (visionResult.success) {
+        console.log(
+          `✅ TTFB: ${formatDuration(visionResult.ttfb!)} | Total: ${formatDuration(
+            visionResult.totalTime!
+          )} | ${visionResult.tokensPerSec} tok/s`
+        );
+      } else {
+        console.log(`❌ ${visionResult.error}`);
+      }
+
+      results.push({
+        provider: "moonshot",
+        model,
+        category: "latest",
+        textOnly: textResult,
+        withVision: visionResult,
+      });
+
+      console.log("");
+    }
+  } else {
+    console.log("⚠️  Skipping Moonshot tests (no API key)\n");
+  }
+
   // Summary
   console.log("\n" + "=".repeat(80));
   console.log("📈 BENCHMARK SUMMARY\n");
@@ -951,6 +1157,32 @@ async function main() {
     console.log("");
   }
 
+  // Moonshot summary
+  const moonshotResults = results.filter((r) => r.provider === "moonshot");
+  if (moonshotResults.length > 0) {
+    console.log("🌙 MOONSHOT:");
+    const moonshotSuccess = moonshotResults.filter(
+      (r) => r.textOnly.success || r.withVision.success
+    );
+    console.log(`   ${moonshotSuccess.length}/${moonshotResults.length} models working\n`);
+
+    const moonshotBySpeed = moonshotResults
+      .filter((r) => r.textOnly.success)
+      .sort((a, b) => (a.textOnly.ttfb || 0) - (b.textOnly.ttfb || 0));
+
+    if (moonshotBySpeed.length > 0) {
+      console.log("   Fastest (by TTFB):");
+      for (const r of moonshotBySpeed.slice(0, 3)) {
+        console.log(
+          `      ${r.model.padEnd(30)} ${formatDuration(r.textOnly.ttfb!).padStart(
+            8
+          )} | ${r.textOnly.tokensPerSec} tok/s`
+        );
+      }
+    }
+    console.log("");
+  }
+
   // Vision support summary
   console.log("👁️  VISION SUPPORT:");
   const visionWorking = results.filter((r) => r.withVision.success);
@@ -981,7 +1213,9 @@ async function main() {
   console.log(
     `   OpenAI: ${openaiResults.length * 2} tests | Anthropic: ${
       anthropicResults.length * 2
-    } tests | Grok: ${grokResults.length * 2} tests`
+    } tests | Grok: ${grokResults.length * 2} tests | Moonshot: ${
+      moonshotResults.length * 2
+    } tests`
   );
 
   if (successfulTests < totalTests) {
