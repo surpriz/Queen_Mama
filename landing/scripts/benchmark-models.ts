@@ -77,7 +77,6 @@ const GROK_MODELS = {
 const MOONSHOT_MODELS = {
   k2_latest: [
     "kimi-k2.5",                    // K2.5 - Flagship 1T params (262K context)
-    "kimi-k2-0905-Preview",         // K2 Preview - Sept 2024 release
     "kimi-k2-turbo-preview",        // K2 Turbo - Speed-optimized
   ],
   k2_thinking: [
@@ -631,12 +630,18 @@ async function testMoonshotModel(
   let tokenCount = 0;
 
   try {
+    // K2.5 only supports temperature=1 (like GPT-5)
+    const supportsCustomTemperature = !model.includes("k2.5");
+
     const body: Record<string, unknown> = {
       model,
       stream: true,
       max_tokens: 100,
-      temperature: 0.7,
     };
+
+    if (supportsCustomTemperature) {
+      body.temperature = 0.7;
+    }
 
     if (withVision) {
       body.messages = [

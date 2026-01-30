@@ -87,7 +87,6 @@ const MODEL_TESTS = {
     url: "https://api.moonshot.ai/v1/chat/completions",
     models: [
       "kimi-k2.5",                    // K2.5 - Flagship 1T params
-      "kimi-k2-0905-Preview",         // K2 Preview - Sept 2024
       "kimi-k2-turbo-preview",        // K2 Turbo - Speed-optimized
       "kimi-k2-thinking",             // K2 Thinking - Reasoning
       "kimi-k2-thinking-turbo",       // K2 Thinking Turbo - Fast reasoning

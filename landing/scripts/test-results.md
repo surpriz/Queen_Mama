@@ -1,4 +1,4 @@
-# Comprehensive Model Testing & Benchmark Results
+# Comprehensive Model Testing & Production Recommendations
 
 **Last Updated:** 2026-01-30
 **Scripts:**
@@ -9,267 +9,360 @@
 
 ## 🎯 Executive Summary
 
-**Total Models Tested: 21 models across 3 providers**
+**Total Models Tested: 28 models across 4 providers**
 
-| Provider | Models | Success Rate | TTFB Champion | Tokens/sec Champion |
-|----------|--------|--------------|---------------|---------------------|
-| **OpenAI** | 7 | 86% (6/7) | gpt-4o (332ms) | gpt-4o-mini (33.9) |
-| **Anthropic** | 8 | **100%** ✅ | claude-3-haiku (540ms) | claude-3-haiku (22.2) |
-| **Grok** | 6 | **100%** ✅ | grok-3-beta (418ms) | **grok-4-1-fast (34.9)** 🏆 |
+| Provider | Models | Success Rate | Vision Support | TTFB Champion | Tokens/sec Champion |
+|----------|--------|--------------|----------------|---------------|---------------------|
+| **OpenAI** | 7 | 86% (6/7) | 6/6 available ✅ | gpt-4o (599ms vision) | gpt-4o-mini (10.7 vision) |
+| **Anthropic** | 8 | **100%** ✅ | 8/8 (100%) ✅ | **claude-3-haiku (541ms vision)** 🏆 | **claude-3-haiku (16.5 vision)** 🏆 |
+| **Grok** | 6 | **100%** ✅ | 3/6 (50%) | grok-4-1-fast (664ms vision) | grok-4-1-fast (0 vision*) |
+| **Moonshot** | 7 | **100%** ✅ | 1/7 (14%) | kimi-k2.5 (1.51s vision) | kimi-k2.5 (0 vision) |
 
-**🏆 GLOBAL CHAMPIONS:**
-- **Fastest TTFB:** gpt-4o (332ms)
-- **Best Throughput:** grok-4-1-fast-non-reasoning (34.9 tok/s) 🚀
-- **Vision Champion:** claude-3-haiku (519ms)
-- **Most Reliable:** Anthropic & Grok (100% success rate)
-
----
-
-## 📊 Comprehensive Benchmark Results
-
-### Performance Metrics Explained
-
-- **TTFB (Time To First Byte):** Latency before receiving the first token - critical for UX
-- **Total Time:** Complete generation time for ~100 token response
-- **Tokens/sec:** Generation throughput - higher is better
-- **Vision Support:** Ability to process image inputs
+**🏆 GLOBAL CHAMPIONS (Vision Support Included):**
+- **Fastest Vision TTFB:** claude-3-haiku-20240307 (541ms) 🥇
+- **Best Vision Throughput:** claude-3-haiku-20240307 (16.5 tok/s) 🥇
+- **Best Text-Only TTFB:** grok-3-mini-beta (367ms)
+- **Best Text-Only Throughput:** grok-4-1-fast-non-reasoning (46.1 tok/s)
 
 ---
 
-## 🤖 OpenAI Models (6/7 working - 86%)
+## 🚀 PRODUCTION CASCADE RECOMMENDATIONS
 
-### Standard Mode Champions
-
-| Model | TTFB | Tokens/sec | Vision TTFB | Status |
-|-------|------|------------|-------------|--------|
-| **gpt-4o** 🥇 | **332ms** | 22.7 | 1.53s | ✅ **FASTEST OVERALL** |
-| **gpt-4o-mini** 🥈 | 432ms | **33.9** | 572ms | ✅ Best throughput |
-| **gpt-4.1-mini** 🥉 | 530ms | 30.3 | 720ms | ✅ Excellent balance |
-| gpt-5-mini | 1.75s | 0 | 2.22s | ✅ Slow |
-
-**Context Windows:**
-- gpt-4o/gpt-4o-mini: 128K tokens
-- gpt-5-mini: 200K tokens
-- gpt-4.1-mini: 200K tokens
-
-### Smart Mode
-
-| Model | TTFB | Tokens/sec | Vision | Status |
-|-------|------|------------|--------|--------|
-| o4-mini | 1.21s | 0 | 1.67s | ✅ Reasoning model |
-| gpt-5 | 1.90s | 0 | 3.13s | ✅ Flagship |
-| o1-mini | N/A | N/A | N/A | ❌ Not available |
-
-**Analysis:**
-- **gpt-4o** is the clear winner for speed-sensitive applications
-- **gpt-4o-mini** offers the best cost/performance ratio with excellent throughput
-- **gpt-4.1-mini** provides great balance for standard workloads
-- Reasoning models (o4-mini, gpt-5) show 0 tok/s due to streaming behavior
-
-**Pricing (per MTok):**
-- gpt-4o: $2.50 in / $10 out
-- gpt-4o-mini: $0.15 in / $0.60 out
-- gpt-5: $10 in / $40 out
+### Criteria for Selection:
+- ✅ **Vision + Text support required** (modes Standard & Smart)
+- ✅ **Fastest TTFB** (low latency)
+- ✅ **High throughput** (tokens/sec)
+- ✅ **High reliability** (100% uptime)
+- ⏸️ **Cost optimization** (deferred for later)
 
 ---
 
-## 🟣 Anthropic Models (8/8 working - 100%) ✅
+## 📱 MODE STANDARD (Real-Time Assistance)
 
-### Latest Models (Claude 4.5 Family)
+**Use Case:** Instant AI suggestions during meetings/calls with screenshot context
 
-| Model | TTFB | Tokens/sec | Vision TTFB | Context | Status |
-|-------|------|------------|-------------|---------|--------|
-| **claude-haiku-4.5** 🥇 | 1.70s | 4.6 | **841ms** | 200K | ✅ Fastest vision |
-| **claude-sonnet-4.5** 🥈 | 1.29s | 5.7 | 1.53s | 200K/1M* | ✅ Best for agents |
-| **claude-opus-4.5** 🥉 | 1.80s | 4.0 | 2.56s | 200K | ✅ Max intelligence |
+### Recommended Cascade (Vision Required):
 
-\*1M context with beta header
+| Rank | Model | TTFB (Vision) | Throughput (Vision) | Context | Pricing |
+|------|-------|---------------|---------------------|---------|---------|
+| **🥇 #1** | **claude-3-haiku-20240307** | **541ms** | **16.5 tok/s** | 200K | $0.25/$1.25 per MTok |
+| **🥈 #2** | **gpt-4o** | **599ms** | **10.1 tok/s** | 128K | $2.50/$10 per MTok |
+| **🥉 #3** | **claude-haiku-4-5-20251001** | **633ms** | **9.4 tok/s** | 200K | $1/$5 per MTok |
+| #4 | claude-3-7-sonnet-20250219 | 669ms | 10.4 tok/s | 200K | $3/$15 per MTok |
+| #5 | gpt-4o-mini | 736ms | 10.7 tok/s | 128K | $0.15/$0.60 per MTok |
 
-### Legacy Models (Still Excellent)
+**Why This Order:**
+1. **claude-3-haiku (Legacy)** - Unbeatable combination: fastest vision TTFB (541ms) + highest vision throughput (16.5 tok/s) + cheapest ($0.25/$1.25). Perfect for real-time use.
+2. **gpt-4o** - Excellent fallback with 599ms vision TTFB, solid 10.1 tok/s, and broader model capabilities
+3. **claude-haiku-4.5 (Latest)** - Modern replacement for Haiku 3, slightly slower but more capable
+4. **claude-3-7-sonnet** - Balanced intelligence/speed, 669ms is still excellent
+5. **gpt-4o-mini** - Cost-effective backup with good throughput (10.7 tok/s)
 
-| Model | TTFB | Tokens/sec | Vision TTFB | Status |
-|-------|------|------------|-------------|--------|
-| **claude-3-haiku** 🏆 | **540ms** | **22.2** | **519ms** | ✅ **FASTEST ANTHROPIC** |
-| **claude-3.7-sonnet** | 664ms | 7.5 | 1.01s | ✅ Great balance |
-| **claude-sonnet-4** | 1.23s | 5.3 | 1.44s | ✅ Reliable |
-| claude-opus-4.1 | 1.47s | 4.1 | 1.39s | ✅ Premium |
-| claude-opus-4 | 1.21s | 3.7 | 1.55s | ✅ Legacy flagship |
+---
+
+## 🧠 MODE SMART (Advanced Reasoning)
+
+**Use Case:** Complex analysis, objection handling, strategic suggestions
+
+### Recommended Cascade (Reasoning + Vision Required):
+
+| Rank | Model | TTFB (Vision) | Throughput (Vision) | Context | Pricing |
+|------|-------|---------------|---------------------|---------|---------|
+| **🥇 #1** | **kimi-k2.5** | **1.51s** | **0 tok/s*** | 262K | ~$0.60/$2.50 per MTok |
+| **🥈 #2** | **o4-mini** | **1.92s** | **0 tok/s*** | 200K | ~$1/$4 per MTok |
+| **🥉 #3** | **claude-opus-4-5-20251101** | **2.09s** | **5.5 tok/s** | 200K | $5/$25 per MTok |
+| #4 | gpt-5 | 3.18s | 0 tok/s* | 200K | $10/$40 per MTok |
+
+**\*0 tok/s = Reasoning models don't stream tokens normally**
+
+**Why This Order:**
+1. **kimi-k2.5** - Fastest reasoning model with vision (1.51s), 1T parameters, massive 262K context, best value
+2. **o4-mini** - Proven OpenAI reasoning, 1.92s is acceptable for complex analysis
+3. **claude-opus-4.5** - Not pure reasoning but flagship intelligence, actually streams (5.5 tok/s), excellent for complex tasks
+4. **gpt-5** - OpenAI flagship, but slowest (3.18s vision TTFB)
+
+---
+
+## 📝 MODE RÉCAPITULATIF (Meeting Summary)
+
+**Use Case:** Post-meeting summary generation (no vision needed)
+
+### Recommended Cascade (Text-Only, Speed Priority):
+
+| Rank | Model | TTFB (Text) | Throughput (Text) | Context | Pricing |
+|------|-------|-------------|-------------------|---------|---------|
+| **🥇 #1** | **grok-4-1-fast-non-reasoning** | **431ms** | **46.1 tok/s** | 2M | Competitive |
+| **🥈 #2** | **moonshot-v1-128k** | **561ms** | **38.7 tok/s** | 128K | ~$0.60/$2.50 per MTok |
+| **🥉 #3** | **kimi-k2-turbo-preview** | **611ms** | **37 tok/s** | 262K | ~$1.15/$8 per MTok |
+| #4 | moonshot-v1-32k | 547ms | 32.7 tok/s | 32K | ~$0.60/$2.50 per MTok |
+| #5 | claude-3-haiku-20240307 | 675ms | 13.3 tok/s | 200K | $0.25/$1.25 per MTok |
+
+**Why This Order:**
+1. **grok-4-1-fast-non-reasoning** - Absolute speed champion (431ms TTFB, 46.1 tok/s), huge 2M context for long meetings
+2. **moonshot-v1-128k** - Excellent throughput (38.7 tok/s) + 128K context, ultra-cheap
+3. **kimi-k2-turbo-preview** - Speed-optimized (37 tok/s), 262K context for comprehensive summaries
+4. **moonshot-v1-32k** - Fastest TTFB among Moonshot V1 (547ms), solid throughput
+5. **claude-3-haiku** - Reliable fallback, proven quality, cheaper than Claude 4.5
+
+---
+
+## 📊 Complete Benchmark Results by Provider
+
+### 🔵 OpenAI Models (6/7 working - 86%)
+
+#### Standard Mode
+
+| Model | Text TTFB | Text Tok/s | Vision TTFB | Vision Tok/s | Context | Pricing (per MTok) |
+|-------|-----------|------------|-------------|--------------|---------|-------------------|
+| **gpt-4o** 🥇 | 945ms | 15.9 | **599ms** | **10.1** | 128K | $2.50 / $10 |
+| **gpt-4o-mini** 🥈 | 1.04s | **23.1** | 736ms | **10.7** | 128K | $0.15 / $0.60 |
+| **gpt-4.1-mini** 🥉 | 1.01s | 12.9 | 1.18s | 11.4 | 200K | ~$1 / $4 |
+| gpt-5-mini | 2.36s | 0* | 2.35s | 0* | 200K | ~$2 / $8 |
+
+#### Smart Mode (Reasoning)
+
+| Model | Text TTFB | Text Tok/s | Vision TTFB | Vision Tok/s | Context | Pricing (per MTok) |
+|-------|-----------|------------|-------------|--------------|---------|-------------------|
+| **o4-mini** 🥇 | 1.95s | 0* | 1.92s | 0* | 200K | ~$1 / $4 |
+| **gpt-5** | 2.00s | 0* | 3.18s | 0* | 200K | $10 / $40 |
+| ~~o1-mini~~ | ❌ 404 | - | ❌ 404 | - | - | - |
+
+**\*0 tok/s = Reasoning models stream differently**
+
+**Key Insights:**
+- **gpt-4o** dominates for vision tasks (599ms TTFB)
+- **gpt-4o-mini** best cost/performance ratio ($0.15/$0.60) with excellent 10.7 tok/s vision
+- **o4-mini** fastest reasoning with vision (1.92s)
+- All models support vision except unavailable o1-mini
+
+---
+
+### 🟣 Anthropic Models (8/8 working - 100%) ✅
+
+#### Latest Models (Claude 4.5 Family)
+
+| Model | Text TTFB | Text Tok/s | Vision TTFB | Vision Tok/s | Context | Pricing (per MTok) |
+|-------|-----------|------------|-------------|--------------|---------|-------------------|
+| **claude-haiku-4-5-20251001** 🥇 | 590ms | 9.3 | 633ms | 9.4 | 200K | $1 / $5 |
+| **claude-sonnet-4-5-20250929** | 1.32s | 4.6 | 2.85s | 2.9 | 200K/1M* | $3 / $15 |
+| **claude-opus-4-5-20251101** | 2.13s | 3.6 | 2.09s | 5.5 | 200K | $5 / $25 |
+
+**\*1M context with beta header**
+
+#### Legacy Models (Still Excellent)
+
+| Model | Text TTFB | Text Tok/s | Vision TTFB | Vision Tok/s | Context | Pricing (per MTok) |
+|-------|-----------|------------|-------------|--------------|---------|-------------------|
+| **claude-3-haiku-20240307** 🏆 | 675ms | **13.3** | **541ms** 🥇 | **16.5** 🥇 | 200K | $0.25 / $1.25 |
+| **claude-3-7-sonnet-20250219** 🥈 | 592ms | 10.9 | 669ms | 10.4 | 200K | $3 / $15 |
+| claude-sonnet-4-20250514 | 1.31s | 4.9 | 1.79s | 4.2 | 200K/1M* | $3 / $15 |
+| claude-opus-4-1-20250805 | 1.31s | 3.9 | 1.48s | 3.7 | 200K | $5 / $25 |
+| claude-opus-4-20250514 | 1.24s | 3.3 | 1.51s | 4.2 | 200K/1M* | $5 / $25 |
 
 **Key Insights:**
 - **100% success rate** - Most reliable provider
-- **Claude 3 Haiku** remains the performance king (540ms TTFB, 22.2 tok/s)
+- **claude-3-haiku (Legacy)** is the absolute champion: 541ms vision TTFB + 16.5 tok/s vision
 - **Universal vision support** - All 8 models support images
-- **Consistent performance** - Predictable latency across models
-
-**Pricing (per MTok):**
-- Haiku 4.5: $1 in / $5 out (best value)
-- Sonnet 4.5: $3 in / $15 out
-- Opus 4.5: $5 in / $25 out
-- Haiku 3: $0.25 in / $1.25 out (legacy pricing)
-
-**Context Windows:**
-- All models: 200K tokens standard
-- Sonnet 4.5 & 4: 1M tokens with beta header
+- **Best value**: claude-3-haiku at $0.25/$1.25 per MTok
+- Legacy models (Claude 3) outperform newer Claude 4.5 in speed
 
 ---
 
-## ⚡ Grok Models (6/6 working - 100%) ✅ NEW!
+### ⚡ Grok Models (6/6 working - 100%) ✅
 
-### Latest Models (Grok 4 Family)
+#### Latest Models (Grok 4 Family)
 
-| Model | TTFB | Tokens/sec | Vision | Context | Status |
-|-------|------|------------|--------|---------|--------|
-| **grok-4-1-fast-non-reasoning** 🏆 | 433ms | **34.9** | 1.35s | 2M | ✅ **THROUGHPUT CHAMPION** |
-| **grok-4-1-fast-reasoning** | 2.29s | 7.9 | 872ms | 2M | ✅ With reasoning |
-| grok-4 | 2.51s | 9.6 | 5.41s | 256K | ✅ Standard |
+| Model | Text TTFB | Text Tok/s | Vision TTFB | Vision Tok/s | Context | Pricing |
+|-------|-----------|------------|-------------|--------------|---------|---------|
+| **grok-4-1-fast-non-reasoning** 🏆 | **431ms** 🥇 | **46.1** 🥇 | 664ms | 0* | 2M | Competitive |
+| **grok-4-1-fast-reasoning** | 3.55s | 4.9 | 1.02s | 0* | 2M | Competitive |
+| grok-4 | 3.79s | 7 | 5.47s | 0* | 256K | Competitive |
 
-### Specialized Models
+**\*Vision returns 0 tok/s (streaming issue or reasoning mode)**
 
-| Model | TTFB | Tokens/sec | Vision | Context | Status |
-|-------|------|------------|--------|---------|--------|
-| **grok-3-beta** 🥈 | **418ms** | 17.6 | ❌ | 131K | ✅ **2nd FASTEST TTFB** |
-| grok-code-fast-1 | 473ms | 12.0 | ❌ | 256K | ✅ Coding-optimized |
-| grok-3-mini-beta | 731ms | 8.0 | ❌ | 131K | ✅ Lightweight |
+#### Specialized Models
+
+| Model | Text TTFB | Text Tok/s | Vision | Context | Pricing |
+|-------|-----------|------------|--------|---------|---------|
+| **grok-3-mini-beta** 🥇 | **367ms** 🥇 | 10 | ❌ | 131K | Competitive |
+| **grok-3-beta** 🥈 | 703ms | **23.7** | ❌ | 131K | Competitive |
+| grok-code-fast-1 | 1.28s | 12.6 | ❌ | 256K | Competitive |
 
 **Key Insights:**
-- **grok-4-1-fast-non-reasoning** is the absolute throughput champion (34.9 tok/s)
-- **grok-3-beta** has 2nd fastest TTFB globally (418ms)
-- **100% success rate** for core functionality
-- Vision support only on Grok 4 family (3/6 models)
-- Massive 2M context window on Grok 4.1 models
-
-**Context Windows:**
-- Grok 4.1: 2M tokens (largest available)
-- Grok 4: 256K tokens
-- Grok 3: 131K tokens
-
-**Pricing:**
-- Competitive with OpenAI pricing tier
-- Real-time X (Twitter) search integration included
-- Tool calling with $5 per 1,000 calls
+- **grok-4-1-fast-non-reasoning** - Absolute throughput champion (46.1 tok/s) + fastest TTFB (431ms)
+- **grok-3-mini-beta** - Fastest TTFB globally (367ms) but no vision
+- **Massive 2M context** on Grok 4.1 models - best for long meetings
+- Only Grok 4 family supports vision (3/6 models)
+- Vision mode has streaming issues (0 tok/s) but works functionally
 
 ---
 
-## 🏆 Global Rankings
+### 🌙 Moonshot Models (7/7 working - 100%) ✅
 
-### Top 5 - Fastest TTFB
+#### K2 Latest Models
 
-1. **gpt-4o** - 332ms (OpenAI) 🥇
-2. **grok-3-beta** - 418ms (Grok) 🥈
-3. **gpt-4o-mini** - 432ms (OpenAI) 🥉
-4. **grok-4-1-fast-non-reasoning** - 433ms (Grok)
-5. **grok-code-fast-1** - 473ms (Grok)
+| Model | Text TTFB | Text Tok/s | Vision TTFB | Vision Tok/s | Context | Pricing (per MTok) |
+|-------|-----------|------------|-------------|--------------|---------|-------------------|
+| **kimi-k2.5** 🥇 | 984ms | 0* | 1.51s | 0* | 262K | ~$0.60 / $2.50 |
+| **kimi-k2-turbo-preview** 🥈 | 611ms | **37** 🥈 | ❌ | - | 262K | ~$1.15 / $8 |
 
-### Top 5 - Best Throughput (Tokens/sec)
+**\*Reasoning model - 1T parameters, agent swarm capable**
 
-1. **grok-4-1-fast-non-reasoning** - 34.9 tok/s (Grok) 🏆
-2. **gpt-4o-mini** - 33.9 tok/s (OpenAI)
-3. **gpt-4.1-mini** - 30.3 tok/s (OpenAI)
-4. **gpt-4o** - 22.7 tok/s (OpenAI)
-5. **claude-3-haiku** - 22.2 tok/s (Anthropic)
+#### K2 Thinking Models (Reasoning)
 
-### Top 3 - Vision Performance
+| Model | Text TTFB | Text Tok/s | Vision | Context | Pricing (per MTok) |
+|-------|-----------|------------|--------|---------|-------------------|
+| **kimi-k2-thinking-turbo** 🥇 | 566ms | 0* | ❌ | 262K | ~$1.15 / $8 |
+| kimi-k2-thinking | 1.37s | 0* | ❌ | 262K | ~$0.60 / $2.50 |
 
-1. **claude-3-haiku** - 519ms (Anthropic) 🥇
-2. **gpt-4o-mini** - 572ms (OpenAI) 🥈
-3. **claude-haiku-4.5** - 841ms (Anthropic) 🥉
+**\*Reasoning models**
+
+#### V1 Legacy Models
+
+| Model | Text TTFB | Text Tok/s | Vision | Context | Pricing (per MTok) |
+|-------|-----------|------------|--------|---------|-------------------|
+| **moonshot-v1-128k** 🥇 | 561ms | **38.7** 🥇 | ❌ | 128K | ~$0.60 / $2.50 |
+| **moonshot-v1-32k** 🥈 | 547ms 🥇 | **32.7** | ❌ | 32K | ~$0.60 / $2.50 |
+| **moonshot-v1-8k** | 634ms | **32.8** | ❌ | 8K | ~$0.60 / $2.50 |
+
+**Key Insights:**
+- **moonshot-v1-128k** - 2nd best throughput globally (38.7 tok/s)
+- **kimi-k2-turbo-preview** - 3rd best throughput globally (37 tok/s)
+- **Only kimi-k2.5 supports vision** among Moonshot models
+- **Best value**: V1 models at ~$0.60/$2.50 with excellent performance
+- **K2.5 flagship**: 1T params, reasoning, vision, 262K context
 
 ---
 
 ## 👁️ Vision Support Matrix
 
-**17/21 models support vision (81%)**
+**18/28 models support vision (64%)**
 
-| Provider | Vision Support | Models |
-|----------|----------------|--------|
-| **Anthropic** | 8/8 (100%) ✅ | All Claude models |
-| **OpenAI** | 6/6 available (100%) ✅ | All except o1-mini (unavailable) |
-| **Grok** | 3/6 (50%) | Grok 4 family only |
+| Provider | Vision Support | Best Vision Model |
+|----------|----------------|-------------------|
+| **Anthropic** | 8/8 (100%) ✅ | claude-3-haiku (541ms, 16.5 tok/s) |
+| **OpenAI** | 6/6 available (100%) ✅ | gpt-4o (599ms, 10.1 tok/s) |
+| **Grok** | 3/6 (50%) | grok-4-1-fast-non-reasoning (664ms, 0 tok/s*) |
+| **Moonshot** | 1/7 (14%) | kimi-k2.5 (1.51s, 0 tok/s*) |
 
-**Vision Capabilities:**
-- **Max image size:** 20MB (Grok), varies by provider
-- **Formats:** JPG, PNG universally supported
-- **Multiple images:** All providers support multiple images per request
-
----
-
-## 💡 Production Recommendations
-
-### For Maximum Speed (TTFB)
-**Use Case:** Real-time chat, instant responses
-
-1. **gpt-4o** (332ms) - Fastest overall, excellent quality
-2. **grok-3-beta** (418ms) - Very fast, good for general queries
-3. **gpt-4o-mini** (432ms) - Fast with best throughput
-
-### For Maximum Throughput (Tokens/sec)
-**Use Case:** Bulk processing, long-form generation
-
-1. **grok-4-1-fast-non-reasoning** (34.9 tok/s) - Absolute champion
-2. **gpt-4o-mini** (33.9 tok/s) - OpenAI champion
-3. **gpt-4.1-mini** (30.3 tok/s) - Reliable high throughput
-
-### For Vision Tasks
-**Use Case:** Image analysis, multimodal applications
-
-1. **claude-3-haiku** (519ms) - Fastest vision processing
-2. **gpt-4o-mini** (572ms) - Fast & cost-effective
-3. **claude-haiku-4.5** (841ms) - Modern vision capabilities
-
-### For Coding Tasks
-**Use Case:** Code generation, debugging, reviews
-
-1. **grok-code-fast-1** (473ms, 12 tok/s) - Specialized for code
-2. **claude-sonnet-4.5** (1.29s, 5.7 tok/s) - Excellent code understanding
-3. **gpt-4.1-mini** (530ms, 30.3 tok/s) - Fast code generation
-
-### For Maximum Intelligence
-**Use Case:** Complex reasoning, research, analysis
-
-1. **claude-opus-4.5** (1.80s) - Premium intelligence
-2. **claude-sonnet-4.5** (1.29s) - Best balance intelligence/speed
-3. **gpt-5** (1.90s) - OpenAI flagship
-
-### For Cost Optimization
-**Use Case:** High-volume, budget-conscious applications
-
-1. **claude-3-haiku** ($0.25/$1.25 per MTok) - Incredible value
-2. **gpt-4o-mini** ($0.15/$0.60 per MTok) - Cheapest with great performance
-3. **claude-haiku-4.5** ($1/$5 per MTok) - Modern capabilities at low cost
-
-### For Reliability
-**Use Case:** Production systems requiring high uptime
-
-1. **Anthropic** (100% success rate, 8/8 models)
-2. **Grok** (100% success rate, 6/6 models)
-3. **OpenAI** (86% success rate, 6/7 models)
+**Vision Champions:**
+1. **claude-3-haiku-20240307** - 541ms TTFB, 16.5 tok/s 🏆
+2. **gpt-4o** - 599ms TTFB, 10.1 tok/s
+3. **claude-haiku-4-5-20251001** - 633ms TTFB, 9.4 tok/s
 
 ---
 
-## 📊 Success Rate Analysis
+## 🏆 Global Rankings
 
-### Overall Performance
+### Top 5 - Fastest Vision TTFB (Critical for Real-Time UX)
 
-| Metric | OpenAI | Anthropic | Grok |
-|--------|--------|-----------|------|
-| **Models Tested** | 7 | 8 | 6 |
-| **Success Rate** | 86% | **100%** ✅ | **100%** ✅ |
-| **Vision Support** | 100%* | 100% | 50% |
-| **Tests Passed** | 12/14 | 16/16 | 9/12 |
+1. **claude-3-haiku-20240307** - 541ms (Anthropic) 🥇
+2. **gpt-4o** - 599ms (OpenAI) 🥈
+3. **claude-haiku-4-5-20251001** - 633ms (Anthropic) 🥉
+4. **grok-4-1-fast-non-reasoning** - 664ms (Grok)
+5. **claude-3-7-sonnet-20250219** - 669ms (Anthropic)
 
-\*Of available models (o1-mini unavailable)
+### Top 5 - Best Vision Throughput (Tokens/sec)
 
-### Common Issues
+1. **claude-3-haiku-20240307** - 16.5 tok/s (Anthropic) 🏆
+2. **gpt-4o-mini** - 10.7 tok/s (OpenAI)
+3. **claude-3-7-sonnet-20250219** - 10.4 tok/s (Anthropic)
+4. **gpt-4o** - 10.1 tok/s (OpenAI)
+5. **claude-haiku-4-5-20251001** - 9.4 tok/s (Anthropic)
 
-**OpenAI:**
-- o1-mini: Model not found (404) - account access issue
+### Top 5 - Fastest Text-Only TTFB (For Recap Mode)
 
-**Grok:**
-- Vision not supported on Grok 3 family (expected behavior)
-- Vision not supported on specialized models (by design)
+1. **grok-3-mini-beta** - 367ms (Grok) 🥇
+2. **grok-4-1-fast-non-reasoning** - 431ms (Grok) 🥈
+3. **moonshot-v1-32k** - 547ms (Moonshot) 🥉
+4. **moonshot-v1-128k** - 561ms (Moonshot)
+5. **kimi-k2-thinking-turbo** - 566ms (Moonshot)
 
-**Anthropic:**
-- No issues - perfect performance ✅
+### Top 5 - Best Text-Only Throughput (For Recap Mode)
+
+1. **grok-4-1-fast-non-reasoning** - 46.1 tok/s (Grok) 🏆
+2. **moonshot-v1-128k** - 38.7 tok/s (Moonshot)
+3. **kimi-k2-turbo-preview** - 37 tok/s (Moonshot)
+4. **moonshot-v1-8k** - 32.8 tok/s (Moonshot)
+5. **moonshot-v1-32k** - 32.7 tok/s (Moonshot)
+
+---
+
+## 💰 Cost Analysis (Per Million Tokens)
+
+### Most Cost-Effective Models
+
+| Model | Input | Output | Vision | Use Case |
+|-------|-------|--------|--------|----------|
+| **gpt-4o-mini** | $0.15 | $0.60 | ✅ | Best OpenAI value |
+| **claude-3-haiku** | $0.25 | $1.25 | ✅ | Best overall value + performance |
+| **moonshot-v1-*** | ~$0.60 | ~$2.50 | ❌ | Best text-only value |
+| **claude-haiku-4.5** | $1 | $5 | ✅ | Modern affordable option |
+| **kimi-k2.5** | ~$0.60 | ~$2.50 | ✅ | Best reasoning value |
+
+### Premium Models
+
+| Model | Input | Output | Vision | Use Case |
+|-------|-------|--------|--------|----------|
+| **claude-opus-4.5** | $5 | $25 | ✅ | Maximum intelligence |
+| **gpt-5** | $10 | $40 | ✅ | OpenAI flagship reasoning |
+| **claude-3-7-sonnet** | $3 | $15 | ✅ | Balanced premium |
+
+---
+
+## 🎯 Production Implementation Guide
+
+### Current Production Cascade (lib/ai-providers.ts)
+
+Based on benchmark results, **RECOMMENDED UPDATE**:
+
+```typescript
+// MODE STANDARD (Real-time assistance with vision)
+const STANDARD_CASCADE = [
+  "claude-3-haiku-20240307",      // #1: 541ms vision, 16.5 tok/s, $0.25/$1.25
+  "gpt-4o",                        // #2: 599ms vision, 10.1 tok/s, $2.50/$10
+  "claude-haiku-4-5-20251001",    // #3: 633ms vision, 9.4 tok/s, $1/$5
+  "claude-3-7-sonnet-20250219",   // #4: 669ms vision, 10.4 tok/s, $3/$15
+  "gpt-4o-mini",                   // #5: 736ms vision, 10.7 tok/s, $0.15/$0.60
+];
+
+// MODE SMART (Reasoning with vision)
+const SMART_CASCADE = [
+  "kimi-k2.5",                     // #1: 1.51s vision, 1T params, $0.60/$2.50
+  "o4-mini",                       // #2: 1.92s vision, proven reasoning
+  "claude-opus-4-5-20251101",     // #3: 2.09s vision, 5.5 tok/s, flagship
+  "gpt-5",                         // #4: 3.18s vision, OpenAI flagship
+];
+
+// MODE RECAP (Text-only, speed priority)
+const RECAP_CASCADE = [
+  "grok-4-1-fast-non-reasoning",  // #1: 431ms, 46.1 tok/s, 2M context
+  "moonshot-v1-128k",             // #2: 561ms, 38.7 tok/s, $0.60/$2.50
+  "kimi-k2-turbo-preview",        // #3: 611ms, 37 tok/s, 262K context
+  "moonshot-v1-32k",              // #4: 547ms, 32.7 tok/s
+  "claude-3-haiku-20240307",      // #5: 675ms, 13.3 tok/s, reliable
+];
+```
+
+### Why These Choices:
+
+**Standard Mode:**
+- **Priority: Speed + Vision + Reliability**
+- claude-3-haiku is unbeatable: fastest vision (541ms) + highest vision throughput (16.5 tok/s) + cheapest
+- Anthropic models dominate top 3 spots due to superior vision performance
+- All 5 models have 100% vision support
+
+**Smart Mode:**
+- **Priority: Reasoning + Vision + Intelligence**
+- kimi-k2.5 is fastest reasoning with vision (1.51s) + 1T params + massive 262K context
+- All 4 models support vision for screenshot analysis during complex reasoning
+- Balanced between speed and intelligence
+
+**Recap Mode:**
+- **Priority: Speed + Throughput + Long Context**
+- Vision NOT required, so can use fastest text-only models
+- grok-4-1-fast dominates with 431ms + 46.1 tok/s + 2M context for long meetings
+- Moonshot models provide excellent backup with 38.7 tok/s + ultra-cheap pricing
 
 ---
 
@@ -286,10 +379,9 @@
 - **Method:** Streaming tests with ~100 token responses
 - **Includes:**
   - Text-only generation
-  - Vision input processing
-  - TTFB measurement
-  - Throughput calculation
-- **Duration:** ~5-10 minutes for all providers
+  - Vision input processing (base64 PNG image)
+  - TTFB measurement (time to first byte)
+  - Throughput calculation (tokens/second)
 - **Test Prompt:** "Explain quantum computing in one short sentence"
 - **Vision Test:** 1x1 red pixel PNG (base64 encoded)
 
@@ -300,6 +392,8 @@
 URL: https://api.openai.com/v1/chat/completions
 Auth: Bearer token
 Streaming: SSE format
+Special: GPT-5/o4 models require max_completion_tokens instead of max_tokens
+        GPT-5 models only support temperature=1
 ```
 
 **Anthropic:**
@@ -317,59 +411,99 @@ Auth: Bearer token
 Streaming: SSE format (OpenAI-compatible)
 ```
 
+**Moonshot:**
+```typescript
+URL: https://api.moonshot.ai/v1/chat/completions
+Auth: Bearer token
+Streaming: SSE format (OpenAI-compatible)
+Special: kimi-k2.5 only supports temperature=1 (like GPT-5)
+```
+
+---
+
+## 📊 Success Rate Analysis
+
+### Overall Performance
+
+| Metric | OpenAI | Anthropic | Grok | Moonshot |
+|--------|--------|-----------|------|----------|
+| **Models Tested** | 7 | 8 | 6 | 7 |
+| **Success Rate** | 86% | **100%** ✅ | **100%** ✅ | **100%** ✅ |
+| **Vision Support** | 100%* | 100% | 50% | 14% |
+| **Tests Passed** | 12/14 | 16/16 | 9/12 | 14/14 |
+
+**\*Of available models (o1-mini unavailable)**
+
+### Common Issues
+
+**OpenAI:**
+- o1-mini: Model not found (404) - account access issue
+
+**Grok:**
+- Vision not supported on Grok 3 family (expected behavior)
+- Vision returns 0 tok/s on Grok 4 (streaming issue but functional)
+
+**Anthropic:**
+- No issues - perfect performance ✅
+
+**Moonshot:**
+- Vision only on kimi-k2.5 (expected - other models are text-only)
+- kimi-k2.5 requires temperature=1 (like GPT-5)
+
 ---
 
 ## 📈 Historical Performance Trends
 
 **Key Observations:**
 
-1. **Grok emergence** - New competitor with industry-leading throughput
-2. **Anthropic reliability** - Consistent 100% uptime across tests
-3. **OpenAI speed leadership** - gpt-4o maintains fastest TTFB
-4. **Vision universality** - Almost all modern models support vision
-5. **Context expansion** - Grok 4.1 introduces 2M context windows
+1. **Anthropic dominance in vision** - Claude 3 Haiku maintains leadership
+2. **Moonshot emergence** - V1 models offer incredible value (38.7 tok/s at $0.60/$2.50)
+3. **Grok speed champion** - 46.1 tok/s text throughput unmatched
+4. **Vision becoming universal** - 18/28 models (64%) now support vision
+5. **Context explosion** - Grok 4.1 introduces 2M tokens, Moonshot K2.5 offers 262K
 
 **Model Evolution:**
-- Grok 4 family launched with massive context windows
-- Claude 4.5 family became the new intelligence standard
-- OpenAI's gpt-4o emerged as speed champion
-- Legacy models (Claude 3, GPT-4) still highly performant
+- Kimi K2.5 launched with vision + reasoning + 1T params
+- Claude 4.5 family became new intelligence standard
+- Grok 4 emerged as speed/throughput champion
+- Legacy models (Claude 3, Moonshot V1) remain highly competitive
 
 ---
 
-## 🎯 Use Case Scenarios
+## 🎯 Final Recommendations Summary
 
-### Real-Time Chat Application
-**Best Choice:** gpt-4o (332ms TTFB)
-**Fallback:** grok-3-beta (418ms) → gpt-4o-mini (432ms)
-**Reasoning:** Sub-500ms response time critical for UX
+### For QueenMama Production:
 
-### Document Processing Pipeline
-**Best Choice:** grok-4-1-fast-non-reasoning (34.9 tok/s)
-**Fallback:** gpt-4o-mini (33.9 tok/s) → gpt-4.1-mini (30.3 tok/s)
-**Reasoning:** High throughput maximizes processing speed
+**✅ IMMEDIATE IMPLEMENTATION:**
 
-### AI Coding Assistant
-**Best Choice:** grok-code-fast-1 (specialized)
-**Fallback:** claude-sonnet-4.5 → gpt-4.1-mini
-**Reasoning:** Code-specific optimization important
+1. **Switch Standard Mode cascade to:**
+   - #1: claude-3-haiku-20240307 (champion performance + best value)
+   - #2: gpt-4o (proven reliable, excellent vision)
+   - #3: claude-haiku-4-5-20251001 (modern backup)
 
-### Image Analysis Service
-**Best Choice:** claude-3-haiku (519ms vision)
-**Fallback:** gpt-4o-mini (572ms) → claude-haiku-4.5 (841ms)
-**Reasoning:** Vision processing speed matters
+2. **Switch Smart Mode cascade to:**
+   - #1: kimi-k2.5 (fastest reasoning with vision, best value)
+   - #2: o4-mini (proven OpenAI reasoning)
+   - #3: claude-opus-4-5 (premium intelligence)
 
-### Research & Analysis
-**Best Choice:** claude-opus-4.5 (max intelligence)
-**Fallback:** claude-sonnet-4.5 → gpt-5
-**Reasoning:** Quality over speed for deep analysis
+3. **Switch Recap Mode cascade to:**
+   - #1: grok-4-1-fast-non-reasoning (46.1 tok/s speed demon)
+   - #2: moonshot-v1-128k (38.7 tok/s, ultra-cheap)
+   - #3: kimi-k2-turbo-preview (37 tok/s, 262K context)
+
+**🔮 FUTURE OPTIMIZATIONS:**
+
+- Monitor pricing changes (currently deprioritized)
+- Test real-world latency from production environment
+- A/B test user satisfaction with different cascades
+- Consider region-specific deployments (Moonshot for APAC, Grok for global)
 
 ---
 
 ## 📝 Notes & Limitations
 
 ### Testing Constraints
-- Tests performed from single geographic location
+- Tests performed from single geographic location (EU Central)
 - Network latency may vary by region
 - API rate limits not tested
 - Results represent snapshot in time
@@ -382,7 +516,7 @@ Streaming: SSE format (OpenAI-compatible)
 - Context limits enforced by providers
 
 ### Vision Testing
-- Limited to simple image (1x1 pixel)
+- Limited to simple image (1x1 pixel PNG)
 - Complex image processing not benchmarked
 - Multiple image scenarios not tested
 - Image size limits vary by provider
@@ -391,17 +525,26 @@ Streaming: SSE format (OpenAI-compatible)
 
 ## 🔄 Update History
 
+**2026-01-30 - Complete 4-Provider Production Recommendations**
+- Comprehensive cascade recommendations for 3 modes
+- Added pricing, context, and detailed performance metrics
+- Production implementation guide
+- Vision support matrix
+- Removed unavailable kimi-k2-0905 model
+- Analyzed 28 models across 4 providers
+
+**2026-01-30 - Moonshot K2/K2.5 Integration**
+- Added 7 Moonshot models (K2.5, K2 Turbo, K2 Thinking, V1 Legacy)
+- Fixed kimi-k2.5 temperature parameter (requires temperature=1)
+- moonshot-v1-128k achieves 38.7 tok/s throughput
+- kimi-k2.5 confirmed as only Moonshot model with vision support
+
 **2026-01-30 - Comprehensive 3-Provider Benchmark**
 - Added Grok models (6 models)
 - Full performance benchmarks for all providers
 - Vision support matrix
 - Throughput measurements
 - Production recommendations
-
-**2026-01-30 - Initial Anthropic Models**
-- Added 8 Anthropic Claude models
-- Basic validation tests
-- Model ID verification
 
 ---
 
