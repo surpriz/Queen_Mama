@@ -83,6 +83,25 @@ const MODEL_TESTS = {
       max_tokens: 10,
     }),
   },
+  moonshot: {
+    url: "https://api.moonshot.ai/v1/chat/completions",
+    models: [
+      "kimi-k2-0905",           // K2 standard - Best value ($0.60/$2.50)
+      "kimi-k2-turbo",          // K2 Turbo - Speed-sensitive ($1.15/$8.00)
+      "kimi-k2.5-0127",         // K2.5 latest - 1T params, agent swarm
+    ],
+    dbProvider: "MOONSHOT" as ApiKeyProvider,
+    getHeaders: (apiKey: string) => ({
+      Authorization: `Bearer ${apiKey}`,
+      "Content-Type": "application/json",
+    }),
+    getBody: (model: string) => ({
+      model,
+      messages: [{ role: "user", content: "Say 'test ok' in 2 words" }],
+      max_tokens: 10,
+      temperature: 0.7,
+    }),
+  },
 };
 
 // Get API key from database
