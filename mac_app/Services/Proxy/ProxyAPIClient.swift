@@ -9,13 +9,23 @@ final class ProxyAPIClient: @unchecked Sendable {
     private let session: URLSession
     private let streamingSession: URLSession  // Separate session with longer timeout for AI streaming
     private let tokenStore = AuthTokenStore.shared
+    private let keychain = KeychainManager.shared
 
     // Cache for proxy configuration
     private var cachedConfig: ProxyConfig?
     private var configCachedAt: Date?
 
-    // Cache for transcription tokens
+    // Cache for transcription tokens (in-memory + Keychain persistence)
     private var cachedTranscriptionToken: TranscriptionToken?
+
+    // Keychain keys for token persistence
+    private enum KeychainKeys {
+        static let transcriptionToken = "transcription_token"
+        static let transcriptionTokenExpiry = "transcription_token_expiry"
+        static let transcriptionTokenType = "transcription_token_type"
+        static let transcriptionProvider = "transcription_provider"
+        static let transcriptionTTL = "transcription_ttl"
+    }
 
     private init() {
         // Configure base URL from environment or default
@@ -68,13 +78,24 @@ final class ProxyAPIClient: @unchecked Sendable {
     // MARK: - Transcription Token
 
     /// Gets a temporary transcription token for direct WebSocket connection
+    /// Checks in-memory cache first, then Keychain, then fetches from network
     func getTranscriptionToken(provider: String = "deepgram") async throws -> TranscriptionToken {
-        // Check if we have a valid cached token
+        // 1. Check in-memory cache
         if let token = cachedTranscriptionToken,
            Date() < token.expiresAt.addingTimeInterval(-60) { // 1 minute buffer
             return token
         }
 
+        // 2. Check Keychain for persisted token
+        if let persistedToken = loadPersistedTranscriptionToken(),
+           persistedToken.provider == provider,
+           Date() < persistedToken.expiresAt.addingTimeInterval(-60) {
+            print("[ProxyAPI] Using persisted token from Keychain (expires: \(persistedToken.expiresAt))")
+            cachedTranscriptionToken = persistedToken
+            return persistedToken
+        }
+
+        // 3. Fetch from network
         let body: [String: String] = ["provider": provider]
         let response: TranscriptionTokenResponse = try await post(
             endpoint: "/api/proxy/transcription/token",
@@ -89,13 +110,89 @@ final class ProxyAPIClient: @unchecked Sendable {
             ttlSeconds: response.ttlSeconds
         )
 
+        // Cache in memory and persist to Keychain
         cachedTranscriptionToken = token
+        persistTranscriptionToken(token)
+
         return token
     }
 
-    /// Clears the transcription token cache
+    /// Pre-fetches a transcription token in background for faster session start
+    /// Call this after authentication or when dashboard appears
+    func prefetchTranscriptionToken(provider: String = "deepgram") {
+        Task {
+            do {
+                let token = try await getTranscriptionToken(provider: provider)
+                print("[ProxyAPI] Token prefetched successfully (expires: \(token.expiresAt))")
+            } catch {
+                print("[ProxyAPI] Token prefetch failed: \(error.localizedDescription)")
+            }
+        }
+    }
+
+    /// Clears the transcription token cache (memory and Keychain)
     func clearTranscriptionTokenCache() {
         cachedTranscriptionToken = nil
+        clearPersistedTranscriptionToken()
+    }
+
+    // MARK: - Token Persistence (Keychain)
+
+    /// Persists transcription token to Keychain for app restart survival
+    private func persistTranscriptionToken(_ token: TranscriptionToken) {
+        do {
+            try keychain.saveString(token.token, forKey: KeychainKeys.transcriptionToken)
+            try keychain.saveString(token.provider, forKey: KeychainKeys.transcriptionProvider)
+            try keychain.saveString(token.tokenType, forKey: KeychainKeys.transcriptionTokenType)
+            try keychain.saveString(String(token.ttlSeconds), forKey: KeychainKeys.transcriptionTTL)
+
+            // Store expiry as ISO8601 string
+            let formatter = ISO8601DateFormatter()
+            try keychain.saveString(formatter.string(from: token.expiresAt), forKey: KeychainKeys.transcriptionTokenExpiry)
+
+            print("[ProxyAPI] Token persisted to Keychain")
+        } catch {
+            print("[ProxyAPI] Failed to persist token: \(error)")
+        }
+    }
+
+    /// Loads persisted transcription token from Keychain
+    private func loadPersistedTranscriptionToken() -> TranscriptionToken? {
+        guard let tokenValue = keychain.getString(forKey: KeychainKeys.transcriptionToken),
+              let provider = keychain.getString(forKey: KeychainKeys.transcriptionProvider),
+              let tokenType = keychain.getString(forKey: KeychainKeys.transcriptionTokenType),
+              let expiryString = keychain.getString(forKey: KeychainKeys.transcriptionTokenExpiry),
+              let ttlString = keychain.getString(forKey: KeychainKeys.transcriptionTTL),
+              let ttl = Int(ttlString) else {
+            return nil
+        }
+
+        let formatter = ISO8601DateFormatter()
+        guard let expiresAt = formatter.date(from: expiryString) else {
+            return nil
+        }
+
+        return TranscriptionToken(
+            provider: provider,
+            token: tokenValue,
+            tokenType: tokenType,
+            expiresAt: expiresAt,
+            ttlSeconds: ttl
+        )
+    }
+
+    /// Clears persisted transcription token from Keychain
+    private func clearPersistedTranscriptionToken() {
+        do {
+            try keychain.deleteString(forKey: KeychainKeys.transcriptionToken)
+            try keychain.deleteString(forKey: KeychainKeys.transcriptionProvider)
+            try keychain.deleteString(forKey: KeychainKeys.transcriptionTokenType)
+            try keychain.deleteString(forKey: KeychainKeys.transcriptionTokenExpiry)
+            try keychain.deleteString(forKey: KeychainKeys.transcriptionTTL)
+            print("[ProxyAPI] Persisted token cleared from Keychain")
+        } catch {
+            // Ignore errors during cleanup
+        }
     }
 
     // MARK: - AI Proxy

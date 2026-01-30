@@ -118,7 +118,11 @@ final class DeepgramProvider: TranscriptionProvider {
             URLQueryItem(name: "punctuate", value: "true"),
             URLQueryItem(name: "encoding", value: "linear16"),
             URLQueryItem(name: "sample_rate", value: "16000"),
-            URLQueryItem(name: "channels", value: "1")
+            URLQueryItem(name: "channels", value: "1"),
+            // Endpointing configuration for better phrase boundary detection
+            URLQueryItem(name: "endpointing", value: "300"),       // 300ms silence = end of speech
+            URLQueryItem(name: "utterance_end_ms", value: "1000"), // 1s silence = end of utterance
+            URLQueryItem(name: "vad_events", value: "true")        // Voice Activity Detection events
         ]
 
         guard let url = components.url else {
@@ -674,7 +678,11 @@ final class DeepgramFluxProvider: TranscriptionProvider {
             URLQueryItem(name: "punctuate", value: "true"),
             URLQueryItem(name: "encoding", value: "linear16"),
             URLQueryItem(name: "sample_rate", value: "16000"),
-            URLQueryItem(name: "channels", value: "1")
+            URLQueryItem(name: "channels", value: "1"),
+            // Endpointing configuration for better phrase boundary detection
+            URLQueryItem(name: "endpointing", value: "300"),       // 300ms silence = end of speech
+            URLQueryItem(name: "utterance_end_ms", value: "1000"), // 1s silence = end of utterance
+            URLQueryItem(name: "vad_events", value: "true")        // Voice Activity Detection events
         ]
 
         guard let url = components.url else {

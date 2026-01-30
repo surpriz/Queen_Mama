@@ -50,6 +50,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                     print("[App] Failed to load proxy config: \(error)")
                 }
 
+                // Pre-fetch transcription token for faster session start
+                // This eliminates 200-400ms delay when user clicks "Start Recording"
+                ProxyAPIClient.shared.prefetchTranscriptionToken()
+
                 // Perform initial sync (upload unsynced + reconcile remote deletions)
                 // Note: Sessions will be passed from SessionListView once it loads
                 await SyncManager.shared.reconcileRemoteDeletions()

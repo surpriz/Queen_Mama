@@ -41,6 +41,14 @@ final class TranscriptionService: ObservableObject {
     private let maxReconnectAttempts = 3
     private var intentionalDisconnect = false
 
+    // MARK: - Audio Batching Configuration
+    // Accumulates audio buffers to reduce WebSocket message frequency by ~50%
+
+    private var audioBatchBuffer = Data()
+    private var audioBatchTimer: Timer?
+    private let batchIntervalMs: Int = 400      // Max time before flushing batch (ms)
+    private let maxBatchSize: Int = 32000       // ~1 second of 16kHz mono audio
+
     // MARK: - Initialization
 
     init() {
@@ -89,6 +97,10 @@ final class TranscriptionService: ObservableObject {
     func disconnect() {
         print("[Transcription] Disconnecting...")
         intentionalDisconnect = true
+
+        // Flush any pending audio before disconnecting
+        flushAudioBatch()
+
         currentActiveProvider?.disconnect()
         currentActiveProvider = nil
         isConnected = false
@@ -97,15 +109,52 @@ final class TranscriptionService: ObservableObject {
     }
 
     func sendAudio(_ data: Data) {
-        guard isConnected, let provider = currentActiveProvider else {
+        guard isConnected, currentActiveProvider != nil else {
             return
         }
 
+        // Accumulate audio data in batch buffer
+        audioBatchBuffer.append(data)
+
+        // Start batch timer if not already running
+        if audioBatchTimer == nil {
+            audioBatchTimer = Timer.scheduledTimer(
+                withTimeInterval: TimeInterval(batchIntervalMs) / 1000.0,
+                repeats: false
+            ) { [weak self] _ in
+                Task { @MainActor in
+                    self?.flushAudioBatch()
+                }
+            }
+        }
+
+        // Flush immediately if batch exceeds max size (prevents excessive latency)
+        if audioBatchBuffer.count >= maxBatchSize {
+            flushAudioBatch()
+        }
+    }
+
+    /// Flushes accumulated audio batch to the transcription provider
+    private func flushAudioBatch() {
+        // Cancel pending timer
+        audioBatchTimer?.invalidate()
+        audioBatchTimer = nil
+
+        guard !audioBatchBuffer.isEmpty,
+              isConnected,
+              let provider = currentActiveProvider else {
+            audioBatchBuffer.removeAll()
+            return
+        }
+
+        let batchToSend = audioBatchBuffer
+        audioBatchBuffer.removeAll()
+
         Task {
             do {
-                try await provider.sendAudioData(data)
+                try await provider.sendAudioData(batchToSend)
             } catch {
-                print("[Transcription] Error sending audio: \(error)")
+                print("[Transcription] Error sending audio batch: \(error)")
                 handleError(error)
             }
         }
@@ -114,6 +163,11 @@ final class TranscriptionService: ObservableObject {
     func clearTranscript() {
         currentTranscript = ""
         interimTranscript = ""
+
+        // Clear any pending audio batch
+        audioBatchTimer?.invalidate()
+        audioBatchTimer = nil
+        audioBatchBuffer.removeAll()
     }
 
     // MARK: - Private Methods

@@ -175,6 +175,12 @@ struct DashboardView: View {
         .onAppear {
             sessionManager.setModelContext(modelContext)
             appState.aiService.loadHistory(from: modelContext)
+
+            // Pre-fetch transcription token for faster session start
+            // Ensures token is ready when user clicks "Start Recording"
+            if authManager.isAuthenticated {
+                ProxyAPIClient.shared.prefetchTranscriptionToken()
+            }
         }
     }
 }
