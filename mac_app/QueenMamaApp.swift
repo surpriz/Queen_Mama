@@ -336,7 +336,7 @@ class AppState: ObservableObject {
             }
 
             // Wire transcript buffer flush to update UI/SwiftData/AutoAnswer
-            transcriptBuffer.onFlush = { [weak self] batchedText in
+            transcriptBuffer.onFlush = { [weak self] (batchedText: String) in
                 guard let self = self else { return }
                 self.currentTranscript += batchedText
                 // Persist transcription to SessionManager
