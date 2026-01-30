@@ -1,11 +1,46 @@
 import Foundation
 import Combine
 
+// MARK: - Connection State Machine
+
+enum TranscriptionConnectionState: Equatable {
+    case disconnected
+    case connecting
+    case connected
+    case reconnecting(attempt: Int, maxAttempts: Int)
+    case failed(reason: String)
+
+    var isActive: Bool {
+        switch self {
+        case .connected, .connecting, .reconnecting:
+            return true
+        case .disconnected, .failed:
+            return false
+        }
+    }
+
+    var displayStatus: String {
+        switch self {
+        case .disconnected:
+            return "Disconnected"
+        case .connecting:
+            return "Connecting..."
+        case .connected:
+            return "Connected"
+        case .reconnecting(let attempt, let max):
+            return "Reconnecting (\(attempt)/\(max))..."
+        case .failed(let reason):
+            return "Failed: \(reason)"
+        }
+    }
+}
+
 @MainActor
 final class TranscriptionService: ObservableObject {
     // MARK: - Published Properties
 
     @Published var isConnected = false
+    @Published var connectionState: TranscriptionConnectionState = .disconnected
     @Published var currentTranscript = ""
     @Published var interimTranscript = ""
     @Published var errorMessage: String?
@@ -34,12 +69,14 @@ final class TranscriptionService: ObservableObject {
 
     private var currentActiveProvider: TranscriptionProvider?
 
-    // MARK: - Private Properties
+    // MARK: - Reconnection Configuration
 
-    private var isReconnecting = false
+    private let maxReconnectAttempts = 5
+    private let baseReconnectDelay: TimeInterval = 1.0  // Base delay in seconds
+    private let maxReconnectDelay: TimeInterval = 30.0  // Max delay cap
     private var reconnectAttempts = 0
-    private let maxReconnectAttempts = 3
     private var intentionalDisconnect = false
+    private var reconnectTask: Task<Void, Never>?
 
     // MARK: - Audio Batching Configuration
     // Accumulates audio buffers to reduce WebSocket message frequency by ~50%
@@ -60,6 +97,13 @@ final class TranscriptionService: ObservableObject {
     func connect() async throws {
         print("[Transcription] Connecting to transcription service...")
 
+        // Cancel any pending reconnection
+        reconnectTask?.cancel()
+        reconnectTask = nil
+
+        // Update state
+        connectionState = .connecting
+
         // Clean up existing connection
         if let current = currentActiveProvider {
             current.disconnect()
@@ -79,6 +123,7 @@ final class TranscriptionService: ObservableObject {
                 currentActiveProvider = provider
                 currentProvider = provider.providerType
                 isConnected = true
+                connectionState = .connected
                 errorMessage = nil
                 print("[Transcription] Successfully connected with \(provider.providerType.displayName)")
                 return
@@ -91,6 +136,7 @@ final class TranscriptionService: ObservableObject {
 
         // All providers failed
         isConnected = false
+        connectionState = .failed(reason: lastError?.localizedDescription ?? "All providers failed")
         throw lastError ?? TranscriptionError.allProvidersFailed
     }
 
@@ -98,13 +144,17 @@ final class TranscriptionService: ObservableObject {
         print("[Transcription] Disconnecting...")
         intentionalDisconnect = true
 
+        // Cancel any pending reconnection
+        reconnectTask?.cancel()
+        reconnectTask = nil
+
         // Flush any pending audio before disconnecting
         flushAudioBatch()
 
         currentActiveProvider?.disconnect()
         currentActiveProvider = nil
         isConnected = false
-        isReconnecting = false
+        connectionState = .disconnected
         currentProvider = nil
     }
 
@@ -211,39 +261,67 @@ final class TranscriptionService: ObservableObject {
         isConnected = false
         onError?(error)
 
-        // Try to fallback to next provider or reconnect
-        if !intentionalDisconnect && !isReconnecting {
-            attemptReconnect()
+        // Try to reconnect if not intentionally disconnected
+        if !intentionalDisconnect {
+            scheduleReconnect()
         }
     }
 
-    private func attemptReconnect() {
-        guard !isReconnecting else { return }
+    /// Schedule a reconnection attempt with exponential backoff and jitter
+    private func scheduleReconnect() {
+        // Don't schedule if already reconnecting or intentionally disconnected
+        guard reconnectTask == nil, !intentionalDisconnect else { return }
 
-        isReconnecting = true
         reconnectAttempts += 1
 
         if reconnectAttempts > maxReconnectAttempts {
-            print("[Transcription] Max reconnection attempts reached")
-            isReconnecting = false
+            print("[Transcription] Max reconnection attempts reached (\(maxReconnectAttempts))")
+            connectionState = .failed(reason: "Max reconnection attempts reached")
             return
         }
 
-        let delay = Double(reconnectAttempts) * 2.0 // 2s, 4s, 6s...
-        print("[Transcription] Will reconnect in \(delay)s (attempt \(reconnectAttempts)/\(maxReconnectAttempts))")
+        // Update state
+        connectionState = .reconnecting(attempt: reconnectAttempts, maxAttempts: maxReconnectAttempts)
 
-        Task {
-            try? await Task.sleep(nanoseconds: UInt64(delay * 1_000_000_000))
+        // Calculate delay with exponential backoff + jitter
+        let exponentialDelay = baseReconnectDelay * pow(2.0, Double(reconnectAttempts - 1))
+        let jitter = Double.random(in: 0...0.5) * exponentialDelay
+        let delay = min(exponentialDelay + jitter, maxReconnectDelay)
 
+        print("[Transcription] Reconnecting in \(String(format: "%.1f", delay))s (attempt \(reconnectAttempts)/\(maxReconnectAttempts))")
+
+        reconnectTask = Task { [weak self] in
             do {
-                try await connect()
-                isReconnecting = false
+                try await Task.sleep(nanoseconds: UInt64(delay * 1_000_000_000))
+
+                // Check if still needed
+                guard let self = self, !self.intentionalDisconnect else { return }
+
+                await MainActor.run {
+                    self.reconnectTask = nil
+                }
+
+                try await self.connect()
                 print("[Transcription] Reconnected successfully!")
+
+            } catch is CancellationError {
+                print("[Transcription] Reconnection cancelled")
             } catch {
                 print("[Transcription] Reconnection failed: \(error)")
-                isReconnecting = false
-                attemptReconnect()
+
+                await MainActor.run { [weak self] in
+                    self?.reconnectTask = nil
+                    // Schedule next attempt
+                    self?.scheduleReconnect()
+                }
             }
         }
+    }
+
+    /// Reset reconnection state (call after successful manual connect)
+    private func resetReconnectionState() {
+        reconnectTask?.cancel()
+        reconnectTask = nil
+        reconnectAttempts = 0
     }
 }

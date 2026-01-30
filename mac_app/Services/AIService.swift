@@ -72,6 +72,23 @@ final class AIService: ObservableObject {
     // Reduces payload size for real-time requests while keeping full context for Recap
     static let defaultMaxTranscriptLength = 4000  // Characters for Assist/WhatToSay/FollowUp
 
+    // MARK: - Memory Management
+    // Limit responses in memory to prevent unbounded growth during long sessions
+    private let maxResponsesInMemory = 50
+
+    /// Add a response with memory limit enforcement
+    /// Oldest responses are dropped from memory (still persisted in SwiftData)
+    private func addResponse(_ response: AIResponse) {
+        responses.insert(response, at: 0)
+
+        // Enforce memory limit
+        if responses.count > maxResponsesInMemory {
+            let excess = responses.count - maxResponsesInMemory
+            responses.removeLast(excess)
+            print("[AIService] Trimmed \(excess) old responses from memory (limit: \(maxResponsesInMemory))")
+        }
+    }
+
     /// Trim transcript to specified length, keeping the most recent content
     /// Preserves word boundaries and adds truncation indicator
     static func trimTranscript(_ transcript: String, maxLength: Int) -> String {
@@ -215,7 +232,7 @@ final class AIService: ObservableObject {
                 licenseManager.recordUsage(.smartMode, provider: response.provider.rawValue)
             }
 
-            responses.insert(response, at: 0)
+            addResponse(response)
             return response
         } catch {
             print("[AIService] Backend proxy failed: \(error)")
@@ -346,7 +363,7 @@ final class AIService: ObservableObject {
                             content: accumulatedResponse,
                             provider: providerType
                         )
-                        self.responses.insert(response, at: 0)
+                        self.addResponse(response)
 
                         // Persist to SwiftData (use debounced save)
                         if let ctx = self.modelContext {
@@ -502,7 +519,7 @@ final class AIService: ObservableObject {
             )
 
             // Insert at beginning of responses list
-            responses.insert(response, at: 0)
+            addResponse(response)
 
             // Persist to SwiftData (use immediate save for auto-response)
             if let ctx = self.modelContext {
@@ -656,7 +673,7 @@ final class AIService: ObservableObject {
                             content: accumulatedResponse,
                             provider: providerType
                         )
-                        self.responses.insert(response, at: 0)
+                        self.addResponse(response)
 
                         // Persist to SwiftData (use debounced save)
                         if let ctx = self.modelContext {
