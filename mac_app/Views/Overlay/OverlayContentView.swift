@@ -115,8 +115,10 @@ struct OverlayContentView: View {
         Task {
             do {
                 // Only capture screenshot if enabled
+                // Uses pre-capture cache for ~50-150ms latency reduction
+                // Smart content analysis skips low-value screenshots (video call faces, empty screens)
                 let screenshot: Data? = if enableScreenCapture {
-                    try? await appState.screenService.captureScreenshot()
+                    try? await appState.screenService.getScreenshotForAI()
                 } else {
                     nil
                 }
@@ -127,12 +129,34 @@ struct OverlayContentView: View {
                 }
 
                 let screenshotSize = screenshot?.count ?? 0
-                print("[Overlay] Screen capture \(enableScreenCapture ? "enabled" : "disabled") - Screenshot: \(hasScreenshot ? "captured (\(screenshotSize / 1024)KB)" : "not captured")")
+                let cacheStatus = screenshot != nil ? "(may be cached)" : ""
+                print("[Overlay] Screen capture \(enableScreenCapture ? "enabled" : "disabled") - Screenshot: \(hasScreenshot ? "captured (\(screenshotSize / 1024)KB) \(cacheStatus)" : "skipped (low value or disabled)")")
+
+                // Phase 3 Optimization: Trim transcript for real-time tabs to reduce latency
+                // Recap uses full transcript for comprehensive summary
+                let transcriptForRequest: String
+                switch selectedTab {
+                case .recap:
+                    // Recap needs full transcript for comprehensive summary
+                    transcriptForRequest = appState.currentTranscript
+                default:
+                    // Assist, WhatToSay, FollowUp use trimmed transcript (last 4000 chars)
+                    transcriptForRequest = AIService.trimTranscript(
+                        appState.currentTranscript,
+                        maxLength: AIService.defaultMaxTranscriptLength
+                    )
+                }
+
+                let originalLength = appState.currentTranscript.count
+                let trimmedLength = transcriptForRequest.count
+                if originalLength != trimmedLength {
+                    print("[Overlay] Transcript trimmed: \(originalLength) → \(trimmedLength) chars")
+                }
 
                 switch selectedTab {
                 case .assist:
                     for try await chunk in appState.aiService.assistStreaming(
-                        transcript: appState.currentTranscript,
+                        transcript: transcriptForRequest,
                         screenshot: screenshot,
                         mode: appState.selectedMode
                     ) {
@@ -140,21 +164,21 @@ struct OverlayContentView: View {
                     }
                 case .whatToSay:
                     let response = try await appState.aiService.whatToSay(
-                        transcript: appState.currentTranscript,
+                        transcript: transcriptForRequest,
                         screenshot: screenshot,
                         mode: appState.selectedMode
                     )
                     appState.aiService.currentResponse = response.content
                 case .followUp:
                     let response = try await appState.aiService.followUpQuestions(
-                        transcript: appState.currentTranscript,
+                        transcript: transcriptForRequest,
                         screenshot: screenshot,
                         mode: appState.selectedMode
                     )
                     appState.aiService.currentResponse = response.content
                 case .recap:
                     let response = try await appState.aiService.recap(
-                        transcript: appState.currentTranscript,
+                        transcript: transcriptForRequest,
                         screenshot: screenshot,
                         mode: appState.selectedMode
                     )

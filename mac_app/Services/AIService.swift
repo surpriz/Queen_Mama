@@ -68,6 +68,32 @@ final class AIService: ObservableObject {
     var modelContext: ModelContext?
     private let dbHelper = SwiftDataSaveHelper()
 
+    // MARK: - Transcript Trimming (Phase 3 Optimization)
+    // Reduces payload size for real-time requests while keeping full context for Recap
+    static let defaultMaxTranscriptLength = 4000  // Characters for Assist/WhatToSay/FollowUp
+
+    /// Trim transcript to specified length, keeping the most recent content
+    /// Preserves word boundaries and adds truncation indicator
+    static func trimTranscript(_ transcript: String, maxLength: Int) -> String {
+        guard transcript.count > maxLength else {
+            return transcript
+        }
+
+        // Find a good break point (word boundary)
+        let startIndex = transcript.index(transcript.endIndex, offsetBy: -maxLength)
+        var trimmedStart = startIndex
+
+        // Try to find a space or newline near the start
+        if let spaceIndex = transcript[startIndex...].firstIndex(where: { $0.isWhitespace }) {
+            trimmedStart = transcript.index(after: spaceIndex)
+        }
+
+        let trimmed = String(transcript[trimmedStart...])
+
+        // Add indicator that content was trimmed
+        return "...[transcript trimmed to recent content]...\n\n" + trimmed
+    }
+
     // MARK: - Proxy Provider (single provider architecture)
 
     // Single proxy provider that routes ALL requests through the backend
