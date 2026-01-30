@@ -375,3 +375,6 @@ docs/
 # Sentry reports (generated)
 scripts/reports/
 !scripts/reports/.gitignore
+
+# Benchmark results (generated)
+scripts/benchmark-results*.md
