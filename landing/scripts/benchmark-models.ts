@@ -76,9 +76,9 @@ const GROK_MODELS = {
 // Moonshot models to test (Kimi)
 const MOONSHOT_MODELS = {
   latest: [
-    "kimi-k2.5-0127",               // K2.5 latest - 1T params, agent swarm (262K context)
-    "kimi-k2-turbo",                // K2 Turbo - Speed-sensitive ($1.15/$8.00)
-    "kimi-k2-0905",                 // K2 Standard - Best value ($0.60/$2.50)
+    "moonshot-v1-8k",               // V1 8K - General purpose, 8K context
+    "moonshot-v1-32k",              // V1 32K - Extended context, 32K tokens
+    "moonshot-v1-128k",             // V1 128K - Long context, 128K tokens
   ],
 } as const;
 

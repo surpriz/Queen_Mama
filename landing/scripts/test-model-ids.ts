@@ -86,9 +86,9 @@ const MODEL_TESTS = {
   moonshot: {
     url: "https://api.moonshot.ai/v1/chat/completions",
     models: [
-      "kimi-k2-0905",           // K2 standard - Best value ($0.60/$2.50)
-      "kimi-k2-turbo",          // K2 Turbo - Speed-sensitive ($1.15/$8.00)
-      "kimi-k2.5-0127",         // K2.5 latest - 1T params, agent swarm
+      "moonshot-v1-8k",         // V1 8K - General purpose, 8K context
+      "moonshot-v1-32k",        // V1 32K - Extended context, 32K tokens
+      "moonshot-v1-128k",       // V1 128K - Long context, 128K tokens
     ],
     dbProvider: "MOONSHOT" as ApiKeyProvider,
     getHeaders: (apiKey: string) => ({
