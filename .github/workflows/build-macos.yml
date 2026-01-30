@@ -146,7 +146,7 @@ jobs:
           sentry-cli releases new "${VERSION}+${BUILD_NUMBER}"
 
           echo "📤 Associating commits..."
-          sentry-cli releases set-commits "${VERSION}+${BUILD_NUMBER}" --auto
+          sentry-cli releases set-commits "${VERSION}+${BUILD_NUMBER}" --auto --ignore-missing
 
           echo "📤 Uploading dSYMs from archive..."
           sentry-cli debug-files upload --include-sources \
