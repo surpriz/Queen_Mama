@@ -1,0 +1,47 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --qm-gradient-start: #7C3AED;
+    --qm-gradient-end: #3B82F6;
+    --qm-accent: #8B5CF6;
+  }
+
+  * {
+    @apply border-qm-border-subtle;
+  }
+
+  body {
+    @apply bg-qm-bg-primary text-qm-text-primary antialiased;
+    font-feature-settings: 'rlig' 1, 'calt' 1;
+  }
+
+  /* Scrollbar styling */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    @apply bg-qm-border-medium rounded-full;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-qm-border-strong;
+  }
+
+  /* Window drag region for custom title bar */
+  .titlebar-drag {
+    -webkit-app-region: drag;
+  }
+
+  .titlebar-no-drag {
+    -webkit-app-region: no-drag;
+  }
+}

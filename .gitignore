@@ -366,5 +366,12 @@ CLAUDE.md
 .claude/*.local.json
 .claude/settings.local.json
 
+# MCP server configuration (contains auth tokens)
+.mcp.json
+
 # Internal documentation (contains sensitive/strategic info)
 docs/
+
+# Sentry reports (generated)
+scripts/reports/
+!scripts/reports/.gitignore

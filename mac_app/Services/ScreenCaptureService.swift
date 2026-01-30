@@ -47,6 +47,16 @@ final class ScreenCaptureService: NSObject, ObservableObject {
     // Screenshot deduplication for cost optimization
     private var lastScreenshotHash: String?
 
+    // MARK: - Pre-Capture Cache (Phase 1 Optimization)
+    // Cache screenshots in background for instant access during AI triggers
+    private var cachedScreenshotData: Data?
+    private var cachedScreenshotTimestamp: Date?
+    private var cachedScreenshotAnalysis: ScreenContentAnalyzer.AnalysisResult?
+
+    // Configuration
+    private let preCaptureInterval: TimeInterval = 2.0  // Capture every 2 seconds
+    private let cacheMaxAge: TimeInterval = 2.0         // Cache valid for 2 seconds
+
     // MARK: - Initialization
 
     override init() {
@@ -149,6 +159,7 @@ final class ScreenCaptureService: NSObject, ObservableObject {
             streamOutput = nil
             isCapturing = false
             stopScreenshotTimer()
+            clearCache()
         }
     }
 
@@ -239,6 +250,101 @@ final class ScreenCaptureService: NSObject, ObservableObject {
         return screenshot
     }
 
+    // MARK: - Pre-Capture Cache Methods (Phase 1 Optimization)
+
+    /// Get cached screenshot if available and fresh enough
+    /// Returns (data, analysis) tuple - analysis may be nil if not yet computed
+    func getCachedScreenshot(maxAge: TimeInterval? = nil) -> (Data?, ScreenContentAnalyzer.AnalysisResult?) {
+        let effectiveMaxAge = maxAge ?? cacheMaxAge
+
+        guard let data = cachedScreenshotData,
+              let timestamp = cachedScreenshotTimestamp else {
+            print("[ScreenCapture] Cache miss: no cached data")
+            return (nil, nil)
+        }
+
+        let age = Date().timeIntervalSince(timestamp)
+        if age > effectiveMaxAge {
+            print("[ScreenCapture] Cache miss: expired (age: \(String(format: "%.1f", age))s > \(effectiveMaxAge)s)")
+            return (nil, nil)
+        }
+
+        print("[ScreenCapture] Cache hit: using cached screenshot (age: \(String(format: "%.1f", age))s)")
+        return (data, cachedScreenshotAnalysis)
+    }
+
+    /// Capture screenshot and update cache (used by background timer)
+    private func captureAndCacheScreenshot() async {
+        do {
+            let startTime = CFAbsoluteTimeGetCurrent()
+            let data = try await captureScreenshot()
+            let captureTime = (CFAbsoluteTimeGetCurrent() - startTime) * 1000
+
+            // Update cache
+            cachedScreenshotData = data
+            cachedScreenshotTimestamp = Date()
+
+            // Analyze content in background (Phase 2)
+            let analyzer = ScreenContentAnalyzer.shared
+            let analysis = await analyzer.analyze(data)
+            cachedScreenshotAnalysis = analysis
+
+            let totalTime = (CFAbsoluteTimeGetCurrent() - startTime) * 1000
+
+            if analysis.shouldInclude {
+                print("[ScreenCapture] Pre-cached screenshot: \(data.count / 1024)KB, capture: \(Int(captureTime))ms, analysis: \(analysis.analysisTimeMs)ms, total: \(Int(totalTime))ms → INCLUDE")
+            } else {
+                print("[ScreenCapture] Pre-cached screenshot: \(data.count / 1024)KB, capture: \(Int(captureTime))ms, analysis: \(analysis.analysisTimeMs)ms, total: \(Int(totalTime))ms → SKIP (\(analysis.reason?.rawValue ?? "unknown"))")
+            }
+        } catch {
+            print("[ScreenCapture] Pre-capture failed: \(error.localizedDescription)")
+        }
+    }
+
+    /// Get screenshot for AI request - uses cache if fresh, otherwise captures fresh
+    /// Also respects content analysis to skip low-value screenshots
+    func getScreenshotForAI() async throws -> Data? {
+        // First, try to use cached screenshot
+        let (cachedData, cachedAnalysis) = getCachedScreenshot()
+
+        if let data = cachedData {
+            // Check if we should include based on analysis
+            if let analysis = cachedAnalysis, !analysis.shouldInclude {
+                print("[ScreenCapture] Skipping screenshot: \(analysis.reason?.rawValue ?? "unknown")")
+                return nil
+            }
+            return data
+        }
+
+        // Cache miss - capture fresh
+        print("[ScreenCapture] Capturing fresh screenshot (cache miss)")
+        let data = try await captureScreenshot()
+
+        // Update cache with fresh capture
+        cachedScreenshotData = data
+        cachedScreenshotTimestamp = Date()
+
+        // Quick analysis for immediate decision
+        let analyzer = ScreenContentAnalyzer.shared
+        let analysis = await analyzer.analyze(data)
+        cachedScreenshotAnalysis = analysis
+
+        if !analysis.shouldInclude {
+            print("[ScreenCapture] Skipping fresh screenshot: \(analysis.reason?.rawValue ?? "unknown")")
+            return nil
+        }
+
+        return data
+    }
+
+    /// Clear the screenshot cache
+    func clearCache() {
+        cachedScreenshotData = nil
+        cachedScreenshotTimestamp = nil
+        cachedScreenshotAnalysis = nil
+        print("[ScreenCapture] Cache cleared")
+    }
+
     // MARK: - Private Methods
 
     private func updateExcludedWindows() {
@@ -258,11 +364,19 @@ final class ScreenCaptureService: NSObject, ObservableObject {
     }
 
     private func startScreenshotTimer() {
-        let interval = config.screenCaptureIntervalSeconds
+        // Use pre-capture interval for background caching
+        let interval = preCaptureInterval
+        print("[ScreenCapture] Starting pre-capture timer with \(interval)s interval")
+
+        // Capture immediately on start
+        Task { @MainActor [weak self] in
+            await self?.captureAndCacheScreenshot()
+        }
+
         screenshotTimer = Timer.scheduledTimer(withTimeInterval: interval, repeats: true) { [weak self] _ in
             guard let self else { return }
             Task { @MainActor [self] in
-                try? await self.captureScreenshot()
+                await self.captureAndCacheScreenshot()
             }
         }
     }

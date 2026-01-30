@@ -252,19 +252,45 @@ async function callOpenAICompatible(
     messages.push({ role: "user", content: userMessage });
   }
 
+  // OpenAI's newer models require max_completion_tokens instead of max_tokens
+  // This includes: gpt-4o, gpt-5-*, o1-*, o3-*, o4-*
+  const useNewTokenParam = provider === "openai" && (
+    model.startsWith("gpt-4o") ||
+    model.startsWith("gpt-5") ||
+    model.startsWith("o1-") ||
+    model.startsWith("o3-") ||
+    model.startsWith("o4-")
+  );
+
+  // GPT-5 and o-series models only support temperature=1 (default), so omit for those
+  const supportsTemperature = !model.startsWith("gpt-5") &&
+    !model.startsWith("o1-") &&
+    !model.startsWith("o3-") &&
+    !model.startsWith("o4-");
+
+  const requestBody: Record<string, unknown> = {
+    model,
+    messages,
+    stream: false,
+  };
+
+  if (useNewTokenParam) {
+    requestBody.max_completion_tokens = maxTokens;
+  } else {
+    requestBody.max_tokens = maxTokens;
+  }
+
+  if (supportsTemperature) {
+    requestBody.temperature = 0.7;
+  }
+
   const response = await fetch(PROVIDER_URLS[provider], {
     method: "POST",
     headers: {
       Authorization: `Bearer ${apiKey}`,
       "Content-Type": "application/json",
     },
-    body: JSON.stringify({
-      model,
-      messages,
-      max_tokens: maxTokens,
-      temperature: 0.7,
-      stream: false,
-    }),
+    body: JSON.stringify(requestBody),
   });
 
   if (!response.ok) {

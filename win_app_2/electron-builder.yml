@@ -1,0 +1,32 @@
+appId: com.queenmama.windows
+productName: Queen Mama
+copyright: Copyright © 2024 Queen Mama
+directories:
+  output: release
+  buildResources: resources
+files:
+  - out/**/*
+  - package.json
+win:
+  target:
+    - target: nsis
+      arch:
+        - x64
+  icon: resources/icon.ico
+nsis:
+  oneClick: false
+  allowToChangeInstallationDirectory: true
+  deleteAppDataOnUninstall: true
+  createDesktopShortcut: true
+  createStartMenuShortcut: true
+mac:
+  target:
+    - target: dmg
+      arch:
+        - x64
+        - arm64
+  icon: resources/icon.icns
+  category: public.app-category.productivity
+publish:
+  provider: generic
+  url: https://updates.queenmama.ai

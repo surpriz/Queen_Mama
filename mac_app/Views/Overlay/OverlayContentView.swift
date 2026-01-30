@@ -115,8 +115,10 @@ struct OverlayContentView: View {
         Task {
             do {
                 // Only capture screenshot if enabled
+                // Uses pre-capture cache for ~50-150ms latency reduction
+                // Smart content analysis skips low-value screenshots (video call faces, empty screens)
                 let screenshot: Data? = if enableScreenCapture {
-                    try? await appState.screenService.captureScreenshot()
+                    try? await appState.screenService.getScreenshotForAI()
                 } else {
                     nil
                 }
@@ -127,12 +129,34 @@ struct OverlayContentView: View {
                 }
 
                 let screenshotSize = screenshot?.count ?? 0
-                print("[Overlay] Screen capture \(enableScreenCapture ? "enabled" : "disabled") - Screenshot: \(hasScreenshot ? "captured (\(screenshotSize / 1024)KB)" : "not captured")")
+                let cacheStatus = screenshot != nil ? "(may be cached)" : ""
+                print("[Overlay] Screen capture \(enableScreenCapture ? "enabled" : "disabled") - Screenshot: \(hasScreenshot ? "captured (\(screenshotSize / 1024)KB) \(cacheStatus)" : "skipped (low value or disabled)")")
+
+                // Phase 3 Optimization: Trim transcript for real-time tabs to reduce latency
+                // Recap uses full transcript for comprehensive summary
+                let transcriptForRequest: String
+                switch selectedTab {
+                case .recap:
+                    // Recap needs full transcript for comprehensive summary
+                    transcriptForRequest = appState.currentTranscript
+                default:
+                    // Assist, WhatToSay, FollowUp use trimmed transcript (last 4000 chars)
+                    transcriptForRequest = AIService.trimTranscript(
+                        appState.currentTranscript,
+                        maxLength: AIService.defaultMaxTranscriptLength
+                    )
+                }
+
+                let originalLength = appState.currentTranscript.count
+                let trimmedLength = transcriptForRequest.count
+                if originalLength != trimmedLength {
+                    print("[Overlay] Transcript trimmed: \(originalLength) → \(trimmedLength) chars")
+                }
 
                 switch selectedTab {
                 case .assist:
                     for try await chunk in appState.aiService.assistStreaming(
-                        transcript: appState.currentTranscript,
+                        transcript: transcriptForRequest,
                         screenshot: screenshot,
                         mode: appState.selectedMode
                     ) {
@@ -140,21 +164,21 @@ struct OverlayContentView: View {
                     }
                 case .whatToSay:
                     let response = try await appState.aiService.whatToSay(
-                        transcript: appState.currentTranscript,
+                        transcript: transcriptForRequest,
                         screenshot: screenshot,
                         mode: appState.selectedMode
                     )
                     appState.aiService.currentResponse = response.content
                 case .followUp:
                     let response = try await appState.aiService.followUpQuestions(
-                        transcript: appState.currentTranscript,
+                        transcript: transcriptForRequest,
                         screenshot: screenshot,
                         mode: appState.selectedMode
                     )
                     appState.aiService.currentResponse = response.content
                 case .recap:
                     let response = try await appState.aiService.recap(
-                        transcript: appState.currentTranscript,
+                        transcript: transcriptForRequest,
                         screenshot: screenshot,
                         mode: appState.selectedMode
                     )
@@ -193,8 +217,8 @@ enum TabItem: String, CaseIterable {
     var shortLabel: String {
         switch self {
         case .assist: return "Assist"
-        case .whatToSay: return "Say"
-        case .followUp: return "Ask"
+        case .whatToSay: return "What to say"
+        case .followUp: return "Follow-up"
         case .recap: return "Recap"
         }
     }
@@ -778,26 +802,13 @@ struct ModernResponseHistoryView: View {
             ScrollViewReader { proxy in
                 ScrollView {
                     LazyVStack(alignment: .leading, spacing: QMDesign.Spacing.sm) {
-                        // Processing state
-                        if isProcessing && currentResponse.isEmpty {
-                            ProcessingIndicator()
-                                .id("processing")
+                        // Empty state
+                        if responses.isEmpty && !isProcessing {
+                            EmptyResponseState()
                         }
 
-                        // Current streaming response
-                        if !currentResponse.isEmpty && isProcessing {
-                            ModernResponseItemView(
-                                type: responses.first?.type ?? .assist,
-                                content: currentResponse,
-                                timestamp: Date(),
-                                provider: responses.first?.provider ?? .openai,
-                                isStreaming: true
-                            )
-                            .id("current")
-                        }
-
-                        // History
-                        ForEach(responses) { response in
+                        // History (reversed - oldest first, newest at bottom)
+                        ForEach(responses.reversed()) { response in
                             ModernResponseItemView(
                                 type: response.type,
                                 content: response.content,
@@ -812,10 +823,28 @@ struct ModernResponseHistoryView: View {
                             .id(response.id)
                         }
 
-                        // Empty state
-                        if responses.isEmpty && !isProcessing {
-                            EmptyResponseState()
+                        // Current streaming response (at the bottom)
+                        if !currentResponse.isEmpty && isProcessing {
+                            ModernResponseItemView(
+                                type: responses.first?.type ?? .assist,
+                                content: currentResponse,
+                                timestamp: Date(),
+                                provider: responses.first?.provider ?? .openai,
+                                isStreaming: true
+                            )
+                            .id("current")
                         }
+
+                        // Processing state (at the bottom)
+                        if isProcessing && currentResponse.isEmpty {
+                            ProcessingIndicator()
+                                .id("processing")
+                        }
+
+                        // Bottom anchor for auto-scroll
+                        Color.clear
+                            .frame(height: 1)
+                            .id("bottom")
                     }
                     .padding(QMDesign.Spacing.sm)
                 }
@@ -830,14 +859,12 @@ struct ModernResponseHistoryView: View {
                         }
                 )
                 .onChange(of: responses.count) { _ in
-                    // New response added - reset user scrolling flag
+                    // New response added - reset user scrolling flag and scroll to bottom
                     isUserScrolling = false
                     scrollDisableTimer?.invalidate()
 
-                    if let firstResponse = responses.first {
-                        withAnimation {
-                            proxy.scrollTo(firstResponse.id, anchor: .top)
-                        }
+                    withAnimation {
+                        proxy.scrollTo("bottom", anchor: .bottom)
                     }
                 }
                 .onChange(of: currentResponse) { newContent in
@@ -852,7 +879,15 @@ struct ModernResponseHistoryView: View {
                     // Only auto-scroll if user hasn't manually scrolled
                     if isProcessing && !isUserScrolling {
                         withAnimation {
-                            proxy.scrollTo("current", anchor: .top)
+                            proxy.scrollTo("bottom", anchor: .bottom)
+                        }
+                    }
+                }
+                .onAppear {
+                    // Scroll to bottom on appear if there are responses
+                    if !responses.isEmpty {
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                            proxy.scrollTo("bottom", anchor: .bottom)
                         }
                     }
                 }

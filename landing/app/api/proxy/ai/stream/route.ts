@@ -357,11 +357,19 @@ async function streamOpenAICompatible(
   const startTime = Date.now();
   console.log(`[${provider}] Calling API with model: ${model}, screenshot: ${!!screenshot}, maxTokens: ${maxTokens}`);
 
-  // Newer OpenAI models (gpt-5-*, gpt-4.1-*, o4-*) require max_completion_tokens
-  const useNewTokenParam = model.startsWith("gpt-5") || model.startsWith("gpt-4.1") || model.startsWith("o4-");
+  // Newer OpenAI models require max_completion_tokens instead of max_tokens
+  // This includes: gpt-4o, gpt-4o-mini, gpt-5-*, gpt-4.1-*, o1-*, o3-*, o4-*
+  const useNewTokenParam = provider === "openai" && (
+    model.startsWith("gpt-4o") ||
+    model.startsWith("gpt-5") ||
+    model.startsWith("gpt-4.1") ||
+    model.startsWith("o1-") ||
+    model.startsWith("o3-") ||
+    model.startsWith("o4-")
+  );
 
-  // GPT-5 models only support temperature=1 (default), so omit for those models
-  const supportsTemperature = !model.startsWith("gpt-5");
+  // GPT-5 and o-series models only support temperature=1 (default), so omit for those
+  const supportsTemperature = !model.startsWith("gpt-5") && !model.startsWith("o1-") && !model.startsWith("o3-") && !model.startsWith("o4-");
 
   const requestBody: Record<string, unknown> = {
     model,

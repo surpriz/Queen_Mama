@@ -2,6 +2,36 @@ import Foundation
 import Combine
 import SwiftData
 
+// MARK: - SwiftData Save Helper (inline until SwiftDataHelper is added to Xcode project)
+private actor SwiftDataSaveHelper {
+    private var saveWorkItem: DispatchWorkItem?
+    private let saveDebounceInterval: TimeInterval = 0.3
+
+    func save(context: ModelContext?, immediate: Bool) {
+        guard let context = context else { return }
+
+        if immediate {
+            saveWorkItem?.cancel()
+            saveWorkItem = nil
+
+            Task.detached(priority: .userInitiated) {
+                try? context.save()
+            }
+        } else {
+            saveWorkItem?.cancel()
+
+            let workItem = DispatchWorkItem {
+                Task.detached(priority: .utility) {
+                    try? context.save()
+                }
+            }
+
+            saveWorkItem = workItem
+            DispatchQueue.main.asyncAfter(deadline: .now() + saveDebounceInterval, execute: workItem)
+        }
+    }
+}
+
 // MARK: - License Errors
 
 enum AILicenseError: LocalizedError {
@@ -36,6 +66,50 @@ final class AIService: ObservableObject {
 
     // SwiftData
     var modelContext: ModelContext?
+    private let dbHelper = SwiftDataSaveHelper()
+
+    // MARK: - Transcript Trimming (Phase 3 Optimization)
+    // Reduces payload size for real-time requests while keeping full context for Recap
+    static let defaultMaxTranscriptLength = 4000  // Characters for Assist/WhatToSay/FollowUp
+
+    // MARK: - Memory Management
+    // Limit responses in memory to prevent unbounded growth during long sessions
+    private let maxResponsesInMemory = 50
+
+    /// Add a response with memory limit enforcement
+    /// Oldest responses are dropped from memory (still persisted in SwiftData)
+    private func addResponse(_ response: AIResponse) {
+        responses.insert(response, at: 0)
+
+        // Enforce memory limit
+        if responses.count > maxResponsesInMemory {
+            let excess = responses.count - maxResponsesInMemory
+            responses.removeLast(excess)
+            print("[AIService] Trimmed \(excess) old responses from memory (limit: \(maxResponsesInMemory))")
+        }
+    }
+
+    /// Trim transcript to specified length, keeping the most recent content
+    /// Preserves word boundaries and adds truncation indicator
+    static func trimTranscript(_ transcript: String, maxLength: Int) -> String {
+        guard transcript.count > maxLength else {
+            return transcript
+        }
+
+        // Find a good break point (word boundary)
+        let startIndex = transcript.index(transcript.endIndex, offsetBy: -maxLength)
+        var trimmedStart = startIndex
+
+        // Try to find a space or newline near the start
+        if let spaceIndex = transcript[startIndex...].firstIndex(where: { $0.isWhitespace }) {
+            trimmedStart = transcript.index(after: spaceIndex)
+        }
+
+        let trimmed = String(transcript[trimmedStart...])
+
+        // Add indicator that content was trimmed
+        return "...[transcript trimmed to recent content]...\n\n" + trimmed
+    }
 
     // MARK: - Proxy Provider (single provider architecture)
 
@@ -158,7 +232,7 @@ final class AIService: ObservableObject {
                 licenseManager.recordUsage(.smartMode, provider: response.provider.rawValue)
             }
 
-            responses.insert(response, at: 0)
+            addResponse(response)
             return response
         } catch {
             print("[AIService] Backend proxy failed: \(error)")
@@ -289,12 +363,12 @@ final class AIService: ObservableObject {
                             content: accumulatedResponse,
                             provider: providerType
                         )
-                        self.responses.insert(response, at: 0)
+                        self.addResponse(response)
 
-                        // Persist to SwiftData
+                        // Persist to SwiftData (use debounced save)
                         if let ctx = self.modelContext {
                             ctx.insert(response)
-                            try? ctx.save()
+                            Task { await self.dbHelper.save(context: ctx, immediate: false) }
                         }
 
                         self.isProcessing = false
@@ -445,12 +519,12 @@ final class AIService: ObservableObject {
             )
 
             // Insert at beginning of responses list
-            responses.insert(response, at: 0)
+            addResponse(response)
 
-            // Persist to SwiftData
+            // Persist to SwiftData (use immediate save for auto-response)
             if let ctx = self.modelContext {
                 ctx.insert(response)
-                try? ctx.save()
+                Task { await dbHelper.save(context: ctx, immediate: true) }
             }
 
             print("[AIService] Auto-response generated successfully")
@@ -465,10 +539,10 @@ final class AIService: ObservableObject {
     func dismissResponse(_ response: AIResponse) {
         responses.removeAll { $0.id == response.id }
 
-        // Remove from SwiftData
+        // Remove from SwiftData (use immediate save for delete)
         if let context = modelContext {
             context.delete(response)
-            try? context.save()
+            Task { await dbHelper.save(context: context, immediate: true) }
             print("[AIService] Dismissed response: \(response.id)")
         }
     }
@@ -599,12 +673,12 @@ final class AIService: ObservableObject {
                             content: accumulatedResponse,
                             provider: providerType
                         )
-                        self.responses.insert(response, at: 0)
+                        self.addResponse(response)
 
-                        // Persist to SwiftData
+                        // Persist to SwiftData (use debounced save)
                         if let ctx = self.modelContext {
                             ctx.insert(response)
-                            try? ctx.save()
+                            Task { await self.dbHelper.save(context: ctx, immediate: false) }
                         }
 
                         self.isProcessing = false
@@ -633,7 +707,8 @@ final class AIService: ObservableObject {
         if let context = modelContext {
             do {
                 try context.delete(model: AIResponse.self)
-                try context.save()
+                // Use immediate save for bulk delete
+                Task { await dbHelper.save(context: context, immediate: true) }
                 print("[AIService] Cleared all responses from history")
             } catch {
                 print("[AIService] Failed to clear history: \(error)")

@@ -128,6 +128,32 @@ jobs:
             -skipPackagePluginValidation \
             -skipMacroValidation
 
+      - name: Upload dSYMs to Sentry
+        if: ${{ vars.SENTRY_ORG != '' }}
+        env:
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+          SENTRY_ORG: ${{ vars.SENTRY_ORG }}
+          SENTRY_PROJECT: ${{ vars.SENTRY_PROJECT }}
+        run: |
+          TAG_NAME="${{ steps.release_type.outputs.tag_name }}"
+          VERSION="${TAG_NAME#v}"
+          BUILD_NUMBER="${{ steps.build_number.outputs.next_build }}"
+
+          echo "📤 Installing sentry-cli..."
+          curl -sL https://sentry.io/get-cli/ | bash
+
+          echo "📤 Creating Sentry release ${VERSION}+${BUILD_NUMBER}..."
+          sentry-cli releases new "${VERSION}+${BUILD_NUMBER}"
+
+          echo "📤 Associating commits..."
+          sentry-cli releases set-commits "${VERSION}+${BUILD_NUMBER}" --auto --ignore-missing
+
+          echo "📤 Uploading dSYMs from archive..."
+          sentry-cli debug-files upload --include-sources \
+            "$RUNNER_TEMP/QueenMama.xcarchive/dSYMs"
+
+          echo "✅ dSYMs uploaded to Sentry"
+
       - name: Export App
         run: |
           # Create export directory
@@ -350,6 +376,28 @@ jobs:
             **Requis:** macOS 14.2+
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Finalize Sentry Release
+        if: ${{ vars.SENTRY_ORG != '' }}
+        env:
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+          SENTRY_ORG: ${{ vars.SENTRY_ORG }}
+          SENTRY_PROJECT: ${{ vars.SENTRY_PROJECT }}
+        run: |
+          VERSION="${{ steps.version_info.outputs.version }}"
+          BUILD_NUMBER="${{ steps.version_info.outputs.build_number }}"
+
+          echo "🚀 Finalizing Sentry release ${VERSION}+${BUILD_NUMBER}..."
+          sentry-cli releases finalize "${VERSION}+${BUILD_NUMBER}"
+
+          # Mark as deployed for the appropriate environment
+          if [[ "${{ steps.release_type.outputs.is_prerelease }}" == "true" ]]; then
+            sentry-cli releases deploys "${VERSION}+${BUILD_NUMBER}" new -e staging
+            echo "✅ Marked as deployed to staging"
+          else
+            sentry-cli releases deploys "${VERSION}+${BUILD_NUMBER}" new -e production
+            echo "✅ Marked as deployed to production"
+          fi
 
       - name: Update appcast.xml
         if: steps.sparkle_sign.outputs.signature != '' && steps.release_type.outputs.is_prerelease == 'false'
