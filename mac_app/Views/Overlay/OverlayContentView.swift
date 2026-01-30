@@ -193,8 +193,8 @@ enum TabItem: String, CaseIterable {
     var shortLabel: String {
         switch self {
         case .assist: return "Assist"
-        case .whatToSay: return "Say"
-        case .followUp: return "Ask"
+        case .whatToSay: return "What to say"
+        case .followUp: return "Follow-up"
         case .recap: return "Recap"
         }
     }
@@ -778,26 +778,13 @@ struct ModernResponseHistoryView: View {
             ScrollViewReader { proxy in
                 ScrollView {
                     LazyVStack(alignment: .leading, spacing: QMDesign.Spacing.sm) {
-                        // Processing state
-                        if isProcessing && currentResponse.isEmpty {
-                            ProcessingIndicator()
-                                .id("processing")
+                        // Empty state
+                        if responses.isEmpty && !isProcessing {
+                            EmptyResponseState()
                         }
 
-                        // Current streaming response
-                        if !currentResponse.isEmpty && isProcessing {
-                            ModernResponseItemView(
-                                type: responses.first?.type ?? .assist,
-                                content: currentResponse,
-                                timestamp: Date(),
-                                provider: responses.first?.provider ?? .openai,
-                                isStreaming: true
-                            )
-                            .id("current")
-                        }
-
-                        // History
-                        ForEach(responses) { response in
+                        // History (reversed - oldest first, newest at bottom)
+                        ForEach(responses.reversed()) { response in
                             ModernResponseItemView(
                                 type: response.type,
                                 content: response.content,
@@ -812,10 +799,28 @@ struct ModernResponseHistoryView: View {
                             .id(response.id)
                         }
 
-                        // Empty state
-                        if responses.isEmpty && !isProcessing {
-                            EmptyResponseState()
+                        // Current streaming response (at the bottom)
+                        if !currentResponse.isEmpty && isProcessing {
+                            ModernResponseItemView(
+                                type: responses.first?.type ?? .assist,
+                                content: currentResponse,
+                                timestamp: Date(),
+                                provider: responses.first?.provider ?? .openai,
+                                isStreaming: true
+                            )
+                            .id("current")
                         }
+
+                        // Processing state (at the bottom)
+                        if isProcessing && currentResponse.isEmpty {
+                            ProcessingIndicator()
+                                .id("processing")
+                        }
+
+                        // Bottom anchor for auto-scroll
+                        Color.clear
+                            .frame(height: 1)
+                            .id("bottom")
                     }
                     .padding(QMDesign.Spacing.sm)
                 }
@@ -830,14 +835,12 @@ struct ModernResponseHistoryView: View {
                         }
                 )
                 .onChange(of: responses.count) { _ in
-                    // New response added - reset user scrolling flag
+                    // New response added - reset user scrolling flag and scroll to bottom
                     isUserScrolling = false
                     scrollDisableTimer?.invalidate()
 
-                    if let firstResponse = responses.first {
-                        withAnimation {
-                            proxy.scrollTo(firstResponse.id, anchor: .top)
-                        }
+                    withAnimation {
+                        proxy.scrollTo("bottom", anchor: .bottom)
                     }
                 }
                 .onChange(of: currentResponse) { newContent in
@@ -852,7 +855,15 @@ struct ModernResponseHistoryView: View {
                     // Only auto-scroll if user hasn't manually scrolled
                     if isProcessing && !isUserScrolling {
                         withAnimation {
-                            proxy.scrollTo("current", anchor: .top)
+                            proxy.scrollTo("bottom", anchor: .bottom)
+                        }
+                    }
+                }
+                .onAppear {
+                    // Scroll to bottom on appear if there are responses
+                    if !responses.isEmpty {
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                            proxy.scrollTo("bottom", anchor: .bottom)
                         }
                     }
                 }
