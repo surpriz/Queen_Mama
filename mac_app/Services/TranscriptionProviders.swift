@@ -126,7 +126,10 @@ final class DeepgramProvider: TranscriptionProvider {
         }
 
         var request = URLRequest(url: url)
-        request.setValue("Token \(token.token)", forHTTPHeaderField: "Authorization")
+        // Use Bearer for JWT tokens (from grant API), Token for legacy API keys
+        let authScheme = token.tokenType == "bearer" ? "Bearer" : "Token"
+        request.setValue("\(authScheme) \(token.token)", forHTTPHeaderField: "Authorization")
+        print("[Deepgram] Using \(authScheme) authorization scheme")
 
         let config = URLSessionConfiguration.default
         config.timeoutIntervalForRequest = 30
@@ -679,7 +682,10 @@ final class DeepgramFluxProvider: TranscriptionProvider {
         }
 
         var request = URLRequest(url: url)
-        request.setValue("Token \(token.token)", forHTTPHeaderField: "Authorization")
+        // Use Bearer for JWT tokens (from grant API), Token for legacy API keys
+        let authScheme = token.tokenType == "bearer" ? "Bearer" : "Token"
+        request.setValue("\(authScheme) \(token.token)", forHTTPHeaderField: "Authorization")
+        print("[Deepgram Flux] Using \(authScheme) authorization scheme")
 
         let config = URLSessionConfiguration.default
         config.timeoutIntervalForRequest = 30

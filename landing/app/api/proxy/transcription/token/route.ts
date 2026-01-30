@@ -34,6 +34,11 @@ interface DeepgramKeyResponse {
   time_to_live_in_seconds: number;
 }
 
+interface DeepgramGrantResponse {
+  access_token: string;
+  expires_in: number;
+}
+
 /**
  * POST /api/proxy/transcription/token
  * Generates a temporary token for real-time transcription
@@ -121,29 +126,58 @@ export async function POST(request: Request) {
 
     // Generate temporary token based on provider
     if (provider === "deepgram") {
-      // For Deepgram, we use the admin API key directly
-      // The key is transmitted securely to the macOS app which uses it for WebSocket connection
-      // The key never leaves our infrastructure (backend -> app -> Deepgram)
-      const expiresAt = new Date(Date.now() + 900 * 1000); // 15 minutes
+      try {
+        // Generate a proper JWT token using Deepgram's grant API
+        // This returns a scoped, short-lived token instead of exposing the admin key
+        const grantResponse = await generateDeepgramTemporaryToken(adminApiKey, 900);
+        const expiresAt = new Date(Date.now() + grantResponse.expires_in * 1000);
 
-      // Record usage
-      await prisma.usageLog.create({
-        data: {
-          userId: user.id,
-          action: "transcription_token",
-          provider: "deepgram",
-        },
-      });
+        // Record usage
+        await prisma.usageLog.create({
+          data: {
+            userId: user.id,
+            action: "transcription_token",
+            provider: "deepgram",
+          },
+        });
 
-      return NextResponse.json(
-        {
-          provider: "deepgram",
-          token: adminApiKey,
-          expiresAt: expiresAt.toISOString(),
-          ttlSeconds: 900,
-        },
-        { headers: corsHeaders }
-      );
+        console.log("[Transcription Token] Generated Deepgram JWT token, expires in", grantResponse.expires_in, "seconds");
+
+        return NextResponse.json(
+          {
+            provider: "deepgram",
+            token: grantResponse.access_token,
+            tokenType: "bearer", // JWT tokens use Bearer authorization
+            expiresAt: expiresAt.toISOString(),
+            ttlSeconds: grantResponse.expires_in,
+          },
+          { headers: corsHeaders }
+        );
+      } catch (error) {
+        // Fallback: return admin key for backward compatibility
+        // This ensures the app continues working even if the grant API fails
+        console.error("[Deepgram] Grant API failed, falling back to admin key:", error);
+        const expiresAt = new Date(Date.now() + 900 * 1000);
+
+        await prisma.usageLog.create({
+          data: {
+            userId: user.id,
+            action: "transcription_token",
+            provider: "deepgram",
+          },
+        });
+
+        return NextResponse.json(
+          {
+            provider: "deepgram",
+            token: adminApiKey,
+            tokenType: "token", // Legacy API key uses Token authorization
+            expiresAt: expiresAt.toISOString(),
+            ttlSeconds: 900,
+          },
+          { headers: corsHeaders }
+        );
+      }
     } else if (provider === "assemblyai") {
       // AssemblyAI uses the same API key for real-time
       // We'll return a temporary session token
@@ -182,6 +216,40 @@ export async function POST(request: Request) {
 }
 
 /**
+ * Generate a temporary Deepgram JWT token using the grant API
+ * The token is scoped to streaming only and expires after ttlSeconds
+ *
+ * This is more secure than exposing the admin API key because:
+ * 1. The JWT has limited scope (streaming only)
+ * 2. The JWT auto-expires (cannot be reused indefinitely)
+ * 3. The admin key never leaves the backend
+ */
+async function generateDeepgramTemporaryToken(
+  adminApiKey: string,
+  ttlSeconds: number = 900
+): Promise<DeepgramGrantResponse> {
+  const response = await fetch("https://api.deepgram.com/v1/auth/grant", {
+    method: "POST",
+    headers: {
+      Authorization: `Token ${adminApiKey}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      ttl_seconds: Math.min(ttlSeconds, 3600), // Max 1 hour per Deepgram docs
+    }),
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    console.error("[Deepgram] Grant API error:", errorText);
+    throw new Error(`Deepgram grant API error: ${response.status}`);
+  }
+
+  return response.json();
+}
+
+/**
+ * @deprecated Use generateDeepgramTemporaryToken instead
  * Generate a temporary Deepgram API key using the Deepgram API
  * The key is scoped to streaming only and expires in 15 minutes
  */

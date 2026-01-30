@@ -84,6 +84,7 @@ final class ProxyAPIClient: @unchecked Sendable {
         let token = TranscriptionToken(
             provider: response.provider,
             token: response.token,
+            tokenType: response.tokenType ?? "token", // Default to legacy "token" for backward compatibility
             expiresAt: ISO8601DateFormatter().date(from: response.expiresAt) ?? Date().addingTimeInterval(TimeInterval(response.ttlSeconds)),
             ttlSeconds: response.ttlSeconds
         )
@@ -365,6 +366,7 @@ struct TranscriptionServiceConfig: Codable {
 struct TranscriptionTokenResponse: Codable {
     let provider: String
     let token: String
+    let tokenType: String? // "bearer" for JWT tokens, "token" for legacy API keys
     let expiresAt: String
     let ttlSeconds: Int
 }
@@ -372,6 +374,7 @@ struct TranscriptionTokenResponse: Codable {
 struct TranscriptionToken {
     let provider: String
     let token: String
+    let tokenType: String // "bearer" or "token" - determines Authorization header scheme
     let expiresAt: Date
     let ttlSeconds: Int
 }
