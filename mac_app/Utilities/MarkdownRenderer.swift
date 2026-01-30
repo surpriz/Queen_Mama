@@ -98,7 +98,7 @@ struct MarkdownText: View {
     let content: String
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: 12) {
             let blocks = MarkdownParser.parse(content)
             ForEach(Array(blocks.enumerated()), id: \.offset) { _, block in
                 switch block {
@@ -106,32 +106,34 @@ struct MarkdownText: View {
                     Text(text.inlineMarkdownToAttributed())
                         .font(.system(size: 16, weight: .bold))
                         .foregroundColor(QMDesign.Colors.textPrimary)
-                        .padding(.top, 8)
-                        .padding(.bottom, 4)
+                        .padding(.top, 12)
+                        .padding(.bottom, 6)
                         .frame(maxWidth: .infinity, alignment: .leading)
 
                 case .header2(let text):
                     Text(text.inlineMarkdownToAttributed())
                         .font(.system(size: 14, weight: .bold))
                         .foregroundColor(QMDesign.Colors.textPrimary)
-                        .padding(.top, 6)
-                        .padding(.bottom, 3)
+                        .padding(.top, 10)
+                        .padding(.bottom, 4)
                         .frame(maxWidth: .infinity, alignment: .leading)
 
                 case .header3(let text):
                     Text(text.inlineMarkdownToAttributed())
                         .font(.system(size: 13, weight: .semibold))
                         .foregroundColor(QMDesign.Colors.textSecondary)
-                        .padding(.top, 4)
-                        .padding(.bottom, 2)
+                        .padding(.top, 8)
+                        .padding(.bottom, 3)
                         .frame(maxWidth: .infinity, alignment: .leading)
 
                 case .paragraph(let text):
                     Text(text.inlineMarkdownToAttributed())
                         .font(.system(size: 12))
                         .foregroundColor(QMDesign.Colors.textPrimary)
+                        .lineSpacing(4)
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .fixedSize(horizontal: false, vertical: true)
+                        .padding(.bottom, 4)
 
                 case .empty:
                     EmptyView()

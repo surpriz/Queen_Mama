@@ -28,7 +28,7 @@ export interface CascadeModel {
 export const MODEL_CASCADE = {
   // Standard Mode: Fast, high quality, vision-capable
   standard: [
-    { provider: "openai", model: "gpt-5-mini" },             // Primary: Fast, High intelligence, 400K context, Vision ✅
+    { provider: "openai", model: "gpt-4o" },                 // Primary: Fastest (349ms TTFB), 128K context, Vision ✅
     { provider: "grok", model: "grok-4-1-fast-non-reasoning" }, // Fallback 1: Different provider
     { provider: "openai", model: "gpt-4.1-mini" },           // Fallback 2: OpenAI backup (1M context)
     { provider: "anthropic", model: "claude-haiku-4-5-20251001" }, // Last resort: Claude
@@ -38,7 +38,7 @@ export const MODEL_CASCADE = {
   smart: [
     { provider: "openai", model: "o4-mini" },                // Primary: Best reasoning/speed, Vision ✅
     { provider: "grok", model: "grok-4-1-fast-reasoning" },  // Fallback 1: Different provider
-    { provider: "openai", model: "gpt-5" },                  // Fallback 2: Higher intelligence
+    { provider: "openai", model: "gpt-5.2" },                // Fallback 2: Latest flagship (616ms TTFB, 2M context)
     { provider: "anthropic", model: "claude-sonnet-4-5-20250929" }, // Last resort: Claude
   ] as CascadeModel[],
 } as const;
@@ -46,7 +46,7 @@ export const MODEL_CASCADE = {
 // Legacy AI_MODELS for backward compatibility
 export const AI_MODELS = {
   openai: {
-    standard: "gpt-5-mini",  // Fast, High intelligence, 400K context, Vision ✅
+    standard: "gpt-4o",      // Fastest (349ms TTFB), 128K context, Vision ✅
     smart: "o4-mini",        // Best reasoning/speed balance
   },
   anthropic: {

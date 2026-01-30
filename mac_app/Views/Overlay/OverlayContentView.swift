@@ -90,6 +90,14 @@ struct OverlayContentView: View {
     private func handleSubmit() {
         print("[Overlay] Submitting request for tab: \(selectedTab.rawValue)")
 
+        // Capture user's custom prompt before clearing
+        let customPrompt = inputText.trimmingCharacters(in: .whitespacesAndNewlines)
+        let hasCustomPrompt = !customPrompt.isEmpty
+
+        if hasCustomPrompt {
+            print("[Overlay] Custom prompt provided: '\(customPrompt.prefix(50))...'")
+        }
+
         // Check license before submitting AI request
         let licenseManager = LicenseManager.shared
         let aiAccess = licenseManager.canUse(.aiRequest)
@@ -153,36 +161,50 @@ struct OverlayContentView: View {
                     print("[Overlay] Transcript trimmed: \(originalLength) → \(trimmedLength) chars")
                 }
 
-                switch selectedTab {
-                case .assist:
-                    for try await chunk in appState.aiService.assistStreaming(
+                // Use custom prompt if provided, otherwise use tab-specific methods
+                if hasCustomPrompt {
+                    // Custom question with user's prompt
+                    print("[Overlay] Using custom prompt mode")
+                    let response = try await appState.aiService.askCustomQuestion(
+                        question: customPrompt,
                         transcript: transcriptForRequest,
                         screenshot: screenshot,
                         mode: appState.selectedMode
-                    ) {
-                        _ = chunk
+                    )
+                    appState.aiService.currentResponse = response.content
+                } else {
+                    // Standard tab-based requests
+                    switch selectedTab {
+                    case .assist:
+                        for try await chunk in appState.aiService.assistStreaming(
+                            transcript: transcriptForRequest,
+                            screenshot: screenshot,
+                            mode: appState.selectedMode
+                        ) {
+                            _ = chunk
+                        }
+                    case .whatToSay:
+                        let response = try await appState.aiService.whatToSay(
+                            transcript: transcriptForRequest,
+                            screenshot: screenshot,
+                            mode: appState.selectedMode
+                        )
+                        appState.aiService.currentResponse = response.content
+                    case .followUp:
+                        let response = try await appState.aiService.followUpQuestions(
+                            transcript: transcriptForRequest,
+                            screenshot: screenshot,
+                            mode: appState.selectedMode
+                        )
+                        appState.aiService.currentResponse = response.content
+                    case .recap:
+                        let response = try await appState.aiService.recap(
+                            transcript: transcriptForRequest,
+                            screenshot: screenshot,
+                            mode: appState.selectedMode
+                        )
+                        appState.aiService.currentResponse = response.content
                     }
-                case .whatToSay:
-                    let response = try await appState.aiService.whatToSay(
-                        transcript: transcriptForRequest,
-                        screenshot: screenshot,
-                        mode: appState.selectedMode
-                    )
-                    appState.aiService.currentResponse = response.content
-                case .followUp:
-                    let response = try await appState.aiService.followUpQuestions(
-                        transcript: transcriptForRequest,
-                        screenshot: screenshot,
-                        mode: appState.selectedMode
-                    )
-                    appState.aiService.currentResponse = response.content
-                case .recap:
-                    let response = try await appState.aiService.recap(
-                        transcript: transcriptForRequest,
-                        screenshot: screenshot,
-                        mode: appState.selectedMode
-                    )
-                    appState.aiService.currentResponse = response.content
                 }
 
                 inputText = ""
@@ -484,19 +506,22 @@ struct ModernPillHeaderView: View {
                 ? (isAutoAnswerEnabled ? "Auto-Answer enabled" : "Auto-Answer disabled")
                 : "Auto-Answer requires Enterprise subscription")
 
-            // Screen Capture Toggle
+            // Screen Capture Toggle - Enhanced visibility when disabled
             Button(action: { enableScreenCapture.toggle() }) {
-                Image(systemName: enableScreenCapture ? QMDesign.Icons.camera : QMDesign.Icons.cameraOff)
-                    .font(.system(size: 12))
-                    .foregroundColor(enableScreenCapture ? QMDesign.Colors.success : QMDesign.Colors.textTertiary)
-                    .frame(width: 26, height: 26)
-                    .background(
-                        Circle()
-                            .fill(enableScreenCapture ? QMDesign.Colors.successLight : QMDesign.Colors.surfaceLight)
-                    )
+                ZStack {
+                    // Background circle
+                    Circle()
+                        .fill(enableScreenCapture ? QMDesign.Colors.successLight : QMDesign.Colors.errorLight)
+                        .frame(width: 26, height: 26)
+
+                    // Icon with clearer disabled state
+                    Image(systemName: enableScreenCapture ? QMDesign.Icons.camera : "video.slash")
+                        .font(.system(size: 12, weight: enableScreenCapture ? .regular : .semibold))
+                        .foregroundColor(enableScreenCapture ? QMDesign.Colors.success : QMDesign.Colors.error)
+                }
             }
             .buttonStyle(.plain)
-            .help(enableScreenCapture ? "Screen capture ON" : "Screen capture OFF")
+            .help(enableScreenCapture ? "Screen capture ON - Screenshots will be sent to AI" : "Screen capture OFF - No screenshots")
 
             // More Button (Popup Menu) - works in both collapsed and expanded states
             Button(action: { showPopupMenu.toggle() }) {
@@ -801,7 +826,7 @@ struct ModernResponseHistoryView: View {
 
             ScrollViewReader { proxy in
                 ScrollView {
-                    LazyVStack(alignment: .leading, spacing: QMDesign.Spacing.sm) {
+                    LazyVStack(alignment: .leading, spacing: QMDesign.Spacing.md) {
                         // Empty state
                         if responses.isEmpty && !isProcessing {
                             EmptyResponseState()
