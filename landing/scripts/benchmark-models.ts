@@ -75,7 +75,16 @@ const GROK_MODELS = {
 
 // Moonshot models to test (Kimi)
 const MOONSHOT_MODELS = {
-  latest: [
+  k2_latest: [
+    "kimi-k2.5",                    // K2.5 - Flagship 1T params (262K context)
+    "kimi-k2-0905-Preview",         // K2 Preview - Sept 2024 release
+    "kimi-k2-turbo-preview",        // K2 Turbo - Speed-optimized
+  ],
+  k2_thinking: [
+    "kimi-k2-thinking",             // K2 Thinking - Reasoning-focused
+    "kimi-k2-thinking-turbo",       // K2 Thinking Turbo - Fast reasoning
+  ],
+  v1_legacy: [
     "moonshot-v1-8k",               // V1 8K - General purpose, 8K context
     "moonshot-v1-32k",              // V1 32K - Extended context, 32K tokens
     "moonshot-v1-128k",             // V1 128K - Long context, 128K tokens
@@ -1030,9 +1039,9 @@ async function main() {
   if (moonshotKey) {
     console.log("✅ Moonshot API key loaded\n");
 
-    // Test Moonshot latest models
-    console.log("🚀 Testing MOONSHOT LATEST models...\n");
-    for (const model of MOONSHOT_MODELS.latest) {
+    // Test K2.5 and K2 latest models
+    console.log("🚀 Testing MOONSHOT K2 LATEST models...\n");
+    for (const model of MOONSHOT_MODELS.k2_latest) {
       console.log(`   Testing ${model}...`);
 
       process.stdout.write("      • Text only:  ");
@@ -1063,6 +1072,86 @@ async function main() {
         provider: "moonshot",
         model,
         category: "latest",
+        textOnly: textResult,
+        withVision: visionResult,
+      });
+
+      console.log("");
+    }
+
+    // Test K2 Thinking models
+    console.log("\n🧠 Testing MOONSHOT K2 THINKING models...\n");
+    for (const model of MOONSHOT_MODELS.k2_thinking) {
+      console.log(`   Testing ${model}...`);
+
+      process.stdout.write("      • Text only:  ");
+      const textResult = await testMoonshotModel(moonshotKey, model, false);
+      if (textResult.success) {
+        console.log(
+          `✅ TTFB: ${formatDuration(textResult.ttfb!)} | Total: ${formatDuration(
+            textResult.totalTime!
+          )} | ${textResult.tokensPerSec} tok/s`
+        );
+      } else {
+        console.log(`❌ ${textResult.error}`);
+      }
+
+      process.stdout.write("      • With vision: ");
+      const visionResult = await testMoonshotModel(moonshotKey, model, true);
+      if (visionResult.success) {
+        console.log(
+          `✅ TTFB: ${formatDuration(visionResult.ttfb!)} | Total: ${formatDuration(
+            visionResult.totalTime!
+          )} | ${visionResult.tokensPerSec} tok/s`
+        );
+      } else {
+        console.log(`❌ ${visionResult.error}`);
+      }
+
+      results.push({
+        provider: "moonshot",
+        model,
+        category: "smart",
+        textOnly: textResult,
+        withVision: visionResult,
+      });
+
+      console.log("");
+    }
+
+    // Test V1 Legacy models
+    console.log("\n📚 Testing MOONSHOT V1 LEGACY models...\n");
+    for (const model of MOONSHOT_MODELS.v1_legacy) {
+      console.log(`   Testing ${model}...`);
+
+      process.stdout.write("      • Text only:  ");
+      const textResult = await testMoonshotModel(moonshotKey, model, false);
+      if (textResult.success) {
+        console.log(
+          `✅ TTFB: ${formatDuration(textResult.ttfb!)} | Total: ${formatDuration(
+            textResult.totalTime!
+          )} | ${textResult.tokensPerSec} tok/s`
+        );
+      } else {
+        console.log(`❌ ${textResult.error}`);
+      }
+
+      process.stdout.write("      • With vision: ");
+      const visionResult = await testMoonshotModel(moonshotKey, model, true);
+      if (visionResult.success) {
+        console.log(
+          `✅ TTFB: ${formatDuration(visionResult.ttfb!)} | Total: ${formatDuration(
+            visionResult.totalTime!
+          )} | ${visionResult.tokensPerSec} tok/s`
+        );
+      } else {
+        console.log(`❌ ${visionResult.error}`);
+      }
+
+      results.push({
+        provider: "moonshot",
+        model,
+        category: "legacy",
         textOnly: textResult,
         withVision: visionResult,
       });
