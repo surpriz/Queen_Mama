@@ -74,6 +74,14 @@ export const IPC_CHANNELS = {
   RELAY_SESSION_STATE: 'relay:session-state',
   RELAY_TRANSCRIPT: 'relay:transcript',
   RELAY_AI_RESPONSE: 'relay:ai-response',
+
+  // Database operations
+  DB_QUERY: 'db:query',
+  DB_QUERY_GET: 'db:query-get',
+  DB_QUERY_ALL: 'db:query-all',
+  DB_INSERT: 'db:insert',
+  DB_UPDATE: 'db:update',
+  DB_DELETE: 'db:delete',
 } as const
 
 export type IPCChannel = (typeof IPC_CHANNELS)[keyof typeof IPC_CHANNELS]

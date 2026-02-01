@@ -4,14 +4,32 @@ import { GradientText } from '@/components/common/GradientText'
 import { LoadingSpinner } from '@/components/common/LoadingSpinner'
 
 interface SignInChoiceProps {
-  onEmailSignIn: () => void
-  onRegister: () => void
+  onEmailSignIn?: () => void
+  onRegister?: () => void
 }
 
 export function SignInChoice({ onEmailSignIn, onRegister }: SignInChoiceProps) {
   const { loginWithGoogle, startDeviceCodeFlow } = useAuth()
   const [isLoading, setIsLoading] = useState(false)
   const [deviceCode, setDeviceCode] = useState<string | null>(null)
+  const [showEmailForm, setShowEmailForm] = useState(false)
+  const [showRegisterForm, setShowRegisterForm] = useState(false)
+
+  const handleEmailSignIn = () => {
+    if (onEmailSignIn) {
+      onEmailSignIn()
+    } else {
+      setShowEmailForm(true)
+    }
+  }
+
+  const handleRegister = () => {
+    if (onRegister) {
+      onRegister()
+    } else {
+      setShowRegisterForm(true)
+    }
+  }
 
   const handleGoogle = async () => {
     setIsLoading(true)
@@ -81,7 +99,7 @@ export function SignInChoice({ onEmailSignIn, onRegister }: SignInChoiceProps) {
           </div>
 
           <button
-            onClick={onEmailSignIn}
+            onClick={handleEmailSignIn}
             className="w-full px-4 py-3 rounded-qm-lg bg-qm-surface-medium text-qm-text-primary font-medium hover:bg-qm-surface-hover transition-colors"
           >
             Sign in with Email
@@ -96,7 +114,7 @@ export function SignInChoice({ onEmailSignIn, onRegister }: SignInChoiceProps) {
 
           <p className="text-caption text-qm-text-tertiary mt-4">
             Don't have an account?{' '}
-            <button onClick={onRegister} className="text-qm-accent hover:underline">
+            <button onClick={handleRegister} className="text-qm-accent hover:underline">
               Sign up
             </button>
           </p>

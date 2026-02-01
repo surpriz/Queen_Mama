@@ -17,6 +17,7 @@ import { createTray, updateTrayMenu, updateTrayIcon } from './windows/trayManage
 import { registerIPCHandlers } from './ipc/handlers'
 import { registerGlobalShortcuts } from './services/globalShortcuts'
 import { IPC_CHANNELS } from './ipc/channels'
+import { initializeDatabase, closeDatabase } from './db/database'
 
 // Handle single instance lock
 const gotTheLock = app.requestSingleInstanceLock()
@@ -36,6 +37,14 @@ if (!gotTheLock) {
   app.whenReady().then(() => {
     // Set app user model id for Windows
     app.setAppUserModelId('com.queenmama.windows')
+
+    // Initialize database first
+    try {
+      initializeDatabase()
+      console.log('[Main] Database initialized')
+    } catch (error) {
+      console.error('[Main] Database initialization failed:', error)
+    }
 
     // Register all IPC handlers
     registerIPCHandlers()
@@ -87,5 +96,6 @@ if (!gotTheLock) {
   // Clean up on quit
   app.on('will-quit', () => {
     globalShortcut.unregisterAll()
+    closeDatabase()
   })
 }

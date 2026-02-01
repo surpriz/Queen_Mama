@@ -29,6 +29,30 @@ export function createMainWindow(): BrowserWindow {
     mainWindow?.show()
   })
 
+  // Error handlers for debugging
+  mainWindow.webContents.on('crashed', (event, killed) => {
+    console.error('[MainWindow] Renderer process crashed:', { killed })
+  })
+
+  mainWindow.webContents.on('render-process-gone', (event, details) => {
+    console.error('[MainWindow] Render process gone:', details)
+  })
+
+  mainWindow.webContents.on('did-fail-load', (event, errorCode, errorDescription, validatedURL) => {
+    console.error('[MainWindow] Failed to load:', {
+      errorCode,
+      errorDescription,
+      validatedURL,
+    })
+  })
+
+  mainWindow.webContents.on('console-message', (event, level, message, line, sourceId) => {
+    // Only log errors and warnings from renderer
+    if (level >= 2) {
+      console.log(`[Renderer ${level === 2 ? 'WARN' : 'ERROR'}] ${message}`)
+    }
+  })
+
   mainWindow.webContents.setWindowOpenHandler((details) => {
     shell.openExternal(details.url)
     return { action: 'deny' }

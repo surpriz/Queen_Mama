@@ -19,6 +19,26 @@ export interface SettingsStore {
   delete: (key: string) => Promise<boolean>
 }
 
+export interface QueryResult {
+  rows: unknown[]
+  changes?: number
+  lastInsertRowid?: number | bigint
+}
+
+export interface DatabaseAPI {
+  query: (sql: string, params?: unknown[]) => Promise<QueryResult>
+  queryGet: (sql: string, params?: unknown[]) => Promise<unknown | undefined>
+  queryAll: (sql: string, params?: unknown[]) => Promise<unknown[]>
+  insert: (table: string, data: Record<string, unknown>) => Promise<QueryResult>
+  update: (
+    table: string,
+    data: Record<string, unknown>,
+    where: string,
+    whereParams?: unknown[]
+  ) => Promise<QueryResult>
+  delete: (table: string, where: string, whereParams?: unknown[]) => Promise<QueryResult>
+}
+
 export type OverlayPosition =
   | 'topLeft'
   | 'topCenter'
@@ -27,6 +47,31 @@ export type OverlayPosition =
   | 'bottomCenter'
   | 'bottomRight'
 
+export interface WindowAPI {
+  minimize: () => void
+  maximize: () => void
+  close: () => void
+  show: () => void
+}
+
+export interface OverlayAPI {
+  toggle: () => void
+  show: () => void
+  hide: () => void
+  setExpanded: (expanded: boolean) => void
+  setPosition: (position: OverlayPosition) => void
+}
+
+export interface DeviceAPI {
+  getId: () => Promise<string>
+  getInfo: () => Promise<DeviceInfo>
+}
+
+export interface ScreenAPI {
+  capture: () => Promise<string | null>
+  getSources: () => Promise<Array<{ id: string; name: string; thumbnailDataUrl: string }>>
+}
+
 export interface ElectronAPI {
   // App
   getVersion: () => Promise<string>
@@ -34,12 +79,16 @@ export interface ElectronAPI {
   openExternal: (url: string) => Promise<void>
   quit: () => void
 
-  // Window
+  // Window (namespaced)
+  window: WindowAPI
+  // Window (flat - backward compat)
   windowMinimize: () => void
   windowMaximize: () => void
   windowClose: () => void
 
-  // Overlay
+  // Overlay (namespaced)
+  overlay: OverlayAPI
+  // Overlay (flat - backward compat)
   overlayToggle: () => void
   overlayShow: () => void
   overlayHide: () => void
@@ -52,12 +101,19 @@ export interface ElectronAPI {
   // Settings store
   store: SettingsStore
 
-  // Device
+  // Database
+  db: DatabaseAPI
+
+  // Device (namespaced)
+  device: DeviceAPI
+  // Device (flat - backward compat)
   getDeviceId: () => Promise<string>
   getDeviceInfo: () => Promise<DeviceInfo>
 
-  // Screen capture
-  getScreenSources: () => Promise<Electron.DesktopCapturerSource[]>
+  // Screen (namespaced)
+  screen: ScreenAPI
+  // Screen capture (flat - backward compat)
+  getScreenSources: () => Promise<Array<{ id: string; name: string; thumbnailDataUrl: string }>>
 
   // Tray
   updateTrayIcon: (active: boolean) => void

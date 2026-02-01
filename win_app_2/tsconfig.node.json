@@ -1,12 +1,15 @@
 {
   "compilerOptions": {
+    "composite": true,
     "target": "ES2020",
     "module": "ESNext",
     "moduleResolution": "bundler",
     "allowImportingTsExtensions": true,
     "isolatedModules": true,
     "moduleDetection": "force",
-    "noEmit": true,
+    "noEmit": false,
+    "emitDeclarationOnly": true,
+    "declaration": true,
     "strict": true,
     "noUnusedLocals": true,
     "noUnusedParameters": true,

@@ -80,6 +80,22 @@ const electronAPI = {
   // Updater
   checkForUpdates: () => ipcRenderer.invoke(IPC_CHANNELS.UPDATER_CHECK),
 
+  // Database operations
+  db: {
+    query: (sql: string, params?: unknown[]) =>
+      ipcRenderer.invoke(IPC_CHANNELS.DB_QUERY, sql, params),
+    queryGet: (sql: string, params?: unknown[]) =>
+      ipcRenderer.invoke(IPC_CHANNELS.DB_QUERY_GET, sql, params),
+    queryAll: (sql: string, params?: unknown[]) =>
+      ipcRenderer.invoke(IPC_CHANNELS.DB_QUERY_ALL, sql, params),
+    insert: (table: string, data: Record<string, unknown>) =>
+      ipcRenderer.invoke(IPC_CHANNELS.DB_INSERT, table, data),
+    update: (table: string, data: Record<string, unknown>, where: string, whereParams?: unknown[]) =>
+      ipcRenderer.invoke(IPC_CHANNELS.DB_UPDATE, table, data, where, whereParams),
+    delete: (table: string, where: string, whereParams?: unknown[]) =>
+      ipcRenderer.invoke(IPC_CHANNELS.DB_DELETE, table, where, whereParams),
+  },
+
   // Event listeners (main → renderer)
   onSessionToggle: (callback: () => void) => {
     ipcRenderer.on(IPC_CHANNELS.SESSION_TOGGLE, callback)

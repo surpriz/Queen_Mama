@@ -1,91 +1,75 @@
-import { drizzle } from 'drizzle-orm/better-sqlite3'
-import Database from 'better-sqlite3'
-import * as schema from './schema'
-import path from 'path'
+/**
+ * Database client for renderer process
+ *
+ * This module provides async access to the SQLite database via IPC.
+ * The actual database runs in the main process.
+ */
 
-let db: ReturnType<typeof drizzle> | null = null
-let sqliteDb: Database.Database | null = null
-
-export function getDatabase() {
-  if (db) return db
-
-  // In renderer process, we get the path from electron
-  const userDataPath =
-    typeof window !== 'undefined'
-      ? '' // Will be initialized via IPC
-      : process.env.QUEEN_MAMA_DB_PATH || './queenmama.db'
-
-  const dbPath = path.join(userDataPath, 'queenmama.db')
-  sqliteDb = new Database(dbPath)
-
-  // Enable WAL mode for better concurrent access
-  sqliteDb.pragma('journal_mode = WAL')
-
-  db = drizzle(sqliteDb, { schema })
-  return db
+export interface QueryResult {
+  rows: unknown[]
+  changes?: number
+  lastInsertRowid?: number | bigint
 }
 
-export function initializeDatabase(userDataPath: string) {
-  const dbPath = path.join(userDataPath, 'queenmama.db')
-  sqliteDb = new Database(dbPath)
-  sqliteDb.pragma('journal_mode = WAL')
-  db = drizzle(sqliteDb, { schema })
+// Type-safe database API
+export const db = {
+  /**
+   * Execute a SQL query and return all results
+   */
+  async query(sql: string, params: unknown[] = []): Promise<QueryResult> {
+    return window.electronAPI.db.query(sql, params)
+  },
 
-  // Run migrations / create tables
-  sqliteDb.exec(`
-    CREATE TABLE IF NOT EXISTS sessions (
-      id TEXT PRIMARY KEY,
-      title TEXT NOT NULL DEFAULT 'New Session',
-      start_time TEXT NOT NULL,
-      end_time TEXT,
-      transcript TEXT NOT NULL DEFAULT '',
-      summary TEXT,
-      action_items TEXT NOT NULL DEFAULT '[]',
-      mode_id TEXT,
-      sync_status TEXT NOT NULL DEFAULT 'local',
-      remote_id TEXT,
-      device_id TEXT,
-      version INTEGER NOT NULL DEFAULT 1,
-      checksum TEXT
-    );
+  /**
+   * Execute a SQL query and return the first result
+   */
+  async queryGet<T = unknown>(sql: string, params: unknown[] = []): Promise<T | undefined> {
+    return window.electronAPI.db.queryGet(sql, params) as Promise<T | undefined>
+  },
 
-    CREATE TABLE IF NOT EXISTS transcript_entries (
-      id TEXT PRIMARY KEY,
-      session_id TEXT NOT NULL REFERENCES sessions(id) ON DELETE CASCADE,
-      timestamp TEXT NOT NULL,
-      speaker TEXT NOT NULL DEFAULT 'Unknown',
-      text TEXT NOT NULL DEFAULT '',
-      is_final INTEGER NOT NULL DEFAULT 0
-    );
+  /**
+   * Execute a SQL query and return all results as an array
+   */
+  async queryAll<T = unknown>(sql: string, params: unknown[] = []): Promise<T[]> {
+    return window.electronAPI.db.queryAll(sql, params) as Promise<T[]>
+  },
 
-    CREATE TABLE IF NOT EXISTS ai_responses (
-      id TEXT PRIMARY KEY,
-      session_id TEXT REFERENCES sessions(id) ON DELETE SET NULL,
-      type TEXT NOT NULL DEFAULT 'Assist',
-      content TEXT NOT NULL DEFAULT '',
-      timestamp TEXT NOT NULL,
-      provider TEXT NOT NULL DEFAULT 'OpenAI',
-      latency_ms INTEGER,
-      is_automatic INTEGER NOT NULL DEFAULT 0
-    );
+  /**
+   * Insert a record into a table
+   */
+  async insert(table: string, data: Record<string, unknown>): Promise<QueryResult> {
+    return window.electronAPI.db.insert(table, data)
+  },
 
-    CREATE TABLE IF NOT EXISTS modes (
-      id TEXT PRIMARY KEY,
-      name TEXT NOT NULL,
-      system_prompt TEXT NOT NULL,
-      is_default INTEGER NOT NULL DEFAULT 0,
-      created_at TEXT NOT NULL,
-      attached_files TEXT NOT NULL DEFAULT '[]'
-    );
-  `)
+  /**
+   * Update records in a table
+   */
+  async update(
+    table: string,
+    data: Record<string, unknown>,
+    where: string,
+    whereParams: unknown[] = []
+  ): Promise<QueryResult> {
+    return window.electronAPI.db.update(table, data, where, whereParams)
+  },
 
-  return db
+  /**
+   * Delete records from a table
+   */
+  async delete(table: string, where: string, whereParams: unknown[] = []): Promise<QueryResult> {
+    return window.electronAPI.db.delete(table, where, whereParams)
+  },
 }
 
-export function closeDatabase() {
-  sqliteDb?.close()
-  sqliteDb = null
-  db = null
+// Legacy exports for compatibility with existing code that imports initializeDatabase
+export async function initializeDatabase(_userDataPath?: string): Promise<void> {
+  // Database is now initialized in main process, this is a no-op
+  console.log('[DB Client] Database initialized in main process')
 }
 
-export { schema }
+export function closeDatabase(): void {
+  // Database is closed in main process
+}
+
+// Re-export schema for type definitions
+export * from './schema'

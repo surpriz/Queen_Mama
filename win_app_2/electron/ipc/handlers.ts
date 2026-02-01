@@ -5,6 +5,7 @@ import * as os from 'os'
 import * as path from 'path'
 import * as fs from 'fs'
 import Store from 'electron-store'
+import { executeQuery, executeQueryGet, executeQueryAll } from '../db/database'
 
 const store = new Store()
 
@@ -181,4 +182,84 @@ export function registerIPCHandlers(): void {
       }
     }
   })
+
+  // Database operations
+  ipcMain.handle(IPC_CHANNELS.DB_QUERY, (_event, sql: string, params: unknown[] = []) => {
+    try {
+      return executeQuery(sql, params)
+    } catch (error) {
+      console.error('[IPC] DB query failed:', error)
+      throw error
+    }
+  })
+
+  ipcMain.handle(IPC_CHANNELS.DB_QUERY_GET, (_event, sql: string, params: unknown[] = []) => {
+    try {
+      return executeQueryGet(sql, params)
+    } catch (error) {
+      console.error('[IPC] DB query get failed:', error)
+      throw error
+    }
+  })
+
+  ipcMain.handle(IPC_CHANNELS.DB_QUERY_ALL, (_event, sql: string, params: unknown[] = []) => {
+    try {
+      return executeQueryAll(sql, params)
+    } catch (error) {
+      console.error('[IPC] DB query all failed:', error)
+      throw error
+    }
+  })
+
+  ipcMain.handle(
+    IPC_CHANNELS.DB_INSERT,
+    (_event, table: string, data: Record<string, unknown>) => {
+      try {
+        const columns = Object.keys(data)
+        const placeholders = columns.map(() => '?').join(', ')
+        const values = Object.values(data)
+        const sql = `INSERT INTO ${table} (${columns.join(', ')}) VALUES (${placeholders})`
+        return executeQuery(sql, values)
+      } catch (error) {
+        console.error('[IPC] DB insert failed:', error)
+        throw error
+      }
+    }
+  )
+
+  ipcMain.handle(
+    IPC_CHANNELS.DB_UPDATE,
+    (
+      _event,
+      table: string,
+      data: Record<string, unknown>,
+      where: string,
+      whereParams: unknown[] = []
+    ) => {
+      try {
+        const setClause = Object.keys(data)
+          .map((col) => `${col} = ?`)
+          .join(', ')
+        const values = [...Object.values(data), ...whereParams]
+        const sql = `UPDATE ${table} SET ${setClause} WHERE ${where}`
+        return executeQuery(sql, values)
+      } catch (error) {
+        console.error('[IPC] DB update failed:', error)
+        throw error
+      }
+    }
+  )
+
+  ipcMain.handle(
+    IPC_CHANNELS.DB_DELETE,
+    (_event, table: string, where: string, whereParams: unknown[] = []) => {
+      try {
+        const sql = `DELETE FROM ${table} WHERE ${where}`
+        return executeQuery(sql, whereParams)
+      } catch (error) {
+        console.error('[IPC] DB delete failed:', error)
+        throw error
+      }
+    }
+  )
 }
