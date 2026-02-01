@@ -164,7 +164,7 @@ struct ModeMenuItem: View {
     let isHovered: Bool
     let onSelect: (Mode) -> Void
 
-    private let builtInModes: [Mode] = [.defaultMode, .professionalMode, .interviewMode, .salesMode]
+    private let builtInModes: [Mode] = [.defaultMode, .professionalMode, .interviewMode, .salesMode, .developerExamMode]
 
     var body: some View {
         VStack(spacing: 0) {
@@ -279,6 +279,7 @@ struct ModeOptionButton: View {
         case "professional": return "briefcase"
         case "interview": return "person.fill.questionmark"
         case "sales": return "chart.line.uptrend.xyaxis"
+        case "developer exam": return "chevron.left.forwardslash.chevron.right"
         default: return "person.crop.circle"
         }
     }

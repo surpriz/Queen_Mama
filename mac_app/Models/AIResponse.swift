@@ -172,7 +172,7 @@ struct AIContext: @unchecked Sendable {
         // Check if this is a custom mode (not one of the built-in modes)
         let isCustomMode: Bool
         if let mode = mode {
-            let builtInNames = ["Default", "Professional", "Interview", "Sales"]
+            let builtInNames = ["Default", "Professional", "Interview", "Sales", "Developer Exam"]
             isCustomMode = !builtInNames.contains(mode.name)
             print("[AIContext] Mode name: '\(mode.name)', isCustomMode: \(isCustomMode)")
             print("[AIContext] Mode systemPrompt (first 100 chars): '\(String(mode.systemPrompt.prefix(100)))'")
@@ -218,7 +218,7 @@ SMART MODE ENABLED: Please provide enhanced, thorough analysis:
         // Check if this is a custom mode (same logic as systemPrompt)
         let isCustomMode: Bool
         if let mode = mode {
-            let builtInNames = ["Default", "Professional", "Interview", "Sales"]
+            let builtInNames = ["Default", "Professional", "Interview", "Sales", "Developer Exam"]
             isCustomMode = !builtInNames.contains(mode.name)
         } else {
             isCustomMode = false

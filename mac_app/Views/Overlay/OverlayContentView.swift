@@ -293,6 +293,7 @@ struct ModernPillHeaderView: View {
     @State private var isHoveringMore = false
     @State private var isHoveringDashboard = false
     @State private var isHoveringPlay = false  // Hover state for play button
+    @State private var isHoveringHidden = false  // Hover state for hidden mode button
     @State private var isAutoPulsing = false  // Pulsing animation for auto mode
     @State private var isChevronPulsing = false  // Pulsing animation for expand hint
     @State private var isPlayPulsing = false  // Pulsing animation for play button
@@ -305,7 +306,7 @@ struct ModernPillHeaderView: View {
 
     var body: some View {
         HStack(spacing: QMDesign.Spacing.xs) {
-            // Logo (branding only - no action)
+            // Logo (drag handle to move widget)
             ZStack {
                 Circle()
                     .fill(QMDesign.Colors.primaryGradient)
@@ -315,10 +316,12 @@ struct ModernPillHeaderView: View {
                     .font(.system(size: 14, weight: .semibold))
                     .foregroundColor(.white)
             }
+            .overlay(WindowDragHandle())
+            .help("Drag to move widget")
 
             // Dashboard Button (explicit action)
             Button(action: toggleDashboard) {
-                Image(systemName: "square.grid.2x2")
+                Image(systemName: "house.fill")
                     .font(.system(size: 12, weight: .medium))
                     .foregroundColor(isHoveringDashboard ? QMDesign.Colors.accent : QMDesign.Colors.textSecondary)
                     .frame(width: 26, height: 26)
@@ -462,6 +465,40 @@ struct ModernPillHeaderView: View {
                     .help("Smart Mode: Using enhanced AI reasoning")
                 }
             }
+
+            // Hidden Mode Toggle (Enterprise only) - Quick access to Undetectability
+            let hiddenModeAvailable = LicenseManager.shared.isFeatureAvailable(.undetectable)
+            Button(action: {
+                if hiddenModeAvailable {
+                    config.isUndetectabilityEnabled.toggle()
+                }
+            }) {
+                HStack(spacing: 4) {
+                    Image(systemName: config.isUndetectabilityEnabled ? "eye.slash.fill" : "eye.slash")
+                        .font(.system(size: 11))
+                    Text("Hidden")
+                        .font(QMDesign.Typography.caption)
+                    if !hiddenModeAvailable {
+                        Image(systemName: "lock.fill")
+                            .font(.system(size: 8))
+                    }
+                }
+                .padding(.horizontal, QMDesign.Spacing.xs)
+                .padding(.vertical, 4)
+                .background(
+                    Capsule()
+                        .fill(config.isUndetectabilityEnabled && hiddenModeAvailable ? QMDesign.Colors.success.opacity(0.2) : QMDesign.Colors.surfaceLight)
+                )
+                .foregroundColor(config.isUndetectabilityEnabled && hiddenModeAvailable ? QMDesign.Colors.success : QMDesign.Colors.textTertiary)
+                .opacity(hiddenModeAvailable ? 1 : 0.6)
+                .scaleEffect(isHoveringHidden ? 1.05 : 1.0)
+            }
+            .buttonStyle(.plain)
+            .onHover { isHoveringHidden = $0 }
+            .animation(QMDesign.Animation.quick, value: isHoveringHidden)
+            .help(hiddenModeAvailable
+                ? (config.isUndetectabilityEnabled ? "Hidden Mode: Widget invisible to screen capture" : "Hidden Mode: Click to hide from screen capture")
+                : "Hidden Mode requires Enterprise subscription")
 
             // Auto-Answer Toggle (Enterprise only) with pulsing indicator
             let autoAnswerAvailable = LicenseManager.shared.isFeatureAvailable(.autoAnswer)
@@ -1455,6 +1492,29 @@ struct FeaturePreviewRow: View {
                 .font(QMDesign.Typography.caption)
                 .foregroundColor(QMDesign.Colors.textSecondary)
         }
+    }
+}
+
+// MARK: - Window Drag Handle
+
+/// A view that allows dragging the window when clicked and dragged
+/// Used to make the logo a drag handle for moving the overlay
+struct WindowDragHandle: NSViewRepresentable {
+    func makeNSView(context: Context) -> WindowDragNSView {
+        WindowDragNSView()
+    }
+
+    func updateNSView(_ nsView: WindowDragNSView, context: Context) {}
+}
+
+/// Custom NSView that initiates window drag on mouse down
+class WindowDragNSView: NSView {
+    override func mouseDown(with event: NSEvent) {
+        window?.performDrag(with: event)
+    }
+
+    override func mouseDragged(with event: NSEvent) {
+        window?.performDrag(with: event)
     }
 }
 

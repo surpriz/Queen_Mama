@@ -4,6 +4,7 @@ import { Container } from "@/components/ui";
 const footerLinks = {
   product: [
     { label: "Features", href: "/#features" },
+    { label: "Use Cases", href: "/use-cases" },
     { label: "Pricing", href: "/#pricing" },
     { label: "FAQ", href: "/#faq" },
     { label: "Changelog", href: "/changelog" },

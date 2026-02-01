@@ -26,20 +26,28 @@ export interface CascadeModel {
 }
 
 export const MODEL_CASCADE = {
-  // Standard Mode: Fast, high quality, vision-capable
+  // Standard Mode: Real-time suggestions (vision required)
+  // Optimized for quality + speed balance
   standard: [
-    { provider: "openai", model: "gpt-4o" },                 // Primary: Fastest (349ms TTFB), 128K context, Vision ✅
-    { provider: "grok", model: "grok-4-1-fast-non-reasoning" }, // Fallback 1: Different provider
-    { provider: "openai", model: "gpt-4.1-mini" },           // Fallback 2: OpenAI backup (1M context)
-    { provider: "anthropic", model: "claude-haiku-4-5-20251001" }, // Last resort: Claude
+    { provider: "openai", model: "gpt-4o" },                           // Primary: ⭐⭐⭐⭐ quality, 599ms TTFB, proven reliable, fastest
+    { provider: "anthropic", model: "claude-sonnet-4-20250514" },      // Fallback 1: ⭐⭐⭐⭐⭐ quality, 1.14s TTFB, strategic questions
+    { provider: "anthropic", model: "claude-3-7-sonnet-20250219" },    // Fallback 2: ⭐⭐⭐ quality, 669ms TTFB, fast backup
   ] as CascadeModel[],
 
-  // Smart Mode: Enhanced reasoning for Enterprise
+  // Smart Mode: Deep analysis (vision required, Enterprise only)
+  // Optimized for maximum intelligence
   smart: [
-    { provider: "openai", model: "o4-mini" },                // Primary: Best reasoning/speed, Vision ✅
-    { provider: "grok", model: "grok-4-1-fast-reasoning" },  // Fallback 1: Different provider
-    { provider: "openai", model: "gpt-5.2" },                // Fallback 2: Latest flagship (616ms TTFB, 2M context)
-    { provider: "anthropic", model: "claude-sonnet-4-5-20250929" }, // Last resort: Claude
+    { provider: "anthropic", model: "claude-sonnet-4-5-20250929" },    // Primary: ⭐⭐⭐⭐⭐ exceptional intelligence, multi-stakeholder analysis
+    { provider: "openai", model: "o4-mini" },                          // Fallback 1: Reasoning model, fast backup
+    { provider: "anthropic", model: "claude-sonnet-4-20250514" },      // Fallback 2: ⭐⭐⭐⭐⭐ quality, faster Anthropic backup
+  ] as CascadeModel[],
+
+  // Recap Mode: Meeting summaries (text-only, large context preferred)
+  // Optimized for intelligence + readability
+  recap: [
+    { provider: "anthropic", model: "claude-sonnet-4-5-20250929" },    // Primary: ⭐⭐⭐⭐⭐ UX (emojis, statuses), highly readable
+    { provider: "anthropic", model: "claude-sonnet-4-20250514" },      // Fallback 1: ⭐⭐⭐⭐⭐ quality backup
+    { provider: "openai", model: "gpt-4o" },                           // Fallback 2: ⭐⭐⭐⭐ structured, complete
   ] as CascadeModel[],
 } as const;
 
@@ -95,9 +103,20 @@ export const TIER_LIMITS = {
   },
 } as const;
 
+// Mode types for cascade selection
+export type CascadeMode = "standard" | "smart" | "recap";
+
 // Get model cascade for a given mode, filtered by configured providers
-export async function getModelCascade(smartMode: boolean): Promise<CascadeModel[]> {
-  const cascade = smartMode ? MODEL_CASCADE.smart : MODEL_CASCADE.standard;
+export async function getModelCascade(mode: CascadeMode | boolean): Promise<CascadeModel[]> {
+  // Support legacy boolean parameter (for backward compatibility)
+  let cascadeMode: CascadeMode;
+  if (typeof mode === "boolean") {
+    cascadeMode = mode ? "smart" : "standard";
+  } else {
+    cascadeMode = mode;
+  }
+
+  const cascade = MODEL_CASCADE[cascadeMode];
   const configuredProviders = await getConfiguredProviders();
 
   // Filter cascade to only include configured providers
