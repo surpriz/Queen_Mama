@@ -2,6 +2,7 @@ import { TabBar } from './TabBar'
 import { ResponseDisplay } from './ResponseDisplay'
 import { ActionBar } from './ActionBar'
 import { InputBar } from './InputBar'
+import { FinalizationIndicator } from './FinalizationIndicator'
 
 export function ExpandedContent() {
   return (
@@ -9,6 +10,7 @@ export function ExpandedContent() {
       <TabBar />
       <ResponseDisplay />
       <ActionBar />
+      <FinalizationIndicator />
       <InputBar />
     </div>
   )

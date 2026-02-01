@@ -10,18 +10,21 @@ import {
   Eye,
   EyeOff,
   Lock,
+  Loader2,
 } from 'lucide-react'
 import { useOverlayStore } from '@/stores/overlayStore'
 import { useAppStore } from '@/stores/appStore'
 import { useConfigStore } from '@/stores/configStore'
 import { cn } from '@/lib/utils'
 import { PopupMenu } from './PopupMenu'
+import { SmartModeBadge } from './SmartModeBadge'
 import * as sessionLifecycle from '@/services/sessionLifecycle'
 
 export function PillHeader() {
   const isExpanded = useOverlayStore((s) => s.isExpanded)
   const toggleExpanded = useOverlayStore((s) => s.toggleExpanded)
   const isSessionActive = useAppStore((s) => s.isSessionActive)
+  const isFinalizingSession = useAppStore((s) => s.isFinalizingSession)
   const autoAnswerEnabled = useConfigStore((s) => s.autoAnswerEnabled)
   const updateConfig = useConfigStore((s) => s.updateConfig)
   const autoScreenCapture = useConfigStore((s) => s.autoScreenCapture)
@@ -98,15 +101,21 @@ export function PillHeader() {
         style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}
         title={isExpanded ? 'Collapse' : 'Expand'}
       >
+        {/* Pulsing ring when collapsed - indicates hidden content */}
+        {!isExpanded && (
+          <span className="absolute inset-0 rounded-full border-2 border-qm-accent/40 animate-pulse-chevron opacity-60" />
+        )}
         {isExpanded ? (
           <ChevronUp size={14} className="text-white" />
         ) : (
-          <ChevronDown size={14} className="text-white" />
+          <ChevronDown size={14} className={cn('text-white', !isExpanded && 'animate-pulse-chevron')} />
         )}
       </button>
 
-      {/* Spacer - like macOS, mostly empty */}
-      <div className="flex-1 titlebar-drag" />
+      {/* Spacer with Smart Mode Badge */}
+      <div className="flex-1 flex items-center gap-2 titlebar-drag">
+        <SmartModeBadge />
+      </div>
 
       {/* Controls - Right side */}
       <div
@@ -162,32 +171,43 @@ export function PillHeader() {
         {/* 7. More Menu */}
         <PopupMenu />
 
-        {/* 8. Start/Stop Session Button with Glow */}
-        <button
-          onClick={handleStartStop}
-          className="relative flex items-center justify-center w-8 h-8 rounded-full transition-transform hover:scale-105 active:scale-95"
-          title={isSessionActive ? 'Stop Session' : 'Start Session'}
-        >
-          {/* Glow effect when active */}
-          {isSessionActive && (
-            <span className="absolute inset-0 rounded-full bg-gradient-to-br from-qm-gradient-start to-qm-gradient-end animate-pulse-glow" />
-          )}
-          {/* Button background */}
-          <span
-            className={cn(
-              'absolute inset-0 rounded-full',
-              isSessionActive
-                ? 'bg-qm-error'
-                : 'bg-gradient-to-br from-qm-gradient-start to-qm-gradient-end',
+        {/* 8. Finalization Indicator OR Start/Stop Session Button */}
+        {isFinalizingSession ? (
+          <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full bg-qm-accent/15 border border-qm-accent/25">
+            <Loader2 size={12} className="text-qm-accent animate-spin" />
+            <span className="text-[10px] font-medium text-qm-accent">Résumé...</span>
+          </div>
+        ) : (
+          <button
+            onClick={handleStartStop}
+            className="relative flex items-center justify-center w-8 h-8 rounded-full transition-transform hover:scale-105 active:scale-95"
+            title={isSessionActive ? 'Stop Session' : 'Start Session'}
+          >
+            {/* Glow effect when active */}
+            {isSessionActive && (
+              <span className="absolute inset-0 rounded-full bg-gradient-to-br from-qm-gradient-start to-qm-gradient-end animate-pulse-glow" />
             )}
-          />
-          {/* Icon */}
-          {isSessionActive ? (
-            <Square size={12} className="text-white relative z-10" fill="white" />
-          ) : (
-            <Play size={14} className="text-white relative z-10 ml-0.5" fill="white" />
-          )}
-        </button>
+            {/* Pulsing glow ring when not active - invites user to start */}
+            {!isSessionActive && (
+              <span className="absolute inset-0 rounded-full bg-gradient-to-br from-qm-gradient-start/30 to-qm-gradient-end/30 animate-pulse-glow" />
+            )}
+            {/* Button background */}
+            <span
+              className={cn(
+                'absolute inset-0 rounded-full shadow-qm-md',
+                isSessionActive
+                  ? 'bg-qm-error'
+                  : 'bg-gradient-to-br from-qm-gradient-start to-qm-gradient-end',
+              )}
+            />
+            {/* Icon */}
+            {isSessionActive ? (
+              <Square size={12} className="text-white relative z-10" fill="white" />
+            ) : (
+              <Play size={14} className="text-white relative z-10 ml-0.5" fill="white" />
+            )}
+          </button>
+        )}
       </div>
     </div>
   )

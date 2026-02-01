@@ -2,6 +2,7 @@ import { useEffect, useCallback } from 'react'
 import { toggleSession } from '@/services/sessionLifecycle'
 import * as aiService from '@/services/ai/aiService'
 import { useAppStore } from '@/stores/appStore'
+import { useShortcutsStore } from '@/stores/shortcutsStore'
 
 /**
  * Registers global keyboard shortcut handlers.
@@ -28,6 +29,20 @@ export function useKeyboardShortcuts(): void {
     useAppStore.getState().clearContext()
   }, [])
 
+  // Handle "?" key to show shortcuts modal
+  const handleKeyDown = useCallback((e: KeyboardEvent) => {
+    // Don't trigger if user is typing in an input field
+    if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
+      return
+    }
+
+    // "?" key (Shift + /) to show shortcuts
+    if (e.key === '?' || (e.shiftKey && e.key === '/')) {
+      e.preventDefault()
+      useShortcutsStore.getState().toggleShortcutsModal()
+    }
+  }, [])
+
   useEffect(() => {
     const unsubscribers: (() => void)[] = []
 
@@ -43,8 +58,12 @@ export function useKeyboardShortcuts(): void {
     const unsub4 = window.electronAPI?.onShortcutClearContext(handleClearContext)
     if (unsub4) unsubscribers.push(unsub4)
 
+    // Register keyboard listener for "?" shortcut
+    document.addEventListener('keydown', handleKeyDown)
+
     return () => {
       unsubscribers.forEach((unsub) => unsub())
+      document.removeEventListener('keydown', handleKeyDown)
     }
-  }, [handleToggleSession, handleToggleWidget, handleTriggerAssist, handleClearContext])
+  }, [handleToggleSession, handleToggleWidget, handleTriggerAssist, handleClearContext, handleKeyDown])
 }

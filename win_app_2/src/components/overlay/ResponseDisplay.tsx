@@ -1,5 +1,5 @@
-import { useRef, useEffect, useState } from 'react'
-import { Copy, Check, Sparkles, MessageSquare, HelpCircle, RotateCcw, Command } from 'lucide-react'
+import { useRef, useEffect, useState, useCallback } from 'react'
+import { Copy, Check, Sparkles, MessageSquare, HelpCircle, RotateCcw, Command, ChevronDown } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useOverlayStore } from '@/stores/overlayStore'
 import { useAppStore } from '@/stores/appStore'
@@ -7,6 +7,9 @@ import { ResponseType } from '@/types/models'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import { cn } from '@/lib/utils'
+import { AutoResponseBadge } from './AutoResponseBadge'
+import { ScreenshotIndicator } from './ScreenshotIndicator'
+import { ResponseFeedback } from './ResponseFeedback'
 
 const TYPE_CONFIG = {
   [ResponseType.Assist]: { icon: Sparkles, label: 'Assist', color: 'text-qm-accent' },
@@ -21,9 +24,22 @@ interface ResponseItemProps {
   type?: ResponseType
   isStreaming?: boolean
   timestamp?: string
+  isAutomatic?: boolean
+  hasScreenshot?: boolean
+  screenshotTimestamp?: string
+  responseId?: string
 }
 
-function ResponseItem({ content, type = ResponseType.Assist, isStreaming, timestamp }: ResponseItemProps) {
+function ResponseItem({
+  content,
+  type = ResponseType.Assist,
+  isStreaming,
+  timestamp,
+  isAutomatic = false,
+  hasScreenshot = false,
+  screenshotTimestamp,
+  responseId,
+}: ResponseItemProps) {
   const [copied, setCopied] = useState(false)
   const config = TYPE_CONFIG[type] || TYPE_CONFIG[ResponseType.Assist]
   const Icon = config.icon
@@ -43,14 +59,31 @@ function ResponseItem({ content, type = ResponseType.Assist, isStreaming, timest
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.2 }}
-      className="rounded-qm-md bg-qm-surface-light p-3 mb-3"
+      className={cn(
+        'rounded-qm-md bg-qm-surface-light p-3 mb-3 relative',
+        isAutomatic && 'border-l-[3px] border-l-qm-auto-answer',
+        isStreaming && 'border border-qm-accent/30'
+      )}
     >
+      {/* Screenshot indicator - positioned above content */}
+      {hasScreenshot && screenshotTimestamp && (
+        <div className="mb-2">
+          <ScreenshotIndicator timestamp={screenshotTimestamp} />
+        </div>
+      )}
+
       {/* Header row - Type label, icons, timestamp */}
       <div className="flex items-center justify-between mb-2">
-        {/* Left - Type label */}
-        <div className={cn('flex items-center gap-1.5 text-[12px] font-medium', config.color)}>
-          <Icon size={14} />
-          {config.label}
+        {/* Left - Auto badge OR Type label */}
+        <div className="flex items-center gap-2">
+          {isAutomatic ? (
+            <AutoResponseBadge />
+          ) : (
+            <div className={cn('flex items-center gap-1.5 text-[12px] font-medium', config.color)}>
+              <Icon size={14} />
+              {config.label}
+            </div>
+          )}
         </div>
 
         {/* Right - Keyboard icon, Copy, Timestamp */}
@@ -77,6 +110,13 @@ function ResponseItem({ content, type = ResponseType.Assist, isStreaming, timest
           </span>
         )}
       </div>
+
+      {/* Feedback buttons - only shown when not streaming and for Enterprise */}
+      {!isStreaming && content && responseId && (
+        <div className="flex justify-end mt-2 pt-2 border-t border-qm-border-subtle/50">
+          <ResponseFeedback responseId={responseId} />
+        </div>
+      )}
     </motion.div>
   )
 }
@@ -88,18 +128,58 @@ export function ResponseDisplay() {
   const isProcessing = useAppStore((s) => s.isProcessing)
   const scrollRef = useRef<HTMLDivElement>(null)
 
-  // Auto-scroll
-  useEffect(() => {
+  // Smart scroll state - disable auto-scroll when user scrolls up
+  const [isUserScrolling, setIsUserScrolling] = useState(false)
+  const [showScrollButton, setShowScrollButton] = useState(false)
+
+  // Detect user scroll
+  const handleScroll = useCallback(() => {
+    if (!scrollRef.current) return
+
+    const { scrollTop, scrollHeight, clientHeight } = scrollRef.current
+    const isAtBottom = scrollHeight - scrollTop - clientHeight < 20
+
+    if (!isAtBottom && !isUserScrolling) {
+      setIsUserScrolling(true)
+      setShowScrollButton(true)
+    } else if (isAtBottom && isUserScrolling) {
+      setIsUserScrolling(false)
+      setShowScrollButton(false)
+    }
+  }, [isUserScrolling])
+
+  // Scroll to bottom function
+  const scrollToBottom = useCallback(() => {
     if (scrollRef.current) {
+      scrollRef.current.scrollTo({
+        top: scrollRef.current.scrollHeight,
+        behavior: 'smooth',
+      })
+      setIsUserScrolling(false)
+      setShowScrollButton(false)
+    }
+  }, [])
+
+  // Auto-scroll only when not user scrolling
+  useEffect(() => {
+    if (!isUserScrolling && scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight
     }
-  }, [streamingContent])
+  }, [streamingContent, isUserScrolling])
+
+  // Reset user scrolling when new response starts
+  useEffect(() => {
+    if (isProcessing) {
+      setIsUserScrolling(false)
+      setShowScrollButton(false)
+    }
+  }, [isProcessing])
 
   const hasContent = streamingContent || responseHistory.length > 0
 
   return (
     <div className="flex-1 relative overflow-hidden min-h-0">
-      <div ref={scrollRef} className="h-full overflow-y-auto p-3">
+      <div ref={scrollRef} onScroll={handleScroll} className="h-full overflow-y-auto p-3">
         <AnimatePresence mode="popLayout">
           {hasContent ? (
             <>
@@ -153,6 +233,23 @@ export function ResponseDisplay() {
           )}
         </AnimatePresence>
       </div>
+
+      {/* Scroll to bottom button - appears when user scrolls up */}
+      <AnimatePresence>
+        {showScrollButton && (
+          <motion.button
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.9 }}
+            transition={{ duration: 0.15 }}
+            onClick={scrollToBottom}
+            className="absolute bottom-3 right-3 w-8 h-8 rounded-full bg-qm-accent shadow-qm-lg flex items-center justify-center hover:bg-qm-accent-light transition-colors"
+            title="Scroll to bottom"
+          >
+            <ChevronDown size={16} className="text-white" />
+          </motion.button>
+        )}
+      </AnimatePresence>
     </div>
   )
 }

@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Play, Square, MonitorUp, XCircle, AlertTriangle } from 'lucide-react'
+import { Play, Square, MonitorUp, XCircle, AlertTriangle, Eye, EyeOff, Loader2 } from 'lucide-react'
 import { Sidebar } from './Sidebar'
 import { LiveSessionView } from './LiveSessionView'
 import { SessionsView } from './SessionsView'
@@ -16,10 +16,14 @@ export type NavItem = 'sessions' | 'live' | 'modes' | 'settings'
 export function DashboardLayout() {
   const [activeNav, setActiveNav] = useState<NavItem>('sessions')
   const isSessionActive = useAppStore((s) => s.isSessionActive)
+  const isFinalizingSession = useAppStore((s) => s.isFinalizingSession)
+  const isOverlayVisible = useAppStore((s) => s.isOverlayVisible)
+  const toggleOverlay = useAppStore((s) => s.toggleOverlay)
   const authState = useAuthStore((s) => s.authState)
   const currentUser = useAuthStore((s) => s.currentUser)
 
   const isSignedIn = authState === 'authenticated' && currentUser
+  const canStartSession = isSignedIn || isSessionActive // Can stop if active, need auth to start
 
   const handleStartStop = async () => {
     if (isSessionActive) {
@@ -35,6 +39,10 @@ export function DashboardLayout() {
 
   const handleClearContext = () => {
     useAppStore.getState().clearContext()
+  }
+
+  const handleToggleOverlay = () => {
+    toggleOverlay()
   }
 
   const handleSignIn = () => {
@@ -70,27 +78,55 @@ export function DashboardLayout() {
 
           {/* Header actions */}
           <div className="flex items-center gap-2">
-            {/* Start/Stop button */}
+            {/* Finalization indicator */}
+            {isFinalizingSession && (
+              <div className="flex items-center gap-2 px-3 py-1.5 rounded-qm-md bg-qm-accent/10 border border-qm-accent/20">
+                <Loader2 size={14} className="text-qm-accent animate-spin" />
+                <span className="text-body-sm text-qm-accent font-medium">Generating summary...</span>
+              </div>
+            )}
+
+            {/* Start/Stop button - disabled when not signed in (unless already active) */}
+            {!isFinalizingSession && (
+              <button
+                onClick={handleStartStop}
+                disabled={!canStartSession}
+                className={cn(
+                  'flex items-center gap-2 px-4 py-1.5 rounded-qm-md text-body-sm font-medium transition-all',
+                  !canStartSession
+                    ? 'bg-qm-surface-light/50 text-qm-text-disabled cursor-not-allowed opacity-50'
+                    : isSessionActive
+                    ? 'bg-qm-error/10 text-qm-error hover:bg-qm-error/20'
+                    : 'bg-gradient-to-r from-qm-gradient-start to-qm-gradient-end text-white hover:opacity-90',
+                )}
+                title={!canStartSession ? 'Sign in to start sessions' : isSessionActive ? 'Stop Session (Ctrl+Shift+S)' : 'Start Session (Ctrl+Shift+S)'}
+              >
+                {isSessionActive ? (
+                  <>
+                    <Square size={12} fill="currentColor" />
+                    Stop
+                  </>
+                ) : (
+                  <>
+                    <Play size={12} fill="currentColor" />
+                    Start
+                  </>
+                )}
+              </button>
+            )}
+
+            {/* Toggle overlay visibility */}
             <button
-              onClick={handleStartStop}
+              onClick={handleToggleOverlay}
               className={cn(
-                'flex items-center gap-2 px-4 py-1.5 rounded-qm-md text-body-sm font-medium transition-all',
-                isSessionActive
-                  ? 'bg-qm-surface-light text-qm-text-secondary hover:bg-qm-surface-hover'
-                  : 'bg-qm-surface-light text-qm-text-secondary hover:bg-qm-surface-hover',
+                'p-2 rounded-qm-md transition-colors',
+                isOverlayVisible
+                  ? 'bg-qm-accent/10 text-qm-accent hover:bg-qm-accent/20'
+                  : 'bg-qm-surface-light text-qm-text-secondary hover:bg-qm-surface-hover'
               )}
+              title={isOverlayVisible ? 'Hide Widget (Ctrl+\\)' : 'Show Widget (Ctrl+\\)'}
             >
-              {isSessionActive ? (
-                <>
-                  <Square size={12} className="text-qm-error" />
-                  Stop
-                </>
-              ) : (
-                <>
-                  <Play size={12} className="text-qm-success" />
-                  Start
-                </>
-              )}
+              {isOverlayVisible ? <Eye size={16} /> : <EyeOff size={16} />}
             </button>
 
             {/* Screen capture */}

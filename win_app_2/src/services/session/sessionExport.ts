@@ -77,3 +77,45 @@ function exportPlainText(session: Session): string {
 function exportJSON(session: Session): string {
   return JSON.stringify(session, null, 2)
 }
+
+/**
+ * Export session to clipboard
+ * Returns true if successful
+ */
+export async function exportToClipboard(session: Session, format: ExportFormat = 'markdown'): Promise<boolean> {
+  try {
+    const content = exportSession(session, format)
+    await navigator.clipboard.writeText(content)
+    return true
+  } catch (error) {
+    console.error('[SessionExport] Failed to copy to clipboard:', error)
+    return false
+  }
+}
+
+/**
+ * Download session as file
+ */
+export function downloadSession(session: Session, format: ExportFormat): void {
+  const content = exportSession(session, format)
+  const mimeTypes: Record<ExportFormat, string> = {
+    markdown: 'text/markdown',
+    plaintext: 'text/plain',
+    json: 'application/json',
+  }
+  const extensions: Record<ExportFormat, string> = {
+    markdown: 'md',
+    plaintext: 'txt',
+    json: 'json',
+  }
+
+  const blob = new Blob([content], { type: mimeTypes[format] })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = `${session.title.replace(/[^a-z0-9]/gi, '_')}.${extensions[format]}`
+  document.body.appendChild(a)
+  a.click()
+  document.body.removeChild(a)
+  URL.revokeObjectURL(url)
+}

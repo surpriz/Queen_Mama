@@ -1,7 +1,8 @@
-import { Download, Copy, Check } from 'lucide-react'
-import { useState } from 'react'
+import { Download, Copy, Check, Globe, ChevronLeft, FileText, FileJson } from 'lucide-react'
+import { useState, useEffect, useRef } from 'react'
 import { useSessionStore } from '@/stores/sessionStore'
-import { exportSession } from '@/services/session/sessionExport'
+import { exportToClipboard, downloadSession, type ExportFormat } from '@/services/session/sessionExport'
+import { openSessionOnWeb } from '@/services/auth/magicLinkService'
 import { formatDate, formatDuration } from '@/lib/utils'
 
 interface SessionDetailProps {
@@ -12,6 +13,22 @@ interface SessionDetailProps {
 export function SessionDetail({ sessionId, onBack }: SessionDetailProps) {
   const session = useSessionStore((s) => s.sessions.find((se) => se.id === sessionId))
   const [copied, setCopied] = useState(false)
+  const [showExportMenu, setShowExportMenu] = useState(false)
+  const exportMenuRef = useRef<HTMLDivElement>(null)
+
+  // Close export menu on click outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (exportMenuRef.current && !exportMenuRef.current.contains(event.target as Node)) {
+        setShowExportMenu(false)
+      }
+    }
+
+    if (showExportMenu) {
+      document.addEventListener('mousedown', handleClickOutside)
+      return () => document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [showExportMenu])
 
   if (!session) {
     return (
@@ -28,26 +45,34 @@ export function SessionDetail({ sessionId, onBack }: SessionDetailProps) {
     ? (new Date(session.endTime).getTime() - new Date(session.startTime).getTime()) / 1000
     : null
 
-  const handleCopy = () => {
-    navigator.clipboard.writeText(exportSession(session, 'plaintext'))
-    setCopied(true)
-    setTimeout(() => setCopied(false), 2000)
+  const handleCopy = async () => {
+    const success = await exportToClipboard(session, 'markdown')
+    if (success) {
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    }
   }
 
-  const handleExport = (format: 'markdown' | 'plaintext' | 'json') => {
-    const content = exportSession(session, format)
-    const ext = format === 'markdown' ? 'md' : format === 'json' ? 'json' : 'txt'
-    const blob = new Blob([content], { type: 'text/plain' })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = `${session.title}.${ext}`
-    a.click()
-    URL.revokeObjectURL(url)
+  const handleExport = (format: ExportFormat) => {
+    downloadSession(session, format)
+    setShowExportMenu(false)
+  }
+
+  const handleViewOnWeb = () => {
+    openSessionOnWeb(session.id)
   }
 
   return (
     <div className="flex flex-col h-full p-6 overflow-y-auto">
+      {/* Back button */}
+      <button
+        onClick={onBack}
+        className="flex items-center gap-1 text-body-sm text-qm-text-secondary hover:text-qm-text-primary transition-colors mb-4 w-fit"
+      >
+        <ChevronLeft size={16} />
+        Back to Sessions
+      </button>
+
       {/* Header */}
       <div className="flex items-center justify-between gap-3 mb-6">
         <div>
@@ -58,19 +83,59 @@ export function SessionDetail({ sessionId, onBack }: SessionDetailProps) {
           </p>
         </div>
         <div className="flex items-center gap-2">
+          {/* View on Web */}
+          <button
+            onClick={handleViewOnWeb}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-qm-md bg-qm-accent/10 hover:bg-qm-accent/20 text-body-sm text-qm-accent transition-colors"
+            title="View on Web Dashboard"
+          >
+            <Globe size={14} />
+            View on Web
+          </button>
+
+          {/* Copy to clipboard */}
           <button
             onClick={handleCopy}
             className="p-2 rounded-qm-md hover:bg-qm-surface-hover text-qm-text-secondary transition-colors"
-            title="Copy to clipboard"
+            title="Copy to clipboard (Markdown)"
           >
             {copied ? <Check size={16} className="text-qm-success" /> : <Copy size={16} />}
           </button>
-          <button
-            onClick={() => handleExport('markdown')}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-qm-md bg-qm-surface-medium hover:bg-qm-surface-hover text-body-sm text-qm-text-secondary transition-colors"
-          >
-            <Download size={14} /> Export
-          </button>
+
+          {/* Export dropdown */}
+          <div className="relative" ref={exportMenuRef}>
+            <button
+              onClick={() => setShowExportMenu(!showExportMenu)}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-qm-md bg-qm-surface-medium hover:bg-qm-surface-hover text-body-sm text-qm-text-secondary transition-colors"
+            >
+              <Download size={14} /> Export
+            </button>
+            {showExportMenu && (
+              <div className="absolute right-0 mt-1 w-40 py-1 rounded-qm-md bg-qm-surface-medium border border-qm-border-subtle shadow-lg z-10">
+                <button
+                  onClick={() => handleExport('markdown')}
+                  className="flex items-center gap-2 w-full px-3 py-2 text-body-sm text-qm-text-primary hover:bg-qm-surface-hover transition-colors"
+                >
+                  <FileText size={14} />
+                  Markdown (.md)
+                </button>
+                <button
+                  onClick={() => handleExport('plaintext')}
+                  className="flex items-center gap-2 w-full px-3 py-2 text-body-sm text-qm-text-primary hover:bg-qm-surface-hover transition-colors"
+                >
+                  <FileText size={14} />
+                  Text (.txt)
+                </button>
+                <button
+                  onClick={() => handleExport('json')}
+                  className="flex items-center gap-2 w-full px-3 py-2 text-body-sm text-qm-text-primary hover:bg-qm-surface-hover transition-colors"
+                >
+                  <FileJson size={14} />
+                  JSON (.json)
+                </button>
+              </div>
+            )}
+          </div>
         </div>
       </div>
 

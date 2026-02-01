@@ -23,6 +23,33 @@
   50% { transform: scale(1.15); opacity: 0.4; }
 }
 
+/* Pulsing chevron animation - macOS parity */
+@keyframes pulse-chevron {
+  0%, 100% {
+    transform: translateY(0);
+    opacity: 1;
+  }
+  50% {
+    transform: translateY(2px);
+    opacity: 0.6;
+  }
+}
+
+.animate-pulse-chevron {
+  animation: pulse-chevron 1.5s ease-in-out infinite;
+}
+
+/* Screenshot flash animation */
+@keyframes screenshot-flash {
+  0% { transform: scale(0.8); opacity: 0; }
+  50% { transform: scale(1.2); opacity: 1; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+.animate-screenshot-flash {
+  animation: screenshot-flash 0.3s ease-out;
+}
+
 /* Glass morphism overlay */
 .overlay-glass {
   backdrop-filter: blur(24px) saturate(1.2);
