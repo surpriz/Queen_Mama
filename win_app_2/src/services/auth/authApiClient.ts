@@ -130,7 +130,8 @@ async function fetchAPI<T>(
 
 // Device Code Flow
 export async function requestDeviceCode(deviceInfo: DeviceInfo): Promise<DeviceCodeResponse> {
-  return fetchAPI('/api/auth/device/code', {
+  log.info('Requesting device code...')
+  const response = await fetchAPI<DeviceCodeResponse>('/api/auth/device/code', {
     method: 'POST',
     body: {
       deviceId: deviceInfo.deviceId,
@@ -138,6 +139,8 @@ export async function requestDeviceCode(deviceInfo: DeviceInfo): Promise<DeviceC
       platform: deviceInfo.platform,
     },
   })
+  log.info('Device code request successful')
+  return response
 }
 
 export async function pollDeviceCode(deviceCode: string): Promise<DeviceCodePollResponse> {

@@ -2,37 +2,78 @@ import { useState } from 'react'
 import { useAuth } from '@/hooks/useAuth'
 import { GradientText } from '@/components/common/GradientText'
 import { LoadingSpinner } from '@/components/common/LoadingSpinner'
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('SignInChoice')
 
 interface SignInChoiceProps {
-  onEmailSignIn: () => void
-  onRegister: () => void
+  onEmailSignIn?: () => void
+  onRegister?: () => void
 }
 
 export function SignInChoice({ onEmailSignIn, onRegister }: SignInChoiceProps) {
-  const { loginWithGoogle, startDeviceCodeFlow } = useAuth()
+  const { authState, loginWithGoogle, startDeviceCodeFlow, cancelDeviceCodeFlow } = useAuth()
   const [isLoading, setIsLoading] = useState(false)
-  const [deviceCode, setDeviceCode] = useState<string | null>(null)
+  const [showEmailForm, setShowEmailForm] = useState(false)
+  const [showRegisterForm, setShowRegisterForm] = useState(false)
+  const [errorMessage, setErrorMessage] = useState<string | null>(null)
+
+  const handleEmailSignIn = () => {
+    if (onEmailSignIn) {
+      onEmailSignIn()
+    } else {
+      setShowEmailForm(true)
+    }
+  }
+
+  const handleRegister = () => {
+    if (onRegister) {
+      onRegister()
+    } else {
+      setShowRegisterForm(true)
+    }
+  }
 
   const handleGoogle = async () => {
+    // On Windows, Google sign-in opens browser for OAuth
+    log.info('Starting Google sign-in via OAuth')
     setIsLoading(true)
+    setErrorMessage(null)
     try {
       await loginWithGoogle()
-    } catch {
+      log.info('Google sign-in completed')
+      // State is now managed by authStore
+    } catch (error) {
+      log.error('Google sign-in failed:', error)
+      setErrorMessage(error instanceof Error ? error.message : 'Sign-in failed. Please try again.')
+    } finally {
       setIsLoading(false)
     }
   }
 
   const handleDeviceCode = async () => {
+    log.info('Starting Device Code flow')
     setIsLoading(true)
+    setErrorMessage(null)
     try {
       const result = await startDeviceCodeFlow()
-      setDeviceCode(result.userCode)
-    } catch {
+      log.info('Device code received:', result.userCode)
+      // State is now managed by authStore
+    } catch (error) {
+      log.error('Device code flow failed:', error)
+      setErrorMessage(error instanceof Error ? error.message : 'Failed to start device code flow.')
       setIsLoading(false)
     }
   }
 
-  if (deviceCode) {
+  const handleCancelDeviceCode = () => {
+    log.info('Cancelling device code flow')
+    cancelDeviceCodeFlow()
+    setIsLoading(false)
+  }
+
+  // Show device code UI when authState is deviceCodePending
+  if (authState.type === 'deviceCodePending') {
     return (
       <div className="flex flex-col items-center gap-6 p-8">
         <GradientText as="h2" className="text-title-sm font-semibold">
@@ -40,16 +81,28 @@ export function SignInChoice({ onEmailSignIn, onRegister }: SignInChoiceProps) {
         </GradientText>
         <div className="px-8 py-4 rounded-qm-lg bg-qm-surface-medium border border-qm-border-medium">
           <span className="text-title-lg font-mono font-bold text-qm-text-primary tracking-widest">
-            {deviceCode}
+            {authState.userCode}
           </span>
         </div>
         <p className="text-body-sm text-qm-text-secondary text-center">
-          Go to queenmama.ai/device and enter this code to sign in
+          Go to <a href="https://queenmama.ai/device" target="_blank" rel="noopener noreferrer" className="text-qm-accent hover:underline">queenmama.ai/device</a> and enter this code to sign in
         </p>
         <LoadingSpinner />
+        <button
+          onClick={handleCancelDeviceCode}
+          className="text-body-sm text-qm-text-tertiary hover:text-qm-text-secondary transition-colors"
+        >
+          Cancel
+        </button>
       </div>
     )
   }
+
+  // Get display error - either from local state or auth store
+  const displayError = errorMessage || (authState.type === 'error' ? authState.message : null)
+
+  // Show loading when authenticating
+  const showLoading = isLoading || authState.type === 'authenticating'
 
   return (
     <div className="flex flex-col items-center gap-4 p-8 w-full max-w-sm">
@@ -57,8 +110,18 @@ export function SignInChoice({ onEmailSignIn, onRegister }: SignInChoiceProps) {
         Sign in to Queen Mama
       </GradientText>
 
-      {isLoading ? (
-        <LoadingSpinner size={24} />
+      {/* Error message */}
+      {displayError && (
+        <div className="w-full px-4 py-3 rounded-qm-lg bg-red-500/10 border border-red-500/20">
+          <p className="text-body-sm text-red-400 text-center">{displayError}</p>
+        </div>
+      )}
+
+      {showLoading ? (
+        <div className="flex flex-col items-center gap-4">
+          <LoadingSpinner size={24} />
+          <p className="text-body-sm text-qm-text-secondary">Connecting...</p>
+        </div>
       ) : (
         <>
           <button
@@ -81,7 +144,7 @@ export function SignInChoice({ onEmailSignIn, onRegister }: SignInChoiceProps) {
           </div>
 
           <button
-            onClick={onEmailSignIn}
+            onClick={handleEmailSignIn}
             className="w-full px-4 py-3 rounded-qm-lg bg-qm-surface-medium text-qm-text-primary font-medium hover:bg-qm-surface-hover transition-colors"
           >
             Sign in with Email
@@ -96,7 +159,7 @@ export function SignInChoice({ onEmailSignIn, onRegister }: SignInChoiceProps) {
 
           <p className="text-caption text-qm-text-tertiary mt-4">
             Don't have an account?{' '}
-            <button onClick={onRegister} className="text-qm-accent hover:underline">
+            <button onClick={handleRegister} className="text-qm-accent hover:underline">
               Sign up
             </button>
           </p>

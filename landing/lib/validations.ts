@@ -248,10 +248,10 @@ export type CheckEmailInput = z.infer<typeof checkEmailSchema>;
 export const macosGoogleCallbackSchema = z.object({
   authorizationCode: z.string().min(1, "Authorization code is required"),
   codeVerifier: z.string().min(43, "Code verifier must be at least 43 characters"), // PKCE minimum
-  redirectUri: z.string().url("Invalid redirect URI"),
-  deviceId: z.string().uuid("Invalid device ID"),
+  redirectUri: z.string().min(1, "Redirect URI is required"), // Allow loopback URLs and custom schemes
+  deviceId: z.string().min(1, "Device ID is required"), // Allow non-UUID device IDs for Windows
   deviceName: z.string().min(1).max(100),
-  platform: z.enum(["macOS", "iOS", "iPadOS"]).default("macOS"),
+  platform: z.enum(["macOS", "iOS", "iPadOS", "windows"]).default("macOS"),
   osVersion: z.string().optional(),
   appVersion: z.string().optional(),
 });

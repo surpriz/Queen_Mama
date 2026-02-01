@@ -68,12 +68,25 @@ export const IPC_CHANNELS = {
   // Screen capture
   SCREEN_CAPTURE: 'screen:capture',
 
+  // Auth / OAuth
+  AUTH_PROTOCOL_CALLBACK: 'auth:protocol-callback',
+  AUTH_START_OAUTH_SERVER: 'auth:start-oauth-server',
+  AUTH_STOP_OAUTH_SERVER: 'auth:stop-oauth-server',
+
   // Cross-window relay (main ↔ overlay)
   RELAY_TO_OVERLAY: 'relay:to-overlay',
   RELAY_TO_MAIN: 'relay:to-main',
   RELAY_SESSION_STATE: 'relay:session-state',
   RELAY_TRANSCRIPT: 'relay:transcript',
   RELAY_AI_RESPONSE: 'relay:ai-response',
+
+  // Database operations
+  DB_QUERY: 'db:query',
+  DB_QUERY_GET: 'db:query-get',
+  DB_QUERY_ALL: 'db:query-all',
+  DB_INSERT: 'db:insert',
+  DB_UPDATE: 'db:update',
+  DB_DELETE: 'db:delete',
 } as const
 
 export type IPCChannel = (typeof IPC_CHANNELS)[keyof typeof IPC_CHANNELS]
