@@ -6,7 +6,7 @@ import { cn } from '@/lib/utils'
 
 const TABS = [
   { type: ResponseType.Assist, label: 'Assist', icon: Sparkles },
-  { type: ResponseType.WhatToSay, label: 'Say', icon: MessageSquare },
+  { type: ResponseType.WhatToSay, label: 'What to say', icon: MessageSquare },
   { type: ResponseType.FollowUp, label: 'Follow-up', icon: HelpCircle },
   { type: ResponseType.Recap, label: 'Recap', icon: RotateCcw },
 ] as const

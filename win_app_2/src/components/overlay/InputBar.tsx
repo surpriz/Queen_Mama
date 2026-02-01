@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Send, Sparkles } from 'lucide-react'
+import { ArrowUp, Sparkles, Lock, Command, CornerDownLeft } from 'lucide-react'
 import { useAppStore } from '@/stores/appStore'
 import { useConfigStore } from '@/stores/configStore'
 import * as aiService from '@/services/ai/aiService'
@@ -34,20 +34,21 @@ export function InputBar() {
   }
 
   return (
-    <div className="flex items-center gap-2 px-3 border-t border-qm-border-subtle" style={{ height: 48 }}>
-      {/* Smart Mode Toggle */}
+    <div className="flex items-center gap-2 px-3 border-t border-qm-border-subtle" style={{ height: 52 }}>
+      {/* Smart Mode Toggle with lock icon (like macOS) */}
       <button
         onClick={handleToggleSmartMode}
         className={cn(
-          'flex items-center gap-1 px-2 py-1 rounded-full text-[10px] font-medium transition-colors shrink-0',
+          'flex items-center gap-1 px-2.5 py-1.5 rounded-full text-[11px] font-medium transition-colors border shrink-0',
           smartModeEnabled
-            ? 'bg-qm-accent/15 text-qm-accent'
-            : 'bg-qm-surface-light text-qm-text-tertiary hover:bg-qm-surface-hover',
+            ? 'bg-qm-accent/10 text-qm-text-secondary border-qm-accent/30'
+            : 'bg-qm-surface-light/50 text-qm-text-tertiary border-qm-border-subtle hover:bg-qm-surface-hover',
         )}
         title="Smart Mode - Context-aware responses"
       >
-        <Sparkles size={10} />
+        <Sparkles size={12} className={smartModeEnabled ? 'text-qm-accent' : ''} />
         Smart
+        <Lock size={8} className="text-qm-text-disabled ml-0.5" />
       </button>
 
       {/* Input field */}
@@ -56,28 +57,33 @@ export function InputBar() {
         value={input}
         onChange={(e) => setInput(e.target.value)}
         onKeyDown={handleKeyDown}
-        placeholder="Ask a question..."
+        placeholder="Ask about your screen or conversation..."
         disabled={isProcessing}
         className="flex-1 bg-transparent text-body-sm text-qm-text-primary placeholder:text-qm-text-disabled focus:outline-none disabled:opacity-50"
       />
 
-      {/* Keyboard shortcut badge */}
-      <kbd className="hidden sm:flex items-center px-1.5 py-0.5 rounded bg-qm-surface-light text-qm-text-disabled text-[9px] font-mono shrink-0">
-        Ctrl+↵
-      </kbd>
+      {/* Keyboard shortcut badges (like macOS: ⌘ ↵) */}
+      <div className="hidden sm:flex items-center gap-1 shrink-0">
+        <kbd className="flex items-center justify-center w-5 h-5 rounded bg-qm-surface-light text-qm-text-disabled text-[10px]">
+          <Command size={10} />
+        </kbd>
+        <kbd className="flex items-center justify-center w-5 h-5 rounded bg-qm-surface-light text-qm-text-disabled text-[10px]">
+          <CornerDownLeft size={10} />
+        </kbd>
+      </div>
 
-      {/* Send button */}
+      {/* Send button - ArrowUp in circle (like macOS) */}
       <button
         onClick={handleSubmit}
         disabled={!input.trim() || isProcessing}
         className={cn(
-          'flex items-center justify-center w-7 h-7 rounded-full transition-all shrink-0',
+          'flex items-center justify-center w-8 h-8 rounded-full transition-all shrink-0',
           input.trim() && !isProcessing
-            ? 'bg-gradient-to-br from-qm-gradient-start to-qm-gradient-end hover:scale-110 active:scale-95'
+            ? 'bg-gradient-to-br from-qm-gradient-start to-qm-gradient-end hover:scale-110 active:scale-95 shadow-qm-glow'
             : 'bg-qm-surface-light opacity-30',
         )}
       >
-        <Send size={12} className="text-white" />
+        <ArrowUp size={16} className="text-white" strokeWidth={2.5} />
       </button>
     </div>
   )

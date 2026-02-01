@@ -1,4 +1,4 @@
-import { ArrowLeft, Download, Copy, Check } from 'lucide-react'
+import { Download, Copy, Check } from 'lucide-react'
 import { useState } from 'react'
 import { useSessionStore } from '@/stores/sessionStore'
 import { exportSession } from '@/services/session/sessionExport'
@@ -49,14 +49,8 @@ export function SessionDetail({ sessionId, onBack }: SessionDetailProps) {
   return (
     <div className="flex flex-col h-full p-6 overflow-y-auto">
       {/* Header */}
-      <div className="flex items-center gap-3 mb-6">
-        <button
-          onClick={onBack}
-          className="p-2 rounded-qm-md hover:bg-qm-surface-hover text-qm-text-secondary hover:text-qm-text-primary transition-colors"
-        >
-          <ArrowLeft size={18} />
-        </button>
-        <div className="flex-1">
+      <div className="flex items-center justify-between gap-3 mb-6">
+        <div>
           <h2 className="text-title-sm font-semibold text-qm-text-primary">{session.title}</h2>
           <p className="text-caption text-qm-text-tertiary">
             {formatDate(session.startTime)}
@@ -67,6 +61,7 @@ export function SessionDetail({ sessionId, onBack }: SessionDetailProps) {
           <button
             onClick={handleCopy}
             className="p-2 rounded-qm-md hover:bg-qm-surface-hover text-qm-text-secondary transition-colors"
+            title="Copy to clipboard"
           >
             {copied ? <Check size={16} className="text-qm-success" /> : <Copy size={16} />}
           </button>

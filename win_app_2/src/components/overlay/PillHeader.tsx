@@ -9,7 +9,7 @@ import {
   Home,
   Eye,
   EyeOff,
-  Sparkles,
+  Lock,
 } from 'lucide-react'
 import { useOverlayStore } from '@/stores/overlayStore'
 import { useAppStore } from '@/stores/appStore'
@@ -22,12 +22,10 @@ export function PillHeader() {
   const isExpanded = useOverlayStore((s) => s.isExpanded)
   const toggleExpanded = useOverlayStore((s) => s.toggleExpanded)
   const isSessionActive = useAppStore((s) => s.isSessionActive)
-  const isProcessing = useAppStore((s) => s.isProcessing)
   const autoAnswerEnabled = useConfigStore((s) => s.autoAnswerEnabled)
   const updateConfig = useConfigStore((s) => s.updateConfig)
   const autoScreenCapture = useConfigStore((s) => s.autoScreenCapture)
   const isUndetectabilityEnabled = useConfigStore((s) => s.isUndetectabilityEnabled)
-  const smartModeEnabled = useConfigStore((s) => s.smartModeEnabled)
 
   const handleStartStop = async (e: React.MouseEvent) => {
     e.stopPropagation()
@@ -90,100 +88,75 @@ export function PillHeader() {
         <Home size={13} className="text-qm-text-secondary" />
       </button>
 
-      {/* 3. Expand/Collapse Button with Pulsing Ring */}
+      {/* 3. Expand/Collapse Button - Gradient background like macOS */}
       <button
         onClick={(e) => {
           e.stopPropagation()
           toggleExpanded()
         }}
-        className="relative flex items-center justify-center w-7 h-7 rounded-full bg-qm-surface-light hover:bg-qm-surface-hover transition-colors titlebar-no-drag"
+        className="relative flex items-center justify-center w-7 h-7 rounded-full bg-gradient-to-br from-qm-gradient-start to-qm-gradient-end hover:opacity-90 transition-opacity titlebar-no-drag shadow-qm-sm"
         style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}
         title={isExpanded ? 'Collapse' : 'Expand'}
       >
-        {/* Pulsing ring when collapsed */}
-        {!isExpanded && (
-          <span className="absolute inset-0 rounded-full bg-qm-accent/40 animate-pulse-ring" />
-        )}
         {isExpanded ? (
-          <ChevronUp size={14} className="text-qm-text-secondary relative z-10" />
+          <ChevronUp size={14} className="text-white" />
         ) : (
-          <ChevronDown size={14} className="text-qm-text-secondary relative z-10" />
+          <ChevronDown size={14} className="text-white" />
         )}
       </button>
 
-      {/* Spacer / Status badges area */}
-      <div className="flex-1 flex items-center gap-1.5 titlebar-drag">
-        {/* Mode badge */}
-        {smartModeEnabled && (
-          <span className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-qm-accent/15 text-[10px] font-medium text-qm-accent">
-            <Sparkles size={10} />
-            Smart
-          </span>
-        )}
-
-        {/* Processing indicator */}
-        {isProcessing && (
-          <span className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-qm-info/15 text-[10px] font-medium text-qm-info">
-            <span className="w-1.5 h-1.5 rounded-full bg-qm-info animate-pulse" />
-            Processing
-          </span>
-        )}
-      </div>
+      {/* Spacer - like macOS, mostly empty */}
+      <div className="flex-1 titlebar-drag" />
 
       {/* Controls - Right side */}
       <div
         className="flex items-center gap-1 titlebar-no-drag"
         style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}
       >
-        {/* 4. Hidden Mode Toggle (Capsule) */}
+        {/* 4. Hidden Mode Toggle (Capsule with lock icon) */}
         <button
           onClick={handleToggleHiddenMode}
           className={cn(
-            'flex items-center gap-1 px-2 py-1 rounded-full text-[10px] font-medium transition-colors',
+            'flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-medium transition-colors border',
             isUndetectabilityEnabled
-              ? 'bg-qm-accent/15 text-qm-accent'
-              : 'bg-qm-surface-light text-qm-text-tertiary hover:bg-qm-surface-hover',
+              ? 'bg-qm-accent/10 text-qm-text-secondary border-qm-accent/30'
+              : 'bg-qm-surface-light/50 text-qm-text-tertiary border-qm-border-subtle hover:bg-qm-surface-hover',
           )}
           title="Hidden Mode - Invisible during screen sharing"
         >
-          {isUndetectabilityEnabled ? <EyeOff size={10} /> : <Eye size={10} />}
+          <EyeOff size={12} className={isUndetectabilityEnabled ? 'text-qm-accent' : ''} />
           Hidden
+          <Lock size={8} className="text-qm-text-disabled ml-0.5" />
         </button>
 
-        {/* 5. Auto-Answer Toggle (Capsule with pulsing dot) */}
+        {/* 5. Auto-Answer Toggle (Capsule with lock icon) */}
         <button
           onClick={handleToggleAutoAnswer}
           className={cn(
-            'relative flex items-center gap-1 px-2 py-1 rounded-full text-[10px] font-medium transition-colors',
+            'flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-medium transition-colors border',
             autoAnswerEnabled
-              ? 'bg-qm-auto-answer/15 text-qm-auto-answer'
-              : 'bg-qm-surface-light text-qm-text-tertiary hover:bg-qm-surface-hover',
+              ? 'bg-qm-auto-answer/10 text-qm-text-secondary border-qm-auto-answer/30'
+              : 'bg-qm-surface-light/50 text-qm-text-tertiary border-qm-border-subtle hover:bg-qm-surface-hover',
           )}
           title="Auto-Answer - Automatically respond to questions"
         >
-          <Zap size={10} />
+          <Zap size={12} className={autoAnswerEnabled ? 'text-qm-auto-answer' : ''} />
           Auto
-          {/* Pulsing dot when enabled */}
-          {autoAnswerEnabled && (
-            <span className="absolute -top-0.5 -right-0.5 w-2 h-2">
-              <span className="absolute inset-0 rounded-full bg-qm-auto-answer animate-pulse-dot" />
-              <span className="absolute inset-0 rounded-full bg-qm-auto-answer" style={{ transform: 'scale(0.6)' }} />
-            </span>
-          )}
+          <Lock size={8} className="text-qm-text-disabled ml-0.5" />
         </button>
 
-        {/* 6. Screen Capture Toggle */}
+        {/* 6. Screen Capture Toggle - Red when disabled (like macOS) */}
         <button
           onClick={handleToggleScreenCapture}
           className={cn(
-            'flex items-center justify-center w-[26px] h-[26px] rounded-full transition-colors',
+            'flex items-center justify-center w-[28px] h-[28px] rounded-full transition-colors',
             autoScreenCapture
-              ? 'bg-qm-success/15 text-qm-success'
-              : 'bg-qm-surface-light text-qm-text-tertiary hover:bg-qm-surface-hover',
+              ? 'bg-qm-surface-light text-qm-text-secondary hover:bg-qm-surface-hover'
+              : 'bg-qm-error/15 text-qm-error',
           )}
           title={autoScreenCapture ? 'Screen capture enabled' : 'Screen capture disabled'}
         >
-          {autoScreenCapture ? <Camera size={12} /> : <CameraOff size={12} />}
+          {autoScreenCapture ? <Camera size={14} /> : <CameraOff size={14} />}
         </button>
 
         {/* 7. More Menu */}

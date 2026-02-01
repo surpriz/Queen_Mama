@@ -1,22 +1,32 @@
 import { useRef, useEffect, useState } from 'react'
-import { Copy, Check, ThumbsUp, ThumbsDown, Zap } from 'lucide-react'
+import { Copy, Check, Sparkles, MessageSquare, HelpCircle, RotateCcw, Command } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useOverlayStore } from '@/stores/overlayStore'
 import { useAppStore } from '@/stores/appStore'
+import { ResponseType } from '@/types/models'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import { cn } from '@/lib/utils'
 
+const TYPE_CONFIG = {
+  [ResponseType.Assist]: { icon: Sparkles, label: 'Assist', color: 'text-qm-accent' },
+  [ResponseType.WhatToSay]: { icon: MessageSquare, label: 'What to say', color: 'text-qm-info' },
+  [ResponseType.FollowUp]: { icon: HelpCircle, label: 'Follow-up', color: 'text-qm-warning' },
+  [ResponseType.Recap]: { icon: RotateCcw, label: 'Recap', color: 'text-qm-success' },
+  [ResponseType.Custom]: { icon: Sparkles, label: 'Custom', color: 'text-qm-text-secondary' },
+}
+
 interface ResponseItemProps {
   content: string
-  isAutoAnswer?: boolean
+  type?: ResponseType
   isStreaming?: boolean
   timestamp?: string
 }
 
-function ResponseItem({ content, isAutoAnswer, isStreaming, timestamp }: ResponseItemProps) {
+function ResponseItem({ content, type = ResponseType.Assist, isStreaming, timestamp }: ResponseItemProps) {
   const [copied, setCopied] = useState(false)
-  const [feedback, setFeedback] = useState<'up' | 'down' | null>(null)
+  const config = TYPE_CONFIG[type] || TYPE_CONFIG[ResponseType.Assist]
+  const Icon = config.icon
 
   const handleCopy = () => {
     navigator.clipboard.writeText(content)
@@ -24,37 +34,38 @@ function ResponseItem({ content, isAutoAnswer, isStreaming, timestamp }: Respons
     setTimeout(() => setCopied(false), 2000)
   }
 
-  const handleFeedback = (type: 'up' | 'down') => {
-    setFeedback(type)
-    // TODO: Send feedback to analytics
-  }
+  const formattedTime = timestamp
+    ? new Date(timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+    : new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
 
   return (
     <motion.div
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.2 }}
-      className={cn(
-        'relative rounded-qm-sm p-3 mb-2',
-        isAutoAnswer
-          ? 'bg-qm-auto-answer/5 border-l-[3px] border-qm-auto-answer'
-          : 'bg-qm-surface-light',
-      )}
+      className="rounded-qm-md bg-qm-surface-light p-3 mb-3"
     >
-      {/* Auto badge */}
-      {isAutoAnswer && (
-        <div className="flex items-center gap-1 mb-2">
-          <span className="flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-semibold uppercase bg-qm-auto-answer/20 text-qm-auto-answer">
-            <Zap size={9} />
-            Auto
-          </span>
-          {timestamp && (
-            <span className="text-[9px] text-qm-text-disabled">
-              {new Date(timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-            </span>
-          )}
+      {/* Header row - Type label, icons, timestamp */}
+      <div className="flex items-center justify-between mb-2">
+        {/* Left - Type label */}
+        <div className={cn('flex items-center gap-1.5 text-[12px] font-medium', config.color)}>
+          <Icon size={14} />
+          {config.label}
         </div>
-      )}
+
+        {/* Right - Keyboard icon, Copy, Timestamp */}
+        <div className="flex items-center gap-2 text-qm-text-disabled">
+          <Command size={12} />
+          <button
+            onClick={handleCopy}
+            className="hover:text-qm-text-secondary transition-colors"
+            title="Copy to clipboard"
+          >
+            {copied ? <Check size={12} className="text-qm-success" /> : <Copy size={12} />}
+          </button>
+          <span className="text-[11px] tabular-nums">{formattedTime}</span>
+        </div>
+      </div>
 
       {/* Content */}
       <div className="prose prose-invert prose-sm max-w-none text-body-sm leading-relaxed">
@@ -66,56 +77,6 @@ function ResponseItem({ content, isAutoAnswer, isStreaming, timestamp }: Respons
           </span>
         )}
       </div>
-
-      {/* Actions - Only show when not streaming */}
-      {!isStreaming && content && (
-        <div className="flex items-center gap-1 mt-2 pt-2 border-t border-qm-border-subtle">
-          {/* Copy button */}
-          <button
-            onClick={handleCopy}
-            className="flex items-center gap-1 px-2 py-1 rounded text-[10px] text-qm-text-tertiary hover:text-qm-text-secondary hover:bg-qm-surface-hover transition-colors"
-          >
-            {copied ? (
-              <>
-                <Check size={10} className="text-qm-success" />
-                Copied
-              </>
-            ) : (
-              <>
-                <Copy size={10} />
-                Copy
-              </>
-            )}
-          </button>
-
-          {/* Divider */}
-          <div className="w-px h-3 bg-qm-border-subtle" />
-
-          {/* Feedback buttons */}
-          <button
-            onClick={() => handleFeedback('up')}
-            className={cn(
-              'p-1 rounded transition-colors',
-              feedback === 'up'
-                ? 'text-qm-success bg-qm-success/10'
-                : 'text-qm-text-tertiary hover:text-qm-success hover:bg-qm-success/10',
-            )}
-          >
-            <ThumbsUp size={10} />
-          </button>
-          <button
-            onClick={() => handleFeedback('down')}
-            className={cn(
-              'p-1 rounded transition-colors',
-              feedback === 'down'
-                ? 'text-qm-error bg-qm-error/10'
-                : 'text-qm-text-tertiary hover:text-qm-error hover:bg-qm-error/10',
-            )}
-          >
-            <ThumbsDown size={10} />
-          </button>
-        </div>
-      )}
     </motion.div>
   )
 }
@@ -123,7 +84,7 @@ function ResponseItem({ content, isAutoAnswer, isStreaming, timestamp }: Respons
 export function ResponseDisplay() {
   const streamingContent = useOverlayStore((s) => s.streamingContent)
   const responseHistory = useOverlayStore((s) => s.responseHistory)
-  const isAutoAnswer = useOverlayStore((s) => s.isAutoAnswer)
+  const selectedTab = useOverlayStore((s) => s.selectedTab)
   const isProcessing = useAppStore((s) => s.isProcessing)
   const scrollRef = useRef<HTMLDivElement>(null)
 
@@ -137,7 +98,7 @@ export function ResponseDisplay() {
   const hasContent = streamingContent || responseHistory.length > 0
 
   return (
-    <div className="flex-1 relative overflow-hidden">
+    <div className="flex-1 relative overflow-hidden min-h-0">
       <div ref={scrollRef} className="h-full overflow-y-auto p-3">
         <AnimatePresence mode="popLayout">
           {hasContent ? (
@@ -147,7 +108,7 @@ export function ResponseDisplay() {
                 <ResponseItem
                   key="streaming"
                   content={streamingContent}
-                  isAutoAnswer={isAutoAnswer}
+                  type={selectedTab}
                   isStreaming={isProcessing}
                 />
               )}
@@ -158,6 +119,7 @@ export function ResponseDisplay() {
                   <ResponseItem
                     key={`${response.timestamp}-${index}`}
                     content={response.content}
+                    type={response.type}
                     timestamp={response.timestamp}
                   />
                 ))}
@@ -167,7 +129,7 @@ export function ResponseDisplay() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="flex flex-col items-center justify-center h-full text-center"
+              className="flex flex-col items-center justify-center h-full text-center py-8"
             >
               {isProcessing ? (
                 <div className="flex items-center gap-2">
