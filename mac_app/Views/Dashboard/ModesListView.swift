@@ -91,7 +91,7 @@ struct ModesListView: View {
 
     private func ensureDefaultModesExist() {
         if modes.isEmpty {
-            let defaultModes = [Mode.defaultMode, Mode.professionalMode, Mode.interviewMode, Mode.salesMode]
+            let defaultModes = [Mode.defaultMode, Mode.professionalMode, Mode.interviewMode, Mode.salesMode, Mode.developerExamMode]
             for mode in defaultModes {
                 modelContext.insert(mode)
             }
@@ -188,6 +188,13 @@ struct ModernModesSidebar: View {
                             isActive: activeMode?.name == "Sales",
                             onSelect: { onSelect(.salesMode) },
                             onActivate: { onActivate(.salesMode) }
+                        )
+                        ModernModeRow(
+                            mode: .developerExamMode,
+                            isSelected: selectedMode?.name == "Developer Exam",
+                            isActive: activeMode?.name == "Developer Exam",
+                            onSelect: { onSelect(.developerExamMode) },
+                            onActivate: { onActivate(.developerExamMode) }
                         )
                     }
 
@@ -364,6 +371,7 @@ struct ModernModeRow: View {
         case "professional": return "briefcase"
         case "interview": return "person.fill.questionmark"
         case "sales": return "chart.line.uptrend.xyaxis"
+        case "developer exam": return "chevron.left.forwardslash.chevron.right"
         default: return "person.crop.circle"
         }
     }
@@ -557,6 +565,7 @@ struct ModernModeDetailHeader: View {
         case "professional": return "briefcase"
         case "interview": return "person.fill.questionmark"
         case "sales": return "chart.line.uptrend.xyaxis"
+        case "developer exam": return "chevron.left.forwardslash.chevron.right"
         default: return "person.crop.circle"
         }
     }
