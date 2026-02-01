@@ -9,6 +9,7 @@ import Link from "next/link";
 
 const navLinks = [
   { href: "#features", label: "Features" },
+  { href: "/use-cases", label: "Use Cases" },
   { href: "#how-it-works", label: "How It Works" },
   { href: "#pricing", label: "Pricing" },
   { href: "#faq", label: "FAQ" },
@@ -67,15 +68,25 @@ export function Navbar() {
 
           {/* Desktop Navigation */}
           <div className="hidden md:flex items-center gap-8">
-            {navLinks.map((link) => (
-              <a
-                key={link.href}
-                href={link.href}
-                className="text-[var(--qm-text-secondary)] hover:text-white transition-colors text-sm font-medium"
-              >
-                {link.label}
-              </a>
-            ))}
+            {navLinks.map((link) =>
+              link.href.startsWith("#") ? (
+                <a
+                  key={link.href}
+                  href={link.href}
+                  className="text-[var(--qm-text-secondary)] hover:text-white transition-colors text-sm font-medium"
+                >
+                  {link.label}
+                </a>
+              ) : (
+                <Link
+                  key={link.href}
+                  href={link.href}
+                  className="text-[var(--qm-text-secondary)] hover:text-white transition-colors text-sm font-medium"
+                >
+                  {link.label}
+                </Link>
+              )
+            )}
           </div>
 
           {/* CTA Buttons */}
@@ -173,16 +184,27 @@ export function Navbar() {
           >
             <Container>
               <div className="py-4 space-y-4">
-                {navLinks.map((link) => (
-                  <a
-                    key={link.href}
-                    href={link.href}
-                    onClick={() => setIsMobileMenuOpen(false)}
-                    className="block text-[var(--qm-text-secondary)] hover:text-white transition-colors py-2"
-                  >
-                    {link.label}
-                  </a>
-                ))}
+                {navLinks.map((link) =>
+                  link.href.startsWith("#") ? (
+                    <a
+                      key={link.href}
+                      href={link.href}
+                      onClick={() => setIsMobileMenuOpen(false)}
+                      className="block text-[var(--qm-text-secondary)] hover:text-white transition-colors py-2"
+                    >
+                      {link.label}
+                    </a>
+                  ) : (
+                    <Link
+                      key={link.href}
+                      href={link.href}
+                      onClick={() => setIsMobileMenuOpen(false)}
+                      className="block text-[var(--qm-text-secondary)] hover:text-white transition-colors py-2"
+                    >
+                      {link.label}
+                    </Link>
+                  )
+                )}
                 <div className="pt-4 border-t border-[var(--qm-border-subtle)] space-y-3">
                   {isAuthenticated ? (
                     <Link href="/dashboard" onClick={() => setIsMobileMenuOpen(false)}>
