@@ -30,9 +30,11 @@ export function UseCasesHero() {
     }
 
     if (isDeleting && displayText === "") {
-      setIsDeleting(false);
-      setCurrentIndex((prev) => (prev + 1) % typewriterTexts.length);
-      return;
+      const timeout = setTimeout(() => {
+        setIsDeleting(false);
+        setCurrentIndex((prev) => (prev + 1) % typewriterTexts.length);
+      }, 0);
+      return () => clearTimeout(timeout);
     }
 
     const timeout = setTimeout(() => {
