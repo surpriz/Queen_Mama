@@ -38,7 +38,7 @@ export interface DeviceInfo {
 export interface DeviceCodeResponse {
   deviceCode: string
   userCode: string
-  verificationUri: string
+  verificationUrl: string // Backend returns verificationUrl (not Uri)
   expiresIn: number
   interval: number
 }

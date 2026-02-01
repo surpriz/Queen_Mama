@@ -1,6 +1,7 @@
 import { createLogger } from '@/lib/logger'
 import { useAuthStore } from '@/stores/authStore'
 import * as authApi from './authApiClient'
+import { startGoogleAuth } from './googleAuthService'
 import type { AuthUser, DeviceInfo } from '@/types/auth'
 
 const log = createLogger('Auth')
@@ -120,23 +121,35 @@ export async function startDeviceCodeFlow(): Promise<{
   verificationUri: string
 }> {
   const store = useAuthStore.getState()
+  log.info('Starting device code flow...')
   store.setAuthenticating()
 
   try {
     const deviceInfo = await getDeviceInfo()
+    log.info('Device info:', deviceInfo)
+
+    log.info('Requesting device code from API...')
     const response = await authApi.requestDeviceCode(deviceInfo)
+    log.info('Device code response:', {
+      userCode: response.userCode,
+      verificationUrl: response.verificationUrl,
+      expiresIn: response.expiresIn,
+    })
 
     const expiresAt = new Date(Date.now() + response.expiresIn * 1000).toISOString()
     store.setDeviceCodePending(response.userCode, response.deviceCode, expiresAt)
+    log.info('Auth state set to deviceCodePending')
 
     // Start polling
     startPolling(response.deviceCode, response.expiresIn)
+    log.info('Polling started')
 
     return {
       userCode: response.userCode,
-      verificationUri: response.verificationUri,
+      verificationUri: response.verificationUrl, // Keep return type consistent
     }
   } catch (error) {
+    log.error('Device code flow failed:', error)
     store.setError(error instanceof Error ? error.message : 'Device code flow failed')
     throw error
   }
@@ -146,18 +159,23 @@ function startPolling(deviceCode: string, expiresIn: number): void {
   cancelDeviceCodeFlow()
 
   const expiresAt = Date.now() + expiresIn * 1000
+  log.info(`Polling will expire at ${new Date(expiresAt).toISOString()}`)
 
   pollingInterval = setInterval(async () => {
     if (Date.now() > expiresAt) {
+      log.warn('Device code expired')
       cancelDeviceCodeFlow()
       useAuthStore.getState().setError('Device code expired. Please try again.')
       return
     }
 
     try {
+      log.info('Polling for device code authorization...')
       const response = await authApi.pollDeviceCode(deviceCode)
+      log.info('Poll response:', { error: response.error, hasToken: !!response.accessToken })
 
       if (response.accessToken && response.refreshToken && response.user && response.expiresIn) {
+        log.info('Authorization successful!')
         cancelDeviceCodeFlow()
         await storeTokens(
           response.accessToken,
@@ -170,11 +188,13 @@ function startPolling(deviceCode: string, expiresIn: number): void {
       }
 
       if (response.error && response.error !== 'authorization_pending') {
+        log.warn('Poll returned error:', response.error)
         cancelDeviceCodeFlow()
         useAuthStore.getState().setError(response.message || response.error)
       }
-    } catch {
-      // Ignore network errors during polling
+    } catch (error) {
+      // Ignore network errors during polling but log them
+      log.warn('Polling error (will retry):', error)
     }
   }, 5000)
 }
@@ -188,19 +208,35 @@ export function cancelDeviceCodeFlow(): void {
 
 export async function loginWithGoogle(): Promise<void> {
   const store = useAuthStore.getState()
+  log.info('Starting Google sign-in via OAuth flow')
   store.setAuthenticating()
 
   try {
-    // Open Google OAuth in system browser
-    const webBaseUrl = 'https://queenmama.ai'
-    const loginUrl = `${webBaseUrl}/auth/google?redirect=queenmama://auth/callback`
-    await window.electronAPI?.openExternal(loginUrl)
+    // Start OAuth flow - opens browser and waits for callback
+    const result = await startGoogleAuth()
 
-    // The callback will be handled by custom protocol handler
-    // For now, fall back to device code flow
-    log.info('Google OAuth opened in browser')
+    if (!result.success || !result.code || !result.codeVerifier || !result.redirectUri) {
+      log.error('Google OAuth failed:', result.error)
+      throw new Error(result.error || 'Google sign-in failed')
+    }
+
+    log.info('Google OAuth code received, exchanging with backend...')
+
+    // Exchange authorization code for tokens with our backend
+    const deviceInfo = await getDeviceInfo()
+    const response = await authApi.exchangeGoogleAuth(
+      result.code,
+      result.codeVerifier,
+      result.redirectUri,
+      deviceInfo,
+    )
+
+    log.info('Google sign-in successful')
+    await storeTokens(response.accessToken, response.refreshToken, response.expiresIn, response.user)
+    store.setAuthenticated(response.user)
   } catch (error) {
-    store.setError(error instanceof Error ? error.message : 'Google login failed')
+    log.error('Google sign-in failed:', error)
+    store.setError(error instanceof Error ? error.message : 'Google sign-in failed')
     throw error
   }
 }

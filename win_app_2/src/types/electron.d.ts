@@ -72,6 +72,12 @@ export interface ScreenAPI {
   getSources: () => Promise<Array<{ id: string; name: string; thumbnailDataUrl: string }>>
 }
 
+export interface AuthAPI {
+  onProtocolCallback: (callback: (url: string) => void) => () => void
+  startOAuthServer: () => Promise<{ success: boolean; port?: number; error?: string }>
+  stopOAuthServer: () => Promise<{ success: boolean }>
+}
+
 export interface ElectronAPI {
   // App
   getVersion: () => Promise<string>
@@ -94,6 +100,9 @@ export interface ElectronAPI {
   overlayHide: () => void
   overlaySetExpanded: (expanded: boolean) => void
   overlaySetPosition: (position: OverlayPosition) => void
+
+  // Auth / OAuth
+  auth: AuthAPI
 
   // Secure storage
   secureStore: SecureStore

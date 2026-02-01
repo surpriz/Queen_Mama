@@ -68,6 +68,11 @@ export const IPC_CHANNELS = {
   // Screen capture
   SCREEN_CAPTURE: 'screen:capture',
 
+  // Auth / OAuth
+  AUTH_PROTOCOL_CALLBACK: 'auth:protocol-callback',
+  AUTH_START_OAUTH_SERVER: 'auth:start-oauth-server',
+  AUTH_STOP_OAUTH_SERVER: 'auth:stop-oauth-server',
+
   // Cross-window relay (main ↔ overlay)
   RELAY_TO_OVERLAY: 'relay:to-overlay',
   RELAY_TO_MAIN: 'relay:to-main',

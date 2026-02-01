@@ -96,6 +96,17 @@ const electronAPI = {
       ipcRenderer.invoke(IPC_CHANNELS.DB_DELETE, table, where, whereParams),
   },
 
+  // Auth / OAuth
+  auth: {
+    onProtocolCallback: (callback: (url: string) => void) => {
+      const handler = (_event: Electron.IpcRendererEvent, url: string) => callback(url)
+      ipcRenderer.on(IPC_CHANNELS.AUTH_PROTOCOL_CALLBACK, handler)
+      return () => ipcRenderer.removeListener(IPC_CHANNELS.AUTH_PROTOCOL_CALLBACK, handler)
+    },
+    startOAuthServer: () => ipcRenderer.invoke(IPC_CHANNELS.AUTH_START_OAUTH_SERVER),
+    stopOAuthServer: () => ipcRenderer.invoke(IPC_CHANNELS.AUTH_STOP_OAUTH_SERVER),
+  },
+
   // Event listeners (main → renderer)
   onSessionToggle: (callback: () => void) => {
     ipcRenderer.on(IPC_CHANNELS.SESSION_TOGGLE, callback)

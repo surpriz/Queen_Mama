@@ -6,6 +6,7 @@ import * as path from 'path'
 import * as fs from 'fs'
 import Store from 'electron-store'
 import { executeQuery, executeQueryGet, executeQueryAll } from '../db/database'
+import { startOAuthServer, stopOAuthServer } from '../services/oauthServer'
 
 const store = new Store()
 
@@ -262,4 +263,20 @@ export function registerIPCHandlers(): void {
       }
     }
   )
+
+  // OAuth server for loopback authentication
+  ipcMain.handle(IPC_CHANNELS.AUTH_START_OAUTH_SERVER, async () => {
+    try {
+      const port = await startOAuthServer()
+      return { success: true, port }
+    } catch (error) {
+      console.error('[IPC] OAuth server start failed:', error)
+      return { success: false, error: String(error) }
+    }
+  })
+
+  ipcMain.handle(IPC_CHANNELS.AUTH_STOP_OAUTH_SERVER, () => {
+    stopOAuthServer()
+    return { success: true }
+  })
 }

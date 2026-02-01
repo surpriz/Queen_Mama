@@ -35,9 +35,16 @@ interface GoogleUserInfo {
 export async function POST(request: Request) {
   try {
     const body = await request.json();
+    console.log("[Google Callback] Received body:", {
+      ...body,
+      authorizationCode: body.authorizationCode ? `${body.authorizationCode.substring(0, 20)}...` : undefined,
+      codeVerifier: body.codeVerifier ? `${body.codeVerifier.substring(0, 10)}...` : undefined,
+    });
+
     const parsed = macosGoogleCallbackSchema.safeParse(body);
 
     if (!parsed.success) {
+      console.error("[Google Callback] Validation failed:", JSON.stringify(parsed.error.flatten(), null, 2));
       return NextResponse.json(
         { error: "invalid_request", details: parsed.error.flatten() },
         { status: 400 }
@@ -54,6 +61,14 @@ export async function POST(request: Request) {
       osVersion,
       appVersion,
     } = parsed.data;
+
+    console.log("[Google Callback] Request received:", {
+      redirectUri,
+      deviceId,
+      platform,
+      codeLength: authorizationCode?.length,
+      verifierLength: codeVerifier?.length,
+    });
 
     // Exchange authorization code for tokens with Google
     const tokenResponse = await exchangeCodeForTokens(
@@ -320,7 +335,10 @@ export async function POST(request: Request) {
 
 /**
  * Exchange authorization code for tokens using Google's token endpoint
- * Supports both web clients (with secret) and iOS clients (PKCE only, no secret)
+ * Supports multiple client types:
+ * - Web clients: Use AUTH_GOOGLE_ID + AUTH_GOOGLE_SECRET
+ * - iOS/macOS clients: Use AUTH_GOOGLE_IOS_CLIENT_ID with PKCE (no secret)
+ * - Desktop/Windows clients: Use AUTH_GOOGLE_DESKTOP_CLIENT_ID with PKCE (no secret)
  */
 async function exchangeCodeForTokens(
   code: string,
@@ -328,20 +346,42 @@ async function exchangeCodeForTokens(
   redirectUri: string
 ): Promise<GoogleTokenResponse | null> {
   try {
-    // Check which client ID is being used based on redirect URI
+    // Determine client type based on redirect URI
     const isIOSClient = redirectUri.startsWith("com.googleusercontent.apps.");
+    const isLoopbackClient =
+      redirectUri.startsWith("http://127.0.0.1") ||
+      redirectUri.startsWith("http://localhost");
+    const isNativeClient = isIOSClient || isLoopbackClient;
 
-    const clientId = isIOSClient
-      ? process.env.AUTH_GOOGLE_IOS_CLIENT_ID
-      : process.env.AUTH_GOOGLE_ID;
-    const clientSecret = process.env.AUTH_GOOGLE_SECRET;
+    // Select appropriate client ID and secret
+    let clientId: string | undefined;
+    let clientSecret: string | undefined;
+
+    if (isIOSClient) {
+      clientId = process.env.AUTH_GOOGLE_IOS_CLIENT_ID;
+      // iOS clients with PKCE don't need client secret
+    } else if (isLoopbackClient) {
+      // Desktop client for Windows/Electron loopback URLs
+      clientId = process.env.AUTH_GOOGLE_DESKTOP_CLIENT_ID || process.env.AUTH_GOOGLE_IOS_CLIENT_ID;
+      clientSecret = process.env.AUTH_GOOGLE_DESKTOP_CLIENT_SECRET;
+    } else {
+      clientId = process.env.AUTH_GOOGLE_ID;
+      clientSecret = process.env.AUTH_GOOGLE_SECRET;
+    }
 
     if (!clientId) {
-      console.error("Google OAuth client ID not configured");
+      console.error("Google OAuth client ID not configured for redirectUri:", redirectUri);
       return null;
     }
 
-    // Build request body - iOS clients with PKCE don't need client_secret
+    console.log("Token exchange:", {
+      clientId: clientId?.substring(0, 30) + "...",
+      redirectUri,
+      isIOSClient,
+      isLoopbackClient,
+    });
+
+    // Build request body
     const params: Record<string, string> = {
       code,
       client_id: clientId,
@@ -350,8 +390,8 @@ async function exchangeCodeForTokens(
       code_verifier: codeVerifier,
     };
 
-    // Only add client_secret for web clients
-    if (!isIOSClient && clientSecret) {
+    // Add client_secret if available (needed for Desktop and Web clients, not iOS)
+    if (clientSecret) {
       params.client_secret = clientSecret;
     }
 
@@ -370,7 +410,7 @@ async function exchangeCodeForTokens(
         error: errorData,
         clientId: clientId?.substring(0, 20) + "...",
         redirectUri,
-        isIOSClient,
+        isNativeClient,
       });
       return null;
     }

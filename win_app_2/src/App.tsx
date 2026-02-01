@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { HashRouter, Routes, Route } from 'react-router-dom'
+import { HashRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { DashboardPage } from './pages/DashboardPage'
 import { OverlayPage } from './pages/OverlayPage'
@@ -8,6 +8,8 @@ import { ErrorBoundary } from './components/common/ErrorBoundary'
 import { LoadingSpinner } from './components/common/LoadingSpinner'
 import { initializeApp } from './services/appInitializer'
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts'
+import { useOnboardingStore } from './stores/onboardingStore'
+import { useAuthStore } from './stores/authStore'
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -20,18 +22,27 @@ const queryClient = new QueryClient({
 
 function AppContent() {
   const [isInitialized, setIsInitialized] = useState(false)
+  const { hasCompletedOnboarding, loadOnboardingState } = useOnboardingStore()
+  const { isAuthenticated } = useAuthStore()
 
   // Register global keyboard shortcut handlers
   useKeyboardShortcuts()
 
   useEffect(() => {
-    initializeApp()
-      .then(() => setIsInitialized(true))
-      .catch((error) => {
+    const initialize = async () => {
+      try {
+        // Load onboarding state first
+        await loadOnboardingState()
+        // Then initialize the app
+        await initializeApp()
+      } catch (error) {
         console.error('[App] Initialization failed:', error)
-        setIsInitialized(true) // Continue anyway
-      })
-  }, [])
+      } finally {
+        setIsInitialized(true)
+      }
+    }
+    initialize()
+  }, [loadOnboardingState])
 
   if (!isInitialized) {
     return (
@@ -41,9 +52,18 @@ function AppContent() {
     )
   }
 
+  // Determine if we should show onboarding
+  // Show onboarding if:
+  // 1. User hasn't completed onboarding AND
+  // 2. User is not authenticated (or hasn't been through onboarding flow)
+  const shouldShowOnboarding = !hasCompletedOnboarding && !isAuthenticated
+
   return (
     <Routes>
-      <Route path="/" element={<DashboardPage />} />
+      <Route
+        path="/"
+        element={shouldShowOnboarding ? <Navigate to="/onboarding" replace /> : <DashboardPage />}
+      />
       <Route path="/onboarding" element={<OnboardingPage />} />
       <Route path="/overlay" element={<OverlayPage />} />
     </Routes>
