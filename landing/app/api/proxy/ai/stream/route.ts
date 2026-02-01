@@ -33,7 +33,8 @@ export async function OPTIONS() {
 
 interface AIStreamRequestBody {
   provider?: AIProviderType; // Optional - backend uses cascade if not specified
-  smartMode?: boolean;
+  smartMode?: boolean; // Deprecated in favor of cascadeMode, kept for backward compatibility
+  cascadeMode?: "standard" | "smart" | "recap"; // New: explicit cascade mode selection
   systemPrompt: string;
   userMessage: string;
   screenshot?: string; // base64 encoded
@@ -73,7 +74,12 @@ export async function POST(request: Request) {
 
     // Parse request body
     const body: AIStreamRequestBody = await request.json();
-    const { smartMode = false, systemPrompt, userMessage, screenshot, maxTokens } = body;
+    const { smartMode = false, cascadeMode, systemPrompt, userMessage, screenshot, maxTokens } = body;
+
+    // Determine cascade mode: cascadeMode takes precedence, otherwise use smartMode for backward compatibility
+    const mode: "standard" | "smart" | "recap" = cascadeMode
+      ? cascadeMode
+      : (smartMode ? "smart" : "standard");
 
     if (!systemPrompt || !userMessage) {
       return NextResponse.json(
@@ -108,10 +114,10 @@ export async function POST(request: Request) {
     const plan = (user.subscription?.plan || "FREE") as PlanTier;
     const tierConfig = TIER_LIMITS[plan];
 
-    // Check smart mode access
-    if (smartMode && !tierConfig.smartMode) {
+    // Check smart mode access (smart mode is now also used for recap)
+    if (mode !== "standard" && !tierConfig.smartMode) {
       return NextResponse.json(
-        { error: "request_denied", message: "Smart Mode requires Enterprise subscription" },
+        { error: "request_denied", message: `${mode === "smart" ? "Smart Mode" : "Recap Mode"} requires Enterprise subscription` },
         { status: 403, headers: corsHeaders }
       );
     }
@@ -137,7 +143,7 @@ export async function POST(request: Request) {
     }
 
     // Get model cascade for this mode
-    const cascade = await getModelCascade(smartMode);
+    const cascade = await getModelCascade(mode);
 
     if (cascade.length === 0) {
       return NextResponse.json(
@@ -226,7 +232,7 @@ export async function POST(request: Request) {
                   userMessage,
                   screenshot,
                   requestMaxTokens,
-                  smartMode
+                  mode !== "standard" // Enable thinking for smart and recap modes
                 );
                 break;
               default:
@@ -280,7 +286,7 @@ export async function POST(request: Request) {
             recordKnowledgeUsage(usedAtomIds).catch(console.error);
           }
 
-          if (smartMode) {
+          if (mode === "smart") {
             prisma.usageLog
               .create({
                 data: {
@@ -311,7 +317,7 @@ export async function POST(request: Request) {
         "Content-Type": "text/event-stream",
         "Cache-Control": "no-cache",
         Connection: "keep-alive",
-        "X-Cascade-Mode": smartMode ? "smart" : "standard",
+        "X-Cascade-Mode": mode,
         "Access-Control-Allow-Origin": "*",
         "Access-Control-Allow-Headers": "Content-Type, Authorization",
       },
