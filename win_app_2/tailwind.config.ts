@@ -98,6 +98,10 @@ const config: Config = {
         'qm-pulse': 'qm-pulse 1s ease-in-out infinite alternate',
         'qm-fade-in': 'qm-fade-in 0.25s ease-in-out',
         'qm-slide-up': 'qm-slide-up 0.25s ease-out',
+        'pulse-ring': 'pulse-expand-ring 1.5s ease-in-out infinite',
+        'pulse-dot': 'pulse-dot 1.5s ease-in-out infinite',
+        'pulse-glow': 'pulse-play-glow 1.5s ease-in-out infinite',
+        'pulse-recording': 'pulse-recording 1s ease-in-out infinite',
       },
       keyframes: {
         'qm-pulse': {
@@ -111,6 +115,22 @@ const config: Config = {
         'qm-slide-up': {
           '0%': { opacity: '0', transform: 'translateY(8px)' },
           '100%': { opacity: '1', transform: 'translateY(0)' },
+        },
+        'pulse-expand-ring': {
+          '0%, 100%': { transform: 'scale(1)', opacity: '0.6' },
+          '50%': { transform: 'scale(1.3)', opacity: '0' },
+        },
+        'pulse-dot': {
+          '0%, 100%': { transform: 'scale(1)', opacity: '1' },
+          '50%': { transform: 'scale(1.4)', opacity: '0.6' },
+        },
+        'pulse-play-glow': {
+          '0%, 100%': { transform: 'scale(1)', opacity: '0.3' },
+          '50%': { transform: 'scale(1.2)', opacity: '0' },
+        },
+        'pulse-recording': {
+          '0%, 100%': { transform: 'scale(1)', opacity: '0.8' },
+          '50%': { transform: 'scale(1.15)', opacity: '0.4' },
         },
       },
       transitionDuration: {

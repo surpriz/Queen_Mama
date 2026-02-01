@@ -49,6 +49,11 @@ export function createOverlayWindow(): BrowserWindow {
   // Position at bottom right by default
   setOverlayPosition('bottomRight')
 
+  // Show overlay by default once loaded
+  overlayWindow.once('ready-to-show', () => {
+    overlayWindow?.show()
+  })
+
   return overlayWindow
 }
 

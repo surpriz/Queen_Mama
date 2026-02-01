@@ -1,4 +1,5 @@
 import { Sparkles, MessageSquare, HelpCircle, RotateCcw } from 'lucide-react'
+import { motion } from 'framer-motion'
 import { useOverlayStore } from '@/stores/overlayStore'
 import { ResponseType } from '@/types/models'
 import { cn } from '@/lib/utils'
@@ -15,22 +16,46 @@ export function TabBar() {
   const setSelectedTab = useOverlayStore((s) => s.setSelectedTab)
 
   return (
-    <div className="flex items-center px-2 border-b border-qm-border-subtle" style={{ height: 36 }}>
-      {TABS.map(({ type, label, icon: Icon }) => (
-        <button
-          key={type}
-          onClick={() => setSelectedTab(type)}
-          className={cn(
-            'flex items-center gap-1.5 px-3 py-1.5 text-caption font-medium rounded-qm-sm transition-colors',
-            selectedTab === type
-              ? 'text-qm-accent bg-qm-accent/10'
-              : 'text-qm-text-tertiary hover:text-qm-text-secondary hover:bg-qm-surface-light',
-          )}
-        >
-          <Icon size={12} />
-          {label}
-        </button>
-      ))}
+    <div className="flex items-center gap-0.5 px-2 py-1.5 border-b border-qm-border-subtle" style={{ height: 36 }}>
+      {TABS.map(({ type, label, icon: Icon }) => {
+        const isSelected = selectedTab === type
+        return (
+          <button
+            key={type}
+            onClick={() => setSelectedTab(type)}
+            className="relative flex items-center gap-1.5 px-3 py-1.5 text-caption font-medium rounded-qm-md transition-colors"
+          >
+            {/* Animated background for selected tab */}
+            {isSelected && (
+              <motion.div
+                layoutId="activeTabBackground"
+                className="absolute inset-0 rounded-qm-md bg-gradient-to-r from-qm-gradient-start to-qm-gradient-end"
+                transition={{
+                  type: 'spring',
+                  stiffness: 500,
+                  damping: 35,
+                }}
+              />
+            )}
+            {/* Icon and label */}
+            <Icon
+              size={12}
+              className={cn(
+                'relative z-10 transition-colors',
+                isSelected ? 'text-white' : 'text-qm-text-tertiary',
+              )}
+            />
+            <span
+              className={cn(
+                'relative z-10 transition-colors',
+                isSelected ? 'text-white' : 'text-qm-text-tertiary hover:text-qm-text-secondary',
+              )}
+            >
+              {label}
+            </span>
+          </button>
+        )
+      })}
     </div>
   )
 }

@@ -2,6 +2,8 @@ import { create } from 'zustand'
 import { ResponseType } from '@/types/models'
 import type { OverlayPosition } from '@/types/electron.d'
 
+export type { OverlayPosition }
+
 interface OverlayStoreState {
   isExpanded: boolean
   selectedTab: ResponseType
