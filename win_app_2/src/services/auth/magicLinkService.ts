@@ -56,7 +56,7 @@ export async function openDashboardWithMagicLink(path: string = '/dashboard'): P
     // Fallback to direct URL without magic link
     const baseUrl = import.meta.env.VITE_APP_ENV === 'development'
       ? 'http://localhost:3000'
-      : 'https://queenmama.ai'
+      : 'https://queenmama.co'
     window.electronAPI?.openExternal(`${baseUrl}${path}`)
   }
 }

@@ -1,11 +1,13 @@
-import { useState } from 'react'
-import { Play, Square, MonitorUp, XCircle, AlertTriangle, Eye, EyeOff, Loader2 } from 'lucide-react'
+import { useState, useEffect } from 'react'
+import { Play, Square, MonitorUp, XCircle, AlertTriangle, Eye, EyeOff, Loader2, X } from 'lucide-react'
+import * as Dialog from '@radix-ui/react-dialog'
 import { Sidebar } from './Sidebar'
 import { LiveSessionView } from './LiveSessionView'
 import { SessionsView } from './SessionsView'
 import { ModesListView } from './ModesListView'
 import { SettingsView } from './SettingsView'
 import { GradientText } from '@/components/common/GradientText'
+import { SignInChoice } from '@/components/auth/SignInChoice'
 import { useAppStore } from '@/stores/appStore'
 import { useAuthStore } from '@/stores/authStore'
 import { cn } from '@/lib/utils'
@@ -15,6 +17,7 @@ export type NavItem = 'sessions' | 'live' | 'modes' | 'settings'
 
 export function DashboardLayout() {
   const [activeNav, setActiveNav] = useState<NavItem>('sessions')
+  const [showSignInModal, setShowSignInModal] = useState(false)
   const isSessionActive = useAppStore((s) => s.isSessionActive)
   const isFinalizingSession = useAppStore((s) => s.isFinalizingSession)
   const isOverlayVisible = useAppStore((s) => s.isOverlayVisible)
@@ -24,6 +27,13 @@ export function DashboardLayout() {
 
   const isSignedIn = authState === 'authenticated' && currentUser
   const canStartSession = isSignedIn || isSessionActive // Can stop if active, need auth to start
+
+  // Close sign-in modal when user is authenticated
+  useEffect(() => {
+    if (isSignedIn && showSignInModal) {
+      setShowSignInModal(false)
+    }
+  }, [isSignedIn, showSignInModal])
 
   const handleStartStop = async () => {
     if (isSessionActive) {
@@ -46,7 +56,7 @@ export function DashboardLayout() {
   }
 
   const handleSignIn = () => {
-    window.electronAPI?.openExternal('https://queenmama.ai/signin')
+    setShowSignInModal(true)
   }
 
   return (
@@ -55,7 +65,7 @@ export function DashboardLayout() {
       <div className="titlebar-drag absolute top-0 left-0 right-0 h-9 z-50" />
 
       {/* Sidebar */}
-      <Sidebar activeItem={activeNav} onItemClick={setActiveNav} />
+      <Sidebar activeItem={activeNav} onItemClick={setActiveNav} onSignIn={handleSignIn} />
 
       {/* Main content */}
       <div className="flex-1 flex flex-col overflow-hidden">
@@ -178,6 +188,30 @@ export function DashboardLayout() {
           {activeNav === 'settings' && <SettingsView />}
         </div>
       </div>
+
+      {/* Sign In Modal */}
+      <Dialog.Root open={showSignInModal} onOpenChange={setShowSignInModal}>
+        <Dialog.Portal>
+          <Dialog.Overlay className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50" />
+          <Dialog.Content className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-md bg-qm-bg-secondary rounded-qm-xl border border-qm-border-subtle shadow-2xl z-50 overflow-hidden">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-qm-border-subtle">
+              <Dialog.Title asChild>
+                <GradientText as="h2" className="text-title-sm font-semibold">
+                  Sign In
+                </GradientText>
+              </Dialog.Title>
+              <Dialog.Close asChild>
+                <button className="p-1.5 rounded-qm-md text-qm-text-tertiary hover:text-qm-text-primary hover:bg-qm-surface-light transition-colors">
+                  <X size={18} />
+                </button>
+              </Dialog.Close>
+            </div>
+            <div className="p-6">
+              <SignInChoice />
+            </div>
+          </Dialog.Content>
+        </Dialog.Portal>
+      </Dialog.Root>
     </div>
   )
 }

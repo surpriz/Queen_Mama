@@ -9,6 +9,7 @@ import { useTourStore } from '@/stores/tourStore'
 import { useShortcutsStore } from '@/stores/shortcutsStore'
 import { AudioLevelIndicator } from './AudioLevelIndicator'
 import type { NavItem } from './DashboardLayout'
+import { getWebBaseUrl } from '@/services/config/appEnvironment'
 
 // Audio level bar visualization
 function AudioLevelBar() {
@@ -27,6 +28,7 @@ function AudioLevelBar() {
 interface SidebarProps {
   activeItem: NavItem
   onItemClick: (item: NavItem) => void
+  onSignIn?: () => void
 }
 
 const NAV_ITEMS: { id: NavItem; label: string; subtitle: string; icon: typeof Activity }[] = [
@@ -36,7 +38,7 @@ const NAV_ITEMS: { id: NavItem; label: string; subtitle: string; icon: typeof Ac
   { id: 'settings', label: 'Settings', subtitle: 'Configuration', icon: Settings },
 ]
 
-export function Sidebar({ activeItem, onItemClick }: SidebarProps) {
+export function Sidebar({ activeItem, onItemClick, onSignIn }: SidebarProps) {
   const isSessionActive = useAppStore((s) => s.isSessionActive)
   const currentUser = useAuthStore((s) => s.currentUser)
   const authState = useAuthStore((s) => s.authState)
@@ -48,12 +50,16 @@ export function Sidebar({ activeItem, onItemClick }: SidebarProps) {
   const isConnected = authState === 'authenticated' && currentUser
 
   const handleSignIn = () => {
-    // Open sign in flow
-    window.electronAPI?.openExternal('https://queenmama.ai/signin')
+    // Use callback if provided, otherwise fall back to opening browser
+    if (onSignIn) {
+      onSignIn()
+    } else {
+      window.electronAPI?.openExternal(`${getWebBaseUrl()}/signin`)
+    }
   }
 
   const handleOpenWebDashboard = () => {
-    window.electronAPI?.openExternal('https://queenmama.ai/dashboard')
+    window.electronAPI?.openExternal(`${getWebBaseUrl()}/dashboard`)
   }
 
   return (

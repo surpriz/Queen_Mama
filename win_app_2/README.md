@@ -25,10 +25,10 @@ cd win_app_2
 npm install
 
 # Mode développement (pointe vers localhost:3000)
-VITE_APP_ENV=development npm run dev
+npm run dev
 ```
 
-**Important :** Sans `VITE_APP_ENV=development`, l'app pointe vers la production (`https://queenmama.ai`).
+**Important :** Sans `VITE_APP_ENV=development`, l'app pointe vers la production (`https://queenmama.co`).
 
 ## Configuration du backend
 
@@ -85,8 +85,8 @@ win_app_2/
 | Environnement | API Base URL | Variable |
 |---------------|--------------|----------|
 | development | `http://localhost:3000` | `VITE_APP_ENV=development` |
-| staging | `https://staging.queenmama.ai` | `VITE_APP_ENV=staging` |
-| production | `https://queenmama.ai` | `VITE_APP_ENV=production` (défaut) |
+| staging | `https://staging.queenmama.co` | `VITE_APP_ENV=staging` |
+| production | `https://queenmama.co` | `VITE_APP_ENV=production` (défaut) |
 
 ## Scripts disponibles
 

@@ -27,5 +27,5 @@ export function getUpgradeMessage(access: FeatureAccess): string | null {
 }
 
 export function getUpgradeUrl(): string {
-  return 'https://queenmama.ai/pricing'
+  return 'https://queenmama.co/pricing'
 }

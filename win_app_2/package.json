@@ -4,7 +4,9 @@
   "description": "Queen Mama - Real-time AI coaching assistant",
   "main": "./out/main/index.js",
   "scripts": {
-    "dev": "electron-vite dev",
+    "dev": "VITE_APP_ENV=development electron-vite dev",
+    "dev:staging": "VITE_APP_ENV=staging electron-vite dev",
+    "dev:prod": "electron-vite dev",
     "build": "electron-vite build",
     "preview": "electron-vite preview",
     "package": "electron-vite build && electron-builder",

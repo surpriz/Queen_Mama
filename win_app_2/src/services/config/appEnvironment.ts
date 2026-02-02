@@ -12,13 +12,13 @@ const ENVIRONMENTS: Record<string, AppEnvironment> = {
   },
   staging: {
     name: 'staging',
-    apiBaseUrl: 'https://staging.queenmama.ai',
-    webBaseUrl: 'https://staging.queenmama.ai',
+    apiBaseUrl: 'https://staging.queenmama.co',
+    webBaseUrl: 'https://staging.queenmama.co',
   },
   production: {
     name: 'production',
-    apiBaseUrl: 'https://queenmama.ai',
-    webBaseUrl: 'https://queenmama.ai',
+    apiBaseUrl: 'https://queenmama.co',
+    webBaseUrl: 'https://queenmama.co',
   },
 }
 
