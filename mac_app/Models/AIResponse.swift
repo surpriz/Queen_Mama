@@ -65,48 +65,62 @@ final class AIResponse: Identifiable {
         }
 
         var systemPromptAddition: String {
+            // Language instruction added to ALL response types for consistency
+            let languageInstruction = """
+
+                CRITICAL LANGUAGE RULE: Your ENTIRE response MUST be in the SAME language as the transcript.
+                - If the transcript is in French → respond entirely in French
+                - If the transcript is in English → respond entirely in English
+                - If there's no transcript but only a screenshot → respond in the language visible on screen
+                - NEVER mix languages in your response
+                """
+
             switch self {
             case .assist:
                 return """
                 Help with what's on screen. If it's a question, give the answer. If it's code, explain or fix it.
-                1-2 sentences max, bullets only if needed. Match the language of the content.
-                """
+                1-2 sentences max, bullets only if needed.
+                """ + languageInstruction
 
             case .whatToSay:
                 return """
                 Give 2-3 short phrases the user can say right now. Keep each under 15 words.
-                Match the language of the content.
-                """
+                """ + languageInstruction
 
             case .followUp:
                 return """
                 Suggest 3 relevant follow-up questions. Keep them specific, not generic.
-                Match the language of the content.
-                """
+                """ + languageInstruction
 
             case .recap:
                 return """
-                Generate a comprehensive professional meeting summary using this structure:
+                Generate a comprehensive professional meeting summary.
 
-                ## Vue d'ensemble
+                CRITICAL LANGUAGE RULE: Your ENTIRE response MUST be in the SAME language as the transcript.
+                - French transcript → French summary with French headers (Vue d'ensemble, Points clés, etc.)
+                - English transcript → English summary with English headers (Overview, Key Points, etc.)
+
+                Structure (adapt headers to match transcript language):
+
+                ## Overview / Vue d'ensemble
                 - Brief context (1-2 sentences): meeting purpose, participants if mentioned
 
-                ## Points clés discutés
+                ## Key Points Discussed / Points clés discutés
                 - Detailed coverage of main topics with context and reasoning
                 - Include relevant technical details, concerns raised, and rationale
                 - Group related items logically
 
-                ## Décisions prises
+                ## Decisions Made / Décisions prises
                 - Explicit decisions made during the meeting
                 - Include reasoning when provided
                 - Note any conditions or dependencies
 
-                ## Actions à suivre
+                ## Action Items / Actions à suivre
                 - Action items with owners (if mentioned) and deadlines (if specified)
                 - Format: [Action] - [Owner] - [Deadline]
                 - Be specific and actionable
 
-                ## Points en suspens / Questions ouvertes
+                ## Open Questions / Points en suspens
                 - Items requiring follow-up
                 - Unresolved questions or topics deferred
 
@@ -114,11 +128,10 @@ final class AIResponse: Identifiable {
                 - Be comprehensive, not minimal. Capture the substance of discussions.
                 - Include technical details, tool names, process descriptions.
                 - Match the meeting's depth - longer meetings need detailed minutes.
-                - Always respond in the SAME LANGUAGE as the transcript.
                 """
 
             case .custom:
-                return "Answer directly. Match the language of the content."
+                return "Answer directly." + languageInstruction
             }
         }
     }
@@ -187,8 +200,15 @@ struct AIContext: @unchecked Sendable {
             prompt = mode?.systemPrompt ?? Mode.defaultMode.systemPrompt
             print("[AIContext] Using CUSTOM mode logic - no responseType additions")
 
-            // Add language instruction only (not the generic response type instructions)
-            prompt += "\n\nIMPORTANT: Respond in the SAME LANGUAGE as the transcript or screen content. If French, respond in French."
+            // Add explicit language instruction
+            prompt += """
+
+                CRITICAL LANGUAGE RULE: Your ENTIRE response MUST be in the SAME language as the transcript.
+                - French transcript → respond entirely in French
+                - English transcript → respond entirely in English
+                - No transcript, only screenshot → respond in the language visible on screen
+                - NEVER mix languages in your response
+                """
         } else {
             // For built-in modes, use the traditional combination
             prompt = mode?.systemPrompt ?? Mode.defaultMode.systemPrompt

@@ -43,7 +43,7 @@ final class Mode {
             - No hyphens or dashes, use commas or shorter sentences
             - Never end with a question
 
-            Language: match the content (French content = French response)
+            LANGUAGE RULE: Respond in the SAME language as the transcript/content. French transcript = French response. English transcript = English response. Never mix languages.
             """,
             isDefault: true
         )
@@ -60,7 +60,7 @@ final class Mode {
             - Formal but natural tone
             - Focus on clarity and impact
 
-            Language: match the content
+            LANGUAGE RULE: Respond in the SAME language as the transcript/content. French = French response. English = English response. Never mix languages.
             """
         )
     }
@@ -76,7 +76,7 @@ final class Mode {
             - Give concrete examples, not generic advice
             - For technical questions, answer directly
 
-            Language: match the content
+            LANGUAGE RULE: Respond in the SAME language as the transcript/content. French = French response. English = English response. Never mix languages.
             """
         )
     }
@@ -92,7 +92,7 @@ final class Mode {
             - For objections: acknowledge briefly, then pivot to value
             - Suggest specific next steps when appropriate
 
-            Language: match the content
+            LANGUAGE RULE: Respond in the SAME language as the transcript/content. French = French response. English = English response. Never mix languages.
             """
         )
     }
@@ -124,7 +124,7 @@ final class Mode {
             - "System design" → Start with requirements, scale step by step
 
             Tone: encouraging, professional, educational
-            Language: match the content (French or English)
+            LANGUAGE RULE: Respond in the SAME language as the transcript/content. French = French response. English = English response. Never mix languages.
             """,
             isDefault: true
         )
