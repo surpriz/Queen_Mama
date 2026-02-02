@@ -30,17 +30,21 @@ final class AuthenticationManager: ObservableObject {
 
     /// Check for existing authentication on app launch
     func checkExistingAuth() async {
+        print("[Auth] ========== AUTH CHECK STARTED ==========")
         authState = .unknown
 
         // Check for stored credentials
         guard tokenStore.hasStoredCredentials,
               let storedUser = tokenStore.storedUser else {
-            print("[Auth] No stored credentials found")
+            print("[Auth] No stored credentials found - user needs to login")
+            print("[Auth] ==========================================")
             authState = .unauthenticated
             return
         }
 
         print("[Auth] Found stored credentials for user: \(storedUser.email)")
+        print("[Auth] Has refresh token: \(tokenStore.refreshToken != nil)")
+        print("[Auth] Access token valid: \(tokenStore.isAccessTokenValid)")
 
         // Try to validate/refresh tokens
         do {
