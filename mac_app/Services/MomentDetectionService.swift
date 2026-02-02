@@ -136,6 +136,13 @@ final class MomentDetectionService {
         }
 
         var promptAddition: String {
+            // Language instruction for all proactive responses
+            let languageRule = """
+
+                CRITICAL LANGUAGE RULE: Your ENTIRE response MUST be in the SAME language as the transcript.
+                French conversation → respond in French. English conversation → respond in English. NEVER mix languages.
+                """
+
             switch self {
             case .objection:
                 return """
@@ -148,7 +155,7 @@ final class MomentDetectionService {
                 2. Then provide a thoughtful counter-argument or alternative perspective
                 3. Use the user's knowledge base (if available) for proven responses
                 4. Keep the tone professional and non-defensive
-                """
+                """ + languageRule
 
             case .expertiseQuestion:
                 return """
@@ -161,7 +168,7 @@ final class MomentDetectionService {
                 2. Use concrete examples when possible
                 3. Structure the response for easy understanding
                 4. Leverage any relevant knowledge atoms for domain expertise
-                """
+                """ + languageRule
 
             case .hesitation:
                 return """
@@ -174,7 +181,7 @@ final class MomentDetectionService {
                 2. Suggest a way to clarify or redirect the conversation
                 3. Offer reassurance if appropriate
                 4. Keep suggestions natural and conversational
-                """
+                """ + languageRule
 
             case .closingOpportunity:
                 return """
@@ -187,7 +194,7 @@ final class MomentDetectionService {
                 2. Propose concrete next steps (meeting, trial, contract)
                 3. Create a sense of forward momentum
                 4. Don't oversell - keep it confident but not pushy
-                """
+                """ + languageRule
 
             case .generic:
                 return ""

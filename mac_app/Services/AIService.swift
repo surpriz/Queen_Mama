@@ -738,7 +738,7 @@ final class AIService: ObservableObject {
                 Generate a SHORT, CONCISE title (maximum 6-8 words) for this conversation.
                 The title should capture the main topic or purpose discussed.
                 Return ONLY the title, no quotes, no explanation, no punctuation at the end.
-                Match the language of the transcript (French or English).
+                CRITICAL: The title MUST be in the SAME language as the transcript. French transcript = French title. English transcript = English title.
                 """,
                 smartMode: false
             )
