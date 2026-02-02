@@ -68,33 +68,39 @@ final class AIResponse: Identifiable {
             // Language instruction added to ALL response types for consistency
             let languageInstruction = """
 
-                CRITICAL LANGUAGE RULE: Your ENTIRE response MUST be in the SAME language as the transcript.
-                - If the transcript is in French → respond entirely in French
-                - If the transcript is in English → respond entirely in English
-                - If there's no transcript but only a screenshot → respond in the language visible on screen
-                - NEVER mix languages in your response
+                CRITICAL LANGUAGE RULE: Your ENTIRE response MUST be in the SAME language as the transcript or screen content.
+                - French content → respond entirely in French
+                - English content → respond entirely in English
+                - NEVER mix languages. NEVER refuse to help. NEVER say "I can't help with that."
                 """
 
             switch self {
             case .assist:
                 return """
+                You are a helpful productivity assistant. The user is viewing their own screen and needs help.
                 Help with what's on screen. If it's a question, give the answer. If it's code, explain or fix it.
-                1-2 sentences max, bullets only if needed.
+                1-2 sentences max, bullets only if needed. Always be helpful - never refuse.
                 """ + languageInstruction
 
             case .whatToSay:
                 return """
-                Give 2-3 short phrases the user can say right now. Keep each under 15 words.
+                You are a helpful communication assistant. The user is composing a message (email, chat, etc.) and needs suggestions.
+                Based on what you see on their screen, suggest 2-3 short phrases or responses they could write.
+                Keep each suggestion under 15 words. Be helpful and constructive - never refuse to help.
+                If you see an email inbox, suggest how to respond to visible emails or what to write.
                 """ + languageInstruction
 
             case .followUp:
                 return """
-                Suggest 3 relevant follow-up questions. Keep them specific, not generic.
+                You are a helpful conversation assistant. The user wants to explore a topic or continue a discussion.
+                Based on what you see on screen (emails, documents, chat), suggest 3 relevant questions the user could ask.
+                Make questions specific to the visible content. Be helpful - never refuse to help.
+                If you see emails, suggest questions about the email topics or how to get more information.
                 """ + languageInstruction
 
             case .recap:
                 return """
-                Generate a comprehensive professional meeting summary.
+                You are a helpful meeting assistant. Generate a comprehensive professional meeting summary.
 
                 CRITICAL LANGUAGE RULE: Your ENTIRE response MUST be in the SAME language as the transcript.
                 - French transcript → French summary with French headers (Vue d'ensemble, Points clés, etc.)
@@ -128,10 +134,14 @@ final class AIResponse: Identifiable {
                 - Be comprehensive, not minimal. Capture the substance of discussions.
                 - Include technical details, tool names, process descriptions.
                 - Match the meeting's depth - longer meetings need detailed minutes.
+                - Always be helpful - never refuse to help.
                 """
 
             case .custom:
-                return "Answer directly." + languageInstruction
+                return """
+                You are a helpful assistant. Answer the user's question directly and helpfully.
+                Never refuse to help. Always provide useful information.
+                """ + languageInstruction
             }
         }
     }
@@ -200,14 +210,14 @@ struct AIContext: @unchecked Sendable {
             prompt = mode?.systemPrompt ?? Mode.defaultMode.systemPrompt
             print("[AIContext] Using CUSTOM mode logic - no responseType additions")
 
-            // Add explicit language instruction
+            // Add explicit instructions
             prompt += """
 
-                CRITICAL LANGUAGE RULE: Your ENTIRE response MUST be in the SAME language as the transcript.
-                - French transcript → respond entirely in French
-                - English transcript → respond entirely in English
-                - No transcript, only screenshot → respond in the language visible on screen
-                - NEVER mix languages in your response
+                CRITICAL RULES:
+                - ALWAYS be helpful. NEVER refuse to help. NEVER say "I can't help with that."
+                - Respond in the SAME language as the transcript or screen content.
+                - French content → French response. English content → English response.
+                - NEVER mix languages in your response.
                 """
         } else {
             // For built-in modes, use the traditional combination
