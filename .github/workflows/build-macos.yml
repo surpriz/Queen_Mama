@@ -448,7 +448,7 @@ jobs:
                   enc = item.find('enclosure')
                   enc.set('{http://www.andymatuschak.org/xml-namespaces/sparkle}edSignature', "$SIGNATURE")
                   enc.set('length', "$DMG_SIZE")
-                  enc.set('url', "https://github.com/surpriz/Queen_Mama/releases/download/$TAG_NAME/QueenMama-$VERSION.dmg")
+                  enc.set('url', "https://www.queenmama.co/api/download/$VERSION")
                   break
 
           if not existing:
@@ -477,7 +477,7 @@ jobs:
               min_sys.text = "14.2"
 
               enclosure = ET.SubElement(item, 'enclosure')
-              enclosure.set('url', "https://github.com/surpriz/Queen_Mama/releases/download/$TAG_NAME/QueenMama-$VERSION.dmg")
+              enclosure.set('url', "https://www.queenmama.co/api/download/$VERSION")
               enclosure.set('{http://www.andymatuschak.org/xml-namespaces/sparkle}edSignature', "$SIGNATURE")
               enclosure.set('length', "$DMG_SIZE")
               enclosure.set('type', 'application/octet-stream')

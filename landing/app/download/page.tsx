@@ -33,6 +33,15 @@ async function isStaging(): Promise<boolean> {
 }
 
 async function getRelease(isStaging: boolean): Promise<GitHubRelease | null> {
+  const GITHUB_TOKEN = process.env.GITHUB_TOKEN;
+  const headers: HeadersInit = {
+    Accept: "application/vnd.github.v3+json",
+  };
+
+  if (GITHUB_TOKEN) {
+    headers.Authorization = `Bearer ${GITHUB_TOKEN}`;
+  }
+
   try {
     if (isStaging) {
       // For staging: get the latest pre-release
@@ -40,9 +49,7 @@ async function getRelease(isStaging: boolean): Promise<GitHubRelease | null> {
         "https://api.github.com/repos/surpriz/Queen_Mama/releases",
         {
           next: { revalidate: 60 }, // Revalidate every 1 minute for staging
-          headers: {
-            Accept: "application/vnd.github.v3+json",
-          },
+          headers,
         }
       );
       if (!res.ok) return null;
@@ -57,9 +64,7 @@ async function getRelease(isStaging: boolean): Promise<GitHubRelease | null> {
         "https://api.github.com/repos/surpriz/Queen_Mama/releases/latest",
         {
           next: { revalidate: 300 }, // Revalidate every 5 minutes
-          headers: {
-            Accept: "application/vnd.github.v3+json",
-          },
+          headers,
         }
       );
       if (!res.ok) return null;
@@ -88,6 +93,11 @@ export default async function DownloadPage() {
   const release = await getRelease(staging);
   const dmgAsset = release?.assets?.find((a) => a.name.endsWith(".dmg"));
   const version = release?.tag_name?.replace("v", "") || "1.0.0";
+
+  // Use proxy URL for downloads (works with private repo)
+  const downloadUrl = staging
+    ? `/api/download/${version}?prerelease=true`
+    : `/api/download/${version}`;
 
   return (
     <main className="min-h-screen bg-gradient-to-b from-gray-900 via-purple-900/20 to-gray-900">
@@ -149,7 +159,7 @@ export default async function DownloadPage() {
           {dmgAsset ? (
             <div className="mb-12">
               <a
-                href={dmgAsset.browser_download_url}
+                href={downloadUrl}
                 className={`inline-flex items-center gap-3 ${
                   release?.prerelease
                     ? "bg-gradient-to-r from-yellow-600 to-orange-600 hover:from-yellow-500 hover:to-orange-500 shadow-yellow-500/25 hover:shadow-yellow-500/40"
