@@ -953,6 +953,19 @@ struct ModernResponseHistoryView: View {
                         }
                     }
                 }
+                .onChange(of: isProcessing) { processing in
+                    // Scroll to bottom when processing starts to show "Analyzing..." indicator
+                    if processing {
+                        isUserScrolling = false
+                        scrollDisableTimer?.invalidate()
+                        // Small delay to ensure ProcessingIndicator is rendered
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
+                            withAnimation {
+                                proxy.scrollTo("bottom", anchor: .bottom)
+                            }
+                        }
+                    }
+                }
             }
         }
         .frame(maxWidth: .infinity, minHeight: 140)
