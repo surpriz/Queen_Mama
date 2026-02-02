@@ -344,10 +344,11 @@ async function callAnthropic(
   };
 
   // Add extended thinking for smart mode
+  // Budget optimized: 6000 tokens provides good reasoning without excessive latency
   if (smartMode) {
     body.thinking = {
       type: "enabled",
-      budget_tokens: Math.min(maxTokens * 2, 10000),
+      budget_tokens: Math.min(maxTokens, 6000),
     };
   }
 

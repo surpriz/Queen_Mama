@@ -232,7 +232,7 @@ export async function POST(request: Request) {
                   userMessage,
                   screenshot,
                   requestMaxTokens,
-                  mode !== "standard" // Enable thinking for smart and recap modes
+                  mode // Pass the actual mode for fine-grained thinking control
                 );
                 break;
               default:
@@ -458,7 +458,7 @@ async function streamAnthropic(
   userMessage: string,
   screenshot: string | undefined,
   maxTokens: number,
-  smartMode: boolean
+  mode: "standard" | "smart" | "recap"
 ): Promise<ReadableStream<Uint8Array>> {
   const messages: Array<{ role: string; content: string | object[] }> = [];
 
@@ -489,15 +489,29 @@ async function streamAnthropic(
     stream: true,
   };
 
-  if (smartMode) {
+  // Extended thinking configuration by mode:
+  // - Standard (PRO): NO thinking → fastest responses with Sonnet 4.5
+  // - Smart (Enterprise): thinking with 6000 tokens → balanced reasoning
+  // - Recap: thinking with 16000 tokens → full power for comprehensive summaries
+  const enableThinking = mode !== "standard";
+
+  if (mode === "recap") {
+    // Recap mode: full thinking power (user waits for quality summary)
     body.thinking = {
       type: "enabled",
-      budget_tokens: Math.min(maxTokens * 2, 10000),
+      budget_tokens: 16000,
+    };
+  } else if (mode === "smart") {
+    // Smart mode: optimized thinking (good reasoning, reasonable latency)
+    body.thinking = {
+      type: "enabled",
+      budget_tokens: Math.min(maxTokens, 6000),
     };
   }
+  // Standard mode: no thinking (fastest responses)
 
   const startTime = Date.now();
-  console.log(`[Anthropic] Calling API with model: ${model}, screenshot: ${!!screenshot}, maxTokens: ${maxTokens}`);
+  console.log(`[Anthropic] Calling API with model: ${model}, mode: ${mode}, thinking: ${enableThinking}, screenshot: ${!!screenshot}, maxTokens: ${maxTokens}`);
 
   const response = await fetch(PROVIDER_URLS.anthropic, {
     method: "POST",
@@ -505,7 +519,7 @@ async function streamAnthropic(
       "x-api-key": apiKey,
       "Content-Type": "application/json",
       "anthropic-version": "2023-06-01",
-      ...(smartMode && { "anthropic-beta": "interleaved-thinking-2025-05-14" }),
+      ...(enableThinking && { "anthropic-beta": "interleaved-thinking-2025-05-14" }),
     },
     body: JSON.stringify(body),
   });

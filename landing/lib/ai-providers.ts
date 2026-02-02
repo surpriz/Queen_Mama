@@ -26,18 +26,18 @@ export interface CascadeModel {
 }
 
 export const MODEL_CASCADE = {
-  // Standard Mode: Real-time suggestions (vision required)
-  // Optimized for quality + speed balance
+  // Standard Mode (PRO): Real-time suggestions with Sonnet 4.5 (no thinking)
+  // Optimized for speed + exceptional quality
   standard: [
-    { provider: "openai", model: "gpt-4o" },                           // Primary: ⭐⭐⭐⭐ quality, 599ms TTFB, proven reliable, fastest
-    { provider: "anthropic", model: "claude-sonnet-4-20250514" },      // Fallback 1: ⭐⭐⭐⭐⭐ quality, 1.14s TTFB, strategic questions
-    { provider: "anthropic", model: "claude-3-7-sonnet-20250219" },    // Fallback 2: ⭐⭐⭐ quality, 669ms TTFB, fast backup
+    { provider: "anthropic", model: "claude-sonnet-4-5-20250929" },    // Primary: ⭐⭐⭐⭐⭐ Sonnet 4.5, exceptional quality, NO thinking = fast
+    { provider: "openai", model: "gpt-4o" },                           // Fallback 1: ⭐⭐⭐⭐ quality, 599ms TTFB, proven reliable
+    { provider: "anthropic", model: "claude-sonnet-4-20250514" },      // Fallback 2: ⭐⭐⭐⭐⭐ quality, fast backup
   ] as CascadeModel[],
 
-  // Smart Mode: Deep analysis (vision required, Enterprise only)
-  // Optimized for maximum intelligence
+  // Smart Mode (Enterprise): Deep analysis with Sonnet 4.5 + extended thinking
+  // Optimized for maximum intelligence with reasoning
   smart: [
-    { provider: "anthropic", model: "claude-sonnet-4-5-20250929" },    // Primary: ⭐⭐⭐⭐⭐ exceptional intelligence, multi-stakeholder analysis
+    { provider: "anthropic", model: "claude-sonnet-4-5-20250929" },    // Primary: ⭐⭐⭐⭐⭐ Sonnet 4.5 + thinking = exceptional reasoning
     { provider: "openai", model: "o4-mini" },                          // Fallback 1: Reasoning model, fast backup
     { provider: "anthropic", model: "claude-sonnet-4-20250514" },      // Fallback 2: ⭐⭐⭐⭐⭐ quality, faster Anthropic backup
   ] as CascadeModel[],
@@ -54,12 +54,12 @@ export const MODEL_CASCADE = {
 // Legacy AI_MODELS for backward compatibility
 export const AI_MODELS = {
   openai: {
-    standard: "gpt-4o",      // Fastest (349ms TTFB), 128K context, Vision ✅
-    smart: "o4-mini",        // Best reasoning/speed balance
+    standard: "gpt-4o",      // Fallback: 599ms TTFB, 128K context, Vision ✅
+    smart: "o4-mini",        // Fallback: reasoning model
   },
   anthropic: {
-    standard: "claude-haiku-4-5-20251001",
-    smart: "claude-sonnet-4-5-20250929",
+    standard: "claude-sonnet-4-5-20250929",  // PRO: Sonnet 4.5 sans thinking (rapide)
+    smart: "claude-sonnet-4-5-20250929",     // Enterprise: Sonnet 4.5 avec thinking (intelligent)
   },
   gemini: {
     standard: "gemini-2.0-flash",
@@ -264,6 +264,7 @@ export function buildAnthropicRequestBody(params: {
   maxTokens: number;
   stream: boolean;
   smartMode: boolean;
+  mode?: CascadeMode;  // Optional: pass mode for fine-grained thinking control
 }): object {
   const body: Record<string, unknown> = {
     model: params.model,
@@ -273,13 +274,27 @@ export function buildAnthropicRequestBody(params: {
     stream: params.stream,
   };
 
-  // Add extended thinking for smart mode
-  if (params.smartMode) {
+  // Extended thinking configuration by mode:
+  // - Standard (PRO): NO thinking → fast responses
+  // - Smart (Enterprise): thinking with 6000 tokens → balanced reasoning
+  // - Recap: thinking with 16000 tokens → full power for comprehensive summaries
+  const isRecapMode = params.mode === "recap";
+  const isSmartMode = params.smartMode || params.mode === "smart";
+
+  if (isRecapMode) {
+    // Recap mode: full thinking power (user has time to wait for quality summary)
     body.thinking = {
       type: "enabled",
-      budget_tokens: Math.min(params.maxTokens * 2, 10000),
+      budget_tokens: 16000,
+    };
+  } else if (isSmartMode) {
+    // Smart mode: optimized thinking (good reasoning without excessive latency)
+    body.thinking = {
+      type: "enabled",
+      budget_tokens: Math.min(params.maxTokens, 6000),
     };
   }
+  // Standard mode: no thinking (fastest responses)
 
   return body;
 }
