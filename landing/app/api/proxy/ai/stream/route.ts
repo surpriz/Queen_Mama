@@ -158,10 +158,18 @@ export async function POST(request: Request) {
     // ============================================
     // CONTEXT INTELLIGENCE: Inject personalized knowledge for Enterprise
     // ============================================
+    // TEMPORARILY DISABLED: Knowledge injection was causing irrelevant context
+    // from past conversations to appear in AI responses. Re-enable after:
+    // 1. Increasing minSimilarity threshold (0.4 → 0.65)
+    // 2. Adding user toggle to disable Knowledge per-session
+    // 3. Running migrations on Neon Prod for KnowledgeAtom table
+    // ============================================
     let enhancedSystemPrompt = systemPrompt;
     let usedAtomIds: string[] = [];
 
-    if (plan === "ENTERPRISE") {
+    const KNOWLEDGE_FEATURE_ENABLED = false; // Toggle to re-enable
+
+    if (KNOWLEDGE_FEATURE_ENABLED && plan === "ENTERPRISE") {
       try {
         console.log(`[AI Stream] Context Intelligence: Searching knowledge for Enterprise user ${user.id}`);
         const relevantKnowledge = await retrieveRelevantKnowledge(
