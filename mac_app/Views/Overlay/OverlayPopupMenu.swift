@@ -68,7 +68,8 @@ struct OverlayPopupMenu: View {
                 shortcut: "Cmd+Shift+A",
                 isEnabled: $isAutoAnswerEnabled,
                 accentColor: QMDesign.Colors.autoAnswer,
-                isHovered: hoveredItem == "auto"
+                isHovered: hoveredItem == "auto",
+                subtitle: "AI responds to key moments automatically"
             )
             .onHover { if $0 { hoveredItem = "auto" } }
 
@@ -78,7 +79,8 @@ struct OverlayPopupMenu: View {
                 shortcut: nil,
                 isEnabled: $isSmartModeEnabled,
                 accentColor: QMDesign.Colors.accent,
-                isHovered: hoveredItem == "smart"
+                isHovered: hoveredItem == "smart",
+                subtitle: "Deep thinking \u{2022} Slower responses"
             )
             .onHover { if $0 { hoveredItem = "smart" } }
 
@@ -294,6 +296,7 @@ struct MenuToggleItem: View {
     @Binding var isEnabled: Bool
     let accentColor: Color
     let isHovered: Bool
+    var subtitle: String? = nil
 
     var body: some View {
         Button(action: { isEnabled.toggle() }) {
@@ -304,10 +307,18 @@ struct MenuToggleItem: View {
                     .foregroundColor(isEnabled ? accentColor : QMDesign.Colors.textSecondary)
                     .frame(width: 20)
 
-                // Title
-                Text(title)
-                    .font(QMDesign.Typography.bodySmall)
-                    .foregroundColor(QMDesign.Colors.textPrimary)
+                // Title and optional subtitle
+                VStack(alignment: .leading, spacing: 1) {
+                    Text(title)
+                        .font(QMDesign.Typography.bodySmall)
+                        .foregroundColor(QMDesign.Colors.textPrimary)
+
+                    if let subtitle = subtitle {
+                        Text(subtitle)
+                            .font(QMDesign.Typography.captionSmall)
+                            .foregroundColor(QMDesign.Colors.textTertiary)
+                    }
+                }
 
                 Spacer()
 

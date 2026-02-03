@@ -20,7 +20,9 @@ struct OverlayContentView: View {
     @State private var lastScreenshotTime: Date?
     @State private var hasScreenshot = false
     @State private var showPopupMenu = false
+    @State private var showSmartModeToast = false
     @AppStorage("enableScreenCapture") private var enableScreenCapture = true
+    @AppStorage("hasSeenSmartModeHint") private var hasSeenSmartModeHint = false
 
     // Binding to AutoAnswerService.isEnabled
     private var isAutoAnswerEnabled: Binding<Bool> {
@@ -85,6 +87,30 @@ struct OverlayContentView: View {
                 .stroke(QMDesign.Colors.borderSubtle, lineWidth: 1)
         )
         .animation(QMDesign.Animation.smooth, value: overlayController.isExpanded)
+        .overlay(alignment: .bottom) {
+            // Smart Mode Toast
+            if showSmartModeToast {
+                SmartModeToast()
+                    .transition(.move(edge: .bottom).combined(with: .opacity))
+                    .padding(.bottom, QMDesign.Spacing.md)
+            }
+        }
+        .onChange(of: config.smartModeEnabled) { isEnabled in
+            // Show toast only on first activation
+            if isEnabled && !hasSeenSmartModeHint {
+                withAnimation(QMDesign.Animation.smooth) {
+                    showSmartModeToast = true
+                }
+                hasSeenSmartModeHint = true
+
+                // Auto-dismiss after 4 seconds
+                DispatchQueue.main.asyncAfter(deadline: .now() + 4) {
+                    withAnimation(QMDesign.Animation.smooth) {
+                        showSmartModeToast = false
+                    }
+                }
+            }
+        }
     }
 
     private func handleSubmit() {
@@ -1528,6 +1554,44 @@ class WindowDragNSView: NSView {
 
     override func mouseDragged(with event: NSEvent) {
         window?.performDrag(with: event)
+    }
+}
+
+// MARK: - Smart Mode Toast
+
+struct SmartModeToast: View {
+    var body: some View {
+        HStack(spacing: QMDesign.Spacing.xs) {
+            Image(systemName: QMDesign.Icons.smart)
+                .font(.system(size: 14, weight: .medium))
+                .foregroundStyle(QMDesign.Colors.primaryGradient)
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text("Smart Mode enabled")
+                    .font(QMDesign.Typography.labelSmall)
+                    .foregroundColor(QMDesign.Colors.textPrimary)
+
+                Text("Responses may take longer but will be more thoughtful")
+                    .font(QMDesign.Typography.captionSmall)
+                    .foregroundColor(QMDesign.Colors.textSecondary)
+            }
+        }
+        .padding(.horizontal, QMDesign.Spacing.md)
+        .padding(.vertical, QMDesign.Spacing.sm)
+        .background(
+            RoundedRectangle(cornerRadius: QMDesign.Radius.lg)
+                .fill(QMDesign.Colors.backgroundSecondary)
+                .shadow(
+                    color: QMDesign.Shadows.medium.color,
+                    radius: QMDesign.Shadows.medium.radius,
+                    x: QMDesign.Shadows.medium.x,
+                    y: QMDesign.Shadows.medium.y
+                )
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: QMDesign.Radius.lg)
+                .stroke(QMDesign.Colors.accent.opacity(0.3), lineWidth: 1)
+        )
     }
 }
 
