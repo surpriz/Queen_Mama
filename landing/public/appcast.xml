@@ -48,5 +48,8 @@ Queen Mama 1.2.7 - Nouvelle version disponible.
 - Correction de la cohérence linguistique des réponses AI
 - Correction de la persistance d'authentification
 - Auto-scroll vers l'indicateur "Analyzing..."
-    </description><pubDate>Mon, 02 Feb 2026 16:21:50 +0000</pubDate><sparkle:version>21</sparkle:version><sparkle:shortVersionString>1.2.7</sparkle:shortVersionString><sparkle:minimumSystemVersion>14.2</sparkle:minimumSystemVersion><enclosure url="https://www.queenmama.co/api/download/1.2.7" sparkle:edSignature="uvUmko5J3FjgTqdrOSHaOOUtBqK8qfErEzD2rDjMrlbQP+Cx21oLTgepEsUoNvOY4hsI3wMXgcjb4iOpWoWuDA==" length="6203138" type="application/octet-stream" /></item></channel>
+    </description><pubDate>Mon, 02 Feb 2026 16:21:50 +0000</pubDate><sparkle:version>21</sparkle:version><sparkle:shortVersionString>1.2.7</sparkle:shortVersionString><sparkle:minimumSystemVersion>14.2</sparkle:minimumSystemVersion><enclosure url="https://www.queenmama.co/api/download/1.2.7" sparkle:edSignature="uvUmko5J3FjgTqdrOSHaOOUtBqK8qfErEzD2rDjMrlbQP+Cx21oLTgepEsUoNvOY4hsI3wMXgcjb4iOpWoWuDA==" length="6203138" type="application/octet-stream" /></item><item><title>Version 1.2.8</title><description>
+Queen Mama 1.2.8 - Nouvelle version disponible.
+Consultez les notes de version sur GitHub pour plus de détails.
+    </description><pubDate>Tue, 03 Feb 2026 16:00:03 +0000</pubDate><sparkle:version>22</sparkle:version><sparkle:shortVersionString>1.2.8</sparkle:shortVersionString><sparkle:minimumSystemVersion>14.2</sparkle:minimumSystemVersion><enclosure url="https://www.queenmama.co/api/download/1.2.8" sparkle:edSignature="Z356wky1IsgYtLtn5rBsK13h5Ri3XqgC4UjCnbbpbmemKwHk/N2dryxrE8lbA4Z+F/CYwrOA3mCxkpvkCvsKCQ==" length="6207291" type="application/octet-stream" /></item></channel>
 </rss>
