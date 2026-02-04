@@ -84,18 +84,18 @@ final class AIResponse: Identifiable {
 
             case .whatToSay:
                 return """
-                You are a helpful communication assistant. The user is composing a message (email, chat, etc.) and needs suggestions.
-                Based on what you see on their screen, suggest 2-3 short phrases or responses they could write.
+                You are a helpful communication assistant. The user is in a conversation and needs suggestions for what to say next.
+                Based on the transcript and conversation context, suggest 2-3 short phrases or responses they could use.
                 Keep each suggestion under 15 words. Be helpful and constructive - never refuse to help.
-                If you see an email inbox, suggest how to respond to visible emails or what to write.
+                Focus on the conversation flow and topics being discussed to provide relevant suggestions.
                 """ + languageInstruction
 
             case .followUp:
                 return """
                 You are a helpful conversation assistant. The user wants to explore a topic or continue a discussion.
-                Based on what you see on screen (emails, documents, chat), suggest 3 relevant questions the user could ask.
-                Make questions specific to the visible content. Be helpful - never refuse to help.
-                If you see emails, suggest questions about the email topics or how to get more information.
+                Based on the transcript and conversation topics, suggest 3 relevant questions the user could ask.
+                Make questions specific to what has been discussed. Be helpful - never refuse to help.
+                Focus on clarifying points, exploring deeper, or moving the conversation forward productively.
                 """ + languageInstruction
 
             case .recap:

@@ -43,6 +43,7 @@ struct OverlayPopupMenu: View {
 
     @State private var showPositionSubmenu = false
     @State private var showModeSubmenu = false
+    @State private var showDisplaySubmenu = false
     @State private var hoveredItem: String?
 
     var body: some View {
@@ -106,6 +107,13 @@ struct OverlayPopupMenu: View {
                 }
             )
             .onHover { if $0 { hoveredItem = "position" } }
+
+            // Display Submenu
+            DisplayMenuItem(
+                isExpanded: $showDisplaySubmenu,
+                isHovered: hoveredItem == "display"
+            )
+            .onHover { if $0 { hoveredItem = "display" } }
 
             MenuDivider()
 
@@ -490,6 +498,160 @@ struct PositionButton: View {
             .background(
                 RoundedRectangle(cornerRadius: QMDesign.Radius.xs)
                     .fill(isHovered ? QMDesign.Colors.accent.opacity(0.15) : QMDesign.Colors.surfaceMedium)
+            )
+        }
+        .buttonStyle(.plain)
+        .onHover { isHovered = $0 }
+    }
+}
+
+// MARK: - Display Menu Item
+
+struct DisplayMenuItem: View {
+    @Binding var isExpanded: Bool
+    let isHovered: Bool
+
+    @StateObject private var config = ConfigurationManager.shared
+    @State private var displays: [ScreenCaptureService.DisplayInfo] = []
+
+    var body: some View {
+        VStack(spacing: 0) {
+            // Main row showing current display
+            Button(action: { withAnimation(QMDesign.Animation.quick) { isExpanded.toggle() } }) {
+                HStack(spacing: QMDesign.Spacing.sm) {
+                    Image(systemName: "display")
+                        .font(.system(size: 13))
+                        .foregroundColor(QMDesign.Colors.textSecondary)
+                        .frame(width: 20)
+
+                    VStack(alignment: .leading, spacing: 1) {
+                        Text("Display")
+                            .font(QMDesign.Typography.captionSmall)
+                            .foregroundColor(QMDesign.Colors.textTertiary)
+                        Text(currentDisplayName)
+                            .font(QMDesign.Typography.bodySmall)
+                            .foregroundColor(QMDesign.Colors.textPrimary)
+                    }
+
+                    Spacer()
+
+                    Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
+                        .font(.system(size: 10, weight: .semibold))
+                        .foregroundColor(QMDesign.Colors.textTertiary)
+                }
+                .padding(.horizontal, QMDesign.Spacing.sm)
+                .padding(.vertical, QMDesign.Spacing.xs)
+                .background(
+                    RoundedRectangle(cornerRadius: QMDesign.Radius.sm)
+                        .fill(isHovered || isExpanded ? QMDesign.Colors.surfaceHover : Color.clear)
+                )
+            }
+            .buttonStyle(.plain)
+
+            // Submenu with display options
+            if isExpanded {
+                VStack(spacing: 2) {
+                    ForEach(displays) { display in
+                        DisplayMenuOptionButton(
+                            display: display,
+                            isSelected: isDisplaySelected(display),
+                            onSelect: { selectDisplay(display) }
+                        )
+                    }
+                }
+                .padding(QMDesign.Spacing.xs)
+                .background(
+                    RoundedRectangle(cornerRadius: QMDesign.Radius.sm)
+                        .fill(QMDesign.Colors.surfaceLight)
+                )
+                .padding(.horizontal, QMDesign.Spacing.xs)
+                .padding(.top, QMDesign.Spacing.xxs)
+            }
+        }
+        .task {
+            let screenService = ScreenCaptureService()
+            displays = await screenService.getAvailableDisplays()
+        }
+    }
+
+    private var currentDisplayName: String {
+        if displays.isEmpty {
+            return "Primary"
+        }
+
+        if config.selectedDisplayID == 0 {
+            if let first = displays.first {
+                return "\(first.name) • \(first.resolution)"
+            }
+            return "Primary"
+        }
+
+        if let selected = displays.first(where: { $0.id == config.selectedDisplayID }) {
+            return "\(selected.name) • \(selected.resolution)"
+        }
+
+        return "Primary"
+    }
+
+    private func isDisplaySelected(_ display: ScreenCaptureService.DisplayInfo) -> Bool {
+        if config.selectedDisplayID == 0 {
+            return display.id == displays.first?.id
+        }
+        return display.id == config.selectedDisplayID
+    }
+
+    private func selectDisplay(_ display: ScreenCaptureService.DisplayInfo) {
+        if display.id == displays.first?.id {
+            config.selectedDisplayID = 0
+        } else {
+            config.selectedDisplayID = display.id
+        }
+    }
+}
+
+// MARK: - Display Menu Option Button
+
+struct DisplayMenuOptionButton: View {
+    let display: ScreenCaptureService.DisplayInfo
+    let isSelected: Bool
+    let onSelect: () -> Void
+
+    @State private var isHovered = false
+
+    var body: some View {
+        Button(action: onSelect) {
+            HStack(spacing: QMDesign.Spacing.sm) {
+                Image(systemName: "display")
+                    .font(.system(size: 12))
+                    .foregroundColor(isSelected ? .white : QMDesign.Colors.textSecondary)
+                    .frame(width: 24, height: 24)
+                    .background(
+                        Circle()
+                            .fill(isSelected ? QMDesign.Colors.success : QMDesign.Colors.surfaceMedium)
+                    )
+
+                VStack(alignment: .leading, spacing: 1) {
+                    Text(display.name)
+                        .font(QMDesign.Typography.bodySmall)
+                        .foregroundColor(isSelected ? QMDesign.Colors.textPrimary : QMDesign.Colors.textSecondary)
+                    Text(display.resolution)
+                        .font(QMDesign.Typography.captionSmall)
+                        .foregroundColor(QMDesign.Colors.textTertiary)
+                }
+
+                Spacer()
+
+                if isSelected {
+                    Image(systemName: "checkmark")
+                        .font(.system(size: 10, weight: .bold))
+                        .foregroundColor(QMDesign.Colors.success)
+                }
+            }
+            .padding(.horizontal, QMDesign.Spacing.sm)
+            .padding(.vertical, QMDesign.Spacing.xs)
+            .background(
+                RoundedRectangle(cornerRadius: QMDesign.Radius.sm)
+                    .fill(isSelected ? QMDesign.Colors.success.opacity(0.15) : (isHovered ? QMDesign.Colors.surfaceHover : Color.clear))
             )
         }
         .buttonStyle(.plain)

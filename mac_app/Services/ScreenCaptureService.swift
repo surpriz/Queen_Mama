@@ -32,6 +32,19 @@ final class ScreenCaptureService: NSObject, ObservableObject {
     @Published var latestScreenshot: NSImage?
     @Published var errorMessage: String?
 
+    // MARK: - Display Info
+
+    struct DisplayInfo: Identifiable, Hashable {
+        let id: UInt32
+        let name: String
+        let width: Int
+        let height: Int
+
+        var resolution: String {
+            "\(width)×\(height)"
+        }
+    }
+
     // MARK: - Private Properties
 
     private var stream: SCStream?
@@ -93,7 +106,7 @@ final class ScreenCaptureService: NSObject, ObservableObject {
         // Get available content
         let content = try await SCShareableContent.excludingDesktopWindows(false, onScreenWindowsOnly: true)
 
-        guard let display = content.displays.first else {
+        guard let display = getDisplayForCapture(from: content.displays) else {
             throw ScreenCaptureError.noDisplaysAvailable
         }
 
@@ -163,6 +176,53 @@ final class ScreenCaptureService: NSObject, ObservableObject {
         }
     }
 
+    // MARK: - Display Enumeration
+
+    /// Get list of available displays for user selection
+    func getAvailableDisplays() async -> [DisplayInfo] {
+        do {
+            let content = try await SCShareableContent.excludingDesktopWindows(false, onScreenWindowsOnly: true)
+            return content.displays.enumerated().map { index, display in
+                DisplayInfo(
+                    id: display.displayID,
+                    name: "Display \(index + 1)",
+                    width: Int(display.width),
+                    height: Int(display.height)
+                )
+            }
+        } catch {
+            print("[ScreenCapture] Failed to enumerate displays: \(error.localizedDescription)")
+            return []
+        }
+    }
+
+    /// Get the display to use for capture (selected or primary with fallback)
+    private func getDisplayForCapture(from displays: [SCDisplay]) -> SCDisplay? {
+        let selectedID = config.selectedDisplayID
+
+        if selectedID == 0 {
+            // Use primary display (first in list)
+            if let primary = displays.first {
+                print("[ScreenCapture] Using primary display (\(Int(primary.width))×\(Int(primary.height)))")
+                return primary
+            }
+        } else {
+            // Try to find selected display
+            if let selected = displays.first(where: { $0.displayID == selectedID }) {
+                print("[ScreenCapture] Using selected display \(selectedID) (\(Int(selected.width))×\(Int(selected.height)))")
+                return selected
+            } else {
+                // Fallback to primary if selected is disconnected
+                if let primary = displays.first {
+                    print("[ScreenCapture] Selected display \(selectedID) not found, falling back to primary")
+                    return primary
+                }
+            }
+        }
+
+        return nil
+    }
+
     // MARK: - Screenshot Capture
 
     func captureScreenshot() async throws -> Data {
@@ -172,7 +232,7 @@ final class ScreenCaptureService: NSObject, ObservableObject {
 
         let content = try await SCShareableContent.excludingDesktopWindows(false, onScreenWindowsOnly: true)
 
-        guard let display = content.displays.first else {
+        guard let display = getDisplayForCapture(from: content.displays) else {
             throw ScreenCaptureError.noDisplaysAvailable
         }
 
@@ -187,16 +247,16 @@ final class ScreenCaptureService: NSObject, ObservableObject {
             exceptingWindows: []
         )
 
-        let config = SCStreamConfiguration()
-        config.width = Int(display.width)
-        config.height = Int(display.height)
-        config.pixelFormat = kCVPixelFormatType_32BGRA
-        config.showsCursor = false
+        let screenshotConfig = SCStreamConfiguration()
+        screenshotConfig.width = Int(display.width)
+        screenshotConfig.height = Int(display.height)
+        screenshotConfig.pixelFormat = kCVPixelFormatType_32BGRA
+        screenshotConfig.showsCursor = false
 
         // Capture screenshot
         let image = try await SCScreenshotManager.captureImage(
             contentFilter: filter,
-            configuration: config
+            configuration: screenshotConfig
         )
 
         // Convert to NSImage
