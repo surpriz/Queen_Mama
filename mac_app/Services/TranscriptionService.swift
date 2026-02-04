@@ -46,11 +46,16 @@ final class TranscriptionService: ObservableObject {
     @Published var errorMessage: String?
     @Published var currentProvider: TranscriptionProviderType?
 
-    // MARK: - Callbacks
+    // MARK: - Callbacks (Microphone)
 
     var onTranscript: ((String) -> Void)?
     var onInterimTranscript: ((String) -> Void)?
     var onError: ((Error) -> Void)?
+
+    // MARK: - Callbacks (System Audio)
+
+    var onSystemTranscript: ((String) -> Void)?
+    var onSystemInterimTranscript: ((String) -> Void)?
 
     // MARK: - Providers
     // Fallback order: Deepgram Nova-3 -> AssemblyAI Universal -> Deepgram Flux
@@ -68,6 +73,11 @@ final class TranscriptionService: ObservableObject {
     }
 
     private var currentActiveProvider: TranscriptionProvider?
+
+    // MARK: - System Audio Provider (Second WebSocket)
+
+    private var systemAudioProvider: DeepgramProvider?
+    @Published var isSystemAudioConnected = false
 
     // MARK: - Reconnection Configuration
 
@@ -261,6 +271,19 @@ final class TranscriptionService: ObservableObject {
         isConnected = false
         onError?(error)
 
+        // TRACKING: Report transcription errors to Sentry and PostHog
+        CrashReporter.shared.captureError(error, extras: [
+            "provider": currentProvider?.rawValue ?? "unknown",
+            "connection_state": connectionState.displayStatus,
+            "reconnect_attempts": reconnectAttempts,
+            "intentional_disconnect": intentionalDisconnect
+        ])
+        AnalyticsService.shared.capture("transcription_error", properties: [
+            "error": error.localizedDescription,
+            "provider": currentProvider?.rawValue ?? "unknown",
+            "will_reconnect": !intentionalDisconnect
+        ])
+
         // Try to reconnect if not intentionally disconnected
         if !intentionalDisconnect {
             scheduleReconnect()
@@ -274,9 +297,22 @@ final class TranscriptionService: ObservableObject {
 
         reconnectAttempts += 1
 
+        // Track reconnection for health monitoring
+        HealthCheckService.shared.recordWebSocketReconnect()
+
         if reconnectAttempts > maxReconnectAttempts {
             print("[Transcription] Max reconnection attempts reached (\(maxReconnectAttempts))")
             connectionState = .failed(reason: "Max reconnection attempts reached")
+
+            // TRACKING: Critical - user's transcription is completely broken
+            CrashReporter.shared.captureMessage(
+                "Transcription max reconnection attempts reached",
+                level: .error
+            )
+            AnalyticsService.shared.capture("transcription_reconnect_exhausted", properties: [
+                "max_attempts": maxReconnectAttempts,
+                "provider": currentProvider?.rawValue ?? "unknown"
+            ])
             return
         }
 
@@ -323,5 +359,91 @@ final class TranscriptionService: ObservableObject {
         reconnectTask?.cancel()
         reconnectTask = nil
         reconnectAttempts = 0
+    }
+
+    // MARK: - System Audio Connection (Second WebSocket)
+
+    /// Connect a second WebSocket for system audio transcription
+    func connectSystemAudio() async throws {
+        print("[Transcription] Connecting system audio WebSocket...")
+
+        // Create dedicated provider for system audio
+        systemAudioProvider = DeepgramProvider()
+
+        guard let provider = systemAudioProvider else {
+            throw TranscriptionError.allProvidersFailed
+        }
+
+        // Setup callbacks for system audio transcripts
+        provider.onTranscript = { [weak self] transcript in
+            Task { @MainActor in
+                self?.handleSystemTranscript(transcript)
+            }
+        }
+
+        provider.onInterimTranscript = { [weak self] transcript in
+            Task { @MainActor in
+                self?.handleSystemInterimTranscript(transcript)
+            }
+        }
+
+        provider.onError = { [weak self] error in
+            Task { @MainActor in
+                self?.handleSystemAudioError(error)
+            }
+        }
+
+        // Connect
+        do {
+            try await provider.connect()
+            isSystemAudioConnected = true
+            print("[Transcription] System audio WebSocket connected successfully!")
+        } catch {
+            print("[Transcription] System audio connection failed: \(error)")
+            systemAudioProvider = nil
+            isSystemAudioConnected = false
+            throw error
+        }
+    }
+
+    /// Disconnect the system audio WebSocket
+    func disconnectSystemAudio() {
+        print("[Transcription] Disconnecting system audio...")
+        systemAudioProvider?.disconnect()
+        systemAudioProvider = nil
+        isSystemAudioConnected = false
+    }
+
+    /// Send audio data to the system audio transcription WebSocket
+    func sendSystemAudio(_ data: Data) {
+        guard isSystemAudioConnected, let provider = systemAudioProvider else {
+            // Log when we receive audio but can't send it (for debugging)
+            if !isSystemAudioConnected {
+                print("[Transcription] System audio received but WebSocket not connected")
+            }
+            return
+        }
+
+        Task {
+            do {
+                try await provider.sendAudioData(data)
+            } catch {
+                print("[Transcription] Error sending system audio: \(error)")
+            }
+        }
+    }
+
+    private func handleSystemTranscript(_ transcript: String) {
+        onSystemTranscript?(transcript)
+    }
+
+    private func handleSystemInterimTranscript(_ transcript: String) {
+        onSystemInterimTranscript?(transcript)
+    }
+
+    private func handleSystemAudioError(_ error: Error) {
+        print("[Transcription] System audio error: \(error.localizedDescription)")
+        isSystemAudioConnected = false
+        // Don't trigger reconnection for system audio - it's optional
     }
 }

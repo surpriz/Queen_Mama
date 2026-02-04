@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+@preconcurrency import ScreenCaptureKit
 
 // MARK: - Overlay Position
 
@@ -511,13 +512,20 @@ struct DisplayMenuItem: View {
     @Binding var isExpanded: Bool
     let isHovered: Bool
 
-    @StateObject private var config = ConfigurationManager.shared
+    @ObservedObject private var config = ConfigurationManager.shared
     @State private var displays: [ScreenCaptureService.DisplayInfo] = []
+    @State private var isLoadingDisplays = false
 
     var body: some View {
         VStack(spacing: 0) {
             // Main row showing current display
-            Button(action: { withAnimation(QMDesign.Animation.quick) { isExpanded.toggle() } }) {
+            Button(action: {
+                withAnimation(QMDesign.Animation.quick) { isExpanded.toggle() }
+                // Load displays when expanding (lazy load)
+                if isExpanded && displays.isEmpty && !isLoadingDisplays {
+                    loadDisplays()
+                }
+            }) {
                 HStack(spacing: QMDesign.Spacing.sm) {
                     Image(systemName: "display")
                         .font(.system(size: 13))
@@ -551,12 +559,23 @@ struct DisplayMenuItem: View {
             // Submenu with display options
             if isExpanded {
                 VStack(spacing: 2) {
-                    ForEach(displays) { display in
-                        DisplayMenuOptionButton(
-                            display: display,
-                            isSelected: isDisplaySelected(display),
-                            onSelect: { selectDisplay(display) }
-                        )
+                    if isLoadingDisplays {
+                        ProgressView()
+                            .scaleEffect(0.8)
+                            .padding(QMDesign.Spacing.sm)
+                    } else if displays.isEmpty {
+                        Text("No displays found")
+                            .font(QMDesign.Typography.captionSmall)
+                            .foregroundColor(QMDesign.Colors.textTertiary)
+                            .padding(QMDesign.Spacing.sm)
+                    } else {
+                        ForEach(displays) { display in
+                            DisplayMenuOptionButton(
+                                display: display,
+                                isSelected: isDisplaySelected(display),
+                                onSelect: { selectDisplay(display) }
+                            )
+                        }
                     }
                 }
                 .padding(QMDesign.Spacing.xs)
@@ -568,9 +587,28 @@ struct DisplayMenuItem: View {
                 .padding(.top, QMDesign.Spacing.xxs)
             }
         }
-        .task {
-            let screenService = ScreenCaptureService()
-            displays = await screenService.getAvailableDisplays()
+    }
+
+    private func loadDisplays() {
+        isLoadingDisplays = true
+        Task { @MainActor in
+            do {
+                // Use SCShareableContent directly instead of creating a new ScreenCaptureService instance
+                // This avoids potential conflicts with the existing capture session
+                let content = try await SCShareableContent.excludingDesktopWindows(false, onScreenWindowsOnly: true)
+                displays = content.displays.enumerated().map { index, display in
+                    ScreenCaptureService.DisplayInfo(
+                        id: display.displayID,
+                        name: "Display \(index + 1)",
+                        width: Int(display.width),
+                        height: Int(display.height)
+                    )
+                }
+            } catch {
+                print("[DisplayMenuItem] Failed to load displays: \(error.localizedDescription)")
+                displays = []
+            }
+            isLoadingDisplays = false
         }
     }
 

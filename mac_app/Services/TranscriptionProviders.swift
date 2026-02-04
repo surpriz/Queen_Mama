@@ -137,7 +137,9 @@ final class DeepgramProvider: TranscriptionProvider {
 
         let config = URLSessionConfiguration.default
         config.timeoutIntervalForRequest = 30
-        config.timeoutIntervalForResource = 300
+        // Use very long timeout for streaming WebSocket (24 hours)
+        // Keepalive messages handle connection health, not this timeout
+        config.timeoutIntervalForResource = 86400
 
         let session = URLSession(configuration: config)
         webSocketTask = session.webSocketTask(with: request)
@@ -401,7 +403,8 @@ final class AssemblyAIProvider: TranscriptionProvider {
 
         let config = URLSessionConfiguration.default
         config.timeoutIntervalForRequest = 30
-        config.timeoutIntervalForResource = 300
+        // Use very long timeout for streaming WebSocket (24 hours)
+        config.timeoutIntervalForResource = 86400
 
         let session = URLSession(configuration: config)
         webSocketTask = session.webSocketTask(with: request)
@@ -697,7 +700,8 @@ final class DeepgramFluxProvider: TranscriptionProvider {
 
         let config = URLSessionConfiguration.default
         config.timeoutIntervalForRequest = 30
-        config.timeoutIntervalForResource = 300
+        // Use very long timeout for streaming WebSocket (24 hours)
+        config.timeoutIntervalForResource = 86400
 
         let session = URLSession(configuration: config)
         webSocketTask = session.webSocketTask(with: request)

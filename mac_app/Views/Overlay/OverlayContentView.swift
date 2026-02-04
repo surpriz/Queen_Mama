@@ -67,6 +67,7 @@ struct OverlayContentView: View {
                 ModernExpandedContentView(
                     appState: appState,
                     aiService: appState.aiService,
+                    sessionManager: sessionManager,
                     selectedTab: $selectedTab,
                     inputText: $inputText,
                     isSmartModeEnabled: isSmartModeEnabled,
@@ -774,6 +775,7 @@ struct ModernPillHeaderView: View {
 struct ModernExpandedContentView: View {
     @ObservedObject var appState: AppState
     @ObservedObject var aiService: AIService
+    @ObservedObject var sessionManager: SessionManager
     @Binding var selectedTab: TabItem
     @Binding var inputText: String
     @Binding var isSmartModeEnabled: Bool
@@ -815,6 +817,19 @@ struct ModernExpandedContentView: View {
                     aiService.clearResponses()
                 }
             )
+
+            // Talk Time Indicator - DISABLED (speaker separation doesn't work without headphones)
+            // To re-enable, uncomment below and enable system audio pipeline in QueenMamaApp.swift
+            /*
+            if appState.isSessionActive, let session = sessionManager.currentSession {
+                let stats = session.talkTimeStats
+                if stats.totalCharCount > 0 {
+                    TalkTimeIndicator(stats: stats)
+                } else {
+                    TalkTimeIndicator.emptyState
+                }
+            }
+            */
 
             // Modern Input Area
             ModernInputAreaView(

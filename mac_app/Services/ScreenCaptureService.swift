@@ -51,6 +51,11 @@ final class ScreenCaptureService: NSObject, ObservableObject {
     private var streamOutput: StreamOutput?
     private let config = ConfigurationManager.shared
 
+    // MARK: - System Audio Integration
+
+    /// Reference to SystemAudioCaptureService for processing system audio
+    weak var systemAudioService: SystemAudioCaptureService?
+
     // Excluded windows (Queen Mama's own windows)
     private var excludedWindowIDs: Set<CGWindowID> = []
 
@@ -146,6 +151,14 @@ final class ScreenCaptureService: NSObject, ObservableObject {
 
         if config.captureSystemAudio {
             try stream?.addStreamOutput(streamOutput!, type: .audio, sampleHandlerQueue: .main)
+
+            // Wire system audio callback to SystemAudioCaptureService
+            streamOutput?.onAudio = { [weak self] sampleBuffer in
+                Task { @MainActor in
+                    self?.systemAudioService?.processSystemAudioBuffer(sampleBuffer)
+                }
+            }
+            print("[ScreenCapture] System audio capture enabled and wired to SystemAudioCaptureService")
         }
 
         // Start stream
@@ -159,6 +172,15 @@ final class ScreenCaptureService: NSObject, ObservableObject {
                 startScreenshotTimer()
             }
         } catch {
+            // TRACKING: Report screen capture start failures
+            CrashReporter.shared.captureError(error, extras: [
+                "context": "screen_capture_start",
+                "selected_display_id": config.selectedDisplayID,
+                "capture_system_audio": config.captureSystemAudio
+            ])
+            AnalyticsService.shared.capture("screen_capture_start_failed", properties: [
+                "error": error.localizedDescription
+            ])
             throw ScreenCaptureError.captureStartFailed(error)
         }
     }
@@ -454,6 +476,15 @@ extension ScreenCaptureService: SCStreamDelegate {
         Task { @MainActor in
             self.isCapturing = false
             self.errorMessage = error.localizedDescription
+
+            // TRACKING: Report screen capture errors
+            CrashReporter.shared.captureError(error, extras: [
+                "context": "screen_capture_stream",
+                "selected_display_id": self.config.selectedDisplayID
+            ])
+            AnalyticsService.shared.capture("screen_capture_error", properties: [
+                "error": error.localizedDescription
+            ])
         }
     }
 }
@@ -470,6 +501,9 @@ private class StreamOutput: NSObject, SCStreamOutput {
             onFrame?(sampleBuffer)
         case .audio:
             onAudio?(sampleBuffer)
+        case .microphone:
+            // Microphone capture not used - system audio goes through .audio
+            break
         @unknown default:
             break
         }

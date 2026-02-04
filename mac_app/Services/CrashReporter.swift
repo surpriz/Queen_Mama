@@ -67,6 +67,14 @@ final class CrashReporter {
             // Enable auto session tracking
             options.enableAutoSessionTracking = true
 
+            // FREEZE/HANG DETECTION: Capture when main thread is blocked
+            // This reports "App Hangs" in Sentry when UI freezes for > 2 seconds
+            options.enableAppHangTracking = true
+            options.appHangTimeoutInterval = 2.0 // Report hangs > 2 seconds
+
+            // Enable watchdog termination tracking (system kills app due to hang)
+            options.enableWatchdogTerminationTracking = true
+
             // Set max breadcrumbs
             options.maxBreadcrumbs = 100
 

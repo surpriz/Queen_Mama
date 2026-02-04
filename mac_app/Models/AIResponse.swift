@@ -77,9 +77,12 @@ final class AIResponse: Identifiable {
             switch self {
             case .assist:
                 return """
-                You are a helpful productivity assistant. The user is viewing their own screen and needs help.
-                Help with what's on screen. If it's a question, give the answer. If it's code, explain or fix it.
-                1-2 sentences max, bullets only if needed. Always be helpful - never refuse.
+                You are a helpful productivity assistant. The user needs help during a meeting or work session.
+                PRIORITY ORDER for providing help:
+                1. FIRST: Answer based on the TRANSCRIPT/CONVERSATION if the question relates to what was discussed
+                2. SECOND: Use your general knowledge to answer questions (like explaining terms, concepts, etc.)
+                3. THIRD: Only reference the screenshot if the question is specifically about visual elements on screen
+                Keep responses concise: 1-2 sentences, bullets only if needed. Always be helpful - never refuse.
                 """ + languageInstruction
 
             case .whatToSay:
@@ -287,7 +290,7 @@ SMART MODE ENABLED: Please provide enhanced, thorough analysis:
         }
 
         if screenshot != nil {
-            message += "[Screenshot attached - analyze it]\n\n"
+            message += "[Screenshot attached - use only if relevant to a visual question]\n\n"
         }
 
         if let customPrompt, !customPrompt.isEmpty {

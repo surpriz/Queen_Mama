@@ -265,7 +265,11 @@ class AppState: ObservableObject {
     let aiService = AIService()
     let autoAnswerService = AutoAnswerService()
     let audioBatchingService = AudioBatchingService()
+    let systemAudioBatchingService = AudioBatchingService()  // Separate batching for system audio
     let transcriptBuffer = TranscriptBuffer()
+
+    // System Audio Service for speaker separation ("Moi" vs "Interlocuteur")
+    let systemAudioService = SystemAudioCaptureService()
 
     // Session Manager reference (injected from QueenMamaApp)
     weak var sessionManager: SessionManager?
@@ -284,6 +288,9 @@ class AppState: ObservableObject {
         // Record session start usage
         LicenseManager.shared.recordUsage(.sessionStart)
 
+        // Start health monitoring for proactive issue detection
+        HealthCheckService.shared.startMonitoring()
+
         // Track session start in analytics
         AnalyticsService.shared.trackSessionStarted(
             modeId: selectedMode?.id,
@@ -295,6 +302,34 @@ class AppState: ObservableObject {
         _ = sessionManager?.startSession(title: defaultTitle, modeId: selectedMode?.id)
 
         do {
+            // NOTE: Speaker separation (Moi vs Interlocuteur) is DISABLED
+            // It doesn't work reliably without headphones because the microphone
+            // picks up speaker audio, making all transcripts appear as "Moi".
+            // The infrastructure remains for future use with proper audio isolation.
+            // To re-enable, uncomment the system audio pipeline below.
+
+            /*
+            // SYSTEM AUDIO PIPELINE (DISABLED - requires headphones to work)
+            let systemAudioConfig = ConfigurationManager.shared
+            if systemAudioConfig.captureSystemAudio {
+                try await transcriptionService.connectSystemAudio()
+                systemAudioBatchingService.start()
+                systemAudioService.onAudioBuffer = { [weak self] buffer in
+                    self?.systemAudioBatchingService.append(buffer)
+                }
+                systemAudioBatchingService.onBatchReady = { [weak self] batch in
+                    self?.transcriptionService.sendSystemAudio(batch)
+                }
+                screenService.systemAudioService = systemAudioService
+                transcriptionService.onSystemTranscript = { [weak self] text in
+                    guard let self = self else { return }
+                    self.sessionManager?.addTranscriptEntry(speaker: "Interlocuteur", text: text, isFinal: true)
+                    self.currentTranscript += "\(text)\n"
+                }
+                print("[AppState] System audio pipeline configured")
+            }
+            */
+
             // Parallel startup of all services for faster session start
             // Saves 200-400ms compared to sequential startup
             let startTime = CFAbsoluteTimeGetCurrent()
@@ -338,9 +373,21 @@ class AppState: ObservableObject {
             // Wire transcript buffer flush to update UI/SwiftData/AutoAnswer
             transcriptBuffer.onFlush = { [weak self] (batchedText: String) in
                 guard let self = self else { return }
-                self.currentTranscript += batchedText
-                // Persist transcription to SessionManager
-                self.sessionManager?.updateTranscript(self.currentTranscript)
+
+                // Add transcript entry (speaker separation disabled - doesn't work without headphones)
+                self.sessionManager?.addTranscriptEntry(
+                    speaker: "Unknown",
+                    text: batchedText,
+                    isFinal: true
+                )
+
+                // Update in-memory transcript (no speaker prefix)
+                self.currentTranscript += "\(batchedText)\n"
+
+                // Track words transcribed for health monitoring
+                let wordCount = batchedText.split(separator: " ").count
+                HealthCheckService.shared.recordWordsTranscribed(wordCount)
+
                 // Feed transcript to AutoAnswerService
                 self.autoAnswerService.onTranscriptReceived(self.currentTranscript)
             }
@@ -371,12 +418,18 @@ class AppState: ObservableObject {
     }
 
     func stopSession() async {
+        // 0. Stop health monitoring and report summary
+        HealthCheckService.shared.stopMonitoring()
+
         // 1. Stop services immediately (for good UX)
         audioBatchingService.reset()  // Flush remaining audio before stopping
+        systemAudioBatchingService.reset()  // Flush remaining system audio before stopping
         transcriptBuffer.reset()  // Flush remaining transcript before stopping
         audioService.stopCapture()
         screenService.stopCapture()
         transcriptionService.disconnect()
+        transcriptionService.disconnectSystemAudio()  // Disconnect system audio WebSocket
+        systemAudioService.reset()  // Reset system audio service
         autoAnswerService.reset()  // Reset auto-answer state
         autoAnswerService.resetProactiveState()  // Reset proactive state
         isSessionActive = false

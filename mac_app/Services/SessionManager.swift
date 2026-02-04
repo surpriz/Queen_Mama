@@ -2,32 +2,59 @@ import Foundation
 import SwiftData
 import Combine
 
-// MARK: - SwiftData Save Helper (inline until SwiftDataHelper is added to Xcode project)
-private actor SwiftDataSaveHelper {
-    private var saveWorkItem: DispatchWorkItem?
+// MARK: - SwiftData Save Helper
+// Uses @MainActor to ensure ModelContext.save() runs on the same thread where context was created
+// This prevents "ModelContext unbinding from main queue" warnings
+@MainActor
+private final class SwiftDataSaveHelper {
+    private var saveTask: Task<Void, Never>?
     private let saveDebounceInterval: TimeInterval = 0.3
 
     func save(context: ModelContext?, immediate: Bool) {
         guard let context = context else { return }
 
         if immediate {
-            saveWorkItem?.cancel()
-            saveWorkItem = nil
+            // Cancel any pending debounced save
+            saveTask?.cancel()
+            saveTask = nil
 
-            Task.detached(priority: .userInitiated) {
-                try? context.save()
+            // Save immediately on main actor (where context was created)
+            do {
+                try context.save()
+            } catch {
+                print("[SessionManager] Error saving context: \(error)")
+                // TRACKING: Report SwiftData save failures
+                CrashReporter.shared.captureError(error, extras: [
+                    "save_type": "immediate",
+                    "context": "session_manager"
+                ])
             }
         } else {
-            saveWorkItem?.cancel()
+            // Cancel any pending debounced save
+            saveTask?.cancel()
 
-            let workItem = DispatchWorkItem {
-                Task.detached(priority: .utility) {
-                    try? context.save()
+            // Schedule debounced save on main actor
+            saveTask = Task { @MainActor [weak self] in
+                guard let self = self else { return }
+
+                do {
+                    try await Task.sleep(nanoseconds: UInt64(self.saveDebounceInterval * 1_000_000_000))
+
+                    // Check if task was cancelled during sleep
+                    try Task.checkCancellation()
+
+                    try context.save()
+                } catch is CancellationError {
+                    // Debounce cancelled by newer save request - this is expected
+                } catch {
+                    print("[SessionManager] Error saving context: \(error)")
+                    // TRACKING: Report SwiftData save failures
+                    CrashReporter.shared.captureError(error, extras: [
+                        "save_type": "debounced",
+                        "context": "session_manager"
+                    ])
                 }
             }
-
-            saveWorkItem = workItem
-            DispatchQueue.main.asyncAfter(deadline: .now() + saveDebounceInterval, execute: workItem)
         }
     }
 }
@@ -68,7 +95,7 @@ final class SessionManager: ObservableObject {
 
         // Save to SwiftData (immediate save for session start)
         modelContext?.insert(session)
-        Task { await dbHelper.save(context: modelContext, immediate: true) }
+        dbHelper.save(context: modelContext, immediate: true)
 
         // Start duration timer
         startDurationTimer()
@@ -84,7 +111,7 @@ final class SessionManager: ObservableObject {
         isSessionActive = false
 
         // Save final state (immediate save for session end)
-        Task { await dbHelper.save(context: modelContext, immediate: true) }
+        dbHelper.save(context: modelContext, immediate: true)
 
         // Stop timer
         stopDurationTimer()
@@ -99,7 +126,7 @@ final class SessionManager: ObservableObject {
     func updateTranscript(_ text: String) {
         currentSession?.transcript = text
         // Use debounced save - transcripts update frequently
-        Task { await dbHelper.save(context: modelContext, immediate: false) }
+        dbHelper.save(context: modelContext, immediate: false)
     }
 
     func addTranscriptEntry(speaker: String, text: String, isFinal: Bool) {
@@ -119,19 +146,19 @@ final class SessionManager: ObservableObject {
         }
 
         // Use debounced save - entries arrive rapidly
-        Task { await dbHelper.save(context: modelContext, immediate: false) }
+        dbHelper.save(context: modelContext, immediate: false)
     }
 
     func setSummary(_ summary: String) {
         currentSession?.summary = summary
         // Use immediate save for summary (happens once per session)
-        Task { await dbHelper.save(context: modelContext, immediate: true) }
+        dbHelper.save(context: modelContext, immediate: true)
     }
 
     func setActionItems(_ items: [String]) {
         currentSession?.actionItems = items
         // Use immediate save for action items (happens once per session)
-        Task { await dbHelper.save(context: modelContext, immediate: true) }
+        dbHelper.save(context: modelContext, immediate: true)
     }
 
     // MARK: - Session Queries
@@ -185,7 +212,7 @@ final class SessionManager: ObservableObject {
     func deleteSession(_ session: Session) {
         modelContext?.delete(session)
         // Use immediate save for delete operations
-        Task { await dbHelper.save(context: modelContext, immediate: true) }
+        dbHelper.save(context: modelContext, immediate: true)
     }
 
     // MARK: - Private Methods

@@ -124,11 +124,10 @@ struct ModernLiveTranscriptPanel: View {
                             .frame(maxWidth: .infinity, maxHeight: .infinity)
                             .padding(QMDesign.Spacing.xl)
                         } else {
-                            // Confirmed transcript
-                            Text(transcript)
-                                .font(QMDesign.Typography.bodyMedium)
-                                .foregroundColor(QMDesign.Colors.textPrimary)
-                                .textSelection(.enabled)
+                            // Parse and display transcript with speaker labels
+                            ForEach(Array(transcriptLines.enumerated()), id: \.offset) { _, line in
+                                TranscriptLineView(line: line)
+                            }
 
                             // Interim text with pulse animation
                             if !interimText.isEmpty {
@@ -171,6 +170,14 @@ struct ModernLiveTranscriptPanel: View {
         .background(QMDesign.Colors.backgroundPrimary)
     }
 
+    /// Parse transcript into lines, preserving speaker labels
+    private var transcriptLines: [String] {
+        transcript
+            .split(separator: "\n", omittingEmptySubsequences: false)
+            .map(String.init)
+            .filter { !$0.isEmpty }
+    }
+
     private var wordCount: Int {
         transcript.split(separator: " ").count
     }
@@ -178,6 +185,69 @@ struct ModernLiveTranscriptPanel: View {
     private func copyTranscript() {
         NSPasteboard.general.clearContents()
         NSPasteboard.general.setString(transcript, forType: .string)
+    }
+}
+
+// MARK: - Transcript Line View with Speaker Labels
+
+struct TranscriptLineView: View {
+    let line: String
+
+    var body: some View {
+        HStack(alignment: .top, spacing: QMDesign.Spacing.sm) {
+            // Speaker label with color coding
+            if let speaker = extractSpeaker(from: line) {
+                Text(speaker)
+                    .font(QMDesign.Typography.labelSmall)
+                    .fontWeight(.semibold)
+                    .foregroundColor(speakerColor(for: speaker))
+                    .frame(width: 80, alignment: .leading)
+
+                Text(extractContent(from: line))
+                    .font(QMDesign.Typography.bodyMedium)
+                    .foregroundColor(QMDesign.Colors.textPrimary)
+                    .textSelection(.enabled)
+            } else {
+                // Legacy format without speaker label
+                Text(line)
+                    .font(QMDesign.Typography.bodyMedium)
+                    .foregroundColor(QMDesign.Colors.textPrimary)
+                    .textSelection(.enabled)
+            }
+        }
+    }
+
+    /// Extract speaker name from line (e.g., "Moi: Hello" -> "Moi")
+    private func extractSpeaker(from line: String) -> String? {
+        let patterns = ["Moi:", "Interlocuteur:"]
+        for pattern in patterns {
+            if line.hasPrefix(pattern) {
+                return String(pattern.dropLast()) // Remove the colon
+            }
+        }
+        return nil
+    }
+
+    /// Extract content after speaker label (e.g., "Moi: Hello" -> "Hello")
+    private func extractContent(from line: String) -> String {
+        if line.hasPrefix("Moi: ") {
+            return String(line.dropFirst(5))
+        } else if line.hasPrefix("Interlocuteur: ") {
+            return String(line.dropFirst(15))
+        }
+        return line
+    }
+
+    /// Get color for speaker label
+    private func speakerColor(for speaker: String) -> Color {
+        switch speaker {
+        case "Moi":
+            return Color.blue
+        case "Interlocuteur":
+            return Color.green
+        default:
+            return QMDesign.Colors.textSecondary
+        }
     }
 }
 

@@ -85,3 +85,67 @@ final class TranscriptEntry {
         return formatter.string(from: timestamp)
     }
 }
+
+// MARK: - Talk Time Analysis
+
+extension Session {
+    /// Talk time statistics for the session
+    struct TalkTimeStats {
+        let myCharCount: Int
+        let theirCharCount: Int
+        let totalCharCount: Int
+
+        var myPercentage: Double {
+            guard totalCharCount > 0 else { return 0.0 }
+            return Double(myCharCount) / Double(totalCharCount)
+        }
+
+        var theirPercentage: Double {
+            guard totalCharCount > 0 else { return 0.0 }
+            return Double(theirCharCount) / Double(totalCharCount)
+        }
+
+        var balanceState: BalanceState {
+            guard totalCharCount > 0 else { return .noData }
+
+            let myPct = myPercentage
+            if myPct >= 0.4 && myPct <= 0.6 {
+                return .balanced
+            } else if myPct >= 0.3 && myPct <= 0.7 {
+                return .slightImbalance
+            } else {
+                return .strongImbalance
+            }
+        }
+    }
+
+    enum BalanceState {
+        case noData
+        case balanced        // 40-60%: Green - Good listening balance
+        case slightImbalance // 30-70%: Orange - Could listen more
+        case strongImbalance // <30% or >70%: Red - Talking too much or too little
+    }
+
+    /// Computes talk time statistics from transcript entries
+    var talkTimeStats: TalkTimeStats {
+        var myChars = 0
+        var theirChars = 0
+
+        // Count characters by speaker (only final transcripts)
+        for entry in entries where entry.isFinal {
+            let charCount = entry.text.count
+
+            if entry.speaker == "Moi" {
+                myChars += charCount
+            } else if entry.speaker == "Interlocuteur" {
+                theirChars += charCount
+            }
+        }
+
+        return TalkTimeStats(
+            myCharCount: myChars,
+            theirCharCount: theirChars,
+            totalCharCount: myChars + theirChars
+        )
+    }
+}

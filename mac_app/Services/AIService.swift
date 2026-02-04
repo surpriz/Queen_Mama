@@ -2,32 +2,49 @@ import Foundation
 import Combine
 import SwiftData
 
-// MARK: - SwiftData Save Helper (inline until SwiftDataHelper is added to Xcode project)
-private actor SwiftDataSaveHelper {
-    private var saveWorkItem: DispatchWorkItem?
+// MARK: - SwiftData Save Helper
+// Uses @MainActor to ensure ModelContext.save() runs on the same thread where context was created
+// This prevents "ModelContext unbinding from main queue" warnings and potential deadlocks
+@MainActor
+private final class SwiftDataSaveHelper {
+    private var saveTask: Task<Void, Never>?
     private let saveDebounceInterval: TimeInterval = 0.3
 
     func save(context: ModelContext?, immediate: Bool) {
         guard let context = context else { return }
 
         if immediate {
-            saveWorkItem?.cancel()
-            saveWorkItem = nil
+            // Cancel pending debounced save
+            saveTask?.cancel()
+            saveTask = nil
 
-            Task.detached(priority: .userInitiated) {
-                try? context.save()
+            // Save immediately on main actor (where context was created)
+            do {
+                try context.save()
+            } catch {
+                print("[AIService] Error saving context: \(error)")
             }
         } else {
-            saveWorkItem?.cancel()
+            // Cancel any pending debounced save
+            saveTask?.cancel()
 
-            let workItem = DispatchWorkItem {
-                Task.detached(priority: .utility) {
-                    try? context.save()
+            // Schedule debounced save on main actor
+            saveTask = Task { @MainActor [weak self] in
+                guard let self = self else { return }
+
+                do {
+                    try await Task.sleep(nanoseconds: UInt64(self.saveDebounceInterval * 1_000_000_000))
+
+                    // Check if task was cancelled during sleep
+                    try Task.checkCancellation()
+
+                    try context.save()
+                } catch is CancellationError {
+                    // Debounce cancelled by newer save request - this is expected
+                } catch {
+                    print("[AIService] Error saving context: \(error)")
                 }
             }
-
-            saveWorkItem = workItem
-            DispatchQueue.main.asyncAfter(deadline: .now() + saveDebounceInterval, execute: workItem)
         }
     }
 }
@@ -109,6 +126,40 @@ final class AIService: ObservableObject {
 
         // Add indicator that content was trimmed
         return "...[transcript trimmed to recent content]...\n\n" + trimmed
+    }
+
+    // MARK: - AI Refusal Detection
+    // Detects when AI models refuse to help due to safety filters
+    // Used to trigger retry without screenshot which often resolves the issue
+
+    /// Common AI refusal patterns that indicate safety filter triggered
+    private static let refusalPatterns: [String] = [
+        "i'm sorry, i can't help",
+        "i cannot help with that",
+        "i can't assist with",
+        "i'm not able to help",
+        "i cannot assist",
+        "i'm unable to help",
+        "i can't provide help",
+        "sorry, but i can't",
+        "i apologize, but i cannot",
+        "i'm afraid i can't"
+    ]
+
+    /// Checks if a response appears to be an AI safety filter refusal
+    private static func isRefusalResponse(_ response: String) -> Bool {
+        let lowercased = response.lowercased().trimmingCharacters(in: .whitespacesAndNewlines)
+
+        // Short responses that start with refusal patterns are likely safety blocks
+        if lowercased.count < 100 {
+            for pattern in refusalPatterns {
+                if lowercased.contains(pattern) {
+                    return true
+                }
+            }
+        }
+
+        return false
     }
 
     // MARK: - Proxy Provider (single provider architecture)
@@ -236,6 +287,19 @@ final class AIService: ObservableObject {
             return response
         } catch {
             print("[AIService] Backend proxy failed: \(error)")
+
+            // TRACKING: Report AI failure to Sentry and PostHog
+            CrashReporter.shared.captureError(error, extras: [
+                "response_type": type.rawValue,
+                "smart_mode": useSmartMode,
+                "has_screenshot": screenshot != nil,
+                "transcript_length": transcript.count
+            ])
+            AnalyticsService.shared.trackError(
+                error.localizedDescription,
+                context: "ai_request_\(type.rawValue)"
+            )
+
             throw error
         }
     }
@@ -298,6 +362,9 @@ final class AIService: ObservableObject {
                     self.errorMessage = nil
                 }
 
+                // Track response time for health monitoring
+                let responseStartTime = CFAbsoluteTimeGetCurrent()
+
                 let context = AIContext(
                     transcript: transcript,
                     screenshot: screenshot,
@@ -345,6 +412,87 @@ final class AIService: ObservableObject {
                     print("[AIService] Response length: \(accumulatedResponse.count) chars")
                     print("[AIService] Response preview: \(accumulatedResponse.prefix(200))...")
 
+                    // REFUSAL DETECTION: If AI refused and we had a screenshot, retry without it
+                    // Screenshot content often triggers AI safety filters unnecessarily
+                    if Self.isRefusalResponse(accumulatedResponse) && screenshot != nil {
+                        print("[AIService] ⚠️ AI refusal detected, retrying WITHOUT screenshot...")
+
+                        // TRACKING: Log AI refusal event for monitoring
+                        await MainActor.run {
+                            AnalyticsService.shared.capture("ai_refusal_detected", properties: [
+                                "response_type": type.rawValue,
+                                "refusal_text": String(accumulatedResponse.prefix(100)),
+                                "will_retry": true
+                            ])
+                            CrashReporter.shared.addBreadcrumb(
+                                category: "ai",
+                                message: "AI refusal detected for \(type.rawValue), retrying without screenshot"
+                            )
+                        }
+
+                        // Clear the refusal response from UI
+                        await MainActor.run {
+                            self.currentResponse = ""
+                        }
+
+                        // Create new context WITHOUT screenshot
+                        let retryContext = AIContext(
+                            transcript: transcript,
+                            screenshot: nil,  // Remove screenshot for retry
+                            mode: mode,
+                            responseType: type,
+                            customPrompt: customPrompt,
+                            smartMode: isSmartMode
+                        )
+
+                        // Reset for retry
+                        accumulatedResponse = ""
+                        chunkBuffer = ""
+                        lastUIUpdate = Date()
+
+                        // Retry streaming without screenshot
+                        for try await chunk in self.proxyProvider.generateStreamingResponse(context: retryContext) {
+                            accumulatedResponse += chunk
+                            chunkBuffer += chunk
+                            continuation.yield(chunk)
+
+                            let now = Date()
+                            if now.timeIntervalSince(lastUIUpdate) >= uiUpdateInterval {
+                                let bufferedContent = chunkBuffer
+                                await MainActor.run {
+                                    self.currentResponse += bufferedContent
+                                }
+                                chunkBuffer = ""
+                                lastUIUpdate = now
+                            }
+                        }
+
+                        // Flush remaining buffer from retry
+                        if !chunkBuffer.isEmpty {
+                            await MainActor.run {
+                                self.currentResponse += chunkBuffer
+                            }
+                        }
+
+                        print("[AIService] ✅ Retry without screenshot completed: \(accumulatedResponse.count) chars")
+
+                        // TRACKING: Log successful retry
+                        let retrySucceeded = !Self.isRefusalResponse(accumulatedResponse)
+                        await MainActor.run {
+                            AnalyticsService.shared.capture("ai_retry_without_screenshot", properties: [
+                                "response_type": type.rawValue,
+                                "retry_succeeded": retrySucceeded,
+                                "response_length": accumulatedResponse.count
+                            ])
+                        }
+                    }
+
+                    // Record AI response time for health monitoring
+                    let responseTimeMs = Int((CFAbsoluteTimeGetCurrent() - responseStartTime) * 1000)
+                    await MainActor.run {
+                        HealthCheckService.shared.recordAIResponseTime(responseTimeMs)
+                    }
+
                     // Final UI updates and persistence on main actor
                     await MainActor.run {
                         let licenseManager = LicenseManager.shared
@@ -368,7 +516,7 @@ final class AIService: ObservableObject {
                         // Persist to SwiftData (use debounced save)
                         if let ctx = self.modelContext {
                             ctx.insert(response)
-                            Task { await self.dbHelper.save(context: ctx, immediate: false) }
+                            self.dbHelper.save(context: ctx, immediate: false)
                         }
 
                         self.isProcessing = false
@@ -377,7 +525,20 @@ final class AIService: ObservableObject {
                     continuation.finish()
                 } catch {
                     print("[AIService] Backend proxy streaming failed: \(error)")
+
+                    // TRACKING: Report streaming failure to Sentry and PostHog
                     await MainActor.run {
+                        CrashReporter.shared.captureError(error, extras: [
+                            "response_type": type.rawValue,
+                            "smart_mode": isSmartMode,
+                            "has_screenshot": screenshot != nil,
+                            "transcript_length": transcript.count,
+                            "streaming": true
+                        ])
+                        AnalyticsService.shared.trackError(
+                            error.localizedDescription,
+                            context: "ai_streaming_\(type.rawValue)"
+                        )
                         self.currentResponse = ""
                         self.isProcessing = false
                     }
@@ -524,7 +685,7 @@ final class AIService: ObservableObject {
             // Persist to SwiftData (use immediate save for auto-response)
             if let ctx = self.modelContext {
                 ctx.insert(response)
-                Task { await dbHelper.save(context: ctx, immediate: true) }
+                dbHelper.save(context: ctx, immediate: true)
             }
 
             print("[AIService] Auto-response generated successfully")
@@ -542,7 +703,7 @@ final class AIService: ObservableObject {
         // Remove from SwiftData (use immediate save for delete)
         if let context = modelContext {
             context.delete(response)
-            Task { await dbHelper.save(context: context, immediate: true) }
+            dbHelper.save(context: context, immediate: true)
             print("[AIService] Dismissed response: \(response.id)")
         }
     }
@@ -678,7 +839,7 @@ final class AIService: ObservableObject {
                         // Persist to SwiftData (use debounced save)
                         if let ctx = self.modelContext {
                             ctx.insert(response)
-                            Task { await self.dbHelper.save(context: ctx, immediate: false) }
+                            self.dbHelper.save(context: ctx, immediate: false)
                         }
 
                         self.isProcessing = false
@@ -708,7 +869,7 @@ final class AIService: ObservableObject {
             do {
                 try context.delete(model: AIResponse.self)
                 // Use immediate save for bulk delete
-                Task { await dbHelper.save(context: context, immediate: true) }
+                dbHelper.save(context: context, immediate: true)
                 print("[AIService] Cleared all responses from history")
             } catch {
                 print("[AIService] Failed to clear history: \(error)")
