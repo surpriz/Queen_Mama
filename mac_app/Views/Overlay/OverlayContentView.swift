@@ -21,6 +21,8 @@ struct OverlayContentView: View {
     @State private var hasScreenshot = false
     @State private var showPopupMenu = false
     @State private var showSmartModeToast = false
+    @State private var showDisplayToast = false
+    @State private var currentDisplayName = "Primary Display"
     @AppStorage("enableScreenCapture") private var enableScreenCapture = true
     @AppStorage("hasSeenSmartModeHint") private var hasSeenSmartModeHint = false
 
@@ -88,11 +90,36 @@ struct OverlayContentView: View {
         )
         .animation(QMDesign.Animation.smooth, value: overlayController.isExpanded)
         .overlay(alignment: .bottom) {
-            // Smart Mode Toast
-            if showSmartModeToast {
-                SmartModeToast()
-                    .transition(.move(edge: .bottom).combined(with: .opacity))
-                    .padding(.bottom, QMDesign.Spacing.md)
+            VStack(spacing: QMDesign.Spacing.xs) {
+                // Display Selection Toast
+                if showDisplayToast {
+                    DisplaySelectionToast(displayName: currentDisplayName)
+                        .transition(.move(edge: .bottom).combined(with: .opacity))
+                }
+
+                // Smart Mode Toast
+                if showSmartModeToast {
+                    SmartModeToast()
+                        .transition(.move(edge: .bottom).combined(with: .opacity))
+                }
+            }
+            .padding(.bottom, QMDesign.Spacing.md)
+        }
+        .onChange(of: appState.isSessionActive) { wasActive, isActive in
+            // Show toast when session starts
+            if !wasActive && isActive {
+                Task {
+                    await updateDisplayName()
+                    withAnimation(QMDesign.Animation.smooth) {
+                        showDisplayToast = true
+                    }
+
+                    // Auto-dismiss after 3 seconds
+                    try? await Task.sleep(nanoseconds: 3_000_000_000)
+                    withAnimation(QMDesign.Animation.smooth) {
+                        showDisplayToast = false
+                    }
+                }
             }
         }
         .onChange(of: config.smartModeEnabled) { isEnabled in
@@ -109,6 +136,33 @@ struct OverlayContentView: View {
                         showSmartModeToast = false
                     }
                 }
+            }
+        }
+    }
+
+    private func updateDisplayName() async {
+        let screenService = ScreenCaptureService()
+        let displays = await screenService.getAvailableDisplays()
+
+        if displays.isEmpty {
+            currentDisplayName = "Primary Display"
+            return
+        }
+
+        if config.selectedDisplayID == 0 {
+            if let first = displays.first {
+                currentDisplayName = "\(first.name) • \(first.resolution)"
+            } else {
+                currentDisplayName = "Primary Display"
+            }
+        } else if let selected = displays.first(where: { $0.id == config.selectedDisplayID }) {
+            currentDisplayName = "\(selected.name) • \(selected.resolution)"
+        } else {
+            // Fallback - selected display not found
+            if let first = displays.first {
+                currentDisplayName = "\(first.name) • \(first.resolution)"
+            } else {
+                currentDisplayName = "Primary Display"
             }
         }
     }
@@ -1591,6 +1645,40 @@ struct SmartModeToast: View {
         .overlay(
             RoundedRectangle(cornerRadius: QMDesign.Radius.lg)
                 .stroke(QMDesign.Colors.accent.opacity(0.3), lineWidth: 1)
+        )
+    }
+}
+
+// MARK: - Display Selection Toast
+
+struct DisplaySelectionToast: View {
+    let displayName: String
+
+    var body: some View {
+        HStack(spacing: QMDesign.Spacing.xs) {
+            Image(systemName: "display")
+                .font(.system(size: 14, weight: .medium))
+                .foregroundColor(QMDesign.Colors.success)
+
+            Text("Capturing: \(displayName)")
+                .font(QMDesign.Typography.labelSmall)
+                .foregroundColor(QMDesign.Colors.textPrimary)
+        }
+        .padding(.horizontal, QMDesign.Spacing.md)
+        .padding(.vertical, QMDesign.Spacing.sm)
+        .background(
+            RoundedRectangle(cornerRadius: QMDesign.Radius.lg)
+                .fill(QMDesign.Colors.backgroundSecondary)
+                .shadow(
+                    color: QMDesign.Shadows.medium.color,
+                    radius: QMDesign.Shadows.medium.radius,
+                    x: QMDesign.Shadows.medium.x,
+                    y: QMDesign.Shadows.medium.y
+                )
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: QMDesign.Radius.lg)
+                .stroke(QMDesign.Colors.success.opacity(0.3), lineWidth: 1)
         )
     }
 }

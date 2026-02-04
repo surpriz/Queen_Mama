@@ -376,10 +376,156 @@ struct ModernGeneralSettingsView: View {
                                 .fill(QMDesign.Colors.backgroundSecondary)
                         )
                     }
+
+                    Divider()
+                        .background(QMDesign.Colors.borderSubtle)
+
+                    // Display Selection
+                    DisplaySelectorRow()
                 }
             }
 
         }
+    }
+}
+
+// MARK: - Display Selector Row
+
+struct DisplaySelectorRow: View {
+    @StateObject private var config = ConfigurationManager.shared
+    @State private var displays: [ScreenCaptureService.DisplayInfo] = []
+    @State private var isLoading = true
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: QMDesign.Spacing.sm) {
+            HStack(spacing: QMDesign.Spacing.sm) {
+                Image(systemName: "display")
+                    .font(.system(size: 14))
+                    .foregroundColor(QMDesign.Colors.textSecondary)
+                    .frame(width: 24)
+
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Capture Display")
+                        .font(QMDesign.Typography.bodySmall)
+                        .foregroundColor(QMDesign.Colors.textPrimary)
+                    Text("Select which screen to capture for AI context")
+                        .font(QMDesign.Typography.captionSmall)
+                        .foregroundColor(QMDesign.Colors.textTertiary)
+                }
+
+                Spacer()
+            }
+
+            if isLoading {
+                HStack(spacing: QMDesign.Spacing.xs) {
+                    ProgressView()
+                        .scaleEffect(0.7)
+                    Text("Detecting displays...")
+                        .font(QMDesign.Typography.caption)
+                        .foregroundColor(QMDesign.Colors.textTertiary)
+                }
+                .padding(QMDesign.Spacing.sm)
+            } else if displays.isEmpty {
+                HStack(spacing: QMDesign.Spacing.xs) {
+                    Image(systemName: "exclamationmark.triangle")
+                        .foregroundColor(QMDesign.Colors.warning)
+                    Text("No displays available")
+                        .font(QMDesign.Typography.caption)
+                        .foregroundColor(QMDesign.Colors.warning)
+                }
+                .padding(QMDesign.Spacing.sm)
+            } else {
+                VStack(spacing: QMDesign.Spacing.xs) {
+                    ForEach(displays) { display in
+                        DisplayOptionRow(
+                            display: display,
+                            isSelected: isDisplaySelected(display),
+                            onSelect: { selectDisplay(display) }
+                        )
+                    }
+                }
+            }
+        }
+        .task {
+            await loadDisplays()
+        }
+    }
+
+    private func loadDisplays() async {
+        let screenService = ScreenCaptureService()
+        displays = await screenService.getAvailableDisplays()
+        isLoading = false
+    }
+
+    private func isDisplaySelected(_ display: ScreenCaptureService.DisplayInfo) -> Bool {
+        if config.selectedDisplayID == 0 {
+            // Primary display (first one) is selected
+            return display.id == displays.first?.id
+        }
+        return display.id == config.selectedDisplayID
+    }
+
+    private func selectDisplay(_ display: ScreenCaptureService.DisplayInfo) {
+        // Store 0 for primary display, otherwise store the ID
+        if display.id == displays.first?.id {
+            config.selectedDisplayID = 0
+        } else {
+            config.selectedDisplayID = display.id
+        }
+    }
+}
+
+// MARK: - Display Option Row
+
+struct DisplayOptionRow: View {
+    let display: ScreenCaptureService.DisplayInfo
+    let isSelected: Bool
+    let onSelect: () -> Void
+
+    @State private var isHovered = false
+
+    var body: some View {
+        Button(action: onSelect) {
+            HStack(spacing: QMDesign.Spacing.sm) {
+                Image(systemName: "display")
+                    .font(.system(size: 12))
+                    .foregroundColor(isSelected ? .white : QMDesign.Colors.textSecondary)
+                    .frame(width: 28, height: 28)
+                    .background(
+                        RoundedRectangle(cornerRadius: QMDesign.Radius.sm)
+                            .fill(isSelected ? QMDesign.Colors.accent : QMDesign.Colors.surfaceMedium)
+                    )
+
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(display.name)
+                        .font(QMDesign.Typography.bodySmall)
+                        .foregroundColor(isSelected ? QMDesign.Colors.textPrimary : QMDesign.Colors.textSecondary)
+
+                    Text(display.resolution)
+                        .font(QMDesign.Typography.captionSmall)
+                        .foregroundColor(QMDesign.Colors.textTertiary)
+                }
+
+                Spacer()
+
+                if isSelected {
+                    Image(systemName: "checkmark.circle.fill")
+                        .font(.system(size: 16))
+                        .foregroundColor(QMDesign.Colors.accent)
+                }
+            }
+            .padding(QMDesign.Spacing.sm)
+            .background(
+                RoundedRectangle(cornerRadius: QMDesign.Radius.md)
+                    .fill(isSelected ? QMDesign.Colors.accent.opacity(0.1) : (isHovered ? QMDesign.Colors.surfaceHover : QMDesign.Colors.backgroundSecondary))
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: QMDesign.Radius.md)
+                    .stroke(isSelected ? QMDesign.Colors.accent.opacity(0.3) : Color.clear, lineWidth: 1)
+            )
+        }
+        .buttonStyle(.plain)
+        .onHover { isHovered = $0 }
     }
 }
 

@@ -41,6 +41,10 @@ final class ConfigurationManager: ObservableObject {
         didSet { defaults.set(primaryLanguage, forKey: Keys.primaryLanguage) }
     }
 
+    @Published var selectedDisplayID: UInt32 {
+        didSet { defaults.set(selectedDisplayID, forKey: Keys.selectedDisplayID) }
+    }
+
     // MARK: - Auto-Answer Settings
 
     @Published var autoAnswerEnabled: Bool {
@@ -131,6 +135,7 @@ final class ConfigurationManager: ObservableObject {
         static let proactiveQuestions = "proactive_questions"
         static let proactiveHesitations = "proactive_hesitations"
         static let proactiveClosing = "proactive_closing"
+        static let selectedDisplayID = "selected_display_id"
     }
 
     // MARK: - Initialization
@@ -144,6 +149,7 @@ final class ConfigurationManager: ObservableObject {
         self.screenCaptureIntervalSeconds = defaults.object(forKey: Keys.screenCaptureInterval) as? Double ?? 5.0
         self.smartModeEnabled = defaults.object(forKey: Keys.smartMode) as? Bool ?? false
         self.primaryLanguage = defaults.string(forKey: Keys.primaryLanguage) ?? "en"
+        self.selectedDisplayID = defaults.object(forKey: Keys.selectedDisplayID) as? UInt32 ?? 0
 
         if let providerRaw = defaults.string(forKey: Keys.aiProvider),
            let provider = AIProviderType(rawValue: providerRaw) {
@@ -202,6 +208,7 @@ final class ConfigurationManager: ObservableObject {
         smartModeEnabled = false
         selectedAIProvider = .openai
         primaryLanguage = "en"
+        selectedDisplayID = 0
         shortcutToggleWidget = "cmd+\\"
         shortcutAssist = "cmd+return"
         shortcutClearContext = "cmd+r"
