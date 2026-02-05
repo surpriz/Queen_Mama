@@ -1,5 +1,6 @@
 import AppKit
 import SwiftUI
+import SwiftData
 import Combine
 
 // MARK: - Overlay Panel
@@ -89,9 +90,10 @@ class OverlayWindowController: NSObject, ObservableObject, NSWindowDelegate {
     @Published var isVisible = true
 
     private var panel: OverlayPanel?
-    private var hostingView: NSHostingView<OverlayContentView>?
+    private var hostingView: NSHostingView<AnyView>?
     private var configObserver: AnyCancellable?
     private var licenseObserver: AnyCancellable?
+    private var modelContainer: ModelContainer?
 
     // Keys for UserDefaults
     private let widthKey = "overlayWindowWidth"
@@ -123,7 +125,11 @@ class OverlayWindowController: NSObject, ObservableObject, NSWindowDelegate {
             }
     }
 
-    func showOverlay(appState: AppState, sessionManager: SessionManager) {
+    func showOverlay(appState: AppState, sessionManager: SessionManager, modelContainer: ModelContainer? = nil) {
+        if let container = modelContainer {
+            self.modelContainer = container
+        }
+
         if panel == nil {
             createPanel(appState: appState, sessionManager: sessionManager)
         }
@@ -223,7 +229,15 @@ class OverlayWindowController: NSObject, ObservableObject, NSWindowDelegate {
             overlayController: self
         )
 
-        hostingView = NSHostingView(rootView: contentView)
+        // Wrap with modelContainer if available (needed for @Query in ContactPickerSheet)
+        let wrappedView: AnyView
+        if let container = modelContainer {
+            wrappedView = AnyView(contentView.modelContainer(container))
+        } else {
+            wrappedView = AnyView(contentView)
+        }
+
+        hostingView = NSHostingView(rootView: wrappedView)
         hostingView?.frame = panel!.contentView!.bounds
         hostingView?.autoresizingMask = [.width, .height]
 

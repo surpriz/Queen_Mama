@@ -519,6 +519,8 @@ struct ModernNoSessionView: View {
     @EnvironmentObject var sessionManager: SessionManager
 
     @State private var isButtonHovered = false
+    @State private var showingContactPicker = false
+    @State private var selectedContact: Contact?
 
     var body: some View {
         VStack(spacing: QMDesign.Spacing.xl) {
@@ -549,8 +551,8 @@ struct ModernNoSessionView: View {
                     .multilineTextAlignment(.center)
             }
 
-            // Start Button
-            Button(action: startSession) {
+            // Start Button - Shows contact picker first
+            Button(action: { showingContactPicker = true }) {
                 HStack(spacing: QMDesign.Spacing.sm) {
                     Image(systemName: "play.fill")
                         .font(.system(size: 14, weight: .semibold))
@@ -580,15 +582,23 @@ struct ModernNoSessionView: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(QMDesign.Colors.backgroundPrimary)
-    }
-
-    private func startSession() {
-        Task {
-            await appState.startSession()
-            OverlayWindowController.shared.showOverlay(
-                appState: appState,
-                sessionManager: sessionManager
-            )
+        .sheet(isPresented: $showingContactPicker) {
+            ContactPickerSheet(selectedContact: $selectedContact) { contact in
+                Task {
+                    await appState.startSession(contact: contact)
+                    OverlayWindowController.shared.showOverlay(
+                        appState: appState,
+                        sessionManager: sessionManager,
+                        modelContainer: QueenMamaApp.sharedModelContainer
+                    )
+                }
+            }
+        }
+        .onChange(of: appState.shouldShowContactPicker) { _, newValue in
+            if newValue && !appState.isSessionActive {
+                showingContactPicker = true
+                appState.shouldShowContactPicker = false
+            }
         }
     }
 }

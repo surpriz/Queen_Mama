@@ -83,10 +83,12 @@ final class SessionManager: ObservableObject {
 
     // MARK: - Session Management
 
-    func startSession(title: String = "New Session", modeId: UUID? = nil) -> Session {
+    func startSession(title: String = "New Session", modeId: UUID? = nil, contact: Contact? = nil) -> Session {
         let session = Session(
             title: title,
-            modeId: modeId
+            modeId: modeId,
+            contactId: contact?.id,
+            contact: contact
         )
 
         currentSession = session

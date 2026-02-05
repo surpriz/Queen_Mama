@@ -95,6 +95,7 @@ enum GlobalShortcut {
 extension Notification.Name {
     static let triggerAssist = Notification.Name("com.queenmama.triggerAssist")
     static let clearContext = Notification.Name("com.queenmama.clearContext")
+    static let openDashboardWithContactPicker = Notification.Name("com.queenmama.openDashboardWithContactPicker")
 }
 
 // MARK: - Key Code Helpers

@@ -257,3 +257,63 @@ export const macosGoogleCallbackSchema = z.object({
 });
 
 export type MacosGoogleCallbackInput = z.infer<typeof macosGoogleCallbackSchema>;
+
+// ===========================================
+// CONTACT CRM SCHEMAS (Memory Palace)
+// ===========================================
+
+export const contactCreateSchema = z.object({
+  firstName: z.string().min(1, "First name is required").max(100),
+  lastName: z.string().max(100).optional(),
+  email: z.string().email("Invalid email").optional().or(z.literal("")),
+  company: z.string().max(200).optional(),
+  role: z.string().max(100).optional(),
+});
+
+export const contactUpdateSchema = contactCreateSchema.partial().extend({
+  firstName: z.string().min(1).max(100).optional(),
+});
+
+export const contactNoteSchema = z.object({
+  content: z.string().min(1, "Note content is required").max(10000),
+});
+
+export const contactQuerySchema = z.object({
+  page: z.coerce.number().min(1).default(1),
+  limit: z.coerce.number().min(1).max(100).default(50),
+  search: z.string().optional(),
+});
+
+export const contactSyncSchema = z.object({
+  deviceId: z.string().uuid(),
+  originalId: z.string().uuid(),
+  firstName: z.string().min(1).max(100),
+  lastName: z.string().max(100).optional(),
+  email: z.string().email().optional().or(z.literal("")),
+  company: z.string().max(200).optional(),
+  role: z.string().max(100).optional(),
+  lastSeenAt: z.string().datetime().optional(),
+  version: z.number().int().min(1).default(1),
+  checksum: z.string().optional(),
+  notes: z.array(z.object({
+    originalId: z.string().uuid(),
+    content: z.string(),
+    createdAt: z.string().datetime(),
+  })).optional(),
+});
+
+export const contactSyncBatchSchema = z.object({
+  contacts: z.array(contactSyncSchema).max(50),
+});
+
+export const sessionContactLinkSchema = z.object({
+  contactId: z.string().cuid(),
+});
+
+export type ContactCreateInput = z.infer<typeof contactCreateSchema>;
+export type ContactUpdateInput = z.infer<typeof contactUpdateSchema>;
+export type ContactNoteInput = z.infer<typeof contactNoteSchema>;
+export type ContactQueryInput = z.infer<typeof contactQuerySchema>;
+export type ContactSyncInput = z.infer<typeof contactSyncSchema>;
+export type ContactSyncBatchInput = z.infer<typeof contactSyncBatchSchema>;
+export type SessionContactLinkInput = z.infer<typeof sessionContactLinkSchema>;

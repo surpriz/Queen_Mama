@@ -19,6 +19,15 @@ struct DashboardView: View {
     @State private var isHoveringStart = false
     @State private var columnVisibility: NavigationSplitViewVisibility = .all
 
+    // Memory Palace: Contact picker state
+    @State private var showingContactPicker = false
+    @State private var selectedContact: Contact?
+
+    // Memory Palace: Contact extraction state
+    @State private var showingContactExtraction = false
+    @State private var extractedContact: ContactExtractionService.ExtractedContact?
+    @State private var extractionSession: Session?
+
     var body: some View {
         NavigationSplitView(columnVisibility: $columnVisibility) {
             // Modern Sidebar
@@ -93,16 +102,14 @@ struct DashboardView: View {
                     let canStart = authManager.isAuthenticated || appState.isSessionActive
 
                     Button(action: {
-                        Task {
-                            if appState.isSessionActive {
+                        if appState.isSessionActive {
+                            Task {
                                 await appState.stopSession()
-                            } else {
-                                await appState.startSession()
-                                OverlayWindowController.shared.showOverlay(
-                                    appState: appState,
-                                    sessionManager: sessionManager
-                                )
                             }
+                        } else {
+                            // Show contact picker before starting session
+                            print("[Dashboard] Start button pressed - showing contact picker")
+                            showingContactPicker = true
                         }
                     }) {
                         HStack(spacing: QMDesign.Spacing.xs) {
@@ -181,6 +188,53 @@ struct DashboardView: View {
             if authManager.isAuthenticated {
                 ProxyAPIClient.shared.prefetchTranscriptionToken()
             }
+        }
+        .onChange(of: appState.shouldShowContactPicker) { _, newValue in
+            if newValue {
+                print("[Dashboard] Contact picker triggered from menu bar")
+                showingContactPicker = true
+                appState.shouldShowContactPicker = false
+            }
+        }
+        .sheet(isPresented: $showingContactPicker) {
+            ContactPickerSheet(selectedContact: $selectedContact) { contact in
+                print("[Dashboard] Contact selected: \(contact?.fullName ?? "none") - starting session")
+                Task {
+                    await appState.startSession(contact: contact)
+                    OverlayWindowController.shared.showOverlay(
+                        appState: appState,
+                        sessionManager: sessionManager,
+                        modelContainer: QueenMamaApp.sharedModelContainer
+                    )
+                }
+            }
+            .onAppear {
+                print("[Dashboard] ContactPickerSheet appeared")
+            }
+        }
+        .sheet(isPresented: $showingContactExtraction) {
+            if let extracted = extractedContact {
+                ContactExtractionSheet(
+                    extractedContact: extracted,
+                    session: extractionSession
+                ) { contact in
+                    // Contact saved - queue for sync if PRO
+                    if LicenseManager.shared.isFeatureAvailable(.sessionSync) {
+                        ContactSyncManager.shared.queueContact(contact)
+                    }
+                }
+            }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .contactExtractionAvailable)) { notification in
+            if let data = notification.object as? (ContactExtractionService.ExtractedContact, Session) {
+                extractedContact = data.0
+                extractionSession = data.1
+                showingContactExtraction = true
+            }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .openDashboardWithContactPicker)) { _ in
+            // Triggered from widget when dashboard window couldn't be found
+            showingContactPicker = true
         }
     }
 }

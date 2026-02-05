@@ -26,6 +26,10 @@ struct OverlayContentView: View {
     @AppStorage("enableScreenCapture") private var enableScreenCapture = true
     @AppStorage("hasSeenSmartModeHint") private var hasSeenSmartModeHint = false
 
+    // Memory Palace: Contact picker state
+    @State private var showingContactPicker = false
+    @State private var selectedContact: Contact?
+
     // Binding to AutoAnswerService.isEnabled
     private var isAutoAnswerEnabled: Binding<Bool> {
         Binding(
@@ -56,7 +60,10 @@ struct OverlayContentView: View {
                 showPopupMenu: $showPopupMenu,
                 selectedMode: $appState.selectedMode,
                 onToggleExpand: { overlayController.toggleExpanded() },
-                onStart: { Task { await appState.startSession() } },
+                onStart: {
+                    // Show contact picker directly in widget
+                    showingContactPicker = true
+                },
                 onStop: { Task { await appState.stopSession() } },
                 onClearContext: { appState.clearContext() },
                 onMovePosition: { position in overlayController.moveToPosition(position) }
@@ -136,6 +143,13 @@ struct OverlayContentView: View {
                     withAnimation(QMDesign.Animation.smooth) {
                         showSmartModeToast = false
                     }
+                }
+            }
+        }
+        .sheet(isPresented: $showingContactPicker) {
+            ContactPickerSheet(selectedContact: $selectedContact) { contact in
+                Task {
+                    await appState.startSession(contact: contact)
                 }
             }
         }
@@ -285,6 +299,9 @@ struct OverlayContentView: View {
                             mode: appState.selectedMode
                         )
                         appState.aiService.currentResponse = response.content
+                    case .briefing:
+                        // Briefing tab doesn't trigger AI requests - it shows contact info
+                        break
                     }
                 }
 
@@ -307,6 +324,7 @@ enum TabItem: String, CaseIterable {
     case whatToSay = "What to say"
     case followUp = "Follow-up"
     case recap = "Recap"
+    case briefing = "Briefing"
 
     var icon: String {
         switch self {
@@ -314,6 +332,7 @@ enum TabItem: String, CaseIterable {
         case .whatToSay: return QMDesign.Icons.whatToSay
         case .followUp: return QMDesign.Icons.followUp
         case .recap: return QMDesign.Icons.recap
+        case .briefing: return "person.text.rectangle"
         }
     }
 
@@ -323,7 +342,13 @@ enum TabItem: String, CaseIterable {
         case .whatToSay: return "What to say"
         case .followUp: return "Follow-up"
         case .recap: return "Recap"
+        case .briefing: return "Briefing"
         }
+    }
+
+    /// Tabs that are always visible vs context-dependent
+    static var alwaysVisible: [TabItem] {
+        [.assist, .whatToSay, .followUp, .recap]
     }
 }
 
@@ -784,59 +809,67 @@ struct ModernExpandedContentView: View {
     let enableScreenCapture: Bool
     let onSubmit: () -> Void
 
+    /// Tabs to display - includes Briefing only if contact is associated
+    private var visibleTabs: [TabItem] {
+        if appState.currentSessionContact != nil {
+            return TabItem.allCases
+        } else {
+            return TabItem.alwaysVisible
+        }
+    }
+
     var body: some View {
         VStack(spacing: QMDesign.Spacing.sm) {
-            // Modern Tab Bar
-            ModernTabBarView(selectedTab: $selectedTab) { tab in
-                onSubmit()
+            // Modern Tab Bar (with conditional Briefing tab)
+            ModernTabBarView(selectedTab: $selectedTab, visibleTabs: visibleTabs) { tab in
+                if tab != .briefing {
+                    onSubmit()
+                }
             }
 
-            // Response Area
-            ModernResponseHistoryView(
-                responses: aiService.responses,
-                currentResponse: aiService.currentResponse,
-                isProcessing: aiService.isProcessing,
-                hasScreenshot: hasScreenshot,
-                lastScreenshotTime: lastScreenshotTime,
-                onDismissResponse: { response in
-                    aiService.dismissResponse(response)
-                }
-            )
-
-            // Status Section
-            StatusSection(
-                isSessionActive: appState.isSessionActive,
-                enableScreenCapture: enableScreenCapture,
-                responseCount: aiService.responses.count,
-                onExport: {
-                    let markdown = aiService.exportToMarkdown()
-                    NSPasteboard.general.clearContents()
-                    NSPasteboard.general.setString(markdown, forType: .string)
-                },
-                onClear: {
-                    aiService.clearResponses()
-                }
-            )
-
-            // Talk Time Indicator - DISABLED (speaker separation doesn't work without headphones)
-            // To re-enable, uncomment below and enable system audio pipeline in QueenMamaApp.swift
-            /*
-            if appState.isSessionActive, let session = sessionManager.currentSession {
-                let stats = session.talkTimeStats
-                if stats.totalCharCount > 0 {
-                    TalkTimeIndicator(stats: stats)
+            // Content Area - switches based on selected tab
+            if selectedTab == .briefing {
+                // Memory Palace Briefing View
+                if let contact = appState.currentSessionContact {
+                    ContactBriefingView(contact: contact)
                 } else {
-                    TalkTimeIndicator.emptyState
+                    EmptyBriefingView()
                 }
-            }
-            */
+            } else {
+                // Response Area (for AI tabs)
+                ModernResponseHistoryView(
+                    responses: aiService.responses,
+                    currentResponse: aiService.currentResponse,
+                    isProcessing: aiService.isProcessing,
+                    hasScreenshot: hasScreenshot,
+                    lastScreenshotTime: lastScreenshotTime,
+                    onDismissResponse: { response in
+                        aiService.dismissResponse(response)
+                    }
+                )
 
-            // Modern Input Area
-            ModernInputAreaView(
-                inputText: $inputText,
-                isSmartModeEnabled: $isSmartModeEnabled,
-                onSubmit: onSubmit
-            )
+                // Status Section
+                StatusSection(
+                    isSessionActive: appState.isSessionActive,
+                    enableScreenCapture: enableScreenCapture,
+                    responseCount: aiService.responses.count,
+                    onExport: {
+                        let markdown = aiService.exportToMarkdown()
+                        NSPasteboard.general.clearContents()
+                        NSPasteboard.general.setString(markdown, forType: .string)
+                    },
+                    onClear: {
+                        aiService.clearResponses()
+                    }
+                )
+
+                // Modern Input Area
+                ModernInputAreaView(
+                    inputText: $inputText,
+                    isSmartModeEnabled: $isSmartModeEnabled,
+                    onSubmit: onSubmit
+                )
+            }
         }
         .padding(.horizontal, QMDesign.Spacing.sm)
         .padding(.bottom, QMDesign.Spacing.sm)
@@ -847,13 +880,14 @@ struct ModernExpandedContentView: View {
 
 struct ModernTabBarView: View {
     @Binding var selectedTab: TabItem
+    var visibleTabs: [TabItem] = TabItem.alwaysVisible
     let onTabSelected: (TabItem) -> Void
 
     @Namespace private var tabAnimation
 
     var body: some View {
         HStack(spacing: 2) {
-            ForEach(TabItem.allCases, id: \.self) { tab in
+            ForEach(visibleTabs, id: \.self) { tab in
                 ModernTabButton(
                     tab: tab,
                     isSelected: selectedTab == tab,

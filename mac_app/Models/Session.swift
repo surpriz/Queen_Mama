@@ -12,6 +12,12 @@ final class Session {
     var actionItems: [String]
     var modeId: UUID?
 
+    /// Memory Palace: Contact associated with this session
+    var contactId: UUID?
+
+    @Relationship(deleteRule: .nullify)
+    var contact: Contact?
+
     @Relationship(deleteRule: .cascade)
     var entries: [TranscriptEntry]
 
@@ -24,6 +30,8 @@ final class Session {
         summary: String? = nil,
         actionItems: [String] = [],
         modeId: UUID? = nil,
+        contactId: UUID? = nil,
+        contact: Contact? = nil,
         entries: [TranscriptEntry] = []
     ) {
         self.id = id
@@ -34,6 +42,8 @@ final class Session {
         self.summary = summary
         self.actionItems = actionItems
         self.modeId = modeId
+        self.contactId = contactId
+        self.contact = contact
         self.entries = entries
     }
 

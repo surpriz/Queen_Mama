@@ -193,13 +193,45 @@ struct AIContext: @unchecked Sendable {
     let customPrompt: String?
     let smartMode: Bool
 
+    // Memory Palace: Contact context for enriched AI responses
+    let contactContext: ContactContext?
+
+    /// Lightweight contact context for AI enrichment
+    struct ContactContext: Sendable {
+        let fullName: String
+        let company: String?
+        let role: String?
+        let previousSessionSummaries: [String]
+        let notes: [String]
+
+        init(from contact: Contact) {
+            self.fullName = contact.fullName
+            self.company = contact.company
+            self.role = contact.role
+
+            // Get last 3 session summaries
+            let recentSessions = contact.sessions.sorted { $0.startTime > $1.startTime }.prefix(3)
+            self.previousSessionSummaries = recentSessions.compactMap { session in
+                guard let summary = session.summary, !summary.isEmpty else { return nil }
+                // Truncate to ~200 chars
+                let truncated = String(summary.prefix(200))
+                let dateStr = session.formattedDate
+                return "[\(dateStr)] \(truncated)"
+            }
+
+            // Get last 3 notes
+            self.notes = contact.notes.prefix(3).map { $0.content }
+        }
+    }
+
     init(
         transcript: String,
         screenshot: Data? = nil,
         mode: Mode? = nil,
         responseType: AIResponse.ResponseType,
         customPrompt: String? = nil,
-        smartMode: Bool = false
+        smartMode: Bool = false,
+        contact: Contact? = nil
     ) {
         self.transcript = transcript
         self.screenshot = screenshot
@@ -207,6 +239,7 @@ struct AIContext: @unchecked Sendable {
         self.responseType = responseType
         self.customPrompt = customPrompt
         self.smartMode = smartMode
+        self.contactContext = contact.map { ContactContext(from: $0) }
     }
 
     var systemPrompt: String {
@@ -257,6 +290,34 @@ SMART MODE ENABLED: Please provide enhanced, thorough analysis:
 - Provide deeper insights and more nuanced recommendations
 - Be more comprehensive in your response
 """
+        }
+
+        // Memory Palace: Add contact context if available
+        if let contactCtx = contactContext {
+            prompt += "\n\n## Contact Context (Memory Palace)\n"
+            prompt += "Name: \(contactCtx.fullName)\n"
+            if let company = contactCtx.company {
+                prompt += "Company: \(company)\n"
+            }
+            if let role = contactCtx.role {
+                prompt += "Role: \(role)\n"
+            }
+
+            if !contactCtx.previousSessionSummaries.isEmpty {
+                prompt += "\nPrevious conversations:\n"
+                for summary in contactCtx.previousSessionSummaries {
+                    prompt += "- \(summary)\n"
+                }
+            }
+
+            if !contactCtx.notes.isEmpty {
+                prompt += "\nImportant notes about this contact:\n"
+                for note in contactCtx.notes {
+                    prompt += "- \(note)\n"
+                }
+            }
+
+            prompt += "\nUse this context to provide more personalized and relevant responses."
         }
 
         return prompt

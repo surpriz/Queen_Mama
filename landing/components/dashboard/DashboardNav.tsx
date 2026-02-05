@@ -18,6 +18,7 @@ interface DashboardNavProps {
 const mobileNavigation = [
   { name: "Overview", href: "/dashboard" },
   { name: "Sessions", href: "/dashboard/sessions" },
+  { name: "Contacts", href: "/dashboard/contacts" },
   { name: "Analytics", href: "/dashboard/analytics" },
   { name: "Account", href: "/dashboard/account" },
   { name: "Billing", href: "/dashboard/billing" },

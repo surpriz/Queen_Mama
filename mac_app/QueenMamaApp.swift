@@ -86,12 +86,15 @@ struct QueenMamaApp: App {
         case dashboard     // Authenticated, show dashboard
     }
 
-    var sharedModelContainer: ModelContainer = {
+    /// Shared model container - accessible statically for overlay window
+    static let sharedModelContainer: ModelContainer = {
         let schema = Schema([
             Session.self,
             TranscriptEntry.self,
             Mode.self,
-            AIResponse.self
+            AIResponse.self,
+            Contact.self,
+            ContactNote.self
         ])
         let modelConfiguration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
 
@@ -101,6 +104,8 @@ struct QueenMamaApp: App {
             fatalError("Could not create ModelContainer: \(error)")
         }
     }()
+
+    var sharedModelContainer: ModelContainer { Self.sharedModelContainer }
 
     var body: some Scene {
         // Main Dashboard Window
@@ -131,7 +136,8 @@ struct QueenMamaApp: App {
                             // Show widget by default
                             OverlayWindowController.shared.showOverlay(
                                 appState: appState,
-                                sessionManager: sessionManager
+                                sessionManager: sessionManager,
+                                modelContainer: QueenMamaApp.sharedModelContainer
                             )
                         }
                 }
@@ -232,6 +238,9 @@ class AppState: ObservableObject {
     @Published var errorMessage: String?
     @Published var isFinalizingSession = false  // Indicates AI is generating title/summary
 
+    /// Memory Palace: Triggers contact picker from menu bar or keyboard shortcut
+    @Published var shouldShowContactPicker = false
+
     // MARK: - Memory-Managed Transcript
 
     /// Maximum transcript size in memory (50KB)
@@ -274,7 +283,10 @@ class AppState: ObservableObject {
     // Session Manager reference (injected from QueenMamaApp)
     weak var sessionManager: SessionManager?
 
-    func startSession() async {
+    /// Memory Palace: Contact to associate with current session
+    var currentSessionContact: Contact?
+
+    func startSession(contact: Contact? = nil) async {
         // Check authentication before starting session
         let sessionAccess = LicenseManager.shared.canUse(.sessionStart)
         guard sessionAccess.isAllowed else {
@@ -284,6 +296,7 @@ class AppState: ObservableObject {
 
         isSessionActive = true
         errorMessage = nil
+        currentSessionContact = contact
 
         // Record session start usage
         LicenseManager.shared.recordUsage(.sessionStart)
@@ -297,9 +310,14 @@ class AppState: ObservableObject {
             modeName: selectedMode?.name
         )
 
-        // Create session in SessionManager
+        // Create session in SessionManager (with contact)
         let defaultTitle = "Session - \(Date().formatted(date: .abbreviated, time: .shortened))"
-        _ = sessionManager?.startSession(title: defaultTitle, modeId: selectedMode?.id)
+        _ = sessionManager?.startSession(title: defaultTitle, modeId: selectedMode?.id, contact: contact)
+
+        // Update contact lastSeenAt
+        if let contact = contact {
+            contact.lastSeenAt = Date()
+        }
 
         do {
             // NOTE: Speaker separation (Moi vs Interlocuteur) is DISABLED
@@ -480,8 +498,23 @@ class AppState: ObservableObject {
             hadAIResponses: !aiResponse.isEmpty
         )
 
-        // 10. Deactivate indicator and clear context
+        // 10. Memory Palace: Extract contact info if no contact associated
+        if session.contact == nil && finalTranscript.count > 100 {
+            Task {
+                if let extracted = await ContactExtractionService.shared.extractFromTranscript(finalTranscript),
+                   extracted.isViable {
+                    // Notify UI to show extraction sheet
+                    NotificationCenter.default.post(
+                        name: .contactExtractionAvailable,
+                        object: (extracted, session)
+                    )
+                }
+            }
+        }
+
+        // 11. Deactivate indicator and clear context
         isFinalizingSession = false
+        currentSessionContact = nil
         clearContext()
     }
 
@@ -634,7 +667,15 @@ struct MenuBarView: View {
                 .keyboardShortcut("\\", modifiers: .command)
             } else {
                 Button("Start Session") {
-                    Task { await appState.startSession() }
+                    // Show contact picker instead of starting directly
+                    appState.shouldShowContactPicker = true
+                    // Ensure dashboard is visible so user can see the picker
+                    NSApp.activate(ignoringOtherApps: true)
+                    if let window = NSApp.windows.first(where: { $0.title.contains("Queen Mama") && !$0.title.contains("Settings") }) {
+                        window.makeKeyAndOrderFront(nil)
+                    } else {
+                        openWindow(id: "dashboard")
+                    }
                 }
                 .keyboardShortcut("s", modifiers: [.command, .shift])
             }
