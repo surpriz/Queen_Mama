@@ -51,6 +51,29 @@ struct ContactsListView: View {
 
                         Spacer()
 
+                        // Pull from server
+                        Button(action: {
+                            Task { await pullContacts() }
+                        }) {
+                            HStack(spacing: 4) {
+                                if contactSyncManager.isPulling {
+                                    ProgressView()
+                                        .scaleEffect(0.6)
+                                        .frame(width: 12, height: 12)
+                                } else {
+                                    Image(systemName: "arrow.down.circle")
+                                        .font(.system(size: 11))
+                                }
+                                Text("Refresh")
+                                    .font(QMDesign.Typography.captionSmall)
+                            }
+                            .foregroundColor(QMDesign.Colors.accent)
+                        }
+                        .buttonStyle(.plain)
+                        .disabled(contactSyncManager.isPulling)
+                        .help("Pull contacts from web dashboard")
+
+                        // Push to server
                         Button(action: {
                             Task {
                                 await contactSyncManager.syncNow()
@@ -158,13 +181,45 @@ struct ContactsListView: View {
             }
         }
         .onAppear {
+            // Wire up callbacks for bidirectional sync
+            contactSyncManager.onContactsImported = { [weak modelContext] importedContacts in
+                guard let modelContext else { return }
+                for contact in importedContacts {
+                    modelContext.insert(contact)
+                }
+                try? modelContext.save()
+            }
+
+            contactSyncManager.onContactSynced = { [weak modelContext] originalId, remoteId in
+                guard let modelContext else { return }
+                // Find the contact by its UUID and update remoteId
+                guard let uuid = UUID(uuidString: originalId) else { return }
+                let descriptor = FetchDescriptor<Contact>(predicate: #Predicate { $0.id == uuid })
+                if let contact = try? modelContext.fetch(descriptor).first {
+                    contact.remoteId = remoteId
+                    contact.isSynced = true
+                    try? modelContext.save()
+                }
+            }
+
             // Auto-sync pending contacts on view load
             if contactSyncManager.canSync && contactSyncManager.pendingCount > 0 {
                 Task {
                     await contactSyncManager.syncNow()
                 }
             }
+
+            // Auto-pull if authenticated
+            if contactSyncManager.canSync {
+                Task { await pullContacts() }
+            }
         }
+    }
+
+    private func pullContacts() async {
+        let localIds = Set(contacts.compactMap { $0.remoteId })
+        let localEmails = Set(contacts.compactMap { $0.email?.lowercased() })
+        await contactSyncManager.pullRemoteContacts(localContactIds: localIds, localContactEmails: localEmails)
     }
 
     private func deleteContact(_ contact: Contact) {

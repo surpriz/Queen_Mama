@@ -70,9 +70,18 @@ final class ContactSyncManager: ObservableObject {
     // MARK: - Published State
 
     @Published private(set) var isSyncing: Bool = false
+    @Published private(set) var isPulling: Bool = false
     @Published private(set) var pendingCount: Int = 0
     @Published private(set) var lastSyncAt: Date?
     @Published private(set) var lastError: String?
+
+    // MARK: - Callbacks
+
+    /// Called when contacts are pulled from the server and need to be inserted into SwiftData
+    var onContactsImported: (([Contact]) -> Void)?
+
+    /// Called after a contact is successfully pushed to the server (originalId, remoteId)
+    var onContactSynced: ((String, String) -> Void)?
 
     // MARK: - Dependencies
 
@@ -164,6 +173,11 @@ final class ContactSyncManager: ObservableObject {
             for result in response.results where result.status != "error" {
                 syncedContactIds.insert(result.originalId)
                 pendingQueue.removeAll { $0.originalId == result.originalId }
+
+                // Notify listener to save remoteId
+                if let syncedId = result.syncedId {
+                    onContactSynced?(result.originalId, syncedId)
+                }
             }
 
             pendingCount = pendingQueue.count
@@ -186,17 +200,124 @@ final class ContactSyncManager: ObservableObject {
         }
     }
 
+    // MARK: - Pull Remote Contacts (Bidirectional Sync)
+
+    /// Pull contacts from the web dashboard and import them locally
+    @discardableResult
+    func pullRemoteContacts(localContactIds: Set<String>, localContactEmails: Set<String>) async -> Int {
+        guard canSync else {
+            print("[ContactSync] Pull skipped - not authenticated or no PRO subscription")
+            return 0
+        }
+
+        isPulling = true
+        defer { isPulling = false }
+
+        do {
+            let accessToken = try await authManager.getAccessToken()
+            let remoteContacts = try await fetchRemoteContacts(accessToken: accessToken)
+
+            print("[ContactSync] Found \(remoteContacts.count) contacts on server")
+
+            // Filter out contacts that already exist locally
+            // Match by remoteId (server-side id) or by email
+            let contactsToImport = remoteContacts.filter { remote in
+                // Skip if we already have this contact by remoteId
+                if localContactIds.contains(remote.id) {
+                    return false
+                }
+                // Skip if we have a contact with the same email
+                if let email = remote.email?.lowercased(), localContactEmails.contains(email) {
+                    return false
+                }
+                return true
+            }
+
+            if contactsToImport.isEmpty {
+                print("[ContactSync] No new contacts to import")
+                return 0
+            }
+
+            print("[ContactSync] Importing \(contactsToImport.count) new contacts from server")
+
+            var importedContacts: [Contact] = []
+
+            for remote in contactsToImport {
+                let contact = Contact(
+                    firstName: remote.firstName,
+                    lastName: remote.lastName,
+                    email: remote.email,
+                    company: remote.company,
+                    role: remote.role,
+                    lastSeenAt: parseDate(remote.lastSeenAt) ?? Date(),
+                    createdAt: parseDate(remote.createdAt) ?? Date(),
+                    isSynced: true,
+                    remoteId: remote.id
+                )
+                importedContacts.append(contact)
+
+                // Track as synced
+                syncedContactIds.insert(contact.id.uuidString)
+            }
+
+            saveSyncedIds()
+
+            if !importedContacts.isEmpty {
+                onContactsImported?(importedContacts)
+            }
+
+            print("[ContactSync] Successfully imported \(importedContacts.count) contacts")
+            lastSyncAt = Date()
+            return importedContacts.count
+
+        } catch {
+            print("[ContactSync] Pull failed: \(error)")
+            lastError = error.localizedDescription
+            return 0
+        }
+    }
+
+    private func fetchRemoteContacts(accessToken: String) async throws -> [RemoteContact] {
+        var urlComponents = URLComponents(url: URLConfigManager.shared.syncContactsURL, resolvingAgainstBaseURL: false)!
+        urlComponents.queryItems = [
+            URLQueryItem(name: "includeNotes", value: "true"),
+            URLQueryItem(name: "limit", value: "500"),
+        ]
+
+        var request = URLRequest(url: urlComponents.url!)
+        request.httpMethod = "GET"
+        request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
+
+        let (data, response) = try await URLSession.shared.data(for: request)
+
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw SyncError.invalidResponse
+        }
+
+        guard httpResponse.statusCode >= 200 && httpResponse.statusCode < 300 else {
+            if httpResponse.statusCode == 401 { throw SyncError.unauthorized }
+            if httpResponse.statusCode == 403 { throw SyncError.subscriptionRequired }
+            throw SyncError.serverError(httpResponse.statusCode)
+        }
+
+        let decoded = try JSONDecoder().decode(RemoteContactsResponse.self, from: data)
+        return decoded.contacts
+    }
+
+    private func parseDate(_ dateString: String?) -> Date? {
+        guard let dateString else { return nil }
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        if let date = formatter.date(from: dateString) { return date }
+        let fallback = ISO8601DateFormatter()
+        fallback.formatOptions = [.withInternetDateTime]
+        return fallback.date(from: dateString)
+    }
+
     // MARK: - API Calls
 
     private func uploadContacts(_ contacts: [SyncableContact], accessToken: String) async throws -> SyncResponse {
-        #if DEBUG
-        let baseURL = "http://localhost:3000"
-        #else
-        let baseURL = "https://queenmama.app"
-        #endif
-
-        let url = URL(string: "\(baseURL)/api/sync/contacts")!
-        var request = URLRequest(url: url)
+        var request = URLRequest(url: URLConfigManager.shared.syncContactsURL)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
@@ -276,6 +397,32 @@ final class ContactSyncManager: ObservableObject {
             let originalId: String
             let syncedId: String?
             let status: String
+        }
+    }
+
+    private struct RemoteContactsResponse: Decodable {
+        let contacts: [RemoteContact]
+        let total: Int
+    }
+
+    struct RemoteContact: Decodable {
+        let id: String
+        let firstName: String
+        let lastName: String?
+        let email: String?
+        let company: String?
+        let role: String?
+        let originalId: String?
+        let deviceId: String?
+        let lastSeenAt: String?
+        let createdAt: String?
+        let updatedAt: String?
+        let notes: [RemoteNote]?
+
+        struct RemoteNote: Decodable {
+            let id: String
+            let content: String
+            let createdAt: String
         }
     }
 

@@ -317,3 +317,17 @@ export type ContactQueryInput = z.infer<typeof contactQuerySchema>;
 export type ContactSyncInput = z.infer<typeof contactSyncSchema>;
 export type ContactSyncBatchInput = z.infer<typeof contactSyncBatchSchema>;
 export type SessionContactLinkInput = z.infer<typeof sessionContactLinkSchema>;
+
+// ===========================================
+// CONTACT IMPORT SCHEMAS
+// ===========================================
+
+export const contactImportMappingSchema = z.object({
+  firstName: z.string().optional(),
+  lastName: z.string().optional(),
+  email: z.string().optional(),
+  company: z.string().optional(),
+  role: z.string().optional(),
+});
+
+export type ContactImportMapping = z.infer<typeof contactImportMappingSchema>;

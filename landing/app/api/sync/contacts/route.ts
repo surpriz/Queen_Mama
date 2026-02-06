@@ -97,9 +97,19 @@ export async function POST(request: Request) {
           continue;
         }
 
-        // Check for existing contact by email (if provided)
+        // Check for existing contact by originalId first, then by email
         let existingContact = null;
-        if (contact.email) {
+
+        if (contact.originalId) {
+          existingContact = await prisma.contact.findFirst({
+            where: {
+              userId: user.id,
+              originalId: contact.originalId,
+            },
+          });
+        }
+
+        if (!existingContact && contact.email) {
           existingContact = await prisma.contact.findUnique({
             where: {
               userId_email: {
@@ -121,6 +131,8 @@ export async function POST(request: Request) {
               lastName: contact.lastName || null,
               company: contact.company || null,
               role: contact.role || null,
+              originalId: contact.originalId,
+              deviceId: contact.deviceId,
               lastSeenAt: contact.lastSeenAt ? new Date(contact.lastSeenAt) : new Date(),
             },
           });
@@ -134,6 +146,8 @@ export async function POST(request: Request) {
               email: contact.email || null,
               company: contact.company || null,
               role: contact.role || null,
+              originalId: contact.originalId,
+              deviceId: contact.deviceId,
               lastSeenAt: contact.lastSeenAt ? new Date(contact.lastSeenAt) : new Date(),
             },
           });
@@ -230,6 +244,8 @@ export async function GET(request: Request) {
           email: true,
           company: true,
           role: true,
+          originalId: true,
+          deviceId: true,
           lastSeenAt: true,
           createdAt: true,
           updatedAt: true,

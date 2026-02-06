@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { GlassCard, GradientButton, Input } from "@/components/ui";
 import Link from "next/link";
 
@@ -19,11 +19,30 @@ interface Contact {
   };
 }
 
+interface ImportResult {
+  imported: number;
+  skipped: number;
+  total: number;
+  errors?: { row: number; reason: string }[];
+  mapping: Record<string, string>;
+  headers: string[];
+}
+
+const FIELD_OPTIONS = [
+  { value: "", label: "-- Skip --" },
+  { value: "firstName", label: "First Name" },
+  { value: "lastName", label: "Last Name" },
+  { value: "email", label: "Email" },
+  { value: "company", label: "Company" },
+  { value: "role", label: "Role" },
+];
+
 export default function ContactsPage() {
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showImportModal, setShowImportModal] = useState(false);
   const [newContact, setNewContact] = useState({
     firstName: "",
     lastName: "",
@@ -32,6 +51,16 @@ export default function ContactsPage() {
     role: "",
   });
   const [creating, setCreating] = useState(false);
+
+  // Import state
+  const [importStep, setImportStep] = useState<"upload" | "preview" | "importing" | "results">("upload");
+  const [importFile, setImportFile] = useState<File | null>(null);
+  const [previewData, setPreviewData] = useState<{ headers: string[]; rows: string[][]; mapping: Record<string, string> } | null>(null);
+  const [columnMapping, setColumnMapping] = useState<Record<string, string>>({});
+  const [importResult, setImportResult] = useState<ImportResult | null>(null);
+  const [importError, setImportError] = useState<string | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     fetchContacts();
@@ -112,6 +141,163 @@ export default function ContactsPage() {
     });
   };
 
+  // Import handlers
+  const handleFileSelect = useCallback(async (file: File) => {
+    const name = file.name.toLowerCase();
+    if (!name.endsWith(".csv") && !name.endsWith(".xlsx") && !name.endsWith(".xls")) {
+      setImportError("Unsupported file format. Please use .csv, .xlsx, or .xls");
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      setImportError("File too large. Maximum size is 5MB.");
+      return;
+    }
+
+    setImportFile(file);
+    setImportError(null);
+
+    // Parse preview client-side for CSV, or send to server for detection
+    if (name.endsWith(".csv")) {
+      const text = await file.text();
+      const lines = text.split("\n").filter((l) => l.trim());
+      if (lines.length < 2) {
+        setImportError("File must contain at least a header row and one data row.");
+        return;
+      }
+      const headers = lines[0].split(",").map((h) => h.trim().replace(/^["']|["']$/g, ""));
+      const rows = lines.slice(1, 6).map((line) => {
+        // Simple CSV parsing (handles quoted values)
+        const values: string[] = [];
+        let current = "";
+        let inQuotes = false;
+        for (const char of line) {
+          if (char === '"') {
+            inQuotes = !inQuotes;
+          } else if (char === "," && !inQuotes) {
+            values.push(current.trim());
+            current = "";
+          } else {
+            current += char;
+          }
+        }
+        values.push(current.trim());
+        return values;
+      });
+
+      const mapping = autoDetectMapping(headers);
+      setPreviewData({ headers, rows, mapping });
+      setColumnMapping(mapping);
+      setImportStep("preview");
+    } else {
+      // For Excel, we'll do a preview import with just the first few rows
+      // Send to server which returns headers + mapping
+      const formData = new FormData();
+      formData.append("file", file);
+
+      try {
+        const res = await fetch("/api/contacts/import", { method: "POST", body: formData });
+        const data = await res.json();
+
+        if (!res.ok && data.detectedHeaders) {
+          // Server couldn't detect mapping but gave us headers
+          setPreviewData({ headers: data.detectedHeaders, rows: [], mapping: {} });
+          setColumnMapping({});
+          setImportStep("preview");
+        } else if (res.ok) {
+          // Import already happened (no preview needed for Excel with auto-detection)
+          setImportResult(data);
+          setImportStep("results");
+          fetchContacts();
+        } else {
+          setImportError(data.message || "Failed to parse file");
+        }
+      } catch {
+        setImportError("Failed to process file");
+      }
+    }
+  }, []);
+
+  const autoDetectMapping = (headers: string[]): Record<string, string> => {
+    const aliases: Record<string, string[]> = {
+      firstName: ["firstname", "first_name", "first name", "prénom", "prenom", "given name", "givenname"],
+      lastName: ["lastname", "last_name", "last name", "nom", "nom de famille", "surname", "family name", "familyname"],
+      email: ["email", "e-mail", "mail", "email address", "courriel", "adresse email"],
+      company: ["company", "société", "societe", "organization", "organisation", "entreprise", "company name"],
+      role: ["role", "titre", "title", "position", "poste", "job title", "job_title", "fonction"],
+    };
+
+    const mapping: Record<string, string> = {};
+    const normalizedHeaders = headers.map((h) => h.trim().toLowerCase());
+
+    for (const [field, fieldAliases] of Object.entries(aliases)) {
+      for (let i = 0; i < normalizedHeaders.length; i++) {
+        if (fieldAliases.includes(normalizedHeaders[i])) {
+          mapping[field] = headers[i];
+          break;
+        }
+      }
+    }
+    return mapping;
+  };
+
+  const handleImport = async () => {
+    if (!importFile) return;
+
+    setImportStep("importing");
+    setImportError(null);
+
+    const formData = new FormData();
+    formData.append("file", importFile);
+
+    // Send mapping if user customized it
+    const reverseMapping: Record<string, string> = {};
+    for (const [field, header] of Object.entries(columnMapping)) {
+      if (header) reverseMapping[field] = header;
+    }
+    formData.append("mapping", JSON.stringify(reverseMapping));
+
+    try {
+      const res = await fetch("/api/contacts/import", { method: "POST", body: formData });
+      const data = await res.json();
+
+      if (res.ok) {
+        setImportResult(data);
+        setImportStep("results");
+        fetchContacts();
+      } else {
+        setImportError(data.message || "Import failed");
+        setImportStep("preview");
+      }
+    } catch {
+      setImportError("Import failed. Please try again.");
+      setImportStep("preview");
+    }
+  };
+
+  const resetImport = () => {
+    setImportStep("upload");
+    setImportFile(null);
+    setPreviewData(null);
+    setColumnMapping({});
+    setImportResult(null);
+    setImportError(null);
+  };
+
+  const closeImportModal = () => {
+    setShowImportModal(false);
+    resetImport();
+  };
+
+  const handleDrop = useCallback(
+    (e: React.DragEvent) => {
+      e.preventDefault();
+      setIsDragging(false);
+      const file = e.dataTransfer.files[0];
+      if (file) handleFileSelect(file);
+    },
+    [handleFileSelect]
+  );
+
   if (loading) {
     return (
       <div className="space-y-8">
@@ -135,12 +321,20 @@ export default function ContactsPage() {
             Your contacts and conversation history
           </p>
         </div>
-        <GradientButton onClick={() => setShowCreateModal(true)} className="shrink-0">
-          <svg className="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-          </svg>
-          Add Contact
-        </GradientButton>
+        <div className="flex gap-2 shrink-0">
+          <GradientButton variant="secondary" onClick={() => setShowImportModal(true)}>
+            <svg className="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+            </svg>
+            Import
+          </GradientButton>
+          <GradientButton onClick={() => setShowCreateModal(true)}>
+            <svg className="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+            </svg>
+            Add Contact
+          </GradientButton>
+        </div>
       </div>
 
       {/* Search */}
@@ -267,9 +461,12 @@ export default function ContactsPage() {
             <h3 className="text-lg font-medium text-white mb-2">No contacts yet</h3>
             <p className="text-[var(--qm-text-secondary)] max-w-md mx-auto mb-6">
               Contacts are created when you start a session in the Queen Mama app. You can also add
-              them manually here.
+              them manually or import from a CSV/Excel file.
             </p>
-            <GradientButton onClick={() => setShowCreateModal(true)}>Add Your First Contact</GradientButton>
+            <div className="flex gap-3 justify-center">
+              <GradientButton variant="secondary" onClick={() => setShowImportModal(true)}>Import CSV</GradientButton>
+              <GradientButton onClick={() => setShowCreateModal(true)}>Add Your First Contact</GradientButton>
+            </div>
           </div>
         </GlassCard>
       ) : (
@@ -370,6 +567,242 @@ export default function ContactsPage() {
                   </GradientButton>
                 </div>
               </form>
+            </GlassCard>
+          </div>
+        </>
+      )}
+
+      {/* Import Modal */}
+      {showImportModal && (
+        <>
+          <div
+            className="fixed inset-0 z-40 bg-black/50 backdrop-blur-sm"
+            onClick={closeImportModal}
+          />
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <GlassCard className="w-full max-w-2xl max-h-[80vh] overflow-y-auto">
+              <div className="p-6 space-y-6">
+                {/* Header */}
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h2 className="text-xl font-semibold text-white">Import Contacts</h2>
+                    <p className="text-sm text-[var(--qm-text-secondary)] mt-1">
+                      {importStep === "upload" && "Upload a CSV or Excel file"}
+                      {importStep === "preview" && "Review column mapping"}
+                      {importStep === "importing" && "Importing contacts..."}
+                      {importStep === "results" && "Import complete"}
+                    </p>
+                  </div>
+                  <button onClick={closeImportModal} className="text-[var(--qm-text-tertiary)] hover:text-white transition-colors">
+                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                </div>
+
+                {importError && (
+                  <div className="p-3 rounded-lg bg-[var(--qm-error)]/10 border border-[var(--qm-error)]/30 text-[var(--qm-error)] text-sm">
+                    {importError}
+                  </div>
+                )}
+
+                {/* Step: Upload */}
+                {importStep === "upload" && (
+                  <div
+                    onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
+                    onDragLeave={() => setIsDragging(false)}
+                    onDrop={handleDrop}
+                    className={`border-2 border-dashed rounded-xl p-12 text-center transition-colors ${
+                      isDragging
+                        ? "border-[var(--qm-accent)] bg-[var(--qm-accent)]/5"
+                        : "border-[var(--qm-border-subtle)] hover:border-[var(--qm-accent)]/50"
+                    }`}
+                  >
+                    <svg className="w-12 h-12 mx-auto text-[var(--qm-text-tertiary)] mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                    </svg>
+                    <p className="text-white font-medium mb-1">Drop your file here</p>
+                    <p className="text-sm text-[var(--qm-text-tertiary)] mb-4">
+                      Supports .csv, .xlsx, .xls (max 5MB, 1000 rows)
+                    </p>
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept=".csv,.xlsx,.xls"
+                      className="hidden"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) handleFileSelect(file);
+                      }}
+                    />
+                    <GradientButton variant="secondary" onClick={() => fileInputRef.current?.click()}>
+                      Browse Files
+                    </GradientButton>
+                  </div>
+                )}
+
+                {/* Step: Preview & Column Mapping */}
+                {importStep === "preview" && previewData && (
+                  <div className="space-y-6">
+                    {/* Column Mapping */}
+                    <div className="space-y-3">
+                      <h3 className="text-sm font-medium text-white">Column Mapping</h3>
+                      <p className="text-xs text-[var(--qm-text-tertiary)]">
+                        Map your file columns to contact fields. First Name is required.
+                      </p>
+                      <div className="grid gap-3 sm:grid-cols-2">
+                        {previewData.headers.map((header) => {
+                          const assignedField = Object.entries(columnMapping).find(
+                            ([, v]) => v === header
+                          )?.[0] || "";
+
+                          return (
+                            <div key={header} className="flex items-center gap-2">
+                              <span className="text-sm text-[var(--qm-text-secondary)] w-28 truncate shrink-0" title={header}>
+                                {header}
+                              </span>
+                              <svg className="w-4 h-4 text-[var(--qm-text-tertiary)] shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                              </svg>
+                              <select
+                                value={assignedField}
+                                onChange={(e) => {
+                                  const newMapping = { ...columnMapping };
+                                  // Remove old assignment for this header
+                                  for (const key of Object.keys(newMapping)) {
+                                    if (newMapping[key] === header) {
+                                      delete newMapping[key];
+                                    }
+                                  }
+                                  // Add new assignment
+                                  if (e.target.value) {
+                                    // Remove old header for this field
+                                    delete newMapping[e.target.value];
+                                    newMapping[e.target.value] = header;
+                                  }
+                                  setColumnMapping(newMapping);
+                                }}
+                                className="flex-1 bg-[var(--qm-surface-light)] border border-[var(--qm-border-subtle)] rounded-md px-2 py-1.5 text-sm text-white focus:outline-none focus:ring-1 focus:ring-[var(--qm-accent)]"
+                              >
+                                {FIELD_OPTIONS.map((opt) => (
+                                  <option key={opt.value} value={opt.value}>
+                                    {opt.label}
+                                  </option>
+                                ))}
+                              </select>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    {/* Preview Table */}
+                    {previewData.rows.length > 0 && (
+                      <div className="space-y-2">
+                        <h3 className="text-sm font-medium text-white">Preview (first 5 rows)</h3>
+                        <div className="overflow-x-auto rounded-lg border border-[var(--qm-border-subtle)]">
+                          <table className="w-full text-xs">
+                            <thead>
+                              <tr className="bg-[var(--qm-surface-light)]">
+                                {previewData.headers.map((h) => (
+                                  <th key={h} className="px-3 py-2 text-left text-[var(--qm-text-secondary)] font-medium">
+                                    {h}
+                                  </th>
+                                ))}
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {previewData.rows.map((row, i) => (
+                                <tr key={i} className="border-t border-[var(--qm-border-subtle)]">
+                                  {row.map((cell, j) => (
+                                    <td key={j} className="px-3 py-2 text-[var(--qm-text-secondary)] max-w-[200px] truncate">
+                                      {cell}
+                                    </td>
+                                  ))}
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* File info */}
+                    <div className="flex items-center gap-2 text-xs text-[var(--qm-text-tertiary)]">
+                      <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                      </svg>
+                      {importFile?.name} ({(importFile?.size || 0 / 1024).toFixed(1)} KB)
+                    </div>
+
+                    {/* Actions */}
+                    <div className="flex justify-between pt-2">
+                      <GradientButton variant="secondary" onClick={resetImport}>
+                        Back
+                      </GradientButton>
+                      <GradientButton
+                        onClick={handleImport}
+                        disabled={!columnMapping.firstName}
+                      >
+                        {!columnMapping.firstName ? "Map First Name to continue" : "Import Contacts"}
+                      </GradientButton>
+                    </div>
+                  </div>
+                )}
+
+                {/* Step: Importing */}
+                {importStep === "importing" && (
+                  <div className="text-center py-8">
+                    <div className="w-10 h-10 mx-auto mb-4 border-2 border-[var(--qm-accent)] border-t-transparent rounded-full animate-spin" />
+                    <p className="text-white font-medium">Importing contacts...</p>
+                    <p className="text-sm text-[var(--qm-text-tertiary)] mt-1">This may take a moment</p>
+                  </div>
+                )}
+
+                {/* Step: Results */}
+                {importStep === "results" && importResult && (
+                  <div className="space-y-4">
+                    <div className="grid gap-3 sm:grid-cols-3">
+                      <div className="p-4 rounded-lg bg-[var(--qm-accent)]/10 text-center">
+                        <p className="text-2xl font-bold text-[var(--qm-accent)]">{importResult.imported}</p>
+                        <p className="text-xs text-[var(--qm-text-secondary)]">Imported</p>
+                      </div>
+                      <div className="p-4 rounded-lg bg-[var(--qm-surface-light)] text-center">
+                        <p className="text-2xl font-bold text-[var(--qm-text-secondary)]">{importResult.skipped}</p>
+                        <p className="text-xs text-[var(--qm-text-secondary)]">Skipped (duplicates)</p>
+                      </div>
+                      {importResult.errors && importResult.errors.length > 0 && (
+                        <div className="p-4 rounded-lg bg-[var(--qm-error)]/10 text-center">
+                          <p className="text-2xl font-bold text-[var(--qm-error)]">{importResult.errors.length}</p>
+                          <p className="text-xs text-[var(--qm-text-secondary)]">Errors</p>
+                        </div>
+                      )}
+                    </div>
+
+                    {importResult.errors && importResult.errors.length > 0 && (
+                      <div className="space-y-1">
+                        <h3 className="text-sm font-medium text-[var(--qm-error)]">Errors</h3>
+                        <div className="max-h-32 overflow-y-auto space-y-1">
+                          {importResult.errors.slice(0, 10).map((err, i) => (
+                            <p key={i} className="text-xs text-[var(--qm-text-tertiary)]">
+                              Row {err.row}: {err.reason}
+                            </p>
+                          ))}
+                          {importResult.errors.length > 10 && (
+                            <p className="text-xs text-[var(--qm-text-tertiary)]">
+                              ...and {importResult.errors.length - 10} more
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="flex justify-end pt-2">
+                      <GradientButton onClick={closeImportModal}>Done</GradientButton>
+                    </div>
+                  </div>
+                )}
+              </div>
             </GlassCard>
           </div>
         </>

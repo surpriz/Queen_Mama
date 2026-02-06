@@ -398,6 +398,8 @@ model Contact {
   email       String?
   company     String?
   role        String?
+  originalId  String?
+  deviceId    String?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
   lastSeenAt  DateTime @default(now())
@@ -407,6 +409,7 @@ model Contact {
   notes       ContactNote[]
 
   @@unique([userId, email])
+  @@unique([userId, originalId])
   @@index([userId, createdAt])
   @@index([userId, lastSeenAt])
 }
