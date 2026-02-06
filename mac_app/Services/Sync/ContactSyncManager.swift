@@ -10,6 +10,7 @@ import Combine
 
 /// Syncable representation of a Contact for API transfer
 struct SyncableContact: Codable {
+    let deviceId: String
     let originalId: String
     let firstName: String
     let lastName: String?
@@ -21,6 +22,7 @@ struct SyncableContact: Codable {
     let notes: [SyncableNote]?
 
     init(from contact: Contact, deviceId: String) {
+        self.deviceId = deviceId
         self.originalId = contact.id.uuidString
         self.firstName = contact.firstName
         self.lastName = contact.lastName
@@ -30,6 +32,21 @@ struct SyncableContact: Codable {
         self.lastSeenAt = ISO8601DateFormatter().string(from: contact.lastSeenAt)
         self.version = 1
         self.notes = contact.notes.map { SyncableNote(from: $0) }
+    }
+
+    /// Custom decoder to handle old queue files that lack deviceId
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        self.deviceId = try container.decodeIfPresent(String.self, forKey: .deviceId) ?? DeviceInfo.current().deviceId
+        self.originalId = try container.decode(String.self, forKey: .originalId)
+        self.firstName = try container.decode(String.self, forKey: .firstName)
+        self.lastName = try container.decodeIfPresent(String.self, forKey: .lastName)
+        self.email = try container.decodeIfPresent(String.self, forKey: .email)
+        self.company = try container.decodeIfPresent(String.self, forKey: .company)
+        self.role = try container.decodeIfPresent(String.self, forKey: .role)
+        self.lastSeenAt = try container.decode(String.self, forKey: .lastSeenAt)
+        self.version = try container.decode(Int.self, forKey: .version)
+        self.notes = try container.decodeIfPresent([SyncableNote].self, forKey: .notes)
     }
 
     struct SyncableNote: Codable {

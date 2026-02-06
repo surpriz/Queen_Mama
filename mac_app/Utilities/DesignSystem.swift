@@ -208,6 +208,7 @@ struct QMDesign {
     struct Icons {
         // Navigation
         static let sessions = "list.bullet.rectangle.portrait"
+        static let contacts = "person.crop.circle.fill"
         static let liveSession = "waveform"
         static let modes = "person.2.fill"
         static let settings = "gearshape.fill"

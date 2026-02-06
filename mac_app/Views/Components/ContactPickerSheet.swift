@@ -420,6 +420,8 @@ struct ContactPickerSheet: View {
     private func startSession(with contact: Contact?) {
         if let contact = contact {
             contact.lastSeenAt = Date()
+            // Sync contact to server (creates or updates)
+            ContactSyncManager.shared.queueContact(contact)
         }
         dismiss()
         onStart(contact)
@@ -435,6 +437,9 @@ struct ContactPickerSheet: View {
         )
         modelContext.insert(contact)
         try? modelContext.save()
+
+        // Sync contact to server
+        ContactSyncManager.shared.queueContact(contact)
 
         selectedContact = contact
         startSession(with: contact)

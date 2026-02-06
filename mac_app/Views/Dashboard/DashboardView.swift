@@ -48,6 +48,8 @@ struct DashboardView: View {
                     switch selectedSection {
                     case .sessions:
                         SessionListView(searchText: $searchText)
+                    case .contacts:
+                        ContactsListView()
                     case .liveSession:
                         LiveSessionView()
                     case .modes:
@@ -243,6 +245,7 @@ struct DashboardView: View {
 
 enum DashboardSection: String, CaseIterable {
     case sessions = "Sessions"
+    case contacts = "Contacts"
     case liveSession = "Live Session"
     case modes = "Modes"
     case settings = "Settings"
@@ -250,6 +253,7 @@ enum DashboardSection: String, CaseIterable {
     var icon: String {
         switch self {
         case .sessions: return QMDesign.Icons.sessions
+        case .contacts: return QMDesign.Icons.contacts
         case .liveSession: return QMDesign.Icons.liveSession
         case .modes: return QMDesign.Icons.modes
         case .settings: return QMDesign.Icons.settings
@@ -259,6 +263,7 @@ enum DashboardSection: String, CaseIterable {
     var description: String {
         switch self {
         case .sessions: return "Past recordings"
+        case .contacts: return "Memory Palace"
         case .liveSession: return "Active session"
         case .modes: return "AI personalities"
         case .settings: return "Configuration"

@@ -21,6 +21,7 @@
 		00000000000000000000000C /* AIProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 10000000000000000000000C /* AIProvider.swift */; };
 		000000000000000000000010 /* DashboardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 100000000000000000000010 /* DashboardView.swift */; };
 		000000000000000000000011 /* SessionListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 100000000000000000000011 /* SessionListView.swift */; };
+		100000000000000000000040 /* ContactsListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 10000000000000000000003F /* ContactsListView.swift */; };
 		000000000000000000000012 /* LiveSessionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 100000000000000000000012 /* LiveSessionView.swift */; };
 		000000000000000000000013 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 100000000000000000000013 /* SettingsView.swift */; };
 		000000000000000000000014 /* ModesListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 100000000000000000000014 /* ModesListView.swift */; };
@@ -95,6 +96,7 @@
 		10000000000000000000000C /* AIProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIProvider.swift; sourceTree = "<group>"; };
 		100000000000000000000010 /* DashboardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DashboardView.swift; sourceTree = "<group>"; };
 		100000000000000000000011 /* SessionListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionListView.swift; sourceTree = "<group>"; };
+		10000000000000000000003F /* ContactsListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContactsListView.swift; sourceTree = "<group>"; };
 		100000000000000000000012 /* LiveSessionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiveSessionView.swift; sourceTree = "<group>"; };
 		100000000000000000000013 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		100000000000000000000014 /* ModesListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ModesListView.swift; sourceTree = "<group>"; };
@@ -283,6 +285,7 @@
 				5C90DF322F1A51DE006B0DE0 /* Components */,
 				100000000000000000000010 /* DashboardView.swift */,
 				100000000000000000000011 /* SessionListView.swift */,
+				10000000000000000000003F /* ContactsListView.swift */,
 				100000000000000000000012 /* LiveSessionView.swift */,
 				100000000000000000000013 /* SettingsView.swift */,
 				100000000000000000000014 /* ModesListView.swift */,
@@ -479,6 +482,7 @@
 				000000000000000000000010 /* DashboardView.swift in Sources */,
 				5C90DF372F1A51F8006B0DE0 /* AccountStepView.swift in Sources */,
 				000000000000000000000011 /* SessionListView.swift in Sources */,
+				100000000000000000000040 /* ContactsListView.swift in Sources */,
 				5C90DF332F1A51DE006B0DE0 /* UpgradePromptView.swift in Sources */,
 				5C90DF342F1A51DE006B0DE0 /* ProFeatureBanner.swift in Sources */,
 				000000000000000000000012 /* LiveSessionView.swift in Sources */,
