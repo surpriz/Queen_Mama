@@ -142,13 +142,23 @@ final class SessionManager: ObservableObject {
 
         session.entries.append(entry)
 
-        // Update main transcript
+        // Update main transcript (skip speaker prefix when empty/disabled)
         if isFinal {
-            session.transcript += "\(speaker): \(text)\n"
+            if speaker.isEmpty {
+                session.transcript += "\(text)\n"
+            } else {
+                session.transcript += "\(speaker): \(text)\n"
+            }
         }
 
         // Use debounced save - entries arrive rapidly
         dbHelper.save(context: modelContext, immediate: false)
+    }
+
+    func setTitle(_ title: String) {
+        currentSession?.title = title
+        // Use immediate save for title (happens once per session)
+        dbHelper.save(context: modelContext, immediate: true)
     }
 
     func setSummary(_ summary: String) {

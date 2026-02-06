@@ -78,7 +78,7 @@ final class TranscriptEntry {
     init(
         id: UUID = UUID(),
         timestamp: Date = Date(),
-        speaker: String = "Unknown",
+        speaker: String = "",
         text: String = "",
         isFinal: Bool = false
     ) {

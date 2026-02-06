@@ -82,11 +82,15 @@ final class TranscriptionService: ObservableObject {
     // MARK: - Reconnection Configuration
 
     private let maxReconnectAttempts = 5
-    private let baseReconnectDelay: TimeInterval = 1.0  // Base delay in seconds
-    private let maxReconnectDelay: TimeInterval = 30.0  // Max delay cap
+    private let baseReconnectDelay: TimeInterval = 2.0  // Base delay in seconds
+    private let maxReconnectDelay: TimeInterval = 60.0  // Max delay cap
     private var reconnectAttempts = 0
     private var intentionalDisconnect = false
     private var reconnectTask: Task<Void, Never>?
+
+    // Session-level reconnect tracking (prevents infinite reconnect loops)
+    private var sessionReconnectCount = 0
+    private let maxSessionReconnects = 15  // Hard cap per session
 
     // MARK: - Audio Batching Configuration
     // Accumulates audio buffers to reduce WebSocket message frequency by ~50%
@@ -151,7 +155,7 @@ final class TranscriptionService: ObservableObject {
     }
 
     func disconnect() {
-        print("[Transcription] Disconnecting...")
+        print("[Transcription] Disconnecting... (session had \(sessionReconnectCount) reconnections)")
         intentionalDisconnect = true
 
         // Cancel any pending reconnection
@@ -165,6 +169,7 @@ final class TranscriptionService: ObservableObject {
         currentActiveProvider = nil
         isConnected = false
         connectionState = .disconnected
+        sessionReconnectCount = 0
         currentProvider = nil
     }
 
@@ -296,9 +301,26 @@ final class TranscriptionService: ObservableObject {
         guard reconnectTask == nil, !intentionalDisconnect else { return }
 
         reconnectAttempts += 1
+        sessionReconnectCount += 1
 
         // Track reconnection for health monitoring
         HealthCheckService.shared.recordWebSocketReconnect()
+
+        // Hard cap: stop reconnecting after too many total reconnections in this session
+        if sessionReconnectCount > maxSessionReconnects {
+            print("[Transcription] Session reconnect limit reached (\(maxSessionReconnects) total reconnections)")
+            connectionState = .failed(reason: "Connection unstable - too many reconnections")
+
+            CrashReporter.shared.captureMessage(
+                "Transcription session reconnect limit reached (\(sessionReconnectCount) reconnections)",
+                level: .error
+            )
+            AnalyticsService.shared.capture("transcription_session_reconnect_limit", properties: [
+                "total_reconnects": sessionReconnectCount,
+                "provider": currentProvider?.rawValue ?? "unknown"
+            ])
+            return
+        }
 
         if reconnectAttempts > maxReconnectAttempts {
             print("[Transcription] Max reconnection attempts reached (\(maxReconnectAttempts))")

@@ -5,7 +5,7 @@
  * questions, techniques) using LLM analysis and generates embeddings for semantic search.
  */
 
-import { prisma } from "@/lib/prisma";
+import { prisma, withRetry } from "@/lib/prisma";
 import { getProviderApiKey, PROVIDER_URLS } from "@/lib/ai-providers";
 import { generateEmbedding } from "@/lib/embeddings";
 import { KnowledgeType } from "@prisma/client";
@@ -289,11 +289,13 @@ export async function queueExtractionForSession(
   // In production, this could use a job queue (Bull, etc.)
   console.log(`[KnowledgeExtraction] Queuing extraction for session ${sessionId}`);
 
-  // Fetch session transcript
-  const session = await prisma.syncedSession.findUnique({
-    where: { id: sessionId },
-    select: { transcript: true },
-  });
+  // Fetch session transcript (with retry for stale DB connections on serverless)
+  const session = await withRetry(() =>
+    prisma.syncedSession.findUnique({
+      where: { id: sessionId },
+      select: { transcript: true },
+    })
+  );
 
   if (!session?.transcript) {
     console.log(`[KnowledgeExtraction] No transcript for session ${sessionId}`);

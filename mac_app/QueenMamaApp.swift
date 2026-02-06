@@ -394,7 +394,7 @@ class AppState: ObservableObject {
 
                 // Add transcript entry (speaker separation disabled - doesn't work without headphones)
                 self.sessionManager?.addTranscriptEntry(
-                    speaker: "Unknown",
+                    speaker: "",
                     text: batchedText,
                     isFinal: true
                 )
@@ -476,7 +476,7 @@ class AppState: ObservableObject {
 
         // 6. Generate title and summary using AI
         let title = await aiService.generateSessionTitle(transcript: finalTranscript)
-        session.title = title
+        manager.setTitle(title)
         print("[AppState] Generated title: \(title)")
 
         if let summary = await aiService.generateSessionSummary(transcript: finalTranscript) {

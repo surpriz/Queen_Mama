@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
+import { prisma, withRetry } from "@/lib/prisma";
 import { verifyAccessToken } from "@/lib/device-auth";
 import { sessionSyncSchema, sessionSyncBatchSchema } from "@/lib/validations";
 import { queueExtractionForSession } from "@/lib/knowledge-extraction";
@@ -33,12 +33,14 @@ export async function POST(request: Request) {
     }
 
     // Check subscription
-    const user = await prisma.user.findUnique({
-      where: { id: tokenPayload.sub },
-      include: {
-        subscription: true,
-      },
-    });
+    const user = await withRetry(() =>
+      prisma.user.findUnique({
+        where: { id: tokenPayload.sub },
+        include: {
+          subscription: true,
+        },
+      })
+    );
 
     if (!user) {
       return NextResponse.json(
@@ -94,43 +96,45 @@ export async function POST(request: Request) {
           continue;
         }
 
-        // Upsert session
-        const syncedSession = await prisma.syncedSession.upsert({
-          where: {
-            userId_deviceId_originalId: {
+        // Upsert session (with retry for stale DB connections)
+        const syncedSession = await withRetry(() =>
+          prisma.syncedSession.upsert({
+            where: {
+              userId_deviceId_originalId: {
+                userId: user.id,
+                deviceId: session.deviceId,
+                originalId: session.originalId,
+              },
+            },
+            update: {
+              title: session.title,
+              startTime: new Date(session.startTime),
+              endTime: session.endTime ? new Date(session.endTime) : null,
+              duration: session.duration,
+              transcript: session.transcript,
+              summary: session.summary,
+              actionItems: session.actionItems,
+              modeUsed: session.modeUsed,
+              version: session.version,
+              checksum: session.checksum,
+            },
+            create: {
               userId: user.id,
               deviceId: session.deviceId,
               originalId: session.originalId,
+              title: session.title,
+              startTime: new Date(session.startTime),
+              endTime: session.endTime ? new Date(session.endTime) : null,
+              duration: session.duration,
+              transcript: session.transcript,
+              summary: session.summary,
+              actionItems: session.actionItems,
+              modeUsed: session.modeUsed,
+              version: session.version,
+              checksum: session.checksum,
             },
-          },
-          update: {
-            title: session.title,
-            startTime: new Date(session.startTime),
-            endTime: session.endTime ? new Date(session.endTime) : null,
-            duration: session.duration,
-            transcript: session.transcript,
-            summary: session.summary,
-            actionItems: session.actionItems,
-            modeUsed: session.modeUsed,
-            version: session.version,
-            checksum: session.checksum,
-          },
-          create: {
-            userId: user.id,
-            deviceId: session.deviceId,
-            originalId: session.originalId,
-            title: session.title,
-            startTime: new Date(session.startTime),
-            endTime: session.endTime ? new Date(session.endTime) : null,
-            duration: session.duration,
-            transcript: session.transcript,
-            summary: session.summary,
-            actionItems: session.actionItems,
-            modeUsed: session.modeUsed,
-            version: session.version,
-            checksum: session.checksum,
-          },
-        });
+          })
+        );
 
         // Sync AI responses if provided
         if (session.aiResponses?.length) {
@@ -268,18 +272,20 @@ export async function GET(request: Request) {
           updatedAt: true,
         };
 
-    const [sessions, count] = await Promise.all([
-      prisma.syncedSession.findMany({
-        where: whereClause,
-        select: selectClause,
-        orderBy: { startTime: "desc" },
-        take: limit,
-        skip: offset,
-      }),
-      prisma.syncedSession.count({
-        where: whereClause,
-      }),
-    ]);
+    const [sessions, count] = await withRetry(() =>
+      Promise.all([
+        prisma.syncedSession.findMany({
+          where: whereClause,
+          select: selectClause,
+          orderBy: { startTime: "desc" },
+          take: limit,
+          skip: offset,
+        }),
+        prisma.syncedSession.count({
+          where: whereClause,
+        }),
+      ])
+    );
 
     return NextResponse.json({
       sessions,

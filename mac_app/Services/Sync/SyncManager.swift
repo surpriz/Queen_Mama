@@ -448,11 +448,19 @@ final class SyncManager: ObservableObject {
         isOffline = false
 
         do {
-            let accessToken = try await authManager.getAccessToken()
+            var accessToken = try await authManager.getAccessToken()
 
             // Sync in batches of 10
             let batch = Array(pendingQueue.prefix(10))
-            let result = try await syncBatch(batch, accessToken: accessToken)
+            var result: SyncResult
+            do {
+                result = try await syncBatch(batch, accessToken: accessToken)
+            } catch SyncError.unauthorized {
+                // Token may be stale - force refresh and retry once
+                print("[Sync] 401 Unauthorized - refreshing token and retrying...")
+                accessToken = try await authManager.getAccessToken()
+                result = try await syncBatch(batch, accessToken: accessToken)
+            }
 
             // Remove synced sessions from queue and mark as synced
             for syncedId in result.syncedIds {
@@ -464,12 +472,16 @@ final class SyncManager: ObservableObject {
             if let errors = result.errors {
                 for error in errors {
                     markAsFailed(error.originalId)
+                    print("[Sync] Session sync failed: \(error.originalId) - \(error.error)")
                 }
             }
 
             pendingCount = pendingQueue.count
             lastSyncAt = Date()
+            lastError = nil
             saveQueue()
+
+            print("[Sync] Batch sync completed: \(result.syncedIds.count) synced, \(result.errors?.count ?? 0) failed")
 
             // Continue if more pending
             if !pendingQueue.isEmpty {

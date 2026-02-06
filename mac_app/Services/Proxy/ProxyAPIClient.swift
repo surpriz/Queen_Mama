@@ -259,17 +259,30 @@ final class ProxyAPIClient: @unchecked Sendable {
                     request.httpBody = try JSONSerialization.data(withJSONObject: body)
 
                     // Add auth header
-                    guard let token = await getValidAccessToken() else {
+                    guard let token = await self.getValidAccessToken() else {
                         continuation.finish(throwing: ProxyError.notAuthenticated)
                         return
                     }
                     request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
 
-                    let (asyncBytes, response) = try await streamingSession.bytes(for: request)
+                    var (asyncBytes, response) = try await self.streamingSession.bytes(for: request)
 
-                    guard let httpResponse = response as? HTTPURLResponse else {
+                    guard var httpResponse = response as? HTTPURLResponse else {
                         continuation.finish(throwing: ProxyError.invalidResponse)
                         return
+                    }
+
+                    // Retry once on 401 with refreshed token
+                    if httpResponse.statusCode == 401 {
+                        print("[ProxyAPI] Streaming 401 - attempting token refresh...")
+                        if let refreshedToken = await self.getValidAccessToken(forceRefresh: true) {
+                            request.setValue("Bearer \(refreshedToken)", forHTTPHeaderField: "Authorization")
+                            let retryResult = try await self.streamingSession.bytes(for: request)
+                            asyncBytes = retryResult.0
+                            if let retryHttp = retryResult.1 as? HTTPURLResponse {
+                                httpResponse = retryHttp
+                            }
+                        }
                     }
 
                     if httpResponse.statusCode != 200 {
@@ -360,6 +373,25 @@ final class ProxyAPIClient: @unchecked Sendable {
             return try JSONDecoder().decode(T.self, from: data)
 
         case 401:
+            // Try to refresh the token and retry once
+            if retryCount == 0 {
+                print("[ProxyAPI] 401 Unauthorized - attempting token refresh and retry...")
+                if let refreshToken = tokenStore.refreshToken {
+                    do {
+                        let refreshResponse = try await AuthAPIClient.shared.refreshTokens(refreshToken)
+                        tokenStore.accessToken = refreshResponse.accessToken
+                        tokenStore.accessTokenExpiry = Date().addingTimeInterval(TimeInterval(refreshResponse.expiresIn))
+                        tokenStore.refreshToken = refreshResponse.refreshToken
+
+                        // Rebuild request with new token
+                        var retryRequest = request
+                        retryRequest.setValue("Bearer \(refreshResponse.accessToken)", forHTTPHeaderField: "Authorization")
+                        return try await perform(retryRequest, retryCount: 1)
+                    } catch {
+                        print("[ProxyAPI] Token refresh failed during 401 retry: \(error)")
+                    }
+                }
+            }
             throw ProxyError.notAuthenticated
 
         case 403:
@@ -406,9 +438,9 @@ final class ProxyAPIClient: @unchecked Sendable {
         }
     }
 
-    private func getValidAccessToken() async -> String? {
-        // Check if we have a valid access token
-        if tokenStore.isAccessTokenValid, let token = tokenStore.accessToken {
+    private func getValidAccessToken(forceRefresh: Bool = false) async -> String? {
+        // Check if we have a valid access token (skip check if force refresh requested)
+        if !forceRefresh, tokenStore.isAccessTokenValid, let token = tokenStore.accessToken {
             return token
         }
 
