@@ -5,6 +5,7 @@ const footerLinks = {
   product: [
     { label: "Features", href: "/#features" },
     { label: "Use Cases", href: "/use-cases" },
+    { label: "Memory Palace", href: "/memory-palace" },
     { label: "Pricing", href: "/#pricing" },
     { label: "FAQ", href: "/#faq" },
     { label: "Changelog", href: "/changelog" },

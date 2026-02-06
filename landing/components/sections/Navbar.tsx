@@ -10,6 +10,7 @@ import Link from "next/link";
 const navLinks = [
   { href: "#features", label: "Features" },
   { href: "/use-cases", label: "Use Cases" },
+  { href: "/memory-palace", label: "Memory Palace" },
   { href: "#how-it-works", label: "How It Works" },
   { href: "#pricing", label: "Pricing" },
   { href: "#faq", label: "FAQ" },

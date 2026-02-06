@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { motion } from "framer-motion";
 import { Container, GlassCard } from "@/components/ui";
 
@@ -69,6 +70,18 @@ const features = [
     description:
       "Quick actions at your fingertips. Toggle the widget, trigger AI, clear context, and more with customizable keyboard shortcuts.",
     color: "accent",
+  },
+  {
+    icon: (
+      <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+      </svg>
+    ),
+    title: "Memory Palace",
+    description:
+      "AI-powered mini-CRM that automatically extracts contacts from conversations. Track relationships, get pre-session briefings, and never forget a name.",
+    color: "success",
+    link: "/memory-palace",
   },
 ];
 
@@ -140,7 +153,11 @@ export function Features() {
           className="grid md:grid-cols-2 lg:grid-cols-3 gap-6"
         >
           {features.map((feature, index) => (
-            <motion.div key={index} variants={itemVariants}>
+            <motion.div
+              key={index}
+              variants={itemVariants}
+              className={index === features.length - 1 ? "lg:col-start-2" : ""}
+            >
               <GlassCard className="h-full">
                 <div className="flex flex-col h-full">
                   {/* Icon */}
@@ -165,6 +182,29 @@ export function Features() {
                   <p className="text-sm text-[var(--qm-text-secondary)] leading-relaxed">
                     {feature.description}
                   </p>
+
+                  {/* Learn more link */}
+                  {"link" in feature && feature.link && (
+                    <Link
+                      href={feature.link}
+                      className="mt-3 inline-flex items-center gap-1 text-sm font-medium text-[var(--qm-accent)] hover:text-white transition-colors"
+                    >
+                      Learn more
+                      <svg
+                        className="w-4 h-4"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M9 5l7 7-7 7"
+                        />
+                      </svg>
+                    </Link>
+                  )}
                 </div>
               </GlassCard>
             </motion.div>
