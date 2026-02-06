@@ -1,5 +1,5 @@
 import { auth } from "@/lib/auth";
-import { prisma } from "@/lib/prisma";
+import { prisma, withRetry } from "@/lib/prisma";
 import { redirect } from "next/navigation";
 import { GlassCard } from "@/components/ui";
 import { KnowledgeType } from "@prisma/client";
@@ -38,12 +38,17 @@ const TYPE_ICONS: Record<KnowledgeType, string> = {
 
 export default async function KnowledgePage() {
   const session = await auth();
+  if (!session?.user?.id) {
+    redirect("/auth/signin");
+  }
 
   // Check subscription
-  const user = await prisma.user.findUnique({
-    where: { id: session!.user.id },
-    include: { subscription: true },
-  });
+  const user = await withRetry(() =>
+    prisma.user.findUnique({
+      where: { id: session.user.id },
+      include: { subscription: true },
+    })
+  );
 
   if (user?.subscription?.plan !== "ENTERPRISE") {
     return (
@@ -87,34 +92,36 @@ export default async function KnowledgePage() {
   }
 
   // Fetch knowledge atoms and stats
-  const [atoms, stats, typeStats] = await Promise.all([
-    prisma.knowledgeAtom.findMany({
-      where: { userId: session!.user.id },
-      orderBy: { createdAt: "desc" },
-      take: 50,
-      include: {
-        session: {
-          select: {
-            id: true,
-            title: true,
+  const [atoms, stats, typeStats] = await withRetry(() =>
+    Promise.all([
+      prisma.knowledgeAtom.findMany({
+        where: { userId: session.user.id },
+        orderBy: { createdAt: "desc" },
+        take: 50,
+        include: {
+          session: {
+            select: {
+              id: true,
+              title: true,
+            },
           },
         },
-      },
-    }),
-    prisma.knowledgeAtom.aggregate({
-      where: { userId: session!.user.id },
-      _count: true,
-      _sum: {
-        usageCount: true,
-        helpfulCount: true,
-      },
-    }),
-    prisma.knowledgeAtom.groupBy({
-      by: ["type"],
-      where: { userId: session!.user.id },
-      _count: { id: true },
-    }),
-  ]);
+      }),
+      prisma.knowledgeAtom.aggregate({
+        where: { userId: session.user.id },
+        _count: true,
+        _sum: {
+          usageCount: true,
+          helpfulCount: true,
+        },
+      }),
+      prisma.knowledgeAtom.groupBy({
+        by: ["type"],
+        where: { userId: session.user.id },
+        _count: { id: true },
+      }),
+    ])
+  );
 
   const totalAtoms = stats._count;
   const totalUsage = stats._sum.usageCount || 0;
