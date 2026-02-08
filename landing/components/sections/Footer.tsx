@@ -13,6 +13,7 @@ const footerLinks = {
     { label: "Manifesto", href: "/manifesto" },
   ],
   resources: [
+    { label: "Features Guide", href: "/features-guide" },
     { label: "Windows Waitlist", href: "/windows-waitlist" },
     { label: "Contact", href: "/#contact" },
     { label: "Feedback", href: "https://queenmama.featurebase.app", external: true },
