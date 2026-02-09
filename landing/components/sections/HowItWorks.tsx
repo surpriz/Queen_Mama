@@ -1,47 +1,8 @@
 "use client";
 
 import { motion } from "framer-motion";
+import { useTranslations } from "next-intl";
 import { Container, GlassCard, KeyboardShortcut } from "@/components/ui";
-
-const steps = [
-  {
-    number: "01",
-    title: "Install & Sign Up",
-    description:
-      "Download Queen Mama and create your free account. Setup takes just minutes - no configuration needed.",
-    icon: (
-      <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-      </svg>
-    ),
-    details: ["No API keys required", "Ready in seconds", "Works out of the box"],
-  },
-  {
-    number: "02",
-    title: "Choose Your Mode",
-    description:
-      "Select the AI mode that matches your situation - Interview, Sales, Professional, or create a custom one.",
-    icon: (
-      <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-      </svg>
-    ),
-    details: ["4 built-in modes", "Custom mode creation", "Mode-specific prompts"],
-  },
-  {
-    number: "03",
-    title: "Start Your Session",
-    description:
-      "Hit the shortcut, and Queen Mama listens to your conversation and screen. Get real-time AI suggestions instantly.",
-    icon: (
-      <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-      </svg>
-    ),
-    details: ["Real-time transcription", "Screen context awareness", "Automatic suggestions"],
-  },
-];
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -66,6 +27,45 @@ const itemVariants = {
 };
 
 export function HowItWorks() {
+  const t = useTranslations("HowItWorks");
+
+  const steps = [
+    {
+      number: "01",
+      title: t("step1Title"),
+      description: t("step1Desc"),
+      icon: (
+        <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+        </svg>
+      ),
+      details: [t("step1Detail1"), t("step1Detail2"), t("step1Detail3")],
+    },
+    {
+      number: "02",
+      title: t("step2Title"),
+      description: t("step2Desc"),
+      icon: (
+        <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+        </svg>
+      ),
+      details: [t("step2Detail1"), t("step2Detail2"), t("step2Detail3")],
+    },
+    {
+      number: "03",
+      title: t("step3Title"),
+      description: t("step3Desc"),
+      icon: (
+        <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+      ),
+      details: [t("step3Detail1"), t("step3Detail2"), t("step3Detail3")],
+    },
+  ];
+
   return (
     <section id="how-it-works" className="py-24 relative bg-[var(--qm-bg-secondary)]">
       <Container>
@@ -78,11 +78,12 @@ export function HowItWorks() {
           className="text-center mb-16"
         >
           <h2 className="text-3xl sm:text-4xl font-bold mb-4">
-            Get Started in <span className="gradient-text">Minutes</span>
+            {t.rich("title", {
+              highlight: (chunks) => <span className="gradient-text">{chunks}</span>,
+            })}
           </h2>
           <p className="text-lg text-[var(--qm-text-secondary)] max-w-2xl mx-auto">
-            Three simple steps to transform your conversations with AI-powered
-            real-time coaching.
+            {t("subtitle")}
           </p>
         </motion.div>
 
@@ -165,31 +166,31 @@ export function HowItWorks() {
             padding="lg"
           >
             <h3 className="text-lg font-semibold text-white mb-6">
-              Pro Tip: Master the Shortcuts
+              {t("proTip")}
             </h3>
             <div className="flex flex-wrap justify-center gap-6">
               <div className="flex items-center gap-3">
                 <KeyboardShortcut shortcut="Cmd+Shift+S" />
                 <span className="text-sm text-[var(--qm-text-secondary)]">
-                  Start Session
+                  {t("shortcutStartSession")}
                 </span>
               </div>
               <div className="flex items-center gap-3">
                 <KeyboardShortcut shortcut="Cmd+\\" />
                 <span className="text-sm text-[var(--qm-text-secondary)]">
-                  Toggle Widget
+                  {t("shortcutToggleWidget")}
                 </span>
               </div>
               <div className="flex items-center gap-3">
                 <KeyboardShortcut shortcut="Cmd+Enter" />
                 <span className="text-sm text-[var(--qm-text-secondary)]">
-                  Ask AI
+                  {t("shortcutAskAI")}
                 </span>
               </div>
               <div className="flex items-center gap-3">
                 <KeyboardShortcut shortcut="Cmd+R" />
                 <span className="text-sm text-[var(--qm-text-secondary)]">
-                  Clear Context
+                  {t("shortcutClearContext")}
                 </span>
               </div>
             </div>

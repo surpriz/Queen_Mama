@@ -1,21 +1,24 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
+import { useTranslations } from "next-intl";
+import { Link } from "@/i18n/routing";
 import { motion } from "framer-motion";
 import { Container, GradientButton, Badge } from "@/components/ui";
 
-const typewriterTexts = [
-  "job interviews",
-  "sales calls",
-  "investor pitches",
-  "board meetings",
-  "coding exams",
-  "thesis defenses",
-  "salary negotiations",
-];
-
 export function UseCasesHero() {
+  const t = useTranslations("UseCases");
+
+  const typewriterTexts = [
+    t("hero.typewriter1"),
+    t("hero.typewriter2"),
+    t("hero.typewriter3"),
+    t("hero.typewriter4"),
+    t("hero.typewriter5"),
+    t("hero.typewriter6"),
+    t("hero.typewriter7"),
+  ];
+
   const [currentIndex, setCurrentIndex] = useState(0);
   const [displayText, setDisplayText] = useState("");
   const [isDeleting, setIsDeleting] = useState(false);
@@ -93,20 +96,21 @@ export function UseCasesHero() {
                   d="M13 10V3L4 14h7v7l9-11h-7z"
                 />
               </svg>
-              32+ Use Cases Across 6 Domains
+              {t("hero.badge")}
             </Badge>
           </motion.div>
 
           {/* Main Title */}
           <h1 className="text-4xl sm:text-5xl lg:text-7xl font-bold leading-tight mb-6">
-            One Assistant,{" "}
-            <span className="gradient-text">Infinite Scenarios</span>
+            {t.rich("hero.title", {
+              highlight: (chunks) => <span className="gradient-text">{chunks}</span>,
+            })}
           </h1>
 
           {/* Typewriter Subtitle */}
           <div className="h-16 sm:h-20 flex items-center justify-center mb-8">
             <p className="text-xl sm:text-2xl lg:text-3xl text-[var(--qm-text-secondary)]">
-              From{" "}
+              {t("hero.subtitleFrom")}{" "}
               <span className="text-white font-semibold inline-block min-w-[200px] sm:min-w-[280px]">
                 {displayText}
                 <motion.span
@@ -116,7 +120,7 @@ export function UseCasesHero() {
                 />
               </span>{" "}
               <br className="hidden sm:block" />
-              to every high-stakes conversation
+              {t("hero.subtitleTo")}
             </p>
           </div>
 
@@ -142,7 +146,7 @@ export function UseCasesHero() {
                     d="M19 14l-7 7m0 0l-7-7m7 7V3"
                   />
                 </svg>
-                Explore Use Cases
+                {t("hero.exploreButton")}
               </GradientButton>
             </a>
             <Link href="/download">
@@ -160,7 +164,7 @@ export function UseCasesHero() {
                     d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
                   />
                 </svg>
-                Try Free
+                {t("hero.tryFreeButton")}
               </GradientButton>
             </Link>
           </motion.div>

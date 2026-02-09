@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense } from "react";
+import Link from "next/link";
 
 function MagicLinkContent() {
   const router = useRouter();
@@ -122,12 +123,12 @@ function MagicLinkContent() {
             </div>
             <h1 className="text-2xl font-bold text-white mb-2">Link expired</h1>
             <p className="text-gray-400 mb-6">{errorMessage}</p>
-            <a
+            <Link
               href="/signin"
               className="inline-flex items-center px-6 py-3 bg-gradient-to-r from-purple-600 to-blue-600 text-white font-medium rounded-full hover:opacity-90 transition-opacity"
             >
               Sign in manually
-            </a>
+            </Link>
           </>
         )}
       </div>

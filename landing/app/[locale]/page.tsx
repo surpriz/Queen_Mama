@@ -1,9 +1,7 @@
 import dynamicImport from "next/dynamic";
+import { setRequestLocale, getTranslations } from "next-intl/server";
 import { Navbar, Hero } from "@/components/sections";
 import { SectionSkeleton } from "@/components/ui";
-
-// Force static generation for homepage
-export const dynamic = "force-static";
 
 // Lazy load below-the-fold sections for better initial load performance
 const Features = dynamicImport(() => import("@/components/sections/Features").then(mod => mod.Features), {
@@ -42,7 +40,26 @@ const Footer = dynamicImport(() => import("@/components/sections/Footer").then(m
   loading: () => <SectionSkeleton height="200px" />,
 });
 
-export default function Home() {
+export async function generateMetadata() {
+  const t = await getTranslations("Metadata.home");
+  return {
+    title: t("title"),
+    description: t("description"),
+    openGraph: {
+      title: t("ogTitle"),
+      description: t("ogDescription"),
+    },
+  };
+}
+
+type Props = {
+  params: Promise<{ locale: string }>;
+};
+
+export default async function Home({ params }: Props) {
+  const { locale } = await params;
+  setRequestLocale(locale);
+
   return (
     <>
       <Navbar />

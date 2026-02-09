@@ -1,15 +1,22 @@
-import { Metadata } from "next";
+import { setRequestLocale, getTranslations } from "next-intl/server";
 import { LegalPageLayout } from "@/components/LegalPageLayout";
 
 // Force static generation for this page
 export const dynamic = "force-static";
 
-export const metadata: Metadata = {
-  title: "Terms of Service - Queen Mama",
-  description: "Terms of Service for Queen Mama application.",
-};
+export async function generateMetadata() {
+  const t = await getTranslations("Metadata.terms");
+  return {
+    title: t("title"),
+    description: t("description"),
+  };
+}
 
-export default function TermsPage() {
+type Props = { params: Promise<{ locale: string }> };
+
+export default async function TermsPage({ params }: Props) {
+  const { locale } = await params;
+  setRequestLocale(locale);
   return (
     <LegalPageLayout
       title="Terms of Service"

@@ -1,15 +1,23 @@
-import { Metadata } from "next";
+import { setRequestLocale, getTranslations } from "next-intl/server";
 import { LegalPageLayout } from "@/components/LegalPageLayout";
+import { Link } from "@/i18n/routing";
 
 // Force static generation for this page
 export const dynamic = "force-static";
 
-export const metadata: Metadata = {
-  title: "Data Processing Agreement - Queen Mama",
-  description: "Data Processing Agreement (DPA) for Queen Mama application.",
-};
+export async function generateMetadata() {
+  const t = await getTranslations("Metadata.dpa");
+  return {
+    title: t("title"),
+    description: t("description"),
+  };
+}
 
-export default function DPAPage() {
+type Props = { params: Promise<{ locale: string }> };
+
+export default async function DPAPage({ params }: Props) {
+  const { locale } = await params;
+  setRequestLocale(locale);
   return (
     <LegalPageLayout
       title="Data Processing Agreement"
@@ -142,12 +150,12 @@ export default function DPAPage() {
           <p>
             You acknowledge and agree that we may engage Subprocessors to process
             Personal Data. Our current list of Subprocessors is available at{" "}
-            <a
+            <Link
               href="/subprocessors"
               className="text-[var(--qm-accent)] hover:underline"
             >
               queenmama.app/subprocessors
-            </a>
+            </Link>
             .
           </p>
           <p>

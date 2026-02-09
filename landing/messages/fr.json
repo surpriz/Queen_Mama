@@ -1,0 +1,1368 @@
+{
+  "Metadata": {
+    "home": {
+      "title": "Queen Mama - Coaching IA pour les Conversations à Enjeux",
+      "description": "Assistant IA en temps réel pour les entretiens, appels commerciaux et réunions. Totalement indétectable en visioconférence. Téléchargement gratuit pour macOS.",
+      "ogTitle": "Queen Mama - Votre arme secrète pour les conversations à enjeux",
+      "ogDescription": "Un coaching IA qui reste invisible. Recevez des suggestions en temps réel lors d'entretiens, d'appels commerciaux et de réunions."
+    },
+    "download": {
+      "title": "Télécharger Queen Mama pour macOS",
+      "description": "Téléchargez Queen Mama - Votre assistant coaching IA pour les conversations à enjeux. Nécessite macOS 14.2+"
+    },
+    "manifesto": {
+      "title": "Manifeste - Queen Mama",
+      "description": "Le monde appellera ça de la triche. Nous, on appelle ça rétablir l'équilibre."
+    },
+    "changelog": {
+      "title": "Journal des mises à jour - Queen Mama",
+      "description": "Suivez chaque mise à jour et amélioration de Queen Mama."
+    },
+    "privacy": {
+      "title": "Politique de confidentialité - Queen Mama",
+      "description": "Comment Queen Mama protège votre vie privée et gère vos données."
+    },
+    "terms": {
+      "title": "Conditions d'utilisation - Queen Mama",
+      "description": "Conditions générales d'utilisation de Queen Mama."
+    },
+    "dpa": {
+      "title": "Accord de traitement des données - Queen Mama",
+      "description": "Accord de traitement des données pour les services Queen Mama."
+    },
+    "subprocessors": {
+      "title": "Sous-traitants - Queen Mama",
+      "description": "Liste des sous-traitants utilisés par Queen Mama."
+    },
+    "windowsWaitlist": {
+      "title": "Queen Mama pour Windows - Rejoindre la liste d'attente",
+      "description": "Soyez le premier informé quand Queen Mama sera disponible sur Windows."
+    },
+    "memoryPalace": {
+      "title": "Memory Palace - QueenMama | Gestion de contacts par IA",
+      "description": "Extraction automatique des contacts depuis vos conversations. Suivez vos relations, recevez des briefings pré-session, et n'oubliez plus jamais un nom.",
+      "ogTitle": "Memory Palace - QueenMama | N'oubliez plus jamais un nom",
+      "ogDescription": "Mini-CRM alimenté par l'IA qui extrait automatiquement les contacts de vos conversations, suit vos relations et vous briefe avant chaque réunion.",
+      "ogImageAlt": "QueenMama Memory Palace - Gestion de contacts par IA",
+      "twitterTitle": "Memory Palace - QueenMama | Gestion de contacts par IA",
+      "twitterDescription": "N'arrivez plus jamais en réunion sans préparation. Memory Palace construit votre CRM personnel à partir de vos conversations automatiquement."
+    },
+    "useCases": {
+      "title": "Cas d'usage - QueenMama | Coaching IA pour chaque situation",
+      "description": "Découvrez 32+ cas d'usage du coaching IA Queen Mama."
+    },
+    "featuresGuide": {
+      "title": "Guide des fonctionnalités - QueenMama | Référence complète",
+      "description": "Maîtrisez chaque fonctionnalité de Queen Mama avec notre guide complet."
+    }
+  },
+  "Navigation": {
+    "features": "Fonctionnalités",
+    "useCases": "Cas d'usage",
+    "memoryPalace": "Memory Palace",
+    "howItWorks": "Comment ça marche",
+    "pricing": "Tarifs",
+    "faq": "FAQ",
+    "signIn": "Connexion",
+    "signUp": "Inscription",
+    "dashboard": "Tableau de bord",
+    "goToDashboard": "Aller au tableau de bord",
+    "download": "Télécharger",
+    "downloadFree": "Télécharger gratuitement",
+    "backToHome": "← Retour à l'accueil"
+  },
+  "Footer": {
+    "tagline": "Coaching IA en temps réel pour les conversations à enjeux.",
+    "product": "Produit",
+    "resources": "Ressources",
+    "legal": "Légal",
+    "features": "Fonctionnalités",
+    "useCases": "Cas d'usage",
+    "memoryPalace": "Memory Palace",
+    "pricing": "Tarifs",
+    "faq": "FAQ",
+    "changelog": "Journal des mises à jour",
+    "download": "Télécharger",
+    "manifesto": "Manifeste",
+    "featuresGuide": "Guide des fonctionnalités",
+    "windowsWaitlist": "Liste d'attente Windows",
+    "contact": "Contact",
+    "feedback": "Retours",
+    "subprocessors": "Sous-traitants",
+    "privacyPolicy": "Politique de confidentialité",
+    "termsOfService": "Conditions d'utilisation",
+    "dpa": "DPA",
+    "copyright": "© {year} Queen Mama. Tous droits réservés.",
+    "madeWith": "Fait avec <heart /> pour les professionnels"
+  },
+  "Hero": {
+    "badgeMacOS": "Disponible sur macOS",
+    "badgeWindows": "Windows bientôt disponible",
+    "headline": "Votre arme secrète pour les <highlight>conversations à enjeux</highlight>",
+    "subheadline": "Un coaching IA qui reste invisible. Recevez des suggestions en temps réel lors d'entretiens, d'appels commerciaux et de réunions — <bold>totalement indétectable en visioconférence.</bold>",
+    "pillInvisible": "Invisible en partage d'écran",
+    "pillRealTimeAI": "IA en temps réel",
+    "pillTranscription": "Transcription en direct",
+    "ctaDownload": "Télécharger pour macOS",
+    "ctaHowItWorks": "Voir comment ça marche",
+    "widgetAsk": "Demander",
+    "widgetHidden": "Caché",
+    "widgetAuto": "Auto",
+    "widgetAssist": "Assister",
+    "widgetSay": "Dire",
+    "widgetRecap": "Résumé",
+    "widgetSuggestion": "D'après la conversation, voici quelques suggestions pour votre réponse sur l'expérience en gestion de projet :",
+    "widgetExample": "\"J'ai dirigé une équipe de 8 ingénieurs sur une refonte produit de 6 mois qui a augmenté l'engagement utilisateur de 40%...\"",
+    "widgetPlaceholder": "Posez votre question..."
+  },
+  "Features": {
+    "title": "Tout ce qu'il vous faut pour <highlight>réussir</highlight>",
+    "subtitle": "Des fonctionnalités puissantes conçues pour vous donner la confiance et le soutien nécessaires dans toute conversation à enjeux.",
+    "invisibleTitle": "Invisible en partage d'écran",
+    "invisibleDesc": "Restez serein en sachant que votre assistant IA reste totalement caché pendant les appels vidéo et les enregistrements d'écran. Essentiel pour les entretiens et les réunions confidentielles.",
+    "aiSuggestionsTitle": "Suggestions IA en temps réel",
+    "aiSuggestionsDesc": "Propulsé par GPT-4, Claude et Gemini avec basculement automatique. Obtenez des suggestions instantanées et contextuelles au fil de la conversation.",
+    "smartModeTitle": "Mode Smart",
+    "smartModeDesc": "Activez le raisonnement avancé pour les situations complexes. Obtenez des analyses approfondies, des perspectives multiples et des recommandations plus réfléchies.",
+    "autoAnswerTitle": "Réponse automatique",
+    "autoAnswerDesc": "Réponses automatiques intelligentes déclenchées par le contexte de la conversation. Détecte les silences, les questions et les moments clés pour fournir une aide opportune.",
+    "multipleModesTitle": "Modes IA multiples",
+    "multipleModesDesc": "Basculez entre les modes Entretien, Vente, Professionnel ou créez vos propres personnalités. Chaque mode adapte l'IA à des scénarios spécifiques.",
+    "shortcutsTitle": "Raccourcis clavier",
+    "shortcutsDesc": "Actions rapides à portée de main. Basculez le widget, déclenchez l'IA, effacez le contexte et plus encore avec des raccourcis personnalisables.",
+    "memoryPalaceTitle": "Memory Palace",
+    "memoryPalaceDesc": "Mini-CRM alimenté par l'IA qui extrait automatiquement les contacts de vos conversations. Suivez les relations, recevez des briefings pré-session et n'oubliez plus jamais un nom.",
+    "learnMore": "En savoir plus"
+  },
+  "Modes": {
+    "title": "<highlight>Modes IA</highlight> pour chaque situation",
+    "subtitle": "Des personnalités IA préconfigurées et adaptées à des situations spécifiques. Choisissez le bon mode ou créez votre propre assistant personnalisé.",
+    "modeLabel": "Mode {name}",
+    "createCustom": "Créer des modes personnalisés",
+    "exampleResponse": "Exemple de réponse",
+    "default": {
+      "name": "Défaut",
+      "description": "Assistant professionnel polyvalent pour toute conversation",
+      "feature1": "Réponses concises et professionnelles",
+      "feature2": "S'adapte au contexte de la conversation",
+      "feature3": "Support multilingue",
+      "example": "D'après la discussion, je suggère de mettre en avant votre expérience avec les méthodologies agiles et le leadership d'équipe..."
+    },
+    "interview": {
+      "name": "Entretien",
+      "description": "Réussissez vos entretiens d'embauche avec confiance",
+      "feature1": "Réponses au format STAR",
+      "feature2": "Met en avant les compétences pertinentes",
+      "feature3": "Support pour les questions techniques",
+      "example": "Utilisez la méthode STAR : 'Dans mon précédent poste (Situation), j'ai été chargé d'améliorer la vitesse de déploiement (Tâche). J'ai mis en place des pipelines CI/CD (Action), réduisant le temps de déploiement de 60% (Résultat).'"
+    },
+    "sales": {
+      "name": "Vente",
+      "description": "Concluez des ventes et gérez les objections efficacement",
+      "feature1": "Gestion des objections",
+      "feature2": "Focus sur la proposition de valeur",
+      "feature3": "Détection des signaux d'achat",
+      "example": "Je remarque qu'ils ont mentionné des préoccupations budgétaires. Essayez : 'Je comprends que le budget est une priorité. Laissez-moi vous montrer comment notre solution génère typiquement un ROI de 3x dès la première année...'"
+    },
+    "professional": {
+      "name": "Professionnel",
+      "description": "Présence formelle et exécutive en entreprise",
+      "feature1": "Langage de niveau exécutif",
+      "feature2": "Recommandations stratégiques",
+      "feature3": "Réponses claires et structurées",
+      "example": "Pour un impact maximal, je recommande de structurer votre réponse autour de trois piliers : alignement stratégique, efficacité opérationnelle et résultats mesurables..."
+    }
+  },
+  "HowItWorks": {
+    "title": "Démarrez en <highlight>quelques minutes</highlight>",
+    "subtitle": "Trois étapes simples pour transformer vos conversations avec un coaching IA en temps réel.",
+    "step1Title": "Installez et inscrivez-vous",
+    "step1Desc": "Téléchargez Queen Mama et créez votre compte gratuit. L'installation ne prend que quelques minutes - aucune configuration nécessaire.",
+    "step1Detail1": "Aucune clé API requise",
+    "step1Detail2": "Prêt en quelques secondes",
+    "step1Detail3": "Fonctionne immédiatement",
+    "step2Title": "Choisissez votre mode",
+    "step2Desc": "Sélectionnez le mode IA adapté à votre situation - Entretien, Vente, Professionnel ou créez-en un personnalisé.",
+    "step2Detail1": "4 modes intégrés",
+    "step2Detail2": "Création de modes personnalisés",
+    "step2Detail3": "Prompts spécifiques par mode",
+    "step3Title": "Lancez votre session",
+    "step3Desc": "Appuyez sur le raccourci et Queen Mama écoute votre conversation et votre écran. Recevez des suggestions IA en temps réel instantanément.",
+    "step3Detail1": "Transcription en temps réel",
+    "step3Detail2": "Conscience du contexte écran",
+    "step3Detail3": "Suggestions automatiques",
+    "proTip": "Astuce pro : Maîtrisez les raccourcis",
+    "shortcutStartSession": "Démarrer la session",
+    "shortcutToggleWidget": "Basculer le widget",
+    "shortcutAskAI": "Demander à l'IA",
+    "shortcutClearContext": "Effacer le contexte"
+  },
+  "Undetectable": {
+    "badge": "Confidentialité d'abord",
+    "title": "Véritablement <highlight>invisible</highlight> en partage d'écran",
+    "description": "Contrairement aux autres outils détectables en visioconférence, Queen Mama utilise les API macOS avancées pour s'exclure totalement des captures et enregistrements d'écran. Votre arme secrète reste secrète.",
+    "zoomLabel": "Réunion Zoom - Partage d'écran actif",
+    "presentationPlaceholder": "Vos slides de présentation apparaissent ici",
+    "widgetNotVisible": "Le widget Queen Mama N'EST PAS visible par les participants",
+    "recording": "Enregistrement",
+    "widgetHidden": "Widget caché",
+    "widgetHiddenBadge": "Caché",
+    "onlyYouSee": "Vous seul voyez ceci",
+    "widgetQuote": "Bon point sur la scalabilité. Vous pourriez ajouter que votre solution a réduit les coûts de 40%...",
+    "benefit1Title": "Caché de Zoom, Teams, Meet",
+    "benefit1Desc": "Fonctionne avec toutes les grandes plateformes de visioconférence sans détection.",
+    "benefit2Title": "Exclu des enregistrements d'écran",
+    "benefit2Desc": "Même si vous enregistrez votre écran, Queen Mama n'apparaîtra pas.",
+    "benefit3Title": "Activez/Désactivez à tout moment",
+    "benefit3Desc": "Désactivez le mode indétectable quand vous devez montrer le widget."
+  },
+  "Pricing": {
+    "title": "Tarifs simples et <highlight>transparents</highlight>",
+    "subtitle": "Commencez gratuitement et passez à la version supérieure quand vous êtes prêt. Débloquez les fonctionnalités premium instantanément.",
+    "mostPopular": "Le plus populaire",
+    "free": {
+      "name": "Gratuit",
+      "price": "0 €",
+      "period": "pour toujours",
+      "description": "Essayez Queen Mama avec les fonctionnalités de base",
+      "cta": "Télécharger gratuitement",
+      "feature1": "1 requête IA par jour",
+      "feature2": "Transcription en direct",
+      "feature3": "4 modes IA intégrés",
+      "feature4": "Modèles IA standard",
+      "feature5": "Capture d'écran",
+      "feature6": "Modes personnalisés",
+      "feature7": "Sync cloud des sessions",
+      "feature8": "Support prioritaire"
+    },
+    "pro": {
+      "name": "Pro",
+      "price": "19 €",
+      "period": "/mois",
+      "description": "Pour les professionnels qui veulent plus",
+      "cta": "Passer au Pro",
+      "feature1": "Tout le Gratuit inclus",
+      "feature2": "Requêtes IA illimitées",
+      "feature3": "Modes IA personnalisés",
+      "feature4": "Sync cloud des sessions",
+      "feature5": "Tous les formats d'export",
+      "feature6": "Support prioritaire",
+      "feature7": "Mode Smart",
+      "feature8": "Overlay indétectable"
+    },
+    "enterprise": {
+      "name": "Enterprise",
+      "price": "49 €",
+      "period": "/mois",
+      "description": "Pour les utilisateurs avancés et les équipes",
+      "cta": "Passer à Enterprise",
+      "feature1": "Tout le Pro inclus",
+      "feature2": "Mode Smart (IA premium)",
+      "feature3": "Mode overlay indétectable",
+      "feature4": "Fonctionnalité réponse auto",
+      "feature5": "Stockage étendu des transcriptions",
+      "feature6": "Support dédié"
+    },
+    "gdpr": "Données stockées en Europe de manière sécurisée (conforme RGPD)",
+    "cancelAnytime": "Résiliez à tout moment. Sans condition."
+  },
+  "FAQ": {
+    "title": "Questions <highlight>fréquentes</highlight>",
+    "subtitle": "Tout ce que vous devez savoir sur Queen Mama",
+    "q1": "Comment fonctionne Queen Mama ?",
+    "a1": "Queen Mama écoute vos conversations en temps réel, transcrit l'audio et fournit des suggestions alimentées par l'IA en fonction du contexte. Téléchargez simplement l'application, créez un compte et c'est parti - aucune configuration nécessaire. Nous gérons toute l'infrastructure IA et de transcription pour vous.",
+    "q2": "Est-ce vraiment invisible en partage d'écran ?",
+    "a2": "Oui ! Queen Mama utilise les API officielles d'exclusion de capture d'écran de macOS (setSharingType). Quand le mode indétectable est activé, le widget est totalement invisible pour Zoom, Teams, Google Meet et tout logiciel d'enregistrement d'écran. C'est comme s'il n'existait pas sur votre écran.",
+    "q3": "Est-ce que ça fonctionne avec Zoom, Teams et Google Meet ?",
+    "a3": "Absolument. Queen Mama fonctionne avec n'importe quelle application de visioconférence sur macOS. Le widget flottant reste au-dessus de votre écran tout en restant invisible pour les autres participants quand vous partagez votre écran ou enregistrez la réunion.",
+    "q4": "Quelles langues sont supportées ?",
+    "a4": "Queen Mama détecte automatiquement la langue parlée et répond dans la même langue. Actuellement, il fonctionne mieux en anglais et en français, avec d'autres langues à venir. Les fournisseurs d'IA supportent de nombreuses langues supplémentaires.",
+    "q5": "Mes données sont-elles privées ?",
+    "a5": "Oui. Nous prenons la confidentialité au sérieux. L'audio est traité en temps réel et n'est pas stocké sur nos serveurs. Les données de session et les transcriptions sont stockées localement sur votre Mac avec SwiftData. Vos conversations restent privées et ne sont jamais utilisées pour entraîner des modèles d'IA.",
+    "q6": "Quelles sont les exigences système ?",
+    "a6": "Queen Mama nécessite macOS 14.0 (Sonoma) ou ultérieur. Vous devrez accorder l'accès au microphone pour la transcription et l'autorisation d'enregistrement d'écran pour les fonctionnalités de contexte écran. Une connexion internet est requise pour les services d'IA et de transcription.",
+    "q7": "Puis-je créer des modes IA personnalisés ?",
+    "a7": "Oui ! Les utilisateurs Pro peuvent créer des modes personnalisés illimités avec leurs propres prompts système. Vous pouvez même joindre des documents (PDF, fichiers texte) aux modes pour des réponses IA contextuelles. Les utilisateurs gratuits ont accès à 4 modes intégrés : Défaut, Entretien, Vente et Professionnel.",
+    "q8": "Comment fonctionne la réponse automatique ?",
+    "a8": "La réponse automatique déclenche intelligemment des réponses IA en fonction du contexte de la conversation. Elle détecte les silences après vos prises de parole, les points d'interrogation dans la transcription et les fins de phrases. Vous pouvez personnaliser la sensibilité et le délai de récupération dans les paramètres.",
+    "stillQuestions": "Encore des questions ?",
+    "contactUs": "Contactez-nous"
+  },
+  "Contact": {
+    "title": "Nous <highlight>contacter</highlight>",
+    "subtitle": "Vous avez des questions ? Nous serions ravis de vous entendre.",
+    "successTitle": "Message envoyé !",
+    "successMessage": "Merci de nous avoir contactés. Nous vous répondrons bientôt.",
+    "sendAnother": "Envoyer un autre message",
+    "nameLabel": "Nom",
+    "namePlaceholder": "Jean Dupont",
+    "emailLabel": "Email",
+    "emailPlaceholder": "vous@exemple.com",
+    "subjectLabel": "Sujet",
+    "subjectPlaceholder": "Comment pouvons-nous vous aider ?",
+    "messageLabel": "Message",
+    "messagePlaceholder": "Dites-nous en plus sur votre question ou vos retours...",
+    "sending": "Envoi en cours...",
+    "sendMessage": "Envoyer le message",
+    "errorDefault": "Une erreur est survenue. Veuillez réessayer."
+  },
+  "CTA": {
+    "title": "Ne soyez plus jamais <highlight>pris au dépourvu</highlight>",
+    "subtitle": "Rejoignez les professionnels qui ont transformé leurs conversations à enjeux avec un coaching IA en temps réel. Téléchargez Queen Mama aujourd'hui.",
+    "downloadMac": "Télécharger pour macOS",
+    "windowsSoon": "Windows bientôt disponible",
+    "trustNote": "macOS 14+ requis. Version Windows bientôt disponible.",
+    "statProviders": "Fournisseurs IA",
+    "statModes": "Modes intégrés",
+    "statUndetectable": "Indétectable",
+    "statFree": "Pour commencer"
+  },
+  "Download": {
+    "title": "Télécharger Queen Mama",
+    "subtitle": "Votre arme secrète alimentée par l'IA pour les entretiens, appels commerciaux et réunions à enjeux. Totalement indétectable en visioconférence.",
+    "staging": "STAGING",
+    "preReleaseWarning": "Version pré-release - Pour les tests uniquement",
+    "preReleaseSub": "Ce build provient de la branche staging et peut contenir des bugs.",
+    "downloadBeta": "Télécharger la bêta",
+    "downloadForMac": "Télécharger pour macOS",
+    "version": "Version {version}",
+    "versionBeta": "Version {version} (Bêta)",
+    "comingSoon": "Bientôt disponible",
+    "comingSoonSub": "La première version est en préparation. Revenez bientôt !",
+    "sysReqMacOS": "macOS 14.2+",
+    "sysReqMacOSSub": "Sonoma ou ultérieur requis",
+    "sysReqChip": "Apple Silicon",
+    "sysReqChipSub": "M1, M2, M3 et Intel supportés",
+    "sysReqSigned": "Signé et notarisé",
+    "sysReqSignedSub": "Vérifié par Apple",
+    "installation": "Installation",
+    "installStep1": "Téléchargez le DMG",
+    "installStep1Sub": "Cliquez sur le bouton de téléchargement ci-dessus",
+    "installStep2": "Ouvrez le fichier DMG",
+    "installStep2Sub": "Double-cliquez sur le fichier téléchargé",
+    "installStep3": "Glissez dans Applications",
+    "installStep3Sub": "Glissez Queen Mama dans votre dossier Applications",
+    "installStep4": "Accordez les permissions",
+    "installStep4Sub": "Autorisez le microphone et l'enregistrement d'écran quand demandé",
+    "whatsIncluded": "Ce qui est inclus",
+    "feature1": "Transcription en temps réel avec Deepgram Nova-3",
+    "feature2": "Coaching IA par GPT-4, Claude ou Gemini",
+    "feature3": "Overlay invisible - indétectable sur Zoom, Meet, Teams",
+    "feature4": "Suggestions en mode Smart basées sur le contexte",
+    "feature5": "Enregistrement de session et sync cloud (PRO)",
+    "feature6": "Mises à jour automatiques via Sparkle",
+    "privacyPolicy": "Politique de confidentialité",
+    "termsOfService": "Conditions d'utilisation"
+  },
+  "Manifesto": {
+    "headline": "Le monde appellera ça de la <highlight>triche</highlight>",
+    "subheadline": "Nous, on appelle ça rétablir l'équilibre.",
+    "section1p1": "Queen Mama vous donne un assistant IA qui voit votre écran, écoute votre conversation et vous souffle des suggestions en temps réel.",
+    "section1p2": "Pendant les entretiens d'embauche. Les appels commerciaux. Les réunions importantes.",
+    "section1p3": "Et personne ne sait qu'il est là.",
+    "section2title": "\"C'est pas juste.\"",
+    "section2p1": "C'est ce qu'on disait des calculatrices. Du correcteur orthographique. De Google. Du GPS.",
+    "section2p2": "Chaque outil qui a rendu les humains plus capables a d'abord été qualifié d'injuste par ceux qui ne l'avaient pas.",
+    "section2p3": "Puis c'est devenu la norme. Puis c'est devenu attendu.",
+    "section3title": "Le candidat nerveux",
+    "section3p1": "Vous y êtes déjà passé. Assis devant votre écran, le cœur battant, l'esprit qui se vide au pire moment.",
+    "section3p2": "La question était simple. Vous connaissez la réponse. Mais le stress a piraté votre cerveau, et maintenant vous balbutiez une réponse qui ne reflète pas qui vous êtes vraiment.",
+    "section3p3": "Pendant ce temps, quelqu'un d'autre - moins qualifié mais plus confiant - obtient le poste.",
+    "section4quote": "\"L'avenir ne récompensera pas l'effort. Il récompensera l'effet de levier.\"",
+    "section5title": "Les règles changent",
+    "section5p1": "Mémoriser des faits ? C'est à ça que servent les moteurs de recherche.",
+    "section5p2": "Écrire une prose parfaite ? C'est à ça que sert l'IA.",
+    "section5p3": "Connaître toutes les réponses ? C'est à ça que servent les bons outils.",
+    "section5p4": "Ce qui compte maintenant, c'est savoir quelles questions poser. Et avoir le courage de les poser.",
+    "section6title": "Votre secret, vraiment gardé",
+    "section6p1": "Queen Mama ne vous aide pas seulement. Il vous protège.",
+    "section6p2": "Quand vous partagez votre écran, Queen Mama disparaît. Pas minimisé. Pas caché derrière une fenêtre. <gone>Disparu.</gone> Invisible aux API de capture d'écran. Indétectable.",
+    "section6p3": "Vos conversations restent sur votre machine. Vos clés API restent dans votre Trousseau. Nous ne voyons pas vos données. Nous ne voulons pas les voir.",
+    "section7title": "Vous avez le choix",
+    "section7p1": "Vous pouvez continuer à jouer selon les anciennes règles. Espérer que vos nerfs ne vous trahissent pas. Prier pour vous souvenir des bons arguments. Concurrencer des gens qui ont déjà adopté le futur.",
+    "section7p2": "Ou vous pouvez vous adapter.",
+    "closingLine": "Alors oui, commencez à \"tricher\".",
+    "closingSub": "Parce que quand tout le monde le fait, personne ne triche.",
+    "downloadCTA": "Télécharger Queen Mama"
+  },
+  "WindowsWaitlist": {
+    "title": "Queen Mama pour <highlight>Windows</highlight>",
+    "subtitle": "Nous travaillons dur pour apporter Queen Mama sur Windows. Rejoignez la liste d'attente pour être le premier informé quand ce sera prêt.",
+    "successTitle": "Vous êtes sur la liste !",
+    "successMessage": "Nous vous notifierons à {email} dès que Queen Mama pour Windows sera disponible.",
+    "backToHome": "Retour à l'accueil",
+    "emailLabel": "Adresse email",
+    "emailPlaceholder": "vous@exemple.com",
+    "joining": "Inscription...",
+    "joinWaitlist": "Rejoindre la liste d'attente",
+    "noSpam": "Nous vous enverrons un email uniquement quand le support Windows sera prêt. Pas de spam, jamais.",
+    "alreadyOnMac": "Déjà sur macOS ?",
+    "downloadNow": "Télécharger maintenant",
+    "errorDefault": "Une erreur est survenue. Veuillez réessayer."
+  },
+  "Changelog": {
+    "title": "Journal des mises à jour",
+    "description": "Suivez chaque mise à jour, nouvelle fonctionnalité et amélioration au fur et à mesure que Queen Mama évolue.",
+    "categories": {
+      "features": "Fonctionnalités",
+      "improvements": "Améliorations",
+      "fixes": "Corrections de bugs",
+      "technical": "Sous le capot"
+    },
+    "badgeNew": "Nouveau",
+    "entries": {
+      "subscriptionSystem": {
+        "title": "Système d'abonnement à 4 niveaux",
+        "description": "Lancement des formules FREE, PRO et ENTERPRISE avec des fonctionnalités adaptées à chaque usage"
+      },
+      "licenseManagement": {
+        "title": "Gestion avancée des licences",
+        "description": "Contrôle d'accès aux fonctionnalités et badges de statut de licence dans toute l'application"
+      },
+      "deviceCodeAuth": {
+        "title": "Authentification par code appareil",
+        "description": "Flux d'authentification fluide avec synchronisation automatique des sessions entre l'application macOS et le tableau de bord web"
+      },
+      "adminDashboard": {
+        "title": "Tableau de bord administrateur",
+        "description": "Gestion complète des utilisateurs, attribution des rôles et statistiques d'utilisation pour les administrateurs"
+      },
+      "usageTracking": {
+        "title": "Suivi d'utilisation côté serveur",
+        "description": "Monitoring en temps réel des requêtes IA et de l'utilisation des fonctionnalités pour de meilleures analyses"
+      },
+      "stripeIntegration": {
+        "title": "Intégration Stripe améliorée",
+        "description": "Paiement dynamique prenant en charge plusieurs niveaux d'abonnement avec attribution automatique du plan"
+      },
+      "webhookAutomation": {
+        "title": "Automatisation des webhooks",
+        "description": "Association automatique du plan d'abonnement et mise à jour des licences via les webhooks Stripe"
+      },
+      "licenseBadges": {
+        "title": "Badges de statut de licence",
+        "description": "Indicateurs visuels dans le tableau de bord affichant votre niveau d'abonnement actuel"
+      },
+      "markdownSupport": {
+        "title": "Support Markdown",
+        "description": "Rendu de texte enrichi pour les réponses IA avec mise en forme, listes et blocs de code"
+      },
+      "authErrorHandling": {
+        "title": "Gestion des erreurs d'authentification",
+        "description": "Messages d'erreur améliorés et flux de récupération pour les problèmes d'authentification"
+      },
+      "stripeRefinements": {
+        "title": "Améliorations de l'intégration Stripe",
+        "description": "Traitement des paiements et gestion des abonnements plus fiables"
+      },
+      "multiProviderAI": {
+        "title": "Support IA multi-fournisseurs",
+        "description": "Choisissez parmi OpenAI GPT-4o, Anthropic Claude Sonnet 4, Google Gemini 2.0 et plus encore"
+      },
+      "smartMode": {
+        "title": "Mode Smart",
+        "description": "Sélection automatique du modèle IA en fonction du contexte et de la complexité de la tâche"
+      },
+      "cachingSystem": {
+        "title": "Système de cache intelligent",
+        "description": "Réduction des coûts de 30 à 50 % grâce à la mise en cache intelligente des réponses et à l'optimisation"
+      },
+      "tokenTracking": {
+        "title": "Suivi de l'utilisation des tokens",
+        "description": "Monitoring en temps réel de l'utilisation de l'API avec estimations des coûts"
+      },
+      "screenshotDedup": {
+        "title": "Déduplication des captures d'écran",
+        "description": "Gestion optimisée du contexte visuel pour réduire les appels API redondants"
+      },
+      "dynamicTokenLimits": {
+        "title": "Limites de tokens dynamiques",
+        "description": "Gestion adaptative des tokens pour des interactions IA économiques"
+      },
+      "multiLanguage": {
+        "title": "Transcription multilingue",
+        "description": "Détection automatique de la langue prenant en charge le français, l'anglais et plus encore"
+      },
+      "multiTranscription": {
+        "title": "Multiples fournisseurs de transcription",
+        "description": "Support de Deepgram et AssemblyAI avec basculement automatique"
+      },
+      "responseHistory": {
+        "title": "Historique des réponses",
+        "description": "Consultez et naviguez dans les réponses IA directement dans l'overlay"
+      },
+      "enhancedVisual": {
+        "title": "Contexte visuel amélioré",
+        "description": "Intégration améliorée des captures d'écran dans les prompts IA pour une meilleure compréhension"
+      },
+      "autoScrollHistory": {
+        "title": "Défilement automatique de l'historique",
+        "description": "Défilement automatique vers les dernières réponses dans l'overlay"
+      },
+      "realtimeTranscription": {
+        "title": "Transcription audio en temps réel",
+        "description": "Reconnaissance vocale en direct propulsée par Deepgram Nova-3"
+      },
+      "contextualAI": {
+        "title": "Assistance IA contextuelle",
+        "description": "Suggestions intelligentes basées sur le contexte de la conversation et le contenu de l'écran"
+      },
+      "screenContext": {
+        "title": "Analyse du contexte écran",
+        "description": "L'IA comprend ce qui est affiché sur votre écran pour fournir des conseils pertinents"
+      },
+      "undetectableOverlay": {
+        "title": "Overlay indétectable",
+        "description": "Overlay axé sur la confidentialité qui reste invisible au partage d'écran et aux outils d'enregistrement"
+      },
+      "secureKeyStorage": {
+        "title": "Stockage sécurisé des clés API",
+        "description": "Chiffrement de niveau militaire utilisant le Trousseau macOS pour vos clés API"
+      },
+      "multipleAIModes": {
+        "title": "Modes IA multiples",
+        "description": "Modes préconfigurés pour les réunions professionnelles, entretiens, appels commerciaux et plus encore"
+      }
+    }
+  },
+  "Common": {
+    "lastUpdated": "Dernière mise à jour : ",
+    "downloadForMac": "Télécharger pour macOS",
+    "learnMore": "En savoir plus",
+    "copyright": "© {year} Queen Mama. Tous droits réservés."
+  },
+  "LanguageSwitcher": {
+    "en": "English",
+    "fr": "Français"
+  },
+  "FeaturesGuide": {
+    "noResults": "Aucune fonctionnalité ne correspond à \"{query}\"",
+    "clearSearch": "Effacer la recherche",
+    "hero": {
+      "badge": "Guide complet",
+      "title": "Maîtrisez chaque fonctionnalité de <highlight>Queen Mama</highlight>",
+      "description": "Découvrez ce que fait chaque bouton, comment l'utiliser, ce qui se passe quand vous l'activez, et pourquoi c'est important pour vos conversations.",
+      "statFeatures": "Fonctionnalités",
+      "statShortcuts": "Raccourcis",
+      "statModes": "Modes IA"
+    },
+    "detail": {
+      "pro": "Pro",
+      "enterprise": "Enterprise",
+      "howToUse": "Comment utiliser",
+      "whatHappens": "Ce qui se passe",
+      "whyValuable": "Pourquoi c'est précieux"
+    },
+    "toc": {
+      "searchPlaceholder": "Rechercher des fonctionnalités..."
+    },
+    "cta": {
+      "title": "Prêt à essayer ces fonctionnalités ?",
+      "description": "Téléchargez Queen Mama pour macOS et découvrez le coaching conversationnel par IA en direct.",
+      "downloadMac": "Télécharger pour macOS",
+      "backToHome": "Retour à l'accueil"
+    },
+    "shortcuts": {
+      "title": "Tous les raccourcis clavier",
+      "description": "Référence rapide de tous les raccourcis disponibles dans Queen Mama.",
+      "items": {
+        "cmd+shift+s": {
+          "label": "Démarrer/Arrêter l'enregistrement",
+          "context": "Global"
+        },
+        "cmd+enter": {
+          "label": "Assistance IA",
+          "context": "Pendant l'enregistrement"
+        },
+        "cmd+\\": {
+          "label": "Basculer l'overlay",
+          "context": "Global"
+        },
+        "cmd+r": {
+          "label": "Effacer le contexte",
+          "context": "Pendant l'enregistrement"
+        },
+        "cmd+shift+k": {
+          "label": "Capture d'écran",
+          "context": "Pendant l'enregistrement"
+        },
+        "cmd+up": {
+          "label": "Déplacer l'overlay vers le haut",
+          "context": "Overlay visible"
+        },
+        "cmd+down": {
+          "label": "Déplacer l'overlay vers le bas",
+          "context": "Overlay visible"
+        },
+        "cmd+left": {
+          "label": "Déplacer l'overlay à gauche",
+          "context": "Overlay visible"
+        },
+        "cmd+right": {
+          "label": "Déplacer l'overlay à droite",
+          "context": "Overlay visible"
+        }
+      }
+    },
+    "categories": {
+      "core-experience": {
+        "label": "Expérience principale",
+        "description": "Les outils essentiels que vous utiliserez à chaque session"
+      },
+      "ai-intelligence": {
+        "label": "Intelligence IA",
+        "description": "Des capacités IA avancées qui s'adaptent à vos besoins"
+      },
+      "automation": {
+        "label": "Automatisation",
+        "description": "Laissez l'IA travailler pour vous en temps réel"
+      },
+      "relationship-intelligence": {
+        "label": "Intelligence relationnelle",
+        "description": "Construisez des liens plus forts grâce aux données conversationnelles"
+      },
+      "power-user": {
+        "label": "Utilisateur avancé",
+        "description": "Raccourcis et paramètres pour une efficacité maximale"
+      }
+    },
+    "features": {
+      "session-recording": {
+        "title": "Enregistrement de session",
+        "subtitle": "Capturez chaque mot, identifiez chaque intervenant",
+        "description": "Transcription audio en temps réel avec détection des intervenants qui transforme toute conversation en un transcript consultable et exploitable.",
+        "whatItIs": "Un moteur de transcription en direct qui capture à la fois votre microphone et l'audio système, identifie les différents intervenants et affiche un transcript défilant en temps réel.",
+        "whatHappens": "L'audio est transcrit en temps réel grâce à une reconnaissance vocale de pointe. La diarisation distingue les participants. Le transcript défile en direct pendant que les gens parlent.",
+        "whyValuable": "Ne manquez plus aucun détail en réunion, entretien ou appel commercial. Les transcripts consultables vous permettent de retrouver exactement ce qui a été dit, tandis que les résumés et actions générés par l'IA vous font gagner des heures de prise de notes.",
+        "steps": [
+          {
+            "action": "Appuyez sur Cmd+Shift+S ou cliquez sur le bouton Enregistrer",
+            "result": "L'enregistrement démarre — le microphone et l'audio système sont capturés"
+          },
+          {
+            "action": "Parlez naturellement pendant votre conversation",
+            "result": "Le transcript en direct apparaît avec les noms des intervenants et les horodatages"
+          },
+          {
+            "action": "Appuyez à nouveau sur Cmd+Shift+S pour arrêter",
+            "result": "La session est sauvegardée avec le transcript complet, le résumé et les actions à mener"
+          },
+          {
+            "action": "Cliquez sur le transcript pour copier ou exporter",
+            "result": "Le texte complet de la conversation est copié dans le presse-papiers"
+          }
+        ],
+        "shortcuts": {
+          "cmd+shift+s": {
+            "label": "Démarrer/Arrêter l'enregistrement"
+          }
+        }
+      },
+      "ai-assistant": {
+        "title": "Assistant IA",
+        "subtitle": "Cinq types de réponses pour chaque situation",
+        "description": "Une IA contextuelle qui comprend votre conversation et fournit un coaching en temps réel à travers plusieurs modes de réponse.",
+        "whatItIs": "Un assistant IA avec cinq types de réponses spécialisés qui analyse votre transcript en direct et fournit une aide sur mesure — des réponses rapides aux récapitulatifs complets.",
+        "whatHappens": "L'IA lit votre transcript, comprend le fil de la conversation et génère une réponse adaptée au mode sélectionné. Les réponses apparaissent dans le widget overlay.",
+        "whyValuable": "Comme avoir un conseiller brillant qui vous souffle à l'oreille pendant chaque conversation. Obtenez une aide instantanée et contextuelle sans quitter votre réunion.",
+        "steps": [
+          {
+            "action": "Pendant un enregistrement, appuyez sur Cmd+Enter ou cliquez sur Assister",
+            "result": "L'IA analyse le contexte de la conversation et fournit des conseils pertinents"
+          },
+          {
+            "action": "Sélectionnez un type de réponse depuis l'overlay",
+            "result": "L'IA adapte son style de réponse à votre besoin"
+          }
+        ],
+        "shortcuts": {
+          "cmd+enter": {
+            "label": "Demander l'assistance IA"
+          }
+        },
+        "subTypes": {
+          "assist": {
+            "label": "Assister",
+            "description": "Aide polyvalente basée sur le contexte de la conversation",
+            "steps": [
+              {
+                "action": "Appuyez sur Cmd+Enter",
+                "result": "L'IA fournit des conseils contextuels basés sur l'ensemble de la conversation"
+              }
+            ]
+          },
+          "what-should-i-say": {
+            "label": "Que devrais-je dire ?",
+            "description": "Suggère exactement quoi dire ensuite",
+            "steps": [
+              {
+                "action": "Cliquez sur \"Que devrais-je dire ?\"",
+                "result": "L'IA rédige une réponse que vous pouvez utiliser telle quelle ou adapter"
+              }
+            ]
+          },
+          "follow-up": {
+            "label": "Questions de suivi",
+            "description": "Génère des questions de suivi pertinentes",
+            "steps": [
+              {
+                "action": "Cliquez sur \"Questions de suivi\"",
+                "result": "L'IA suggère 3 à 5 questions perspicaces pour approfondir la conversation"
+              }
+            ]
+          },
+          "recap": {
+            "label": "Récapitulatif",
+            "description": "Résume la conversation jusqu'ici",
+            "steps": [
+              {
+                "action": "Cliquez sur \"Récapitulatif\"",
+                "result": "L'IA fournit un résumé structuré des points clés abordés"
+              }
+            ]
+          },
+          "custom": {
+            "label": "Personnalisé",
+            "description": "Posez n'importe quelle question à l'IA sur la conversation",
+            "steps": [
+              {
+                "action": "Tapez un prompt personnalisé et appuyez sur Entrée",
+                "result": "L'IA répond à votre question spécifique avec le contexte de la conversation"
+              }
+            ]
+          }
+        }
+      },
+      "overlay-widget": {
+        "title": "Widget Overlay",
+        "subtitle": "Votre tableau de bord de coaching invisible",
+        "description": "Un widget flottant, toujours au premier plan, qui garde l'assistance IA accessible sans changer de fenêtre.",
+        "whatItIs": "Une fenêtre overlay compacte et déplaçable avec trois onglets — Assister, Temps de parole et Historique — qui flotte au-dessus de vos autres applications pendant les sessions.",
+        "whatHappens": "L'overlay fournit un affichage persistant pendant les conversations. L'onglet Assister affiche les réponses IA, Temps de parole suit l'équilibre des intervenants, et Historique conserve les réponses précédentes.",
+        "whyValuable": "Restez dans votre application de réunion tout en bénéficiant du coaching IA. Pas de changement de fenêtre, pas de perte de contexte — l'information dont vous avez besoin est toujours à portée de regard.",
+        "steps": [
+          {
+            "action": "Appuyez sur Cmd+\\ pour basculer l'overlay",
+            "result": "Le widget apparaît flottant au-dessus de votre fenêtre actuelle"
+          },
+          {
+            "action": "Faites glisser le widget pour le repositionner",
+            "result": "Le widget reste où vous le placez, toujours au premier plan"
+          },
+          {
+            "action": "Naviguez entre les onglets Assister, Temps de parole et Historique",
+            "result": "Chaque onglet affiche des informations en temps réel différentes"
+          },
+          {
+            "action": "Utilisez Cmd+Flèches pour ancrer la position",
+            "result": "Le widget se déplace vers les bords de l'écran pour un repositionnement rapide"
+          }
+        ],
+        "shortcuts": {
+          "cmd+\\": {
+            "label": "Basculer l'overlay"
+          },
+          "cmd+up": {
+            "label": "Déplacer vers le haut"
+          },
+          "cmd+down": {
+            "label": "Déplacer vers le bas"
+          },
+          "cmd+left": {
+            "label": "Déplacer à gauche"
+          },
+          "cmd+right": {
+            "label": "Déplacer à droite"
+          }
+        }
+      },
+      "smart-mode": {
+        "title": "Mode Smart",
+        "subtitle": "Raisonnement avancé pour les situations complexes",
+        "description": "Débloquez un raisonnement IA avancé qui fournit des analyses plus profondes et des réponses plus nuancées.",
+        "whatItIs": "Un commutateur qui active le raisonnement IA avancé, fournissant des réponses plus réfléchies, détaillées et stratégiquement pertinentes pendant vos conversations.",
+        "whatHappens": "L'IA utilise un moteur de raisonnement plus puissant qui prend en compte plus de contexte, considère plusieurs angles et fournit des conseils plus sophistiqués.",
+        "whyValuable": "Pour les conversations à enjeux — présentations investisseurs, négociations exécutives, entretiens techniques — le Mode Smart fournit la profondeur d'analyse qui peut faire la différence.",
+        "steps": [
+          {
+            "action": "Activez \"Mode Smart\" dans les contrôles de session",
+            "result": "L'IA passe au modèle de raisonnement avancé"
+          },
+          {
+            "action": "Continuez votre conversation normalement",
+            "result": "Les réponses deviennent plus détaillées et stratégiquement nuancées"
+          }
+        ]
+      },
+      "conversation-modes": {
+        "title": "Modes de conversation",
+        "subtitle": "Personnalité IA adaptée à votre contexte",
+        "description": "Des modes de conversation préconfigurés et personnalisés qui façonnent la manière dont l'IA répond.",
+        "whatItIs": "Un ensemble de préréglages contextuels — Défaut, Professionnel, Entretien, Vente, Examen Développeur — plus des modes personnalisés avec pièces jointes qui ajustent le comportement et le vocabulaire de l'IA.",
+        "whatHappens": "Le mode sélectionné façonne le prompt système de l'IA, ajustant la manière dont elle interprète la conversation et le type de réponses qu'elle fournit. Les pièces jointes sont intégrées comme matériel de référence.",
+        "whyValuable": "Un appel commercial nécessite un coaching différent d'un entretien technique. Les modes garantissent que l'IA parle votre langage et se concentre sur ce qui compte pour chaque situation.",
+        "steps": [
+          {
+            "action": "Ouvrez le sélecteur de Modes avant ou pendant une session",
+            "result": "Les modes disponibles sont affichés avec leurs descriptions"
+          },
+          {
+            "action": "Sélectionnez un mode préconfiguré (ex. Vente, Entretien)",
+            "result": "L'IA adapte son ton, son vocabulaire et son style de coaching"
+          },
+          {
+            "action": "Créez un mode personnalisé avec des instructions et des pièces jointes",
+            "result": "L'IA utilise vos documents comme contexte supplémentaire"
+          }
+        ]
+      },
+      "screen-capture": {
+        "title": "Capture d'écran",
+        "subtitle": "Donnez des yeux à votre IA sur votre écran",
+        "description": "Partagez le contexte visuel avec l'IA pour qu'elle voie ce que vous voyez et fournisse une assistance plus pertinente.",
+        "whatItIs": "Une fonctionnalité de capture d'écran qui envoie le contexte visuel à l'IA. Le filtrage intelligent ignore les visages en visioconférence et détecte les écrans vides.",
+        "whatHappens": "La capture d'écran est analysée par l'IA en parallèle du transcript. Le filtrage intelligent évite de capturer uniquement les visages des participants ou les écrans vides.",
+        "whyValuable": "Quand quelqu'un partage son écran en réunion, ou que vous regardez un document ensemble, l'IA peut désormais référencer ce que vous voyez tous les deux — rendant ses conseils bien plus précis.",
+        "steps": [
+          {
+            "action": "Appuyez sur Cmd+Shift+K pendant un enregistrement",
+            "result": "Une capture d'écran est prise et envoyée à l'IA"
+          },
+          {
+            "action": "L'IA analyse le contexte visuel",
+            "result": "Les réponses intègrent ce qui est visible à l'écran"
+          }
+        ],
+        "shortcuts": {
+          "cmd+shift+k": {
+            "label": "Capture d'écran"
+          }
+        }
+      },
+      "auto-answer": {
+        "title": "Réponse automatique",
+        "subtitle": "L'IA qui intervient quand vous en avez besoin",
+        "description": "Réponses IA automatiques déclenchées par le silence, les questions détectées ou les schémas d'hésitation.",
+        "whatItIs": "Une couche d'automatisation qui surveille la conversation à la recherche de signaux — un silence de 2,5 secondes, une question directe ou des schémas d'hésitation — et déclenche automatiquement une réponse IA.",
+        "whatHappens": "Le système analyse la dynamique de conversation en temps réel. Quand il détecte un silence après une question, une interrogation directe ou des schémas d'hésitation, il génère automatiquement une réponse pertinente.",
+        "whyValuable": "Fini de chercher le bouton d'assistance quand vous êtes pris au dépourvu. La réponse automatique vous assure toujours un soutien, surtout pendant les sessions de questions-réponses rapides.",
+        "steps": [
+          {
+            "action": "Activez la réponse automatique dans les paramètres de session",
+            "result": "L'IA commence à surveiller les schémas de conversation"
+          },
+          {
+            "action": "Continuez votre conversation naturellement",
+            "result": "L'IA répond automatiquement quand elle détecte que vous avez besoin d'aide"
+          },
+          {
+            "action": "Ajustez le délai de récupération et la sensibilité",
+            "result": "Affinez la fréquence et le moment où l'IA intervient"
+          }
+        ]
+      },
+      "proactive-suggestions": {
+        "title": "Suggestions proactives",
+        "subtitle": "L'IA qui anticipe avant que vous ne demandiez",
+        "description": "Intelligence conversationnelle de niveau entreprise qui détecte les objections, les questions d'expertise, l'hésitation et les opportunités de conclusion.",
+        "whatItIs": "Une couche d'analyse avancée qui identifie les moments clés — objections soulevées, expertise questionnée, schémas d'hésitation et opportunités de conclusion — et suggère proactivement des interventions opportunes.",
+        "whatHappens": "L'IA analyse en continu le ton, le contenu et les schémas de la conversation. Quand elle identifie un moment critique, elle génère une suggestion contextuelle avec des actions recommandées.",
+        "whyValuable": "Les meilleurs commerciaux et négociateurs anticipent les objections. Le mode proactif donne à chacun ce sixième sens, faisant remonter la bonne réponse au bon moment.",
+        "steps": [
+          {
+            "action": "Activez le mode proactif dans les paramètres Enterprise",
+            "result": "L'IA commence une analyse approfondie de la conversation"
+          },
+          {
+            "action": "Ajustez la sensibilité pour chaque type de détection",
+            "result": "Contrôlez quels moments déclenchent des suggestions"
+          },
+          {
+            "action": "Examinez les suggestions au fur et à mesure dans l'overlay",
+            "result": "Utilisez ou rejetez chaque suggestion selon vos besoins"
+          }
+        ]
+      },
+      "memory-palace": {
+        "title": "Memory Palace",
+        "subtitle": "Votre mini-CRM propulsé par l'IA",
+        "description": "Extraction automatique des contacts, suivi des relations et briefings pré-réunion à partir de vos conversations.",
+        "whatItIs": "Un système de gestion des contacts qui extrait automatiquement les personnes mentionnées dans vos transcripts, construit des profils relationnels avec l'historique des conversations et se synchronise entre vos appareils.",
+        "whatHappens": "Après chaque session, l'IA scanne le transcript à la recherche d'informations de contact (noms, rôles, entreprises) avec un seuil de confiance. Les contacts sont créés ou mis à jour, liés aux sessions et enrichis au fil du temps.",
+        "whyValuable": "N'arrivez plus jamais en réunion sans préparation. Memory Palace vous assure de vous souvenir de chaque détail sur les personnes avec qui vous parlez, construisant automatiquement des relations professionnelles plus solides.",
+        "steps": [
+          {
+            "action": "Enregistrez vos sessions comme d'habitude — les contacts sont extraits automatiquement",
+            "result": "De nouveaux contacts apparaissent dans votre Memory Palace avec les détails extraits"
+          },
+          {
+            "action": "Ouvrez l'onglet Contacts pour parcourir votre réseau",
+            "result": "Voyez tous vos contacts avec les dates de dernière interaction et les liens vers les sessions"
+          },
+          {
+            "action": "Ajoutez des notes à n'importe quel contact pour un contexte personnel",
+            "result": "Les notes sont synchronisées et incluses dans les futurs briefings IA"
+          },
+          {
+            "action": "Démarrez une nouvelle session — l'IA vous briefe sur les participants connus",
+            "result": "L'IA utilise les 3 dernières sessions et les notes pour chaque contact"
+          }
+        ]
+      },
+      "talk-time": {
+        "title": "Analyse du temps de parole",
+        "subtitle": "Sachez quand écouter, sachez quand parler",
+        "description": "Suivi en temps réel de l'équilibre des temps de parole pour maintenir une dynamique de conversation efficace.",
+        "whatItIs": "Un panneau d'analyse en direct dans le widget overlay qui suit les pourcentages de temps de parole pour chaque participant, avec des indicateurs de santé colorés.",
+        "whatHappens": "Les données de diarisation alimentent des calculs de pourcentage en temps réel. Les indicateurs visuels se mettent à jour en continu, montrant la part de conversation de chaque participant.",
+        "whyValuable": "Les recherches montrent que les meilleures conversations ont une participation équilibrée. Le temps de parole garantit que vous ne dominez pas ou n'êtes pas mis de côté — particulièrement crucial en vente et en entretien.",
+        "steps": [
+          {
+            "action": "Passez à l'onglet Temps de parole dans le widget overlay",
+            "result": "Les barres d'équilibre des intervenants en direct apparaissent"
+          },
+          {
+            "action": "Surveillez les indicateurs de pourcentage pendant la conversation",
+            "result": "Les couleurs indiquent l'équilibre : vert (40-60%), orange (30-70%), rouge (hors 30-70%)"
+          }
+        ]
+      },
+      "keyboard-shortcuts": {
+        "title": "Raccourcis clavier",
+        "subtitle": "Contrôlez tout sans quitter votre flow",
+        "description": "Neuf raccourcis clavier globaux qui vous permettent de contrôler Queen Mama sans changer de fenêtre ni cliquer sur des boutons.",
+        "whatItIs": "Un ensemble complet de raccourcis clavier globaux qui fonctionnent depuis n'importe quelle application, vous donnant un contrôle instantané sur l'enregistrement, l'assistance IA, le positionnement de l'overlay et la gestion du contexte.",
+        "whatHappens": "Les raccourcis sont enregistrés globalement et fonctionnent quelle que soit l'application au premier plan. Chaque raccourci déclenche son action correspondante immédiatement.",
+        "whyValuable": "La rapidité est essentielle dans les conversations en direct. Les raccourcis clavier éliminent la friction de chercher et cliquer sur des boutons, gardant votre concentration là où elle doit être — sur la conversation.",
+        "steps": [
+          {
+            "action": "Apprenez les raccourcis principaux : Cmd+Shift+S (enregistrer), Cmd+Enter (assister), Cmd+\\ (overlay)",
+            "result": "Maîtrisez les trois actions les plus utilisées"
+          },
+          {
+            "action": "Utilisez Cmd+R pour effacer le contexte en changeant de sujet",
+            "result": "L'IA repart à zéro sans confusion avec la conversation précédente"
+          },
+          {
+            "action": "Utilisez Cmd+Flèches pour repositionner l'overlay",
+            "result": "Gardez le widget visible sans bloquer votre contenu"
+          }
+        ],
+        "shortcuts": {
+          "cmd+shift+s": {
+            "label": "Démarrer/Arrêter l'enregistrement"
+          },
+          "cmd+enter": {
+            "label": "Assistance IA"
+          },
+          "cmd+\\": {
+            "label": "Basculer l'overlay"
+          },
+          "cmd+r": {
+            "label": "Effacer le contexte"
+          },
+          "cmd+up": {
+            "label": "Déplacer l'overlay vers le haut"
+          },
+          "cmd+down": {
+            "label": "Déplacer l'overlay vers le bas"
+          },
+          "cmd+left": {
+            "label": "Déplacer l'overlay à gauche"
+          },
+          "cmd+right": {
+            "label": "Déplacer l'overlay à droite"
+          },
+          "cmd+shift+k": {
+            "label": "Capture d'écran"
+          }
+        }
+      },
+      "settings-configuration": {
+        "title": "Paramètres et configuration",
+        "subtitle": "Faites de Queen Mama le vôtre",
+        "description": "Paramètres complets pour les fournisseurs IA, la configuration audio, le lancement automatique, la synchronisation et la personnalisation.",
+        "whatItIs": "Un panneau de paramètres complet couvrant la sélection du fournisseur IA (OpenAI, Anthropic, Gemini, Grok), la configuration des entrées/sorties audio, le comportement au lancement, les préférences de synchronisation cloud et la personnalisation des raccourcis clavier.",
+        "whatHappens": "Les paramètres sont appliqués immédiatement et persistent entre les sessions. Les changements de fournisseur IA prennent effet à la prochaine réponse. Les paramètres audio sont testés avec un aperçu en direct.",
+        "whyValuable": "Chaque flux de travail est différent. Les paramètres vous permettent d'adapter Queen Mama à vos outils, préférences et exigences de sécurité spécifiques — du choix du fournisseur IA au routage audio.",
+        "steps": [
+          {
+            "action": "Ouvrez les Paramètres depuis la barre de menus ou l'application",
+            "result": "Le panneau des paramètres s'ouvre avec des catégories organisées"
+          },
+          {
+            "action": "Sélectionnez votre fournisseur et modèle IA préféré",
+            "result": "Toutes les fonctionnalités IA utilisent le fournisseur choisi"
+          },
+          {
+            "action": "Configurez les entrées audio pour le microphone et l'audio système",
+            "result": "La transcription capture exactement ce dont vous avez besoin"
+          },
+          {
+            "action": "Activez la synchronisation cloud pour un accès multi-appareils",
+            "result": "Les sessions, contacts et paramètres se synchronisent automatiquement"
+          }
+        ]
+      }
+    }
+  },
+  "MemoryPalace": {
+    "hero": {
+      "badge": "Nouvelle fonctionnalité",
+      "title": "N'arrivez plus jamais en réunion <highlight>sans préparation</highlight>",
+      "description": "Memory Palace construit automatiquement votre CRM personnel à partir de vos conversations. Chaque nom, chaque rôle, chaque détail — mémorisé.",
+      "exploreFeatures": "Explorer les fonctionnalités",
+      "downloadFree": "Télécharger gratuitement",
+      "aiExtracted": "Extrait par l'IA",
+      "contactName": "Sarah Chen",
+      "contactRole": "VP Engineering @ TechCorp",
+      "contactMeta": "3 sessions  ·  Vu il y a 2 jours",
+      "contactNote": "Intéressée par l'alignement roadmap Q2..."
+    },
+    "features": {
+      "title": "Tout ce qu'il vous faut pour <highlight>vous souvenir de chacun</highlight>",
+      "description": "Memory Palace vous donne des super-pouvoirs pour gérer vos relations professionnelles, automatiquement et sans effort.",
+      "aiExtraction": {
+        "title": "Extraction de contacts par IA",
+        "description": "Noms, rôles, entreprises et emails sont automatiquement identifiés dans les transcriptions de vos conversations. Aucune saisie manuelle nécessaire."
+      },
+      "sync": {
+        "title": "Synchronisation bidirectionnelle",
+        "description": "Les contacts se synchronisent parfaitement entre votre application macOS et votre tableau de bord web. Modifiez sur un appareil, retrouvez les changements partout."
+      },
+      "notes": {
+        "title": "Notes intelligentes",
+        "description": "Les notes générées par l'IA capturent les points clés de discussion pour chaque contact. Ajoutez vos propres notes et contexte à tout moment."
+      },
+      "briefings": {
+        "title": "Briefings pré-session",
+        "description": "Avant votre prochaine réunion, recevez un briefing rapide sur vos interlocuteurs — leur rôle, leur historique et les derniers points abordés."
+      },
+      "import": {
+        "title": "Import CSV/Excel",
+        "description": "Vous avez déjà des contacts ? Importez-les depuis des fichiers CSV ou Excel pour enrichir votre Memory Palace avec vos relations existantes."
+      },
+      "intelligence": {
+        "title": "Intelligence relationnelle",
+        "description": "Suivez la fréquence des interactions, les sujets de conversation et la force de la relation. Sachez exactement où vous en êtes avec chaque contact."
+      }
+    },
+    "howItWorks": {
+      "title": "Comment ça <highlight>fonctionne</highlight>",
+      "description": "Trois étapes simples pour ne plus jamais oublier un nom, un rôle ou un détail de conversation.",
+      "step1": {
+        "title": "Ayez une conversation",
+        "description": "Démarrez une session comme d'habitude. Memory Palace travaille silencieusement en arrière-plan, écoute et analyse.",
+        "detail1": "Aucune configuration",
+        "detail2": "Fonctionne avec toute réunion",
+        "detail3": "Aucune étape supplémentaire"
+      },
+      "step2": {
+        "title": "L'IA extrait les contacts",
+        "description": "Noms, rôles, entreprises et emails sont identifiés automatiquement à partir de la transcription.",
+        "detail1": "Extraction par IA",
+        "detail2": "Support multilingue",
+        "detail3": "Haute précision"
+      },
+      "step3": {
+        "title": "Vérifiez et enrichissez",
+        "description": "Ajoutez des notes, importez des contacts existants et recevez un briefing avant votre prochaine réunion.",
+        "detail1": "Enrichissement manuel",
+        "detail2": "Import CSV/Excel",
+        "detail3": "Briefings pré-session"
+      }
+    },
+    "beforeAfter": {
+      "title": "La différence <highlight>Memory Palace</highlight>",
+      "description": "Découvrez comment la gestion de contacts par IA transforme vos relations professionnelles",
+      "without": "Sans Memory Palace",
+      "with": "Avec Memory Palace",
+      "withoutMobile": "SANS",
+      "withMobile": "AVEC MEMORY PALACE",
+      "before1": "Chercher désespérément à se souvenir de quelqu'un",
+      "after1": "Briefing pré-session instantané avec l'historique complet",
+      "before2": "Perdre le fil des suivis et des promesses",
+      "after2": "Les notes intelligentes capturent chaque engagement automatiquement",
+      "before3": "Saisir manuellement les contacts après chaque appel",
+      "after3": "L'IA extrait les contacts de vos conversations pour vous",
+      "before4": "Des notes éparpillées entre applications et carnets",
+      "after4": "Un hub de contacts unifié synchronisé partout",
+      "before5": "Oublier le rôle ou l'entreprise de quelqu'un",
+      "after5": "Des profils complets avec rôles, entreprises et contexte",
+      "before6": "Arriver en réunion à froid et sans préparation",
+      "after6": "Connaître le parcours de chacun avant de s'asseoir"
+    },
+    "cta": {
+      "title": "Commencez à construire votre <highlight>Memory Palace</highlight> aujourd'hui",
+      "subtitle1": "N'oubliez plus jamais un nom, un rôle ou un détail de conversation.",
+      "subtitle2": "Votre CRM alimenté par l'IA se construit dès votre toute première session.",
+      "downloadFree": "Télécharger gratuitement",
+      "viewPricing": "Voir les tarifs",
+      "badge1": "Essai gratuit inclus",
+      "badge2": "Aucune carte bancaire requise",
+      "badge3": "macOS uniquement (pour l'instant)"
+    }
+  },
+  "UseCases": {
+    "hero": {
+      "badge": "32+ cas d'usage dans 6 domaines",
+      "title": "Un assistant, <highlight>des scénarios infinis</highlight>",
+      "subtitleFrom": "Des",
+      "subtitleTo": "à chaque conversation décisive",
+      "typewriter1": "entretiens d'embauche",
+      "typewriter2": "appels commerciaux",
+      "typewriter3": "pitchs investisseurs",
+      "typewriter4": "réunions de direction",
+      "typewriter5": "examens de code",
+      "typewriter6": "soutenances de thèse",
+      "typewriter7": "négociations salariales",
+      "exploreButton": "Explorer les cas d'usage",
+      "tryFreeButton": "Essayer gratuitement"
+    },
+    "filters": {
+      "all": "Tous"
+    },
+    "grid": {
+      "showing": "Affichage de",
+      "useCase": "cas d'usage",
+      "useCases": "cas d'usage",
+      "in": "dans",
+      "noResults": "Aucun cas d'usage trouvé dans cette catégorie"
+    },
+    "card": {
+      "suggestion": "Suggestion QueenMama"
+    },
+    "beforeAfter": {
+      "title": "La différence <highlight>QueenMama</highlight>",
+      "subtitle": "Découvrez comment le coaching IA en temps réel transforme vos conversations décisives",
+      "without": "Sans QueenMama",
+      "with": "Avec QueenMama",
+      "withoutMobile": "SANS",
+      "withMobile": "AVEC QUEENMAMA",
+      "before1": "Stress et trous de mémoire aux moments critiques",
+      "after1": "Suggestions en temps réel quand vous en avez besoin",
+      "before2": "Oubli des points clés en pleine conversation",
+      "after2": "Rappels contextuels basés sur la discussion",
+      "before3": "Réponses improvisées et décousues",
+      "after3": "Réponses structurées (format STAR, etc.)",
+      "before4": "Notes de réunion approximatives de mémoire",
+      "after4": "Compte-rendu automatique détaillé avec horodatage",
+      "before5": "Suivis et actions manqués",
+      "after5": "Actions claires avec responsables identifiés",
+      "before6": "Douter de chaque réponse",
+      "after6": "Confiance soutenue par l'assistance IA"
+    },
+    "cta": {
+      "title": "Quelle sera votre première <highlight>conversation augmentée</highlight> ?",
+      "subtitle1": "Rejoignez des milliers de professionnels qui ne laissent plus rien au hasard.",
+      "subtitle2": "Chaque conversation est une opportunité de briller.",
+      "downloadButton": "Télécharger gratuitement",
+      "pricingButton": "Voir les tarifs",
+      "badge1": "Essai gratuit inclus",
+      "badge2": "Aucune carte bancaire requise",
+      "badge3": "macOS uniquement (pour l'instant)"
+    },
+    "categories": {
+      "career": "Carrière",
+      "sales": "Vente",
+      "meetings": "Réunions",
+      "presentations": "Présentations",
+      "education": "Éducation",
+      "personal": "Personnel"
+    },
+    "cases": {
+      "job-interview": {
+        "title": "Entretien d'embauche",
+        "description": "Réussissez les questions comportementales avec des réponses structurées STAR et une livraison assurée",
+        "suggestion": "\"Pour la question sur le leadership, mentionnez votre projet transversal : 8 ingénieurs, 6 mois, +40% d'engagement.\"",
+        "mode": "Entretien"
+      },
+      "coding-interview": {
+        "title": "Entretien technique de code",
+        "description": "Naviguez les algorithmes, la conception système et le codage en direct avec des indices en temps réel",
+        "suggestion": "\"Envisagez d'utiliser une table de hachage ici pour une recherche en O(1). Vous pourriez aussi mentionner le compromis temps-espace.\"",
+        "mode": "Examen développeur"
+      },
+      "salary-negotiation": {
+        "title": "Négociation salariale",
+        "description": "Construisez des arguments convaincants pour votre rémunération avec des données marché et le bon timing",
+        "suggestion": "\"C'est le bon moment pour mentionner les 3 offres concurrentes. Demandez 15% au-dessus de leur proposition initiale pour garder une marge de négociation.\"",
+        "mode": "Professionnel"
+      },
+      "assessment-center": {
+        "title": "Assessment Center",
+        "description": "Excellez dans les exercices de groupe et études de cas avec des contributions stratégiques",
+        "suggestion": "\"Le groupe est bloque sur la priorisation. Proposez d'utiliser une matrice impact/effort pour débloquer la situation.\"",
+        "mode": "Professionnel"
+      },
+      "performance-review": {
+        "title": "Entretien annuel",
+        "description": "Naviguez les revues annuelles avec des réalisations documentées et des demandes de promotion",
+        "suggestion": "\"Mentionnez les 3 projets que vous avez diriges ce trimestre. C'est le bon moment pour discuter du poste senior.\"",
+        "mode": "Professionnel"
+      },
+      "internal-transfer": {
+        "title": "Mobilité interne",
+        "description": "Réussissez votre transition vers un nouveau poste avec des raisons convaincantes et une préparation adéquate",
+        "suggestion": "\"Mettez en avant vos compétences transférables de l'équipe actuelle et votre intérêt sincère pour le nouveau domaine.\"",
+        "mode": "Entretien"
+      },
+      "discovery-call": {
+        "title": "Appel de découverte",
+        "description": "Qualifiez efficacement les prospects avec des questions ouvertes stratégiques",
+        "suggestion": "\"Ils ont mentionne des contraintes budgétaires. Demandez : Quel serait le coût de NE PAS résoudre ce problème dans 6 mois ?\"",
+        "mode": "Vente"
+      },
+      "product-demo": {
+        "title": "Démo produit",
+        "description": "Gérez les objections et mettez en avant les propositions de valeur qui résonnent",
+        "suggestion": "\"Ils semblent préoccupés par l'intégration. Montrez la documentation API et mentionnez le délai de mise en place de 2 semaines.\"",
+        "mode": "Vente"
+      },
+      "commercial-negotiation": {
+        "title": "Négociation commerciale",
+        "description": "Naviguez les discussions tarifaires et concluez les affaires avec confiance",
+        "suggestion": "\"Ils demandent 20% de remise. Contre-proposez avec une facturation annuelle pour 10% de réduction, préservant vos marges.\"",
+        "mode": "Vente"
+      },
+      "investor-pitch": {
+        "title": "Pitch investisseur",
+        "description": "Racontez l'histoire de votre startup avec des métriques convaincantes et une vision claire",
+        "suggestion": "\"Ils ont demande la taille du marché. Commencez par le TAM de 4,2 Mds$, puis affinez vers votre marché adressable de 800 M$.\"",
+        "mode": "Professionnel"
+      },
+      "renewal-call": {
+        "title": "Appel de renouvellement",
+        "description": "Fidélisez les clients et identifiez les opportunités d'upsell avec des récapitulatifs de valeur",
+        "suggestion": "\"Rappelez-leur les 3 victoires clés de cette année avant de discuter du renouvellement. Puis presentez l'offre entreprise.\"",
+        "mode": "Vente"
+      },
+      "closing-call": {
+        "title": "Appel de closing",
+        "description": "Surmontez les dernières objections et obtenez l'engagement avec des techniques éprouvées",
+        "suggestion": "\"Ils disent avoir besoin de reflechir. Demandez : Quelles préoccupations spécifiques vous aideraient a vous décider aujourd'hui ?\"",
+        "mode": "Vente"
+      },
+      "client-meeting": {
+        "title": "Réunion client",
+        "description": "Capturez les points clés, les actions et les suivis de manière professionnelle",
+        "suggestion": "\"Ils viennent d'accepter le planning. Résumez : Lancement au T2, synchros hebdomadaires des lundi, vous gérez l'intégration API.\"",
+        "mode": "Professionnel"
+      },
+      "board-meeting": {
+        "title": "Réunion du conseil",
+        "description": "Présentez clairement les KPIs et naviguez les décisions stratégiques avec des données",
+        "suggestion": "\"Le conseil semble préoccupé par le taux de combustion. Pivotez vers les 18 mois de trésorerie et les 3 initiatives d'accélération des revenus.\"",
+        "mode": "Professionnel"
+      },
+      "brainstorming": {
+        "title": "Session de brainstorming",
+        "description": "Facilitez l'idéation productive et synthétisez les perspectives diverses",
+        "suggestion": "\"De bonnes idées émergent mais pas de structure. Proposez de regrouper par theme : fonctionnalités produit, angles marketing, partenariats.\"",
+        "mode": "Par défaut"
+      },
+      "manager-1on1": {
+        "title": "Entretien manager 1:1",
+        "description": "Naviguez les conversations de feedback et les discussions de développement de carrière",
+        "suggestion": "\"Ils vous demandent vos objectifs de carriere. Reliez vos récentes réussites projets au parcours d'ingénieur senior.\"",
+        "mode": "Professionnel"
+      },
+      "project-standup": {
+        "title": "Standup projet",
+        "description": "Rapportez efficacement l'avancement et remontez les risques avant qu'ils ne s'aggravent",
+        "suggestion": "\"Mentionnez le blocage de dépendance API maintenant. L'equipe peut vous debloquer si elle en est informée tot.\"",
+        "mode": "Professionnel"
+      },
+      "slide-presentation": {
+        "title": "Présentation diapositives",
+        "description": "Transmettez les points clés clairement et gerez les questions avec sang-froid",
+        "suggestion": "\"Question difficile sur la méthodologie. Reconnaissez la limite, puis redirigez vers les résultats solides.\"",
+        "mode": "Professionnel"
+      },
+      "webinar-conference": {
+        "title": "Webinaire / Conférence",
+        "description": "Engagez les audiences à distance et gérez le timing des sessions en direct",
+        "suggestion": "\"10 minutes restantes, 8 slides a parcourir. Passez les slides 15-16 (contenu de réserve) et allez directement à l'étude de cas.\"",
+        "mode": "Professionnel"
+      },
+      "training-workshop": {
+        "title": "Formation / Atelier",
+        "description": "Enseignez efficacement avec des exercices interactifs et du feedback en temps réel",
+        "suggestion": "\"Le groupe semble perdu. Faites une pause pour un rapide récapitulatif avant le prochain exercice. Demandez s'il y a des questions.\"",
+        "mode": "Par défaut"
+      },
+      "elevator-pitch": {
+        "title": "Elevator Pitch",
+        "description": "Délivrez une accroche de 30 secondes percutante avec un appel a l'action clair",
+        "suggestion": "\"Concentrez-vous d'abord sur le probleme : L'anxiété en entretien coûte aux candidats qualifiés leur emploi rêvé. Puis votre solution.\"",
+        "mode": "Vente"
+      },
+      "oral-examination": {
+        "title": "Examen oral",
+        "description": "Structurez vos arguments clairement et gardez votre sang-froid sous pression",
+        "suggestion": "\"Respirez. Commencez par votre thèse, puis les 3 arguments de soutien que vous avez prepares.\"",
+        "mode": "Entretien"
+      },
+      "thesis-defense": {
+        "title": "Soutenance de thèse",
+        "description": "Défendez vos recherches avec confiance et répondez aux questions du jury avec grâce",
+        "suggestion": "\"Ils ont contesté votre méthodologie. Reconnaissez le compromis, expliquez pourquoi il était adapté à cette étude.\"",
+        "mode": "Professionnel"
+      },
+      "language-exam": {
+        "title": "Examen de langue",
+        "description": "Naviguez les épreuves de conversation avec un soutien vocabulaire et grammaire",
+        "suggestion": "\"Utilisez le conditionnel ici : Si j'avais eu plus de temps, j'aurais explore... Montre une maîtrise grammaticale.\"",
+        "mode": "Par défaut"
+      },
+      "professional-certification": {
+        "title": "Certification professionnelle",
+        "description": "Abordez les études de cas et questions theoriques avec des reponses structurees",
+        "suggestion": "\"Pour cette question PMP, utilisez le cadre des groupes de processus. Commencez par l'Initiation, puis la Planification...\"",
+        "mode": "Entretien"
+      },
+      "scholarship-interview": {
+        "title": "Entretien de bourse",
+        "description": "Articulez votre motivation et votre adéquation avec des histoires personnelles convaincantes",
+        "suggestion": "\"Reliez votre engagement communautaire à vos objectifs académiques. Montrez comment la bourse permettra votre mission.\"",
+        "mode": "Entretien"
+      },
+      "medical-appointment": {
+        "title": "Rendez-vous médical",
+        "description": "Posez les bonnes questions et comprenez clairement les options de traitement",
+        "suggestion": "\"Bon moment pour poser des questions sur les effets secondaires et le calendrier. Demandez aussi ce qui se passe si ce traitement ne fonctionne pas.\"",
+        "mode": "Par défaut"
+      },
+      "administrative-call": {
+        "title": "Appel administratif",
+        "description": "Naviguez la bureaucratie avec la connaissance de vos droits et des procédures",
+        "suggestion": "\"Ils ont dit non, mais vous avez le droit de faire remonter. Demandez un responsable ou un numéro de référence pour la décision.\"",
+        "mode": "Par défaut"
+      },
+      "language-practice": {
+        "title": "Pratique linguistique",
+        "description": "Obtenez des corrections en temps réel et des suggestions de vocabulaire pendant que vous parlez",
+        "suggestion": "\"Petite correction : Utilisez le subjonctif ici - Il est important qu'elle SOIT a l'heure, pas est.\"",
+        "mode": "Par défaut"
+      },
+      "bank-insurance-call": {
+        "title": "Appel banque / assurance",
+        "description": "Négociez les taux et comparez les options avec des contre-arguments préparés",
+        "suggestion": "\"Ils proposent 4,5% de TAEG. Mentionnez l'offre a 3,9% de l'autre banque. Demandez s'ils peuvent s'aligner.\"",
+        "mode": "Professionnel"
+      },
+      "rental-interview": {
+        "title": "Visite locative",
+        "description": "Présentez votre dossier de manière persuasive et démarquez-vous parmi les candidats",
+        "suggestion": "\"Mettez en avant vos 3 ans chez le même employeur et votre historique locatif impeccable. Proposez un mois de caution supplémentaire.\"",
+        "mode": "Professionnel"
+      },
+      "conflict-mediation": {
+        "title": "Médiation de conflit",
+        "description": "Désescaladez les tensions avec des arguments factuels et un langage de rapprochement",
+        "suggestion": "\"Pause. Reconnaissez d'abord leur frustration : Je comprends que cela a ete difficile. Puis restez factuel calmement.\"",
+        "mode": "Par défaut"
+      }
+    }
+  }
+}

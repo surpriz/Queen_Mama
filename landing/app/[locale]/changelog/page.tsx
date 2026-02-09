@@ -1,4 +1,4 @@
-import { Metadata } from "next";
+import { setRequestLocale, getTranslations } from "next-intl/server";
 import { LegalPageLayout } from "@/components/LegalPageLayout";
 import { ChangelogEntry } from "@/components/changelog/ChangelogEntry";
 import { changelogData } from "@/lib/changelog-data";
@@ -6,16 +6,24 @@ import { changelogData } from "@/lib/changelog-data";
 // Force static generation for this page
 export const dynamic = "force-static";
 
-export const metadata: Metadata = {
-  title: "Changelog - Queen Mama",
-  description: "Discover what's new in Queen Mama. Follow our journey as we continuously improve your AI coaching experience.",
-};
+export async function generateMetadata() {
+  const t = await getTranslations("Metadata.changelog");
+  return {
+    title: t("title"),
+    description: t("description"),
+  };
+}
 
-export default function ChangelogPage() {
+type Props = { params: Promise<{ locale: string }> };
+
+export default async function ChangelogPage({ params }: Props) {
+  const { locale } = await params;
+  setRequestLocale(locale);
+  const t = await getTranslations("Changelog");
   return (
     <LegalPageLayout
-      title="Changelog"
-      description="Follow Queen Mama's evolution as we build the ultimate AI coaching assistant for your meetings, interviews, and calls."
+      title={t("title")}
+      description={t("description")}
     >
       <div className="space-y-6">
         {changelogData.map((release) => (

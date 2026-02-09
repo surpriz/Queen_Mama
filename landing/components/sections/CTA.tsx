@@ -1,10 +1,13 @@
 "use client";
 
-import Link from "next/link";
+import { useTranslations } from "next-intl";
+import { Link } from "@/i18n/routing";
 import { motion } from "framer-motion";
 import { Container, GradientButton } from "@/components/ui";
 
 export function CTA() {
+  const t = useTranslations("CTA");
+
   return (
     <section className="py-24 relative overflow-hidden">
       {/* Background Effects */}
@@ -22,14 +25,14 @@ export function CTA() {
         >
           {/* Headline */}
           <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold mb-6">
-            Never Be{" "}
-            <span className="gradient-text">Caught Off-Guard</span> Again
+            {t.rich("title", {
+              highlight: (chunks) => <span className="gradient-text">{chunks}</span>,
+            })}
           </h2>
 
           {/* Subheadline */}
           <p className="text-lg sm:text-xl text-[var(--qm-text-secondary)] mb-10 max-w-2xl mx-auto">
-            Join professionals who have transformed their high-stakes conversations
-            with AI-powered real-time coaching. Download Queen Mama today.
+            {t("subtitle")}
           </p>
 
           {/* CTAs */}
@@ -49,7 +52,7 @@ export function CTA() {
                     d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
                   />
                 </svg>
-                Download for macOS
+                {t("downloadMac")}
               </GradientButton>
             </Link>
             <Link href="/windows-waitlist">
@@ -62,14 +65,14 @@ export function CTA() {
                 >
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
-                Windows Coming Soon
+                {t("windowsSoon")}
               </GradientButton>
             </Link>
           </div>
 
           {/* Trust Note */}
           <p className="text-sm text-[var(--qm-text-tertiary)]">
-            macOS 14+ required. Windows version coming soon.
+            {t("trustNote")}
           </p>
 
           {/* Stats */}
@@ -82,19 +85,19 @@ export function CTA() {
           >
             <div className="text-center">
               <p className="text-3xl font-bold gradient-text">3+</p>
-              <p className="text-sm text-[var(--qm-text-tertiary)]">AI Providers</p>
+              <p className="text-sm text-[var(--qm-text-tertiary)]">{t("statProviders")}</p>
             </div>
             <div className="text-center">
               <p className="text-3xl font-bold gradient-text">4</p>
-              <p className="text-sm text-[var(--qm-text-tertiary)]">Built-in Modes</p>
+              <p className="text-sm text-[var(--qm-text-tertiary)]">{t("statModes")}</p>
             </div>
             <div className="text-center">
               <p className="text-3xl font-bold gradient-text">100%</p>
-              <p className="text-sm text-[var(--qm-text-tertiary)]">Undetectable</p>
+              <p className="text-sm text-[var(--qm-text-tertiary)]">{t("statUndetectable")}</p>
             </div>
             <div className="text-center">
               <p className="text-3xl font-bold gradient-text">Free</p>
-              <p className="text-sm text-[var(--qm-text-tertiary)]">To Start</p>
+              <p className="text-sm text-[var(--qm-text-tertiary)]">{t("statFree")}</p>
             </div>
           </motion.div>
         </motion.div>

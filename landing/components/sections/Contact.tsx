@@ -1,10 +1,12 @@
 "use client";
 
 import { useState } from "react";
+import { useTranslations } from "next-intl";
 import { motion } from "framer-motion";
 import { Container, GlassCard, Input, Label, GradientButton } from "@/components/ui";
 
 export function Contact() {
+  const t = useTranslations("Contact");
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -37,7 +39,7 @@ export function Contact() {
       setSuccess(true);
       setFormData({ name: "", email: "", subject: "", message: "" });
     } catch {
-      setError("Something went wrong. Please try again.");
+      setError(t("errorDefault"));
     } finally {
       setIsLoading(false);
     }
@@ -55,10 +57,12 @@ export function Contact() {
           className="text-center mb-16"
         >
           <h2 className="text-3xl sm:text-4xl font-bold mb-4">
-            Get in <span className="gradient-text">Touch</span>
+            {t.rich("title", {
+              highlight: (chunks) => <span className="gradient-text">{chunks}</span>,
+            })}
           </h2>
           <p className="text-lg text-[var(--qm-text-secondary)]">
-            Have questions? We&apos;d love to hear from you.
+            {t("subtitle")}
           </p>
         </motion.div>
 
@@ -78,15 +82,15 @@ export function Contact() {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                   </svg>
                 </div>
-                <h3 className="text-xl font-semibold text-white mb-2">Message sent!</h3>
+                <h3 className="text-xl font-semibold text-white mb-2">{t("successTitle")}</h3>
                 <p className="text-[var(--qm-text-secondary)] mb-6">
-                  Thanks for reaching out. We&apos;ll get back to you soon.
+                  {t("successMessage")}
                 </p>
                 <button
                   onClick={() => setSuccess(false)}
                   className="text-[var(--qm-accent)] hover:text-[var(--qm-accent-light)] transition-colors"
                 >
-                  Send another message
+                  {t("sendAnother")}
                 </button>
               </div>
             ) : (
@@ -100,12 +104,12 @@ export function Contact() {
                 <div className="grid sm:grid-cols-2 gap-5">
                   <div>
                     <Label htmlFor="name" required>
-                      Name
+                      {t("nameLabel")}
                     </Label>
                     <Input
                       id="name"
                       type="text"
-                      placeholder="John Doe"
+                      placeholder={t("namePlaceholder")}
                       value={formData.name}
                       onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                       disabled={isLoading}
@@ -115,12 +119,12 @@ export function Contact() {
 
                   <div>
                     <Label htmlFor="email" required>
-                      Email
+                      {t("emailLabel")}
                     </Label>
                     <Input
                       id="email"
                       type="email"
-                      placeholder="you@example.com"
+                      placeholder={t("emailPlaceholder")}
                       value={formData.email}
                       onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                       disabled={isLoading}
@@ -131,12 +135,12 @@ export function Contact() {
 
                 <div>
                   <Label htmlFor="subject" required>
-                    Subject
+                    {t("subjectLabel")}
                   </Label>
                   <Input
                     id="subject"
                     type="text"
-                    placeholder="How can we help?"
+                    placeholder={t("subjectPlaceholder")}
                     value={formData.subject}
                     onChange={(e) => setFormData({ ...formData, subject: e.target.value })}
                     disabled={isLoading}
@@ -146,12 +150,12 @@ export function Contact() {
 
                 <div>
                   <Label htmlFor="message" required>
-                    Message
+                    {t("messageLabel")}
                   </Label>
                   <textarea
                     id="message"
                     rows={6}
-                    placeholder="Tell us more about your question or feedback..."
+                    placeholder={t("messagePlaceholder")}
                     value={formData.message}
                     onChange={(e) => setFormData({ ...formData, message: e.target.value })}
                     disabled={isLoading}
@@ -167,14 +171,14 @@ export function Contact() {
                         <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                         <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
                       </svg>
-                      Sending...
+                      {t("sending")}
                     </>
                   ) : (
                     <>
                       <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
                       </svg>
-                      Send Message
+                      {t("sendMessage")}
                     </>
                   )}
                 </GradientButton>

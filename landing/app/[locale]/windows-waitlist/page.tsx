@@ -1,11 +1,13 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
+import { Link } from "@/i18n/routing";
 import { motion } from "framer-motion";
 import { Container, GradientButton, Input, Label } from "@/components/ui";
+import { useTranslations } from "next-intl";
 
 export default function WindowsWaitlistPage() {
+  const t = useTranslations("WindowsWaitlist");
   const [email, setEmail] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -32,7 +34,7 @@ export default function WindowsWaitlistPage() {
 
       setSuccess(true);
     } catch {
-      setError("Something went wrong. Please try again.");
+      setError(t("errorDefault"));
     } finally {
       setIsLoading(false);
     }
@@ -61,10 +63,12 @@ export default function WindowsWaitlistPage() {
           </div>
 
           <h1 className="text-3xl sm:text-4xl font-bold mb-4">
-            Queen Mama for <span className="gradient-text">Windows</span>
+            {t.rich("title", {
+              highlight: (chunks) => <span className="gradient-text">{chunks}</span>,
+            })}
           </h1>
           <p className="text-lg text-[var(--qm-text-secondary)] max-w-md mx-auto">
-            We&apos;re working hard to bring Queen Mama to Windows. Join the waitlist to be the first to know when it&apos;s ready.
+            {t("subtitle")}
           </p>
         </motion.div>
 
@@ -81,12 +85,12 @@ export default function WindowsWaitlistPage() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                 </svg>
               </div>
-              <h2 className="text-xl font-semibold text-white mb-2">You&apos;re on the list!</h2>
+              <h2 className="text-xl font-semibold text-white mb-2">{t("successTitle")}</h2>
               <p className="text-[var(--qm-text-secondary)] mb-6">
-                We&apos;ll notify you at <span className="text-white font-medium">{email}</span> as soon as Queen Mama for Windows is available.
+                {t("successMessage", { email })}
               </p>
               <Link href="/" className="text-[var(--qm-accent)] hover:text-[var(--qm-accent-light)] transition-colors">
-                Back to home
+                {t("backToHome")}
               </Link>
             </div>
           ) : (
@@ -99,7 +103,7 @@ export default function WindowsWaitlistPage() {
 
               <div>
                 <Label htmlFor="email" required>
-                  Email address
+                  {t("emailLabel")}
                 </Label>
                 <Input
                   id="email"
@@ -113,11 +117,11 @@ export default function WindowsWaitlistPage() {
               </div>
 
               <GradientButton type="submit" className="w-full" disabled={isLoading}>
-                {isLoading ? "Joining..." : "Join the Waitlist"}
+                {isLoading ? t("joining") : t("joinWaitlist")}
               </GradientButton>
 
               <p className="text-xs text-[var(--qm-text-tertiary)] text-center">
-                We&apos;ll only email you when Windows support is ready. No spam, ever.
+                {t("noSpam")}
               </p>
             </form>
           )}
@@ -130,9 +134,9 @@ export default function WindowsWaitlistPage() {
           className="mt-8 text-center"
         >
           <p className="text-[var(--qm-text-tertiary)]">
-            Already on macOS?{" "}
+            {t("alreadyOnMac")}{" "}
             <Link href="/download" className="text-[var(--qm-accent)] hover:text-[var(--qm-accent-light)] transition-colors">
-              Download now
+              {t("downloadNow")}
             </Link>
           </p>
         </motion.div>

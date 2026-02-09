@@ -1,12 +1,15 @@
-import { Metadata } from "next";
 import Link from "next/link";
 import { headers } from "next/headers";
+import { setRequestLocale, getTranslations } from "next-intl/server";
+import { getLocale } from "next-intl/server";
 
-export const metadata: Metadata = {
-  title: "Download Queen Mama for macOS",
-  description:
-    "Download Queen Mama - Your AI coaching assistant for high-stakes conversations. Requires macOS 14.2+",
-};
+export async function generateMetadata() {
+  const t = await getTranslations("Metadata.download");
+  return {
+    title: t("title"),
+    description: t("description"),
+  };
+}
 
 interface GitHubRelease {
   tag_name: string;
@@ -80,15 +83,23 @@ function formatFileSize(bytes: number): string {
   return `${mb.toFixed(1)} MB`;
 }
 
-function formatDate(dateString: string): string {
-  return new Date(dateString).toLocaleDateString("en-US", {
+async function formatDate(dateString: string): Promise<string> {
+  const locale = await getLocale();
+  return new Date(dateString).toLocaleDateString(locale === "fr" ? "fr-FR" : "en-US", {
     year: "numeric",
     month: "long",
     day: "numeric",
   });
 }
 
-export default async function DownloadPage() {
+type Props = {
+  params: Promise<{ locale: string }>;
+};
+
+export default async function DownloadPage({ params }: Props) {
+  const { locale } = await params;
+  setRequestLocale(locale);
+  const t = await getTranslations("Download");
   const staging = await isStaging();
   const release = await getRelease(staging);
   const dmgAsset = release?.assets?.find((a) => a.name.endsWith(".dmg"));
@@ -148,11 +159,10 @@ export default async function DownloadPage() {
 
           {/* Title */}
           <h1 className="text-5xl font-bold text-white mb-4">
-            Download Queen Mama
+            {t("title")}
           </h1>
           <p className="text-xl text-gray-400 mb-12 max-w-2xl mx-auto">
-            Your AI-powered secret weapon for interviews, sales calls, and
-            high-stakes meetings. Completely undetectable on video calls.
+            {t("subtitle")}
           </p>
 
           {/* Download Button */}
@@ -179,7 +189,7 @@ export default async function DownloadPage() {
                     d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
                   />
                 </svg>
-                {release?.prerelease ? "Download Beta" : "Download for macOS"}
+                {release?.prerelease ? t("downloadBeta") : t("downloadForMac")}
               </a>
               <div className="mt-4 flex items-center justify-center gap-4 text-sm text-gray-500">
                 <span className={release?.prerelease ? "text-yellow-500" : ""}>
@@ -198,9 +208,9 @@ export default async function DownloadPage() {
             </div>
           ) : (
             <div className="mb-12 p-8 bg-white/5 rounded-2xl border border-white/10">
-              <div className="text-gray-400 mb-2">Coming Soon</div>
+              <div className="text-gray-400 mb-2">{t("comingSoon")}</div>
               <p className="text-gray-500 text-sm">
-                The first release is being prepared. Check back soon!
+                {t("comingSoonSub")}
               </p>
             </div>
           )}
@@ -209,33 +219,33 @@ export default async function DownloadPage() {
           <div className="grid md:grid-cols-3 gap-6 mb-16">
             <div className="p-6 bg-white/5 rounded-xl border border-white/10">
               <div className="text-2xl mb-2">🖥️</div>
-              <h3 className="text-white font-semibold mb-1">macOS 14.2+</h3>
-              <p className="text-gray-500 text-sm">Sonoma or later required</p>
+              <h3 className="text-white font-semibold mb-1">{t("sysReqMacOS")}</h3>
+              <p className="text-gray-500 text-sm">{t("sysReqMacOSSub")}</p>
             </div>
             <div className="p-6 bg-white/5 rounded-xl border border-white/10">
               <div className="text-2xl mb-2">⚡</div>
-              <h3 className="text-white font-semibold mb-1">Apple Silicon</h3>
-              <p className="text-gray-500 text-sm">M1, M2, M3 & Intel supported</p>
+              <h3 className="text-white font-semibold mb-1">{t("sysReqChip")}</h3>
+              <p className="text-gray-500 text-sm">{t("sysReqChipSub")}</p>
             </div>
             <div className="p-6 bg-white/5 rounded-xl border border-white/10">
               <div className="text-2xl mb-2">🔒</div>
-              <h3 className="text-white font-semibold mb-1">Signed & Notarized</h3>
-              <p className="text-gray-500 text-sm">Verified by Apple</p>
+              <h3 className="text-white font-semibold mb-1">{t("sysReqSigned")}</h3>
+              <p className="text-gray-500 text-sm">{t("sysReqSignedSub")}</p>
             </div>
           </div>
 
           {/* Installation Instructions */}
           <div className="text-left max-w-2xl mx-auto mb-16">
-            <h2 className="text-2xl font-bold text-white mb-6">Installation</h2>
+            <h2 className="text-2xl font-bold text-white mb-6">{t("installation")}</h2>
             <ol className="space-y-4">
               <li className="flex gap-4">
                 <span className="flex-shrink-0 w-8 h-8 bg-purple-600 rounded-full flex items-center justify-center text-white font-bold">
                   1
                 </span>
                 <div>
-                  <h3 className="text-white font-medium">Download the DMG</h3>
+                  <h3 className="text-white font-medium">{t("installStep1")}</h3>
                   <p className="text-gray-500 text-sm">
-                    Click the download button above
+                    {t("installStep1Sub")}
                   </p>
                 </div>
               </li>
@@ -244,9 +254,9 @@ export default async function DownloadPage() {
                   2
                 </span>
                 <div>
-                  <h3 className="text-white font-medium">Open the DMG file</h3>
+                  <h3 className="text-white font-medium">{t("installStep2")}</h3>
                   <p className="text-gray-500 text-sm">
-                    Double-click the downloaded file
+                    {t("installStep2Sub")}
                   </p>
                 </div>
               </li>
@@ -256,10 +266,10 @@ export default async function DownloadPage() {
                 </span>
                 <div>
                   <h3 className="text-white font-medium">
-                    Drag to Applications
+                    {t("installStep3")}
                   </h3>
                   <p className="text-gray-500 text-sm">
-                    Drag Queen Mama to your Applications folder
+                    {t("installStep3Sub")}
                   </p>
                 </div>
               </li>
@@ -268,9 +278,9 @@ export default async function DownloadPage() {
                   4
                 </span>
                 <div>
-                  <h3 className="text-white font-medium">Grant permissions</h3>
+                  <h3 className="text-white font-medium">{t("installStep4")}</h3>
                   <p className="text-gray-500 text-sm">
-                    Allow microphone and screen recording when prompted
+                    {t("installStep4Sub")}
                   </p>
                 </div>
               </li>
@@ -279,15 +289,15 @@ export default async function DownloadPage() {
 
           {/* Features Preview */}
           <div className="text-left max-w-2xl mx-auto">
-            <h2 className="text-2xl font-bold text-white mb-6">What&apos;s Included</h2>
+            <h2 className="text-2xl font-bold text-white mb-6">{t("whatsIncluded")}</h2>
             <ul className="space-y-3">
               {[
-                "Real-time transcription with Deepgram Nova-3",
-                "AI coaching from GPT-4, Claude, or Gemini",
-                "Invisible overlay - undetectable on Zoom, Meet, Teams",
-                "Smart mode suggestions based on context",
-                "Session recording and cloud sync (PRO)",
-                "Automatic updates via Sparkle",
+                t("feature1"),
+                t("feature2"),
+                t("feature3"),
+                t("feature4"),
+                t("feature5"),
+                t("feature6"),
               ].map((feature, i) => (
                 <li key={i} className="flex items-center gap-3 text-gray-300">
                   <svg
@@ -317,10 +327,10 @@ export default async function DownloadPage() {
           <p>© 2026 Queen Mama. All rights reserved.</p>
           <div className="flex gap-6">
             <Link href="/privacy" className="hover:text-white transition-colors">
-              Privacy Policy
+              {t("privacyPolicy")}
             </Link>
             <Link href="/terms" className="hover:text-white transition-colors">
-              Terms of Service
+              {t("termsOfService")}
             </Link>
           </div>
         </div>

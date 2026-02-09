@@ -1,15 +1,23 @@
-import { Metadata } from "next";
+import { setRequestLocale, getTranslations } from "next-intl/server";
 import { LegalPageLayout } from "@/components/LegalPageLayout";
+import { Link } from "@/i18n/routing";
 
 // Force static generation for this page
 export const dynamic = "force-static";
 
-export const metadata: Metadata = {
-  title: "Privacy Policy - Queen Mama",
-  description: "Privacy Policy for Queen Mama - Learn how we handle your data.",
-};
+export async function generateMetadata() {
+  const t = await getTranslations("Metadata.privacy");
+  return {
+    title: t("title"),
+    description: t("description"),
+  };
+}
 
-export default function PrivacyPolicyPage() {
+type Props = { params: Promise<{ locale: string }> };
+
+export default async function PrivacyPolicyPage({ params }: Props) {
+  const { locale } = await params;
+  setRequestLocale(locale);
   return (
     <LegalPageLayout
       title="Privacy Policy"
@@ -187,12 +195,12 @@ export default function PrivacyPolicyPage() {
           </ul>
           <p>
             For a complete list of our subprocessors, please visit our{" "}
-            <a
+            <Link
               href="/subprocessors"
               className="text-[var(--qm-accent)] hover:underline"
             >
               Subprocessors page
-            </a>
+            </Link>
             .
           </p>
         </section>

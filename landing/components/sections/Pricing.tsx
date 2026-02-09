@@ -1,64 +1,67 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Container, GlassCard, GradientButton, Badge } from "@/components/ui";
-
-const plans = [
-  {
-    name: "Free",
-    price: "$0",
-    period: "forever",
-    description: "Try Queen Mama with basic features",
-    features: [
-      { text: "1 AI request per day", included: true },
-      { text: "Live transcription", included: true },
-      { text: "4 built-in AI modes", included: true },
-      { text: "Standard AI models", included: true },
-      { text: "Screenshot capture", included: false },
-      { text: "Custom modes", included: false },
-      { text: "Session cloud sync", included: false },
-      { text: "Priority support", included: false },
-    ],
-    cta: "Download Free",
-    popular: false,
-  },
-  {
-    name: "Pro",
-    price: "$19",
-    period: "/month",
-    description: "For professionals who want more",
-    features: [
-      { text: "Everything in Free", included: true },
-      { text: "Unlimited AI requests", included: true },
-      { text: "Custom AI modes", included: true },
-      { text: "Session cloud sync", included: true },
-      { text: "All export formats", included: true },
-      { text: "Priority support", included: true },
-      { text: "Smart Mode", included: false },
-      { text: "Undetectable overlay", included: false },
-    ],
-    cta: "Get Pro",
-    popular: true,
-  },
-  {
-    name: "Enterprise",
-    price: "$49",
-    period: "/month",
-    description: "For power users and teams",
-    features: [
-      { text: "Everything in Pro", included: true },
-      { text: "Smart Mode (premium AI)", included: true },
-      { text: "Undetectable overlay mode", included: true },
-      { text: "Auto-Answer feature", included: true },
-      { text: "Extended transcript storage", included: true },
-      { text: "Dedicated support", included: true },
-    ],
-    cta: "Get Enterprise",
-    popular: false,
-  },
-];
+import { useTranslations } from "next-intl";
+import { Container, GlassCard, GradientButton } from "@/components/ui";
 
 export function Pricing() {
+  const t = useTranslations("Pricing");
+
+  const plans = [
+    {
+      name: t("free.name"),
+      price: t("free.price"),
+      period: t("free.period"),
+      description: t("free.description"),
+      features: [
+        { text: t("free.feature1"), included: true },
+        { text: t("free.feature2"), included: true },
+        { text: t("free.feature3"), included: true },
+        { text: t("free.feature4"), included: true },
+        { text: t("free.feature5"), included: false },
+        { text: t("free.feature6"), included: false },
+        { text: t("free.feature7"), included: false },
+        { text: t("free.feature8"), included: false },
+      ],
+      cta: t("free.cta"),
+      popular: false,
+    },
+    {
+      name: t("pro.name"),
+      price: t("pro.price"),
+      period: t("pro.period"),
+      description: t("pro.description"),
+      features: [
+        { text: t("pro.feature1"), included: true },
+        { text: t("pro.feature2"), included: true },
+        { text: t("pro.feature3"), included: true },
+        { text: t("pro.feature4"), included: true },
+        { text: t("pro.feature5"), included: true },
+        { text: t("pro.feature6"), included: true },
+        { text: t("pro.feature7"), included: false },
+        { text: t("pro.feature8"), included: false },
+      ],
+      cta: t("pro.cta"),
+      popular: true,
+    },
+    {
+      name: t("enterprise.name"),
+      price: t("enterprise.price"),
+      period: t("enterprise.period"),
+      description: t("enterprise.description"),
+      features: [
+        { text: t("enterprise.feature1"), included: true },
+        { text: t("enterprise.feature2"), included: true },
+        { text: t("enterprise.feature3"), included: true },
+        { text: t("enterprise.feature4"), included: true },
+        { text: t("enterprise.feature5"), included: true },
+        { text: t("enterprise.feature6"), included: true },
+      ],
+      cta: t("enterprise.cta"),
+      popular: false,
+    },
+  ];
+
   return (
     <section id="pricing" className="py-24 relative bg-[var(--qm-bg-secondary)]">
       <Container>
@@ -71,11 +74,12 @@ export function Pricing() {
           className="text-center mb-16"
         >
           <h2 className="text-3xl sm:text-4xl font-bold mb-4">
-            Simple, <span className="gradient-text">Transparent</span> Pricing
+            {t.rich("title", {
+              highlight: (chunks) => <span className="gradient-text">{chunks}</span>,
+            })}
           </h2>
           <p className="text-lg text-[var(--qm-text-secondary)] max-w-2xl mx-auto">
-            Start free and upgrade when you&apos;re ready. Unlock premium features
-            instantly with our paid plans.
+            {t("subtitle")}
           </p>
         </motion.div>
 
@@ -102,7 +106,7 @@ export function Pricing() {
                 {plan.popular && (
                   <div className="absolute top-0 right-0">
                     <div className="gradient-bg text-white text-xs font-medium px-4 py-1 rounded-bl-lg">
-                      Most Popular
+                      {t("mostPopular")}
                     </div>
                   </div>
                 )}
@@ -197,10 +201,10 @@ export function Pricing() {
         >
           <div className="flex items-center justify-center gap-2 text-sm text-[var(--qm-text-secondary)]">
             <span className="text-xl">🇪🇺</span>
-            <span>Data stored securely in Europe (GDPR compliant)</span>
+            <span>{t("gdpr")}</span>
           </div>
           <p className="text-sm text-[var(--qm-text-tertiary)]">
-            Cancel anytime. No questions asked.
+            {t("cancelAnytime")}
           </p>
         </motion.div>
       </Container>

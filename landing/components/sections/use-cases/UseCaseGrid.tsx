@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { motion, AnimatePresence } from "framer-motion";
 import { Container } from "@/components/ui";
 import { UseCaseCard } from "./UseCaseCard";
@@ -10,6 +11,8 @@ interface UseCaseGridProps {
 }
 
 export function UseCaseGrid({ selectedCategory }: UseCaseGridProps) {
+  const t = useTranslations("UseCases");
+
   const filteredUseCases =
     selectedCategory === "all"
       ? useCases
@@ -26,17 +29,17 @@ export function UseCaseGrid({ selectedCategory }: UseCaseGridProps) {
           className="text-center mb-8"
         >
           <p className="text-sm text-[var(--qm-text-tertiary)]">
-            Showing{" "}
+            {t("grid.showing")}{" "}
             <span className="text-white font-medium">
               {filteredUseCases.length}
             </span>{" "}
-            use case{filteredUseCases.length !== 1 ? "s" : ""}
+            {filteredUseCases.length !== 1 ? t("grid.useCases") : t("grid.useCase")}
             {selectedCategory !== "all" && (
               <>
                 {" "}
-                in{" "}
+                {t("grid.in")}{" "}
                 <span className="text-white font-medium capitalize">
-                  {selectedCategory}
+                  {t(`categories.${selectedCategory}`)}
                 </span>
               </>
             )}
@@ -82,7 +85,7 @@ export function UseCaseGrid({ selectedCategory }: UseCaseGridProps) {
               </svg>
             </div>
             <p className="text-[var(--qm-text-secondary)]">
-              No use cases found in this category
+              {t("grid.noResults")}
             </p>
           </motion.div>
         )}

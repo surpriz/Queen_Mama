@@ -19,7 +19,8 @@ struct LiveSessionView: View {
                     // Left: Live Transcript
                     ModernLiveTranscriptPanel(
                         transcript: appState.currentTranscript,
-                        interimText: appState.transcriptionService.interimTranscript
+                        interimText: appState.transcriptionService.interimTranscript,
+                        transcriptionService: appState.transcriptionService
                     )
 
                     // Right: AI Responses
@@ -39,6 +40,7 @@ struct LiveSessionView: View {
 struct ModernLiveTranscriptPanel: View {
     let transcript: String
     let interimText: String
+    @ObservedObject var transcriptionService: TranscriptionService
 
     @State private var autoScroll = true
     @State private var isHeaderHovered = false
@@ -79,6 +81,15 @@ struct ModernLiveTranscriptPanel: View {
                         .controlSize(.small)
                         .tint(QMDesign.Colors.accent)
                 }
+
+                // Connection status banner
+                TranscriptionConnectionBanner(
+                    transcriptionService: transcriptionService,
+                    onRetry: {
+                        transcriptionService.resetReconnectionBudget()
+                        Task { try? await transcriptionService.connect() }
+                    }
+                )
 
                 // Copy button
                 Button(action: copyTranscript) {

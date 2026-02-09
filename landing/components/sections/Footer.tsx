@@ -1,30 +1,37 @@
-import Link from "next/link";
-import { Container } from "@/components/ui";
+"use client";
 
-const footerLinks = {
-  product: [
-    { label: "Features", href: "/#features" },
-    { label: "Use Cases", href: "/use-cases" },
-    { label: "Pricing", href: "/#pricing" },
-    { label: "FAQ", href: "/#faq" },
-    { label: "Changelog", href: "/changelog" },
-    { label: "Download", href: "/download" },
-    { label: "Manifesto", href: "/manifesto" },
-  ],
-  resources: [
-    { label: "Windows Waitlist", href: "/windows-waitlist" },
-    { label: "Contact", href: "/#contact" },
-    { label: "Feedback", href: "https://queenmama.featurebase.app", external: true },
-    { label: "Subprocessors", href: "/subprocessors" },
-  ],
-  legal: [
-    { label: "Privacy Policy", href: "/privacy" },
-    { label: "Terms of Service", href: "/terms" },
-    { label: "DPA", href: "/dpa" },
-  ],
-};
+import { Link } from "@/i18n/routing";
+import { Container } from "@/components/ui";
+import { useTranslations } from "next-intl";
 
 export function Footer() {
+  const t = useTranslations("Footer");
+
+  const footerLinks = {
+    product: [
+      { label: t("features"), href: "/#features" },
+      { label: t("useCases"), href: "/use-cases" },
+      { label: t("memoryPalace"), href: "/memory-palace" },
+      { label: t("pricing"), href: "/#pricing" },
+      { label: t("faq"), href: "/#faq" },
+      { label: t("changelog"), href: "/changelog" },
+      { label: t("download"), href: "/download" },
+      { label: t("manifesto"), href: "/manifesto" },
+    ],
+    resources: [
+      { label: t("featuresGuide"), href: "/features-guide" },
+      { label: t("windowsWaitlist"), href: "/windows-waitlist" },
+      { label: t("contact"), href: "/#contact" },
+      { label: t("feedback"), href: "https://queenmama.featurebase.app", external: true },
+      { label: t("subprocessors"), href: "/subprocessors" },
+    ],
+    legal: [
+      { label: t("privacyPolicy"), href: "/privacy" },
+      { label: t("termsOfService"), href: "/terms" },
+      { label: t("dpa"), href: "/dpa" },
+    ],
+  };
+
   return (
     <footer className="py-16 bg-[var(--qm-bg-secondary)] border-t border-[var(--qm-border-subtle)]">
       <Container>
@@ -50,7 +57,7 @@ export function Footer() {
               <span className="text-lg font-bold gradient-text">Queen Mama</span>
             </Link>
             <p className="text-sm text-[var(--qm-text-tertiary)] mb-4">
-              AI-powered real-time coaching for high-stakes conversations.
+              {t("tagline")}
             </p>
             {/* Social Links */}
             <div className="flex gap-4">
@@ -86,49 +93,59 @@ export function Footer() {
 
           {/* Links */}
           <div>
-            <h4 className="text-sm font-semibold text-white mb-4">Product</h4>
+            <h4 className="text-sm font-semibold text-white mb-4">{t("product")}</h4>
             <ul className="space-y-3">
               {footerLinks.product.map((link) => (
                 <li key={link.label}>
-                  <a
+                  <Link
                     href={link.href}
                     className="text-sm text-[var(--qm-text-tertiary)] hover:text-white transition-colors"
                   >
                     {link.label}
-                  </a>
+                  </Link>
                 </li>
               ))}
             </ul>
           </div>
 
           <div>
-            <h4 className="text-sm font-semibold text-white mb-4">Resources</h4>
+            <h4 className="text-sm font-semibold text-white mb-4">{t("resources")}</h4>
             <ul className="space-y-3">
               {footerLinks.resources.map((link) => (
                 <li key={link.label}>
-                  <a
-                    href={link.href}
-                    {...('external' in link && link.external ? { target: "_blank", rel: "noopener noreferrer" } : {})}
-                    className="text-sm text-[var(--qm-text-tertiary)] hover:text-white transition-colors"
-                  >
-                    {link.label}
-                  </a>
+                  {'external' in link && link.external ? (
+                    <a
+                      href={link.href}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-sm text-[var(--qm-text-tertiary)] hover:text-white transition-colors"
+                    >
+                      {link.label}
+                    </a>
+                  ) : (
+                    <Link
+                      href={link.href}
+                      className="text-sm text-[var(--qm-text-tertiary)] hover:text-white transition-colors"
+                    >
+                      {link.label}
+                    </Link>
+                  )}
                 </li>
               ))}
             </ul>
           </div>
 
           <div>
-            <h4 className="text-sm font-semibold text-white mb-4">Legal</h4>
+            <h4 className="text-sm font-semibold text-white mb-4">{t("legal")}</h4>
             <ul className="space-y-3">
               {footerLinks.legal.map((link) => (
                 <li key={link.label}>
-                  <a
+                  <Link
                     href={link.href}
                     className="text-sm text-[var(--qm-text-tertiary)] hover:text-white transition-colors"
                   >
                     {link.label}
-                  </a>
+                  </Link>
                 </li>
               ))}
             </ul>
@@ -138,12 +155,12 @@ export function Footer() {
         {/* Bottom */}
         <div className="pt-8 border-t border-[var(--qm-border-subtle)] flex flex-col sm:flex-row justify-between items-center gap-4">
           <p className="text-sm text-[var(--qm-text-tertiary)]">
-            &copy; {new Date().getFullYear()} Queen Mama. All rights reserved.
+            {t("copyright", { year: new Date().getFullYear() })}
           </p>
           <p className="text-sm text-[var(--qm-text-tertiary)]">
-            Made with{" "}
-            <span className="text-[var(--qm-error)]">&hearts;</span> for
-            professionals
+            {t.rich("madeWith", {
+              heart: () => <span className="text-[var(--qm-error)]">&hearts;</span>,
+            })}
           </p>
         </div>
       </Container>
