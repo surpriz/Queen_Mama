@@ -54,6 +54,7 @@ struct OverlayContentView: View {
                 isSessionActive: appState.isSessionActive,
                 isFinalizingSession: appState.isFinalizingSession,
                 detectedMoment: appState.autoAnswerService.lastDetectedMoment,
+                transcriptionService: appState.transcriptionService,
                 enableScreenCapture: $enableScreenCapture,
                 isAutoAnswerEnabled: isAutoAnswerEnabled,
                 isSmartModeEnabled: isSmartModeEnabled,
@@ -384,6 +385,7 @@ struct ModernPillHeaderView: View {
     let isSessionActive: Bool
     let isFinalizingSession: Bool
     let detectedMoment: MomentDetectionService.DetectedMoment?
+    @ObservedObject var transcriptionService: TranscriptionService
     @Binding var enableScreenCapture: Bool
     @Binding var isAutoAnswerEnabled: Bool
     @Binding var isSmartModeEnabled: Bool
@@ -505,6 +507,17 @@ struct ModernPillHeaderView: View {
             .help(isExpanded ? "Collapse panel" : "Expand AI assistant")
             .popover(isPresented: $showExpandPreview, arrowEdge: .bottom) {
                 ExpandPreviewView()
+            }
+
+            // Connection Status Banner (shown during reconnection or failure)
+            if isSessionActive {
+                TranscriptionConnectionBanner(
+                    transcriptionService: transcriptionService,
+                    onRetry: {
+                        transcriptionService.resetReconnectionBudget()
+                        Task { try? await transcriptionService.connect() }
+                    }
+                )
             }
 
             Spacer()
@@ -1729,6 +1742,63 @@ struct DisplaySelectionToast: View {
             RoundedRectangle(cornerRadius: QMDesign.Radius.lg)
                 .stroke(QMDesign.Colors.success.opacity(0.3), lineWidth: 1)
         )
+    }
+}
+
+// MARK: - Transcription Connection Banner
+
+struct TranscriptionConnectionBanner: View {
+    @ObservedObject var transcriptionService: TranscriptionService
+    let onRetry: () -> Void
+
+    var body: some View {
+        switch transcriptionService.connectionState {
+        case .reconnecting(let attempt, let maxAttempts):
+            HStack(spacing: QMDesign.Spacing.xs) {
+                ProgressView()
+                    .scaleEffect(0.6)
+                    .frame(width: 14, height: 14)
+                Text("Reconnecting (\(attempt)/\(maxAttempts))...")
+                    .font(QMDesign.Typography.captionSmall)
+            }
+            .foregroundColor(QMDesign.Colors.warning)
+            .padding(.horizontal, QMDesign.Spacing.sm)
+            .padding(.vertical, 4)
+            .background(
+                Capsule()
+                    .fill(QMDesign.Colors.warningLight)
+            )
+
+        case .failed:
+            HStack(spacing: QMDesign.Spacing.xs) {
+                Image(systemName: "exclamationmark.triangle.fill")
+                    .font(.system(size: 10))
+                Text("Transcription lost")
+                    .font(QMDesign.Typography.captionSmall)
+                Button(action: onRetry) {
+                    Text("Retry")
+                        .font(QMDesign.Typography.captionSmall)
+                        .fontWeight(.semibold)
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 2)
+                        .background(
+                            Capsule()
+                                .fill(QMDesign.Colors.error.opacity(0.3))
+                        )
+                }
+                .buttonStyle(.plain)
+            }
+            .foregroundColor(QMDesign.Colors.error)
+            .padding(.horizontal, QMDesign.Spacing.sm)
+            .padding(.vertical, 4)
+            .background(
+                Capsule()
+                    .fill(QMDesign.Colors.errorLight)
+            )
+
+        default:
+            EmptyView()
+        }
     }
 }
 

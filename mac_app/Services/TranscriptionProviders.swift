@@ -69,6 +69,9 @@ final class DeepgramProvider: TranscriptionProvider {
     private var audioBytesSent = 0
     private var currentToken: TranscriptionToken?
     private var tokenRefreshTask: Task<Void, Never>?
+    private var isRefreshingToken = false
+    private var consecutiveKeepaliveFailures = 0
+    private let maxConsecutiveKeepaliveFailures = 3
 
     // Deepgram configuration
     private let baseURL = "wss://api.deepgram.com/v1/listen"
@@ -147,6 +150,7 @@ final class DeepgramProvider: TranscriptionProvider {
 
         isConnected = true
         audioBytesSent = 0
+        consecutiveKeepaliveFailures = 0
 
         print("[Deepgram] WebSocket connected successfully!")
 
@@ -173,8 +177,17 @@ final class DeepgramProvider: TranscriptionProvider {
                 guard let self = self, self.isConnected else { return }
 
                 print("[Deepgram] Token refresh needed, reconnecting...")
+                self.isRefreshingToken = true
                 self.disconnect()
-                try? await self.connect()
+                do {
+                    try await self.connect()
+                    self.isRefreshingToken = false
+                    print("[Deepgram] Token refresh completed successfully")
+                } catch {
+                    self.isRefreshingToken = false
+                    print("[Deepgram] Token refresh failed: \(error)")
+                    self.onError?(error)
+                }
             }
         }
     }
@@ -239,9 +252,19 @@ final class DeepgramProvider: TranscriptionProvider {
 
         let keepaliveMessage = "{\"type\": \"KeepAlive\"}"
         let message = URLSessionWebSocketTask.Message.string(keepaliveMessage)
-        task.send(message) { error in
-            if let error {
-                print("[Deepgram] Keepalive error: \(error)")
+        task.send(message) { [weak self] error in
+            Task { @MainActor [weak self] in
+                guard let self = self else { return }
+                if let error {
+                    self.consecutiveKeepaliveFailures += 1
+                    print("[Deepgram] Keepalive error (\(self.consecutiveKeepaliveFailures)/\(self.maxConsecutiveKeepaliveFailures)): \(error)")
+                    if self.consecutiveKeepaliveFailures >= self.maxConsecutiveKeepaliveFailures {
+                        print("[Deepgram] Too many consecutive keepalive failures, forcing reconnection")
+                        self.handleError(error)
+                    }
+                } else {
+                    self.consecutiveKeepaliveFailures = 0
+                }
             }
         }
     }
@@ -310,6 +333,11 @@ final class DeepgramProvider: TranscriptionProvider {
     }
 
     private func handleError(_ error: Error) {
+        // Suppress error propagation during planned token refresh
+        guard !isRefreshingToken else {
+            print("[Deepgram] Suppressing error during token refresh: \(error.localizedDescription)")
+            return
+        }
         print("[Deepgram] Error: \(error.localizedDescription)")
         stopKeepalive()
         isConnected = false
@@ -357,6 +385,7 @@ final class AssemblyAIProvider: TranscriptionProvider {
     private var sessionURL: String?
     private var currentToken: TranscriptionToken?
     private var tokenRefreshTask: Task<Void, Never>?
+    private var isRefreshingToken = false
 
     // AssemblyAI configuration
     private let baseURL = "wss://api.assemblyai.com/v2/realtime/ws"
@@ -438,8 +467,17 @@ final class AssemblyAIProvider: TranscriptionProvider {
                 guard let self = self, self.isConnected else { return }
 
                 print("[AssemblyAI] Token refresh needed, reconnecting...")
+                self.isRefreshingToken = true
                 self.disconnect()
-                try? await self.connect()
+                do {
+                    try await self.connect()
+                    self.isRefreshingToken = false
+                    print("[AssemblyAI] Token refresh completed successfully")
+                } catch {
+                    self.isRefreshingToken = false
+                    print("[AssemblyAI] Token refresh failed: \(error)")
+                    self.onError?(error)
+                }
             }
         }
     }
@@ -592,6 +630,10 @@ final class AssemblyAIProvider: TranscriptionProvider {
     }
 
     private func handleError(_ error: Error) {
+        guard !isRefreshingToken else {
+            print("[AssemblyAI] Suppressing error during token refresh: \(error.localizedDescription)")
+            return
+        }
         print("[AssemblyAI] Error: \(error.localizedDescription)")
         isConnected = false
         onError?(error)
@@ -635,6 +677,7 @@ final class DeepgramFluxProvider: TranscriptionProvider {
     private var audioBytesSent = 0
     private var currentToken: TranscriptionToken?
     private var tokenRefreshTask: Task<Void, Never>?
+    private var isRefreshingToken = false
 
     // Deepgram Flux configuration - uses v2 endpoint
     private let baseURL = "wss://api.deepgram.com/v2/listen"
@@ -732,8 +775,17 @@ final class DeepgramFluxProvider: TranscriptionProvider {
                 guard let self = self, self.isConnected else { return }
 
                 print("[Deepgram Flux] Token refresh needed, reconnecting...")
+                self.isRefreshingToken = true
                 self.disconnect()
-                try? await self.connect()
+                do {
+                    try await self.connect()
+                    self.isRefreshingToken = false
+                    print("[Deepgram Flux] Token refresh completed successfully")
+                } catch {
+                    self.isRefreshingToken = false
+                    print("[Deepgram Flux] Token refresh failed: \(error)")
+                    self.onError?(error)
+                }
             }
         }
     }
@@ -841,6 +893,10 @@ final class DeepgramFluxProvider: TranscriptionProvider {
     }
 
     private func handleError(_ error: Error) {
+        guard !isRefreshingToken else {
+            print("[Deepgram Flux] Suppressing error during token refresh: \(error.localizedDescription)")
+            return
+        }
         print("[Deepgram Flux] Error: \(error.localizedDescription)")
         isConnected = false
         onError?(error)
