@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { getCategoryById, type UseCase } from "./data";
@@ -10,6 +11,7 @@ interface UseCaseCardProps {
 }
 
 export function UseCaseCard({ useCase, index }: UseCaseCardProps) {
+  const t = useTranslations("UseCases");
   const category = getCategoryById(useCase.category);
 
   return (
@@ -72,7 +74,7 @@ export function UseCaseCard({ useCase, index }: UseCaseCardProps) {
 
               {/* Title */}
               <h3 className="text-lg font-semibold text-white group-hover:text-white/90 transition-colors">
-                {useCase.title}
+                {t(`cases.${useCase.id}.title`)}
               </h3>
             </div>
 
@@ -84,13 +86,13 @@ export function UseCaseCard({ useCase, index }: UseCaseCardProps) {
                 color: category?.color,
               }}
             >
-              {useCase.mode}
+              {t(`cases.${useCase.id}.mode`)}
             </span>
           </div>
 
           {/* Description */}
           <p className="text-sm text-[var(--qm-text-secondary)] mb-4 leading-relaxed">
-            {useCase.description}
+            {t(`cases.${useCase.id}.description`)}
           </p>
 
           {/* AI Suggestion Preview */}
@@ -109,13 +111,13 @@ export function UseCaseCard({ useCase, index }: UseCaseCardProps) {
                   </svg>
                 </div>
                 <span className="text-[10px] font-medium text-[var(--qm-text-tertiary)] uppercase tracking-wider">
-                  QueenMama Suggestion
+                  {t("card.suggestion")}
                 </span>
               </div>
 
               {/* Suggestion Text */}
               <p className="text-sm text-[var(--qm-text-secondary)] italic leading-relaxed line-clamp-3">
-                {useCase.suggestion}
+                {t(`cases.${useCase.id}.suggestion`)}
               </p>
             </div>
 

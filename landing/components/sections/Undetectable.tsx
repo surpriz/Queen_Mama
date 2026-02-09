@@ -1,9 +1,27 @@
 "use client";
 
 import { motion } from "framer-motion";
+import { useTranslations } from "next-intl";
 import { Container, GlassCard, Badge } from "@/components/ui";
 
 export function Undetectable() {
+  const t = useTranslations("Undetectable");
+
+  const benefits = [
+    {
+      title: t("benefit1Title"),
+      description: t("benefit1Desc"),
+    },
+    {
+      title: t("benefit2Title"),
+      description: t("benefit2Desc"),
+    },
+    {
+      title: t("benefit3Title"),
+      description: t("benefit3Desc"),
+    },
+  ];
+
   return (
     <section className="py-24 relative overflow-hidden">
       {/* Background Effect */}
@@ -30,7 +48,7 @@ export function Undetectable() {
                   <div className="w-3 h-3 rounded-full bg-[#FFBD2E]" />
                   <div className="w-3 h-3 rounded-full bg-[#27C93F]" />
                   <span className="ml-4 text-xs text-[var(--qm-text-tertiary)]">
-                    Zoom Meeting - Screen Sharing Active
+                    {t("zoomLabel")}
                   </span>
                 </div>
 
@@ -43,10 +61,10 @@ export function Undetectable() {
                       </svg>
                     </div>
                     <p className="text-[var(--qm-text-secondary)]">
-                      Your presentation slides appear here
+                      {t("presentationPlaceholder")}
                     </p>
                     <p className="text-sm text-[var(--qm-text-tertiary)] mt-2">
-                      Queen Mama widget is NOT visible to participants
+                      {t("widgetNotVisible")}
                     </p>
                   </div>
                 </div>
@@ -56,11 +74,11 @@ export function Undetectable() {
                   <div className="flex items-center gap-2">
                     <span className="w-2 h-2 rounded-full bg-[#27C93F] animate-pulse" />
                     <span className="text-xs text-[var(--qm-text-tertiary)]">
-                      Recording
+                      {t("recording")}
                     </span>
                   </div>
                   <Badge variant="success" size="sm">
-                    Widget Hidden
+                    {t("widgetHidden")}
                   </Badge>
                 </div>
               </div>
@@ -83,19 +101,18 @@ export function Undetectable() {
                         <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
                         </svg>
-                        Hidden
+                        {t("widgetHiddenBadge")}
                       </Badge>
                     </div>
                     <p className="text-xs text-[var(--qm-text-secondary)]">
-                      &ldquo;Great point about scalability. You could add that your
-                      solution reduced costs by 40%...&rdquo;
+                      &ldquo;{t("widgetQuote")}&rdquo;
                     </p>
                   </div>
 
                   {/* Arrow pointing */}
                   <div className="absolute -top-8 left-1/2 -translate-x-1/2 text-center">
                     <span className="text-xs text-[var(--qm-success)] font-medium">
-                      Only you see this
+                      {t("onlyYouSee")}
                     </span>
                     <svg className="w-4 h-4 text-[var(--qm-success)] mx-auto mt-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
@@ -120,38 +137,21 @@ export function Undetectable() {
               <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
               </svg>
-              Privacy First
+              {t("badge")}
             </Badge>
 
             <h2 className="text-3xl sm:text-4xl font-bold mb-6">
-              Truly{" "}
-              <span className="gradient-text">Invisible</span> During Screen Sharing
+              {t.rich("title", {
+                highlight: (chunks) => <span className="gradient-text">{chunks}</span>,
+              })}
             </h2>
 
             <p className="text-lg text-[var(--qm-text-secondary)] mb-8">
-              Unlike other tools that can be spotted during video calls, Queen Mama
-              uses advanced macOS APIs to completely exclude itself from screen
-              captures and recordings. Your secret weapon stays secret.
+              {t("description")}
             </p>
 
             <div className="space-y-4">
-              {[
-                {
-                  title: "Hidden from Zoom, Teams, Meet",
-                  description:
-                    "Works with all major video conferencing platforms without detection.",
-                },
-                {
-                  title: "Excluded from Screen Recordings",
-                  description:
-                    "Even if you record your screen, Queen Mama won't appear.",
-                },
-                {
-                  title: "Toggle On/Off Anytime",
-                  description:
-                    "Disable undetectability mode when you need to show the widget.",
-                },
-              ].map((item, index) => (
+              {benefits.map((item, index) => (
                 <GlassCard key={index} padding="sm" hover={false}>
                   <div className="flex items-start gap-3">
                     <div className="w-8 h-8 rounded-lg bg-[var(--qm-success-light)] flex items-center justify-center flex-shrink-0">

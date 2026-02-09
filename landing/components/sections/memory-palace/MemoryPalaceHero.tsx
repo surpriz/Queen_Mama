@@ -1,25 +1,28 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
+import { Link } from "@/i18n/routing";
 import { motion } from "framer-motion";
 import { Container, GradientButton, Badge } from "@/components/ui";
-
-const contactFields = [
-  { label: "Sarah Chen", delay: 0.4 },
-  { label: "VP Engineering @ TechCorp", delay: 0.7 },
-  { label: "3 sessions  ·  Last seen 2 days ago", delay: 1.0 },
-  { label: '"Interested in Q2 roadmap alignment..."', delay: 1.3 },
-];
+import { useTranslations } from "next-intl";
 
 export function MemoryPalaceHero() {
+  const t = useTranslations("MemoryPalace");
   const [visibleFields, setVisibleFields] = useState(0);
+
+  const contactFields = [
+    { label: t("hero.contactName"), delay: 0.4 },
+    { label: t("hero.contactRole"), delay: 0.7 },
+    { label: t("hero.contactMeta"), delay: 1.0 },
+    { label: `"${t("hero.contactNote")}"`, delay: 1.3 },
+  ];
 
   useEffect(() => {
     const timers = contactFields.map((_, i) =>
       setTimeout(() => setVisibleFields(i + 1), (i + 1) * 600)
     );
     return () => timers.forEach(clearTimeout);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return (
@@ -64,20 +67,22 @@ export function MemoryPalaceHero() {
                 >
                   <path d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z" />
                 </svg>
-                New Feature
+                {t("hero.badge")}
               </Badge>
             </motion.div>
 
             {/* Title */}
             <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold leading-tight mb-6">
-              Never Walk Into a Meeting{" "}
-              <span className="gradient-text">Unprepared</span>
+              {t.rich("hero.title", {
+                highlight: (chunks) => (
+                  <span className="gradient-text">{chunks}</span>
+                ),
+              })}
             </h1>
 
             {/* Subtitle */}
             <p className="text-lg sm:text-xl text-[var(--qm-text-secondary)] mb-8 max-w-xl">
-              Memory Palace automatically builds your personal CRM from
-              conversations. Every name, every role, every detail — remembered.
+              {t("hero.description")}
             </p>
 
             {/* CTAs */}
@@ -102,7 +107,7 @@ export function MemoryPalaceHero() {
                       d="M19 14l-7 7m0 0l-7-7m7 7V3"
                     />
                   </svg>
-                  Explore Features
+                  {t("hero.exploreFeatures")}
                 </GradientButton>
               </a>
               <Link href="/download">
@@ -120,7 +125,7 @@ export function MemoryPalaceHero() {
                       d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
                     />
                   </svg>
-                  Download Free
+                  {t("hero.downloadFree")}
                 </GradientButton>
               </Link>
             </motion.div>
@@ -226,7 +231,7 @@ export function MemoryPalaceHero() {
                 transition={{ delay: 2.0, type: "spring" }}
                 className="absolute -top-3 -right-3 px-3 py-1.5 rounded-full bg-[var(--qm-success)] text-white text-xs font-semibold shadow-lg"
               >
-                AI Extracted
+                {t("hero.aiExtracted")}
               </motion.div>
             </div>
           </motion.div>

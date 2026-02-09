@@ -1,40 +1,10 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { motion } from "framer-motion";
 import { Container } from "@/components/ui";
 
-const comparisons = [
-  {
-    before: "Stress and mind blanks at critical moments",
-    after: "Real-time suggestions when you need them",
-    icon: "brain",
-  },
-  {
-    before: "Forgetting key points mid-conversation",
-    after: "Contextual reminders based on the discussion",
-    icon: "lightbulb",
-  },
-  {
-    before: "Improvised, rambling answers",
-    after: "Structured responses (STAR format, etc.)",
-    icon: "list",
-  },
-  {
-    before: "Messy post-meeting notes from memory",
-    after: "Automatic detailed recap with timestamps",
-    icon: "document",
-  },
-  {
-    before: "Missing follow-ups and action items",
-    after: "Clear action items with owners",
-    icon: "check",
-  },
-  {
-    before: "Second-guessing every response",
-    after: "Confidence backed by AI assistance",
-    icon: "shield",
-  },
-];
+const comparisonIcons = ["brain", "lightbulb", "list", "document", "check", "shield"];
 
 function ComparisonIcon({ icon }: { icon: string }) {
   const icons: Record<string, React.ReactNode> = {
@@ -101,6 +71,14 @@ function ComparisonIcon({ icon }: { icon: string }) {
 }
 
 export function BeforeAfter() {
+  const t = useTranslations("UseCases");
+
+  const comparisons = comparisonIcons.map((icon, index) => ({
+    before: t(`beforeAfter.before${index + 1}`),
+    after: t(`beforeAfter.after${index + 1}`),
+    icon,
+  }));
+
   return (
     <section className="py-24 relative overflow-hidden">
       {/* Background */}
@@ -115,12 +93,12 @@ export function BeforeAfter() {
           className="text-center mb-16"
         >
           <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold mb-4">
-            The{" "}
-            <span className="gradient-text">QueenMama</span>{" "}
-            Difference
+            {t.rich("beforeAfter.title", {
+              highlight: (chunks) => <span className="gradient-text">{chunks}</span>,
+            })}
           </h2>
           <p className="text-lg text-[var(--qm-text-secondary)] max-w-2xl mx-auto">
-            See how real-time AI coaching transforms your high-stakes conversations
+            {t("beforeAfter.subtitle")}
           </p>
         </motion.div>
 
@@ -147,7 +125,7 @@ export function BeforeAfter() {
                   d="M6 18L18 6M6 6l12 12"
                 />
               </svg>
-              <span className="text-xl font-semibold">Without QueenMama</span>
+              <span className="text-xl font-semibold">{t("beforeAfter.without")}</span>
             </div>
           </motion.div>
 
@@ -171,7 +149,7 @@ export function BeforeAfter() {
                   d="M5 13l4 4L19 7"
                 />
               </svg>
-              <span className="text-xl font-semibold">With QueenMama</span>
+              <span className="text-xl font-semibold">{t("beforeAfter.with")}</span>
             </div>
           </motion.div>
 
@@ -201,7 +179,7 @@ export function BeforeAfter() {
                       d="M6 18L18 6M6 6l12 12"
                     />
                   </svg>
-                  WITHOUT
+                  {t("beforeAfter.withoutMobile")}
                 </div>
                 <div className="flex items-start gap-3">
                   <div className="w-10 h-10 rounded-xl bg-[var(--qm-error)]/10 flex items-center justify-center flex-shrink-0 text-[var(--qm-error)]">
@@ -229,7 +207,7 @@ export function BeforeAfter() {
                       d="M5 13l4 4L19 7"
                     />
                   </svg>
-                  WITH QUEENMAMA
+                  {t("beforeAfter.withMobile")}
                 </div>
                 <div className="flex items-start gap-3">
                   <div className="w-10 h-10 rounded-xl bg-[var(--qm-success)]/10 flex items-center justify-center flex-shrink-0 text-[var(--qm-success)]">

@@ -1,15 +1,22 @@
-import { Metadata } from "next";
+import { setRequestLocale, getTranslations } from "next-intl/server";
 import { LegalPageLayout } from "@/components/LegalPageLayout";
 
 // Force static generation for this page
 export const dynamic = "force-static";
 
-export const metadata: Metadata = {
-  title: "Privacy Policy - Queen Mama",
-  description: "Privacy Policy for Queen Mama - Learn how we handle your data.",
-};
+export async function generateMetadata() {
+  const t = await getTranslations("Metadata.privacy");
+  return {
+    title: t("title"),
+    description: t("description"),
+  };
+}
 
-export default function PrivacyPolicyPage() {
+type Props = { params: Promise<{ locale: string }> };
+
+export default async function PrivacyPolicyPage({ params }: Props) {
+  const { locale } = await params;
+  setRequestLocale(locale);
   return (
     <LegalPageLayout
       title="Privacy Policy"

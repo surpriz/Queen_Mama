@@ -1,15 +1,17 @@
-import { Metadata } from "next";
+import { setRequestLocale, getTranslations } from "next-intl/server";
 import { LegalPageLayout } from "@/components/LegalPageLayout";
 import { GlassCard } from "@/components/ui";
 
 // Force static generation for this page
 export const dynamic = "force-static";
 
-export const metadata: Metadata = {
-  title: "Subprocessors - Queen Mama",
-  description:
-    "List of third-party service providers that process data on behalf of Queen Mama.",
-};
+export async function generateMetadata() {
+  const t = await getTranslations("Metadata.subprocessors");
+  return {
+    title: t("title"),
+    description: t("description"),
+  };
+}
 
 const subprocessors = [
   {
@@ -56,7 +58,11 @@ const subprocessors = [
   },
 ];
 
-export default function SubprocessorsPage() {
+type Props = { params: Promise<{ locale: string }> };
+
+export default async function SubprocessorsPage({ params }: Props) {
+  const { locale } = await params;
+  setRequestLocale(locale);
   return (
     <LegalPageLayout
       title="Subprocessors"

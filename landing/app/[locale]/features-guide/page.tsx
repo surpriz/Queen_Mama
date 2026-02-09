@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
+import { useTranslations } from "next-intl";
 import { Navbar } from "@/components/sections/Navbar";
 import { Footer } from "@/components/sections/Footer";
 import { Container } from "@/components/ui";
@@ -15,6 +16,7 @@ import {
 import { categories } from "@/components/sections/features-guide/data";
 
 export default function FeaturesGuidePage() {
+  const t = useTranslations("FeaturesGuide");
   const activeCategory = useActiveCategoryTracking();
   const [searchQuery, setSearchQuery] = useState("");
 
@@ -61,13 +63,13 @@ export default function FeaturesGuidePage() {
               {filteredCategories.length === 0 && (
                 <div className="py-20 text-center">
                   <p className="text-lg text-[var(--qm-text-tertiary)]">
-                    No features match &ldquo;{searchQuery}&rdquo;
+                    {t("noResults", { query: searchQuery })}
                   </p>
                   <button
                     onClick={() => setSearchQuery("")}
                     className="mt-4 text-sm text-[var(--qm-accent)] hover:underline"
                   >
-                    Clear search
+                    {t("clearSearch")}
                   </button>
                 </div>
               )}

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { useTranslations } from "next-intl";
 import { GlassCard, Badge, KeyboardShortcut } from "@/components/ui";
 import type { Feature } from "./data";
 
@@ -10,19 +11,25 @@ interface FeatureDetailCardProps {
   categoryColor: string;
 }
 
-const planLabels: Record<string, { label: string; variant: "accent" | "warning" | "success" }> = {
-  pro: { label: "Pro", variant: "accent" },
-  enterprise: { label: "Enterprise", variant: "warning" },
-};
-
 export function FeatureDetailCard({ feature, categoryColor }: FeatureDetailCardProps) {
+  const t = useTranslations("FeaturesGuide");
   const [activeSubType, setActiveSubType] = useState(0);
-  const planBadge = planLabels[feature.planRequired];
+
+  const planBadges: Record<string, { variant: "accent" | "warning" | "success" }> = {
+    pro: { variant: "accent" },
+    enterprise: { variant: "warning" },
+  };
+  const planBadge = planBadges[feature.planRequired];
 
   const currentSteps =
     feature.subTypes && feature.subTypes.length > 0
       ? feature.subTypes[activeSubType].steps
       : feature.howToUse;
+
+  const currentSubTypeId =
+    feature.subTypes && feature.subTypes.length > 0
+      ? feature.subTypes[activeSubType].id
+      : null;
 
   return (
     <GlassCard hover={false} padding="none" id={feature.id}>
@@ -41,17 +48,17 @@ export function FeatureDetailCard({ feature, categoryColor }: FeatureDetailCardP
             </div>
             <div>
               <h3 className="text-xl font-semibold text-white">
-                {feature.title}
+                {t(`features.${feature.id}.title`)}
               </h3>
               <p className="text-sm text-[var(--qm-text-tertiary)]">
-                {feature.subtitle}
+                {t(`features.${feature.id}.subtitle`)}
               </p>
             </div>
           </div>
           <div className="flex items-center gap-2 shrink-0">
             {planBadge && (
               <Badge variant={planBadge.variant} size="sm">
-                {planBadge.label}
+                {t(`detail.${feature.planRequired}`)}
               </Badge>
             )}
             {feature.shortcuts.length > 0 && (
@@ -62,7 +69,7 @@ export function FeatureDetailCard({ feature, categoryColor }: FeatureDetailCardP
 
         {/* What it is */}
         <div className="px-4 py-3 rounded-[var(--qm-radius-md)] bg-[var(--qm-surface-light)] text-sm text-[var(--qm-text-secondary)]">
-          {feature.whatItIs}
+          {t(`features.${feature.id}.whatItIs`)}
         </div>
       </div>
 
@@ -80,7 +87,7 @@ export function FeatureDetailCard({ feature, categoryColor }: FeatureDetailCardP
                     : "text-[var(--qm-text-tertiary)] hover:text-[var(--qm-text-secondary)]"
                 }`}
               >
-                {sub.label}
+                {t(`features.${feature.id}.subTypes.${sub.id}.label`)}
               </button>
             ))}
           </div>
@@ -93,7 +100,7 @@ export function FeatureDetailCard({ feature, categoryColor }: FeatureDetailCardP
               exit={{ opacity: 0, y: -8 }}
               transition={{ duration: 0.2 }}
             >
-              {feature.subTypes[activeSubType].description}
+              {t(`features.${feature.id}.subTypes.${feature.subTypes[activeSubType].id}.description`)}
             </motion.p>
           </AnimatePresence>
         </div>
@@ -104,7 +111,7 @@ export function FeatureDetailCard({ feature, categoryColor }: FeatureDetailCardP
         {/* Left: How to Use */}
         <div>
           <h4 className="text-xs font-semibold uppercase tracking-wider text-[var(--qm-text-tertiary)] mb-4">
-            How to Use
+            {t("detail.howToUse")}
           </h4>
           <div className="relative">
             {/* Connecting line */}
@@ -131,10 +138,15 @@ export function FeatureDetailCard({ feature, categoryColor }: FeatureDetailCardP
                     </div>
                     <div className="min-w-0">
                       <p className="text-sm text-white leading-relaxed">
-                        {step.action}
+                        {currentSubTypeId
+                          ? t(`features.${feature.id}.subTypes.${currentSubTypeId}.steps.${idx}.action`)
+                          : t(`features.${feature.id}.steps.${idx}.action`)}
                       </p>
                       <p className="text-xs text-[var(--qm-text-tertiary)] mt-0.5">
-                        → {step.result}
+                        &rarr;{" "}
+                        {currentSubTypeId
+                          ? t(`features.${feature.id}.subTypes.${currentSubTypeId}.steps.${idx}.result`)
+                          : t(`features.${feature.id}.steps.${idx}.result`)}
                       </p>
                     </div>
                   </div>
@@ -148,18 +160,18 @@ export function FeatureDetailCard({ feature, categoryColor }: FeatureDetailCardP
         <div className="space-y-5">
           <div>
             <h4 className="text-xs font-semibold uppercase tracking-wider text-[var(--qm-text-tertiary)] mb-2">
-              What Happens
+              {t("detail.whatHappens")}
             </h4>
             <p className="text-sm text-[var(--qm-text-secondary)] leading-relaxed">
-              {feature.whatHappens}
+              {t(`features.${feature.id}.whatHappens`)}
             </p>
           </div>
           <div>
             <h4 className="text-xs font-semibold uppercase tracking-wider text-[var(--qm-text-tertiary)] mb-2">
-              Why It&apos;s Valuable
+              {t("detail.whyValuable")}
             </h4>
             <p className="text-sm text-[var(--qm-text-secondary)] leading-relaxed">
-              {feature.whyValuable}
+              {t(`features.${feature.id}.whyValuable`)}
             </p>
           </div>
         </div>
@@ -172,7 +184,7 @@ export function FeatureDetailCard({ feature, categoryColor }: FeatureDetailCardP
             <div key={sc.keys} className="flex items-center gap-2">
               <KeyboardShortcut shortcut={sc.keys} size="sm" />
               <span className="text-xs text-[var(--qm-text-tertiary)]">
-                {sc.label}
+                {t(`features.${feature.id}.shortcuts.${sc.keys}.label`)}
               </span>
             </div>
           ))}

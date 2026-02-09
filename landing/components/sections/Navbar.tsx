@@ -5,21 +5,23 @@ import { useSession } from "next-auth/react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Container, GradientButton, Avatar } from "@/components/ui";
 import { cn } from "@/lib/utils";
-import Link from "next/link";
-
-const navLinks = [
-  { href: "#features", label: "Features" },
-  { href: "/use-cases", label: "Use Cases" },
-  { href: "/memory-palace", label: "Memory Palace" },
-  { href: "#how-it-works", label: "How It Works" },
-  { href: "#pricing", label: "Pricing" },
-  { href: "#faq", label: "FAQ" },
-];
+import { Link } from "@/i18n/routing";
+import NextLink from "next/link";
+import { useTranslations } from "next-intl";
 
 export function Navbar() {
   const { data: session, status } = useSession();
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const t = useTranslations("Navigation");
+
+  const navLinks = [
+    { href: "#features", label: t("features") },
+    { href: "/use-cases", label: t("useCases") },
+    { href: "#how-it-works", label: t("howItWorks") },
+    { href: "#pricing", label: t("pricing") },
+    { href: "#faq", label: t("faq") },
+  ];
 
   useEffect(() => {
     const handleScroll = () => {
@@ -94,32 +96,32 @@ export function Navbar() {
           <div className="hidden md:flex items-center gap-3">
             {isAuthenticated ? (
               <>
-                <Link href="/dashboard">
+                <NextLink href="/dashboard">
                   <GradientButton size="sm" variant="secondary">
-                    Dashboard
+                    {t("dashboard")}
                   </GradientButton>
-                </Link>
-                <Link href="/dashboard" className="flex items-center gap-2">
+                </NextLink>
+                <NextLink href="/dashboard" className="flex items-center gap-2">
                   <Avatar
                     src={session.user.image}
                     fallback={session.user.name || session.user.email || "U"}
                     size="sm"
                   />
-                </Link>
+                </NextLink>
               </>
             ) : (
               <>
-                <Link
+                <NextLink
                   href="/signin"
                   className="text-[var(--qm-text-secondary)] hover:text-white transition-colors text-sm font-medium px-3 py-2"
                 >
-                  Sign In
-                </Link>
-                <Link href="/signup">
+                  {t("signIn")}
+                </NextLink>
+                <NextLink href="/signup">
                   <GradientButton size="sm" variant="secondary">
-                    Sign Up
+                    {t("signUp")}
                   </GradientButton>
-                </Link>
+                </NextLink>
               </>
             )}
             <Link href="/download">
@@ -137,7 +139,7 @@ export function Navbar() {
                     d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
                   />
                 </svg>
-                Download
+                {t("download")}
               </GradientButton>
             </Link>
           </div>
@@ -208,26 +210,26 @@ export function Navbar() {
                 )}
                 <div className="pt-4 border-t border-[var(--qm-border-subtle)] space-y-3">
                   {isAuthenticated ? (
-                    <Link href="/dashboard" onClick={() => setIsMobileMenuOpen(false)}>
+                    <NextLink href="/dashboard" onClick={() => setIsMobileMenuOpen(false)}>
                       <GradientButton className="w-full" size="md">
-                        Go to Dashboard
+                        {t("goToDashboard")}
                       </GradientButton>
-                    </Link>
+                    </NextLink>
                   ) : (
                     <>
                       <div className="grid grid-cols-2 gap-3">
-                        <Link
+                        <NextLink
                           href="/signin"
                           onClick={() => setIsMobileMenuOpen(false)}
                           className="flex items-center justify-center px-4 py-2.5 rounded-full text-sm font-medium text-[var(--qm-text-secondary)] hover:text-white bg-[var(--qm-surface-medium)] hover:bg-[var(--qm-surface-hover)] transition-colors"
                         >
-                          Sign In
-                        </Link>
-                        <Link href="/signup" onClick={() => setIsMobileMenuOpen(false)}>
+                          {t("signIn")}
+                        </NextLink>
+                        <NextLink href="/signup" onClick={() => setIsMobileMenuOpen(false)}>
                           <GradientButton size="sm" variant="secondary" className="w-full">
-                            Sign Up
+                            {t("signUp")}
                           </GradientButton>
-                        </Link>
+                        </NextLink>
                       </div>
                     </>
                   )}
@@ -246,7 +248,7 @@ export function Navbar() {
                           d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
                         />
                       </svg>
-                      Download Free
+                      {t("downloadFree")}
                     </GradientButton>
                   </Link>
                 </div>

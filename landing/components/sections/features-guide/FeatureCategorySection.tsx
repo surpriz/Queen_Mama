@@ -1,6 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
+import { useTranslations } from "next-intl";
 import type { FeatureCategory } from "./data";
 import { FeatureDetailCard } from "./FeatureDetailCard";
 
@@ -30,6 +31,8 @@ export function FeatureCategorySection({
   category,
   index,
 }: FeatureCategorySectionProps) {
+  const t = useTranslations("FeaturesGuide");
+
   return (
     <section
       data-category-id={category.id}
@@ -45,11 +48,11 @@ export function FeatureCategorySection({
         <div className="flex items-center gap-3 mb-2">
           <span className="text-2xl">{category.icon}</span>
           <h2 className="text-2xl sm:text-3xl font-bold text-white">
-            {category.label}
+            {t(`categories.${category.id}.label`)}
           </h2>
         </div>
         <p className="text-[var(--qm-text-secondary)] max-w-xl">
-          {category.description}
+          {t(`categories.${category.id}.description`)}
         </p>
       </motion.div>
 

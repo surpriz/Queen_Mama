@@ -1,10 +1,13 @@
 "use client";
 
 import { motion } from "framer-motion";
+import { useTranslations } from "next-intl";
 import { Container } from "@/components/ui";
 import { Badge } from "@/components/ui";
 
 export function FeaturesGuideHero() {
+  const t = useTranslations("FeaturesGuide");
+
   return (
     <section className="relative pt-32 pb-20 overflow-hidden">
       {/* Background effects */}
@@ -21,17 +24,19 @@ export function FeaturesGuideHero() {
           transition={{ duration: 0.6, ease: "easeOut" }}
         >
           <Badge variant="accent" className="mb-6">
-            Complete Guide
+            {t("hero.badge")}
           </Badge>
 
           <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight mb-6">
-            Master Every Feature of{" "}
-            <span className="gradient-text">Queen Mama</span>
+            {t.rich("hero.title", {
+              highlight: (chunks) => (
+                <span className="gradient-text">{chunks}</span>
+              ),
+            })}
           </h1>
 
           <p className="text-lg sm:text-xl text-[var(--qm-text-secondary)] mb-10 max-w-2xl mx-auto">
-            Learn what each button does, how to use it, what happens when you
-            activate it, and why it matters for your conversations.
+            {t("hero.description")}
           </p>
 
           {/* Stats strip */}
@@ -44,21 +49,21 @@ export function FeaturesGuideHero() {
             <div className="text-center">
               <div className="text-2xl font-bold text-white">12</div>
               <div className="text-xs text-[var(--qm-text-tertiary)]">
-                Features
+                {t("hero.statFeatures")}
               </div>
             </div>
             <div className="w-px h-8 bg-[var(--qm-border-subtle)]" />
             <div className="text-center">
               <div className="text-2xl font-bold text-white">9</div>
               <div className="text-xs text-[var(--qm-text-tertiary)]">
-                Shortcuts
+                {t("hero.statShortcuts")}
               </div>
             </div>
             <div className="w-px h-8 bg-[var(--qm-border-subtle)]" />
             <div className="text-center">
               <div className="text-2xl font-bold text-white">5</div>
               <div className="text-xs text-[var(--qm-text-tertiary)]">
-                AI Modes
+                {t("hero.statModes")}
               </div>
             </div>
           </motion.div>

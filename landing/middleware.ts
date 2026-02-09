@@ -1,7 +1,26 @@
 import { auth } from "@/lib/auth";
 import { NextResponse } from "next/server";
+import type { NextRequest } from "next/server";
+import createIntlMiddleware from "next-intl/middleware";
+import { routing } from "@/i18n/routing";
 
-export default auth((req) => {
+const intlMiddleware = createIntlMiddleware(routing);
+
+// Paths that should use auth middleware (not i18n)
+function isAuthPath(pathname: string) {
+  return (
+    pathname.startsWith("/dashboard") ||
+    pathname.startsWith("/signin") ||
+    pathname.startsWith("/signup") ||
+    pathname.startsWith("/forgot-password") ||
+    pathname.startsWith("/reset-password") ||
+    pathname.startsWith("/verify-email") ||
+    pathname.startsWith("/auth") ||
+    pathname.startsWith("/api")
+  );
+}
+
+const authMiddleware = auth((req) => {
   const isLoggedIn = !!req.auth;
   const pathname = req.nextUrl.pathname;
 
@@ -50,6 +69,19 @@ export default auth((req) => {
   return NextResponse.next();
 });
 
+export default async function middleware(request: NextRequest) {
+  const pathname = request.nextUrl.pathname;
+
+  if (isAuthPath(pathname)) {
+    return (authMiddleware as (req: NextRequest) => Promise<NextResponse>)(request);
+  }
+
+  return intlMiddleware(request);
+}
+
 export const config = {
-  matcher: ["/dashboard/:path*", "/signin", "/signup", "/api/:path*"],
+  matcher: [
+    // Match all pathnames except static files and internal Next.js paths
+    "/((?!_next|_vercel|monitoring|.*\\..*).*)",
+  ],
 };

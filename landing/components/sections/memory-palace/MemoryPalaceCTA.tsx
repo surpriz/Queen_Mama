@@ -1,10 +1,13 @@
 "use client";
 
-import Link from "next/link";
+import { Link } from "@/i18n/routing";
 import { motion } from "framer-motion";
 import { Container, GradientButton, Badge } from "@/components/ui";
+import { useTranslations } from "next-intl";
 
 export function MemoryPalaceCTA() {
+  const t = useTranslations("MemoryPalace");
+
   return (
     <section className="py-24 relative overflow-hidden">
       {/* Background Effects */}
@@ -38,15 +41,18 @@ export function MemoryPalaceCTA() {
 
           {/* Headline */}
           <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold mb-6">
-            Start Building Your{" "}
-            <span className="gradient-text">Memory Palace</span> Today
+            {t.rich("cta.title", {
+              highlight: (chunks) => (
+                <span className="gradient-text">{chunks}</span>
+              ),
+            })}
           </h2>
 
           {/* Subtext */}
           <p className="text-lg sm:text-xl text-[var(--qm-text-secondary)] mb-10">
-            Never forget a name, a role, or a conversation detail again.
+            {t("cta.subtitle1")}
             <br className="hidden sm:block" />
-            Your AI-powered CRM starts building from your very first session.
+            {t("cta.subtitle2")}
           </p>
 
           {/* CTAs */}
@@ -66,7 +72,7 @@ export function MemoryPalaceCTA() {
                     d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
                   />
                 </svg>
-                Download Free
+                {t("cta.downloadFree")}
               </GradientButton>
             </Link>
             <Link href="/#pricing">
@@ -84,7 +90,7 @@ export function MemoryPalaceCTA() {
                     d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
                   />
                 </svg>
-                View Pricing
+                {t("cta.viewPricing")}
               </GradientButton>
             </Link>
           </div>
@@ -105,7 +111,7 @@ export function MemoryPalaceCTA() {
                   d="M5 13l4 4L19 7"
                 />
               </svg>
-              Free trial included
+              {t("cta.badge1")}
             </Badge>
             <Badge variant="default" size="md">
               <svg
@@ -121,7 +127,7 @@ export function MemoryPalaceCTA() {
                   d="M5 13l4 4L19 7"
                 />
               </svg>
-              No credit card required
+              {t("cta.badge2")}
             </Badge>
             <Badge variant="default" size="md">
               <svg
@@ -137,7 +143,7 @@ export function MemoryPalaceCTA() {
                   d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
                 />
               </svg>
-              macOS only (for now)
+              {t("cta.badge3")}
             </Badge>
           </div>
         </motion.div>

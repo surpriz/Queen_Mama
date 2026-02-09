@@ -2,39 +2,9 @@
 
 import { motion } from "framer-motion";
 import { Container } from "@/components/ui";
+import { useTranslations } from "next-intl";
 
-const comparisons = [
-  {
-    before: "Scrambling to remember who someone is",
-    after: "Instant pre-session briefing with full history",
-    icon: "brain",
-  },
-  {
-    before: "Losing track of follow-ups and promises",
-    after: "Smart notes capture every commitment automatically",
-    icon: "lightbulb",
-  },
-  {
-    before: "Manually entering contacts after every call",
-    after: "AI extracts contacts from conversations for you",
-    icon: "list",
-  },
-  {
-    before: "Scattered notes across apps and notebooks",
-    after: "One unified contact hub synced everywhere",
-    icon: "document",
-  },
-  {
-    before: "Forgetting someone's role or company",
-    after: "Complete profiles with roles, companies, and context",
-    icon: "check",
-  },
-  {
-    before: "Walking into meetings cold and unprepared",
-    after: "Know everyone's background before you sit down",
-    icon: "shield",
-  },
-];
+const comparisonIcons = ["brain", "lightbulb", "list", "document", "check", "shield"];
 
 function ComparisonIcon({ icon }: { icon: string }) {
   const icons: Record<string, React.ReactNode> = {
@@ -101,6 +71,8 @@ function ComparisonIcon({ icon }: { icon: string }) {
 }
 
 export function MemoryPalaceBeforeAfter() {
+  const t = useTranslations("MemoryPalace");
+
   return (
     <section className="py-24 relative overflow-hidden">
       {/* Background */}
@@ -115,13 +87,14 @@ export function MemoryPalaceBeforeAfter() {
           className="text-center mb-16"
         >
           <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold mb-4">
-            The{" "}
-            <span className="gradient-text">Memory Palace</span>{" "}
-            Difference
+            {t.rich("beforeAfter.title", {
+              highlight: (chunks) => (
+                <span className="gradient-text">{chunks}</span>
+              ),
+            })}
           </h2>
           <p className="text-lg text-[var(--qm-text-secondary)] max-w-2xl mx-auto">
-            See how AI-powered contact management transforms your professional
-            relationships
+            {t("beforeAfter.description")}
           </p>
         </motion.div>
 
@@ -148,7 +121,7 @@ export function MemoryPalaceBeforeAfter() {
                   d="M6 18L18 6M6 6l12 12"
                 />
               </svg>
-              <span className="text-xl font-semibold">Without Memory Palace</span>
+              <span className="text-xl font-semibold">{t("beforeAfter.without")}</span>
             </div>
           </motion.div>
 
@@ -172,12 +145,12 @@ export function MemoryPalaceBeforeAfter() {
                   d="M5 13l4 4L19 7"
                 />
               </svg>
-              <span className="text-xl font-semibold">With Memory Palace</span>
+              <span className="text-xl font-semibold">{t("beforeAfter.with")}</span>
             </div>
           </motion.div>
 
           {/* Comparison Rows */}
-          {comparisons.map((item, index) => (
+          {[1, 2, 3, 4, 5, 6].map((num, index) => (
             <motion.div
               key={index}
               initial={{ opacity: 0, y: 20 }}
@@ -202,14 +175,14 @@ export function MemoryPalaceBeforeAfter() {
                       d="M6 18L18 6M6 6l12 12"
                     />
                   </svg>
-                  WITHOUT
+                  {t("beforeAfter.withoutMobile")}
                 </div>
                 <div className="flex items-start gap-3">
                   <div className="w-10 h-10 rounded-xl bg-[var(--qm-error)]/10 flex items-center justify-center flex-shrink-0 text-[var(--qm-error)]">
-                    <ComparisonIcon icon={item.icon} />
+                    <ComparisonIcon icon={comparisonIcons[index]} />
                   </div>
                   <p className="text-[var(--qm-text-secondary)] leading-relaxed pt-1.5">
-                    {item.before}
+                    {t(`beforeAfter.before${num}` as any)}
                   </p>
                 </div>
               </div>
@@ -230,14 +203,14 @@ export function MemoryPalaceBeforeAfter() {
                       d="M5 13l4 4L19 7"
                     />
                   </svg>
-                  WITH MEMORY PALACE
+                  {t("beforeAfter.withMobile")}
                 </div>
                 <div className="flex items-start gap-3">
                   <div className="w-10 h-10 rounded-xl bg-[var(--qm-success)]/10 flex items-center justify-center flex-shrink-0 text-[var(--qm-success)]">
-                    <ComparisonIcon icon={item.icon} />
+                    <ComparisonIcon icon={comparisonIcons[index]} />
                   </div>
                   <p className="text-white leading-relaxed pt-1.5">
-                    {item.after}
+                    {t(`beforeAfter.after${num}` as any)}
                   </p>
                 </div>
               </div>

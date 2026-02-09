@@ -1,3 +1,4 @@
+import { getTranslations } from "next-intl/server";
 import { Container } from "@/components/ui";
 import { Navbar } from "@/components/sections/Navbar";
 import { Footer } from "@/components/sections/Footer";
@@ -9,12 +10,14 @@ interface LegalPageLayoutProps {
   children: React.ReactNode;
 }
 
-export function LegalPageLayout({
+export async function LegalPageLayout({
   title,
   lastUpdated,
   description,
   children,
 }: LegalPageLayoutProps) {
+  const t = await getTranslations("Common");
+
   return (
     <>
       <Navbar />
@@ -27,7 +30,7 @@ export function LegalPageLayout({
             </h1>
             {lastUpdated && (
               <p className="text-[var(--qm-text-tertiary)] text-sm mb-4">
-                Last updated: {lastUpdated}
+                {t("lastUpdated")}{lastUpdated}
               </p>
             )}
             {description && (

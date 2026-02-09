@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { categories, type Category } from "./data";
@@ -93,6 +94,8 @@ export function UseCaseFilters({
   onCategoryChange,
   isSticky = false,
 }: UseCaseFiltersProps) {
+  const t = useTranslations("UseCases");
+
   return (
     <div
       className={cn(
@@ -115,7 +118,7 @@ export function UseCaseFilters({
           )}
         >
           <CategoryIcon icon="all" />
-          <span>All</span>
+          <span>{t("filters.all")}</span>
         </motion.button>
 
         {/* Category Filters */}
@@ -148,7 +151,7 @@ export function UseCaseFilters({
                   : `text-[${category.color}]`
               }
             />
-            <span>{category.label}</span>
+            <span>{t(`categories.${category.id}`)}</span>
           </motion.button>
         ))}
       </div>

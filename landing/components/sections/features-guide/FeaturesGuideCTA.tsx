@@ -1,10 +1,13 @@
 "use client";
 
 import { motion } from "framer-motion";
-import Link from "next/link";
+import { useTranslations } from "next-intl";
+import { Link } from "@/i18n/routing";
 import { GradientButton } from "@/components/ui";
 
 export function FeaturesGuideCTA() {
+  const t = useTranslations("FeaturesGuide");
+
   return (
     <section className="relative py-24 overflow-hidden">
       {/* Background orbs */}
@@ -21,19 +24,18 @@ export function FeaturesGuideCTA() {
         transition={{ duration: 0.6 }}
       >
         <h2 className="text-3xl sm:text-4xl font-bold text-white mb-4">
-          Ready to Try These Features?
+          {t("cta.title")}
         </h2>
         <p className="text-lg text-[var(--qm-text-secondary)] mb-8 max-w-xl mx-auto">
-          Download Queen Mama for macOS and experience AI-powered conversation
-          coaching firsthand.
+          {t("cta.description")}
         </p>
         <div className="flex items-center justify-center gap-4 flex-wrap">
           <Link href="/download">
-            <GradientButton size="lg">Download for macOS</GradientButton>
+            <GradientButton size="lg">{t("cta.downloadMac")}</GradientButton>
           </Link>
           <Link href="/">
             <GradientButton variant="secondary" size="lg">
-              Back to Home
+              {t("cta.backToHome")}
             </GradientButton>
           </Link>
         </div>

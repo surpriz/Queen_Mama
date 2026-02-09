@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import { useTranslations } from "next-intl";
 import { categories } from "./data";
 
 interface TableOfContentsProps {
@@ -14,6 +15,8 @@ export function TableOfContents({
   searchQuery,
   onSearchChange,
 }: TableOfContentsProps) {
+  const t = useTranslations("FeaturesGuide");
+
   const scrollToCategory = useCallback((categoryId: string) => {
     const el = document.querySelector(`[data-category-id="${categoryId}"]`);
     if (el) {
@@ -32,7 +35,7 @@ export function TableOfContents({
             type="text"
             value={searchQuery}
             onChange={(e) => onSearchChange(e.target.value)}
-            placeholder="Search features..."
+            placeholder={t("toc.searchPlaceholder")}
             className="w-full px-3 py-2 text-sm bg-[var(--qm-surface-light)] border border-[var(--qm-border-subtle)] rounded-[var(--qm-radius-md)] text-white placeholder:text-[var(--qm-text-disabled)] focus:outline-none focus:border-[var(--qm-accent)] transition-colors"
           />
         </div>
@@ -54,7 +57,7 @@ export function TableOfContents({
                     className="w-2 h-2 rounded-full shrink-0"
                     style={{ backgroundColor: cat.accentColor }}
                   />
-                  <span className="truncate">{cat.label}</span>
+                  <span className="truncate">{t(`categories.${cat.id}.label`)}</span>
                   <span className="ml-auto text-xs text-[var(--qm-text-disabled)]">
                     {cat.features.length}
                   </span>
@@ -72,7 +75,7 @@ export function TableOfContents({
             type="text"
             value={searchQuery}
             onChange={(e) => onSearchChange(e.target.value)}
-            placeholder="Search features..."
+            placeholder={t("toc.searchPlaceholder")}
             className="w-full px-3 py-2 text-sm bg-[var(--qm-surface-light)] border border-[var(--qm-border-subtle)] rounded-full text-white placeholder:text-[var(--qm-text-disabled)] focus:outline-none focus:border-[var(--qm-accent)] transition-colors"
           />
         </div>
@@ -94,7 +97,7 @@ export function TableOfContents({
                     : undefined
                 }
               >
-                {cat.label}
+                {t(`categories.${cat.id}.label`)}
               </button>
             );
           })}

@@ -1,6 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
+import { useTranslations } from "next-intl";
 import { KeyboardShortcut } from "@/components/ui";
 import { allShortcuts } from "./data";
 
@@ -22,6 +23,8 @@ const itemVariants = {
 };
 
 export function KeyboardShortcutsReference() {
+  const t = useTranslations("FeaturesGuide");
+
   return (
     <section className="py-16 bg-[var(--qm-bg-secondary)]">
       <motion.div
@@ -34,11 +37,11 @@ export function KeyboardShortcutsReference() {
         <div className="flex items-center gap-3 mb-2">
           <span className="text-2xl">⌨️</span>
           <h2 className="text-2xl sm:text-3xl font-bold text-white">
-            All Keyboard Shortcuts
+            {t("shortcuts.title")}
           </h2>
         </div>
         <p className="text-[var(--qm-text-secondary)]">
-          Quick reference for every shortcut available in Queen Mama.
+          {t("shortcuts.description")}
         </p>
       </motion.div>
 
@@ -57,10 +60,12 @@ export function KeyboardShortcutsReference() {
           >
             <KeyboardShortcut shortcut={sc.keys} size="md" />
             <div className="min-w-0">
-              <p className="text-sm font-medium text-white">{sc.label}</p>
+              <p className="text-sm font-medium text-white">
+                {t(`shortcuts.items.${sc.keys}.label`)}
+              </p>
               {sc.context && (
                 <p className="text-xs text-[var(--qm-text-tertiary)]">
-                  {sc.context}
+                  {t(`shortcuts.items.${sc.keys}.context`)}
                 </p>
               )}
             </div>
