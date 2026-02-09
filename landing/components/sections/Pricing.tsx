@@ -2,7 +2,7 @@
 
 import { motion } from "framer-motion";
 import { useTranslations } from "next-intl";
-import { Container, GlassCard, GradientButton, Badge } from "@/components/ui";
+import { Container, GlassCard, GradientButton } from "@/components/ui";
 
 export function Pricing() {
   const t = useTranslations("Pricing");

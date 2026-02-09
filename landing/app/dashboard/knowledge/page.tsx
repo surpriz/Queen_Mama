@@ -1,6 +1,7 @@
 import { auth } from "@/lib/auth";
 import { prisma, withRetry } from "@/lib/prisma";
 import { redirect } from "next/navigation";
+import Link from "next/link";
 import { GlassCard } from "@/components/ui";
 import { KnowledgeType } from "@prisma/client";
 import { DeleteAtomButton } from "./DeleteAtomButton";
@@ -79,12 +80,12 @@ export default async function KnowledgePage() {
               The Knowledge Base feature extracts valuable patterns from your conversations
               and uses them to personalize AI suggestions. Available on Enterprise plan.
             </p>
-            <a
+            <Link
               href="/dashboard/billing"
               className="inline-flex items-center px-4 py-2 rounded-lg bg-[var(--qm-accent)] text-white font-medium hover:bg-[var(--qm-accent)]/90 transition-colors"
             >
               Upgrade to Enterprise
-            </a>
+            </Link>
           </div>
         </GlassCard>
       </div>

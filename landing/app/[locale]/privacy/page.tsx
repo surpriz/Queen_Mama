@@ -1,5 +1,6 @@
 import { setRequestLocale, getTranslations } from "next-intl/server";
 import { LegalPageLayout } from "@/components/LegalPageLayout";
+import { Link } from "@/i18n/routing";
 
 // Force static generation for this page
 export const dynamic = "force-static";
@@ -194,12 +195,12 @@ export default async function PrivacyPolicyPage({ params }: Props) {
           </ul>
           <p>
             For a complete list of our subprocessors, please visit our{" "}
-            <a
+            <Link
               href="/subprocessors"
               className="text-[var(--qm-accent)] hover:underline"
             >
               Subprocessors page
-            </a>
+            </Link>
             .
           </p>
         </section>

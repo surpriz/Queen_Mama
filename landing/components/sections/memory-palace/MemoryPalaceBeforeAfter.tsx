@@ -182,7 +182,7 @@ export function MemoryPalaceBeforeAfter() {
                     <ComparisonIcon icon={comparisonIcons[index]} />
                   </div>
                   <p className="text-[var(--qm-text-secondary)] leading-relaxed pt-1.5">
-                    {t(`beforeAfter.before${num}` as any)}
+                    {t(`beforeAfter.before${num}` as `beforeAfter.before1`)}
                   </p>
                 </div>
               </div>
@@ -210,7 +210,7 @@ export function MemoryPalaceBeforeAfter() {
                     <ComparisonIcon icon={comparisonIcons[index]} />
                   </div>
                   <p className="text-white leading-relaxed pt-1.5">
-                    {t(`beforeAfter.after${num}` as any)}
+                    {t(`beforeAfter.after${num}` as `beforeAfter.after1`)}
                   </p>
                 </div>
               </div>

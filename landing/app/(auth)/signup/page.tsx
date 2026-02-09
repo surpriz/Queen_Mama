@@ -1,4 +1,5 @@
 import { AuthCard, SignUpForm, OAuthButtons } from "@/components/auth";
+import Link from "next/link";
 
 export const metadata = {
   title: "Sign Up - Queen Mama",
@@ -33,13 +34,13 @@ export default function SignUpPage() {
 
       <p className="mt-4 text-xs text-center text-[var(--qm-text-tertiary)]">
         By creating an account, you agree to our{" "}
-        <a href="/terms" className="text-[var(--qm-accent)] hover:underline">
+        <Link href="/terms" className="text-[var(--qm-accent)] hover:underline">
           Terms of Service
-        </a>{" "}
+        </Link>{" "}
         and{" "}
-        <a href="/privacy" className="text-[var(--qm-accent)] hover:underline">
+        <Link href="/privacy" className="text-[var(--qm-accent)] hover:underline">
           Privacy Policy
-        </a>
+        </Link>
       </p>
     </AuthCard>
   );

@@ -1,5 +1,6 @@
 import { setRequestLocale, getTranslations } from "next-intl/server";
 import { LegalPageLayout } from "@/components/LegalPageLayout";
+import { Link } from "@/i18n/routing";
 
 // Force static generation for this page
 export const dynamic = "force-static";
@@ -149,12 +150,12 @@ export default async function DPAPage({ params }: Props) {
           <p>
             You acknowledge and agree that we may engage Subprocessors to process
             Personal Data. Our current list of Subprocessors is available at{" "}
-            <a
+            <Link
               href="/subprocessors"
               className="text-[var(--qm-accent)] hover:underline"
             >
               queenmama.app/subprocessors
-            </a>
+            </Link>
             .
           </p>
           <p>
