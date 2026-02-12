@@ -276,6 +276,7 @@ class AppState: ObservableObject {
     let audioBatchingService = AudioBatchingService()
     let systemAudioBatchingService = AudioBatchingService()  // Separate batching for system audio
     let transcriptBuffer = TranscriptBuffer()
+    let dictationService = DictationService()
 
     // System Audio Service for speaker separation ("Moi" vs "Interlocuteur")
     let systemAudioService = SystemAudioCaptureService()
@@ -369,8 +370,13 @@ class AppState: ObservableObject {
 
             // Wire audio batching: Audio → Batch → Transcription
             // This reduces WebSocket messages from ~3750/hour to ~240/hour
+            // Also sends audio to DictationService when dictation is active
             audioService.onAudioBuffer = { [weak self] buffer in
                 self?.audioBatchingService.append(buffer)
+                // Send to dictation if recording
+                if self?.dictationService.isRecording == true {
+                    self?.dictationService.sendAudio(buffer)
+                }
             }
 
             audioBatchingService.onBatchReady = { [weak self] batch in
@@ -450,6 +456,7 @@ class AppState: ObservableObject {
         systemAudioService.reset()  // Reset system audio service
         autoAnswerService.reset()  // Reset auto-answer state
         autoAnswerService.resetProactiveState()  // Reset proactive state
+        dictationService.stopRecording()  // Stop dictation if active
         isSessionActive = false
 
         // 2. Get the current session before finalizing

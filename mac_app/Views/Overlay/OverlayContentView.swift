@@ -880,6 +880,8 @@ struct ModernExpandedContentView: View {
                 ModernInputAreaView(
                     inputText: $inputText,
                     isSmartModeEnabled: $isSmartModeEnabled,
+                    dictationService: appState.dictationService,
+                    isSessionActive: appState.isSessionActive,
                     onSubmit: onSubmit
                 )
             }
@@ -1463,9 +1465,13 @@ struct StatusSection: View {
 struct ModernInputAreaView: View {
     @Binding var inputText: String
     @Binding var isSmartModeEnabled: Bool
+    @ObservedObject var dictationService: DictationService
+    let isSessionActive: Bool
     let onSubmit: () -> Void
 
     @State private var isHoveringSend = false
+    @State private var isHoveringMic = false
+    @State private var dictationPulse = false
 
     // Check if Smart Mode is available (Enterprise only)
     private var smartModeAvailable: Bool {
@@ -1504,15 +1510,73 @@ struct ModernInputAreaView: View {
                 ? (isSmartModeEnabled ? "Smart Mode enabled" : "Smart Mode disabled")
                 : "Smart Mode requires Enterprise subscription")
 
+            // Dictation Button
+            Button(action: {
+                Task {
+                    if dictationService.isRecording {
+                        dictationService.stopRecording()
+                    } else {
+                        do {
+                            try await dictationService.startRecording()
+                        } catch {
+                            print("[Dictation] Failed to start: \(error.localizedDescription)")
+                        }
+                    }
+                }
+            }) {
+                ZStack {
+                    // Pulsing ring when recording
+                    if dictationService.isRecording {
+                        Circle()
+                            .stroke(QMDesign.Colors.error.opacity(0.4), lineWidth: 2)
+                            .frame(width: 32, height: 32)
+                            .scaleEffect(dictationPulse ? 1.4 : 1.0)
+                            .opacity(dictationPulse ? 0 : 0.6)
+                    }
+
+                    Circle()
+                        .fill(dictationService.isRecording
+                            ? QMDesign.Colors.error.opacity(0.2)
+                            : (isHoveringMic ? QMDesign.Colors.surfaceLight.opacity(0.8) : Color.clear))
+                        .frame(width: 28, height: 28)
+
+                    Image(systemName: dictationService.isRecording ? QMDesign.Icons.microphone : "mic")
+                        .font(.system(size: 12, weight: dictationService.isRecording ? .bold : .regular))
+                        .foregroundColor(dictationService.isRecording
+                            ? QMDesign.Colors.error
+                            : (isSessionActive ? QMDesign.Colors.textTertiary : QMDesign.Colors.textTertiary.opacity(0.4)))
+                }
+            }
+            .buttonStyle(.plain)
+            .disabled(!isSessionActive)
+            .onHover { isHoveringMic = $0 }
+            .help(isSessionActive
+                ? (dictationService.isRecording ? "Stop dictation" : "Dictate your message")
+                : "Start a session to use dictation")
+            .onChange(of: dictationService.isRecording) { recording in
+                if recording {
+                    withAnimation(.easeInOut(duration: 1.0).repeatForever(autoreverses: false)) {
+                        dictationPulse = true
+                    }
+                } else {
+                    withAnimation(.easeOut(duration: 0.2)) {
+                        dictationPulse = false
+                    }
+                }
+            }
+
             // Text Field
-            TextField("Ask about your screen or conversation...", text: $inputText)
-                .textFieldStyle(.plain)
-                .font(QMDesign.Typography.bodySmall)
-                .onSubmit(onSubmit)
+            TextField(
+                dictationService.isRecording ? "Listening..." : "Ask about your screen or conversation...",
+                text: $inputText
+            )
+            .textFieldStyle(.plain)
+            .font(QMDesign.Typography.bodySmall)
+            .onSubmit(onSubmit)
 
             // Keyboard shortcut hint
             KeyboardShortcutBadge(shortcut: "Cmd+Enter", size: .small)
-                .opacity(inputText.isEmpty ? 1 : 0)
+                .opacity(inputText.isEmpty && !dictationService.isRecording ? 1 : 0)
 
             // Submit Button with gradient
             Button(action: onSubmit) {
@@ -1543,10 +1607,17 @@ struct ModernInputAreaView: View {
                 .fill(QMDesign.Colors.surfaceLight)
                 .overlay(
                     RoundedRectangle(cornerRadius: QMDesign.Radius.lg)
-                        .stroke(QMDesign.Colors.borderSubtle, lineWidth: 1)
+                        .stroke(dictationService.isRecording
+                            ? QMDesign.Colors.error.opacity(0.3)
+                            : QMDesign.Colors.borderSubtle, lineWidth: 1)
                 )
         )
         .frame(height: QMDesign.Dimensions.Overlay.inputHeight)
+        .onChange(of: dictationService.interimText) { newText in
+            if !newText.isEmpty {
+                inputText = newText
+            }
+        }
     }
 }
 
