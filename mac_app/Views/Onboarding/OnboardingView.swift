@@ -80,6 +80,7 @@ struct OnboardingView: View {
     }
 
     private func skipOnboarding() {
+        config.hasCompletedOnboarding = true
         onComplete()
     }
 

@@ -831,8 +831,29 @@ struct ModernExpandedContentView: View {
         }
     }
 
+    @State private var aiErrorDismissTask: Task<Void, Never>?
+
     var body: some View {
         VStack(spacing: QMDesign.Spacing.sm) {
+            // AI Error Toast (shown when appState.errorMessage is set)
+            if let errorMessage = appState.errorMessage, !errorMessage.isEmpty {
+                AIErrorToast(message: errorMessage) {
+                    appState.errorMessage = nil
+                }
+                .transition(.move(edge: .top).combined(with: .opacity))
+                .onAppear {
+                    aiErrorDismissTask?.cancel()
+                    aiErrorDismissTask = Task {
+                        try? await Task.sleep(nanoseconds: 5_000_000_000)
+                        guard !Task.isCancelled else { return }
+                        withAnimation(QMDesign.Animation.smooth) {
+                            appState.errorMessage = nil
+                        }
+                    }
+                }
+                .animation(QMDesign.Animation.smooth, value: appState.errorMessage)
+            }
+
             // Modern Tab Bar (with conditional Briefing tab)
             ModernTabBarView(selectedTab: $selectedTab, visibleTabs: visibleTabs) { tab in
                 if tab != .briefing {
@@ -880,6 +901,8 @@ struct ModernExpandedContentView: View {
                 ModernInputAreaView(
                     inputText: $inputText,
                     isSmartModeEnabled: $isSmartModeEnabled,
+                    dictationService: appState.dictationService,
+                    isSessionActive: appState.isSessionActive,
                     onSubmit: onSubmit
                 )
             }
@@ -1463,9 +1486,13 @@ struct StatusSection: View {
 struct ModernInputAreaView: View {
     @Binding var inputText: String
     @Binding var isSmartModeEnabled: Bool
+    @ObservedObject var dictationService: DictationService
+    let isSessionActive: Bool
     let onSubmit: () -> Void
 
     @State private var isHoveringSend = false
+    @State private var isHoveringMic = false
+    @State private var dictationPulse = false
 
     // Check if Smart Mode is available (Enterprise only)
     private var smartModeAvailable: Bool {
@@ -1504,15 +1531,70 @@ struct ModernInputAreaView: View {
                 ? (isSmartModeEnabled ? "Smart Mode enabled" : "Smart Mode disabled")
                 : "Smart Mode requires Enterprise subscription")
 
+            // Dictation Button
+            Button(action: {
+                Task {
+                    if dictationService.isRecording {
+                        dictationService.stopRecording()
+                    } else {
+                        do {
+                            try await dictationService.startRecording(useSharedAudio: isSessionActive)
+                        } catch {
+                            print("[Dictation] Failed to start: \(error.localizedDescription)")
+                        }
+                    }
+                }
+            }) {
+                ZStack {
+                    // Pulsing ring when recording
+                    if dictationService.isRecording {
+                        Circle()
+                            .stroke(QMDesign.Colors.error.opacity(0.4), lineWidth: 2)
+                            .frame(width: 32, height: 32)
+                            .scaleEffect(dictationPulse ? 1.4 : 1.0)
+                            .opacity(dictationPulse ? 0 : 0.6)
+                    }
+
+                    Circle()
+                        .fill(dictationService.isRecording
+                            ? QMDesign.Colors.error.opacity(0.2)
+                            : (isHoveringMic ? QMDesign.Colors.surfaceLight.opacity(0.8) : Color.clear))
+                        .frame(width: 28, height: 28)
+
+                    Image(systemName: dictationService.isRecording ? QMDesign.Icons.microphone : "mic")
+                        .font(.system(size: 12, weight: dictationService.isRecording ? .bold : .regular))
+                        .foregroundColor(dictationService.isRecording
+                            ? QMDesign.Colors.error
+                            : QMDesign.Colors.textTertiary)
+                }
+            }
+            .buttonStyle(.plain)
+            .onHover { isHoveringMic = $0 }
+            .help(dictationService.isRecording ? "Stop dictation" : "Dictate your message")
+            .onChange(of: dictationService.isRecording) { recording in
+                if recording {
+                    withAnimation(.easeInOut(duration: 1.0).repeatForever(autoreverses: false)) {
+                        dictationPulse = true
+                    }
+                } else {
+                    withAnimation(.easeOut(duration: 0.2)) {
+                        dictationPulse = false
+                    }
+                }
+            }
+
             // Text Field
-            TextField("Ask about your screen or conversation...", text: $inputText)
-                .textFieldStyle(.plain)
-                .font(QMDesign.Typography.bodySmall)
-                .onSubmit(onSubmit)
+            TextField(
+                dictationService.isRecording ? "Listening..." : "Ask about your screen or conversation...",
+                text: $inputText
+            )
+            .textFieldStyle(.plain)
+            .font(QMDesign.Typography.bodySmall)
+            .onSubmit(onSubmit)
 
             // Keyboard shortcut hint
             KeyboardShortcutBadge(shortcut: "Cmd+Enter", size: .small)
-                .opacity(inputText.isEmpty ? 1 : 0)
+                .opacity(inputText.isEmpty && !dictationService.isRecording ? 1 : 0)
 
             // Submit Button with gradient
             Button(action: onSubmit) {
@@ -1543,10 +1625,17 @@ struct ModernInputAreaView: View {
                 .fill(QMDesign.Colors.surfaceLight)
                 .overlay(
                     RoundedRectangle(cornerRadius: QMDesign.Radius.lg)
-                        .stroke(QMDesign.Colors.borderSubtle, lineWidth: 1)
+                        .stroke(dictationService.isRecording
+                            ? QMDesign.Colors.error.opacity(0.3)
+                            : QMDesign.Colors.borderSubtle, lineWidth: 1)
                 )
         )
         .frame(height: QMDesign.Dimensions.Overlay.inputHeight)
+        .onChange(of: dictationService.interimText) { newText in
+            if !newText.isEmpty {
+                inputText = newText
+            }
+        }
     }
 }
 
@@ -1568,8 +1657,8 @@ struct ModernOverlayBackground: View {
                 endPoint: .bottomTrailing
             )
 
-            // Dark overlay
-            Color.black.opacity(0.35)
+            // Dark overlay (minimal to let background show through)
+            Color.black.opacity(0.05)
         }
     }
 }
@@ -1770,35 +1859,97 @@ struct TranscriptionConnectionBanner: View {
             )
 
         case .failed:
-            HStack(spacing: QMDesign.Spacing.xs) {
-                Image(systemName: "exclamationmark.triangle.fill")
-                    .font(.system(size: 10))
-                Text("Transcription lost")
-                    .font(QMDesign.Typography.captionSmall)
-                Button(action: onRetry) {
-                    Text("Retry")
+            VStack(alignment: .leading, spacing: 3) {
+                HStack(spacing: QMDesign.Spacing.xs) {
+                    Image(systemName: "pause.circle.fill")
+                        .font(.system(size: 10))
+                    Text("Transcription paused")
                         .font(QMDesign.Typography.captionSmall)
-                        .fontWeight(.semibold)
-                        .padding(.horizontal, 6)
-                        .padding(.vertical, 2)
-                        .background(
-                            Capsule()
-                                .fill(QMDesign.Colors.error.opacity(0.3))
-                        )
+                        .fontWeight(.medium)
+
+                    if transcriptionService.autoRecoveryCountdown > 0 {
+                        Text("· Retry in \(transcriptionService.autoRecoveryCountdown)s")
+                            .font(QMDesign.Typography.captionSmall)
+                            .foregroundColor(QMDesign.Colors.textTertiary)
+                    }
+
+                    Button(action: onRetry) {
+                        Text("Retry now")
+                            .font(QMDesign.Typography.captionSmall)
+                            .fontWeight(.semibold)
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 2)
+                            .background(
+                                Capsule()
+                                    .fill(QMDesign.Colors.error.opacity(0.3))
+                            )
+                    }
+                    .buttonStyle(.plain)
                 }
-                .buttonStyle(.plain)
+
+                // Reassurance: AI still works
+                HStack(spacing: 4) {
+                    Image(systemName: "checkmark.circle.fill")
+                        .font(.system(size: 8))
+                        .foregroundColor(QMDesign.Colors.success)
+                    Text("AI Assist still works with existing transcript")
+                        .font(.system(size: 9))
+                        .foregroundColor(QMDesign.Colors.success)
+                }
             }
             .foregroundColor(QMDesign.Colors.error)
             .padding(.horizontal, QMDesign.Spacing.sm)
-            .padding(.vertical, 4)
+            .padding(.vertical, 5)
             .background(
-                Capsule()
+                RoundedRectangle(cornerRadius: QMDesign.Radius.sm)
                     .fill(QMDesign.Colors.errorLight)
             )
 
         default:
             EmptyView()
         }
+    }
+}
+
+// MARK: - AI Error Toast
+
+struct AIErrorToast: View {
+    let message: String
+    let onDismiss: () -> Void
+
+    var body: some View {
+        HStack(spacing: QMDesign.Spacing.xs) {
+            Image(systemName: "exclamationmark.circle.fill")
+                .font(.system(size: 12, weight: .semibold))
+
+            Text(message)
+                .font(QMDesign.Typography.captionSmall)
+                .lineLimit(2)
+
+            Spacer()
+
+            Button(action: onDismiss) {
+                Image(systemName: "xmark")
+                    .font(.system(size: 9, weight: .bold))
+                    .frame(width: 16, height: 16)
+                    .background(
+                        Circle()
+                            .fill(QMDesign.Colors.error.opacity(0.3))
+                    )
+            }
+            .buttonStyle(.plain)
+        }
+        .foregroundColor(QMDesign.Colors.error)
+        .padding(.horizontal, QMDesign.Spacing.sm)
+        .padding(.vertical, QMDesign.Spacing.xs)
+        .background(
+            RoundedRectangle(cornerRadius: QMDesign.Radius.sm)
+                .fill(QMDesign.Colors.errorLight)
+                .overlay(
+                    RoundedRectangle(cornerRadius: QMDesign.Radius.sm)
+                        .stroke(QMDesign.Colors.error.opacity(0.3), lineWidth: 1)
+                )
+        )
     }
 }
 

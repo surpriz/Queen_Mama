@@ -73,10 +73,20 @@ final class AuthenticationManager: ObservableObject {
             NotificationCenter.default.post(name: .userDidAuthenticate, object: nil)
 
         } catch let error as AuthError {
-            // Auth-specific errors: clear credentials
-            print("[Auth] Authentication error: \(error) - clearing credentials")
-            tokenStore.clearAll()
-            authState = .unauthenticated
+            switch error {
+            case .serverError(_):
+                // Server error is transient - keep credentials (offline mode)
+                print("[Auth] Server error during refresh: \(error) - keeping credentials")
+                currentUser = storedUser
+                isAuthenticated = true
+                authState = .authenticated(user: storedUser)
+                NotificationCenter.default.post(name: .userDidAuthenticate, object: nil)
+            default:
+                // Actual auth errors (invalidToken, tokenExpired, etc.): clear credentials
+                print("[Auth] Authentication error: \(error) - clearing credentials")
+                tokenStore.clearAll()
+                authState = .unauthenticated
+            }
 
         } catch let error as URLError {
             // Network errors: keep credentials, user can retry later

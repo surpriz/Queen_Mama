@@ -69,15 +69,6 @@ class OverlayPanel: NSPanel {
         sharingType = (enabled && canUseUndetectable) ? .none : .readOnly
     }
 
-    // Allow dragging
-    override func mouseDragged(with event: NSEvent) {
-        let currentLocation = event.locationInWindow
-        let newOrigin = NSPoint(
-            x: frame.origin.x + currentLocation.x - frame.width / 2,
-            y: frame.origin.y + currentLocation.y - frame.height / 2
-        )
-        setFrameOrigin(newOrigin)
-    }
 }
 
 // MARK: - Overlay Window Controller

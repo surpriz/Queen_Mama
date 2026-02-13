@@ -371,6 +371,7 @@ CLAUDE.md
 
 # Internal documentation (contains sensitive/strategic info)
 docs/
+n8n/
 
 # Sentry reports (generated)
 scripts/reports/

@@ -187,15 +187,25 @@ struct QueenMamaApp: App {
                     return
 
                 case .unauthenticated, .error(_), .authenticating, .deviceCodePending(_, _, _):
-                    print("[App] User not authenticated, showing onboarding")
-                    launchState = .onboarding
+                    if ConfigurationManager.shared.hasCompletedOnboarding {
+                        print("[App] User not authenticated but onboarding completed, showing dashboard")
+                        launchState = .dashboard
+                    } else {
+                        print("[App] User not authenticated, showing onboarding")
+                        launchState = .onboarding
+                    }
                     return
                 }
             }
 
-            // Timeout - default to onboarding
-            print("[App] Auth check timeout, showing onboarding")
-            launchState = .onboarding
+            // Timeout - check onboarding completion before defaulting
+            if ConfigurationManager.shared.hasCompletedOnboarding {
+                print("[App] Auth check timeout but onboarding completed, showing dashboard")
+                launchState = .dashboard
+            } else {
+                print("[App] Auth check timeout, showing onboarding")
+                launchState = .onboarding
+            }
         }
     }
 }
@@ -276,6 +286,7 @@ class AppState: ObservableObject {
     let audioBatchingService = AudioBatchingService()
     let systemAudioBatchingService = AudioBatchingService()  // Separate batching for system audio
     let transcriptBuffer = TranscriptBuffer()
+    let dictationService = DictationService()
 
     // System Audio Service for speaker separation ("Moi" vs "Interlocuteur")
     let systemAudioService = SystemAudioCaptureService()
@@ -369,8 +380,13 @@ class AppState: ObservableObject {
 
             // Wire audio batching: Audio → Batch → Transcription
             // This reduces WebSocket messages from ~3750/hour to ~240/hour
+            // Also sends audio to DictationService when dictation is active
             audioService.onAudioBuffer = { [weak self] buffer in
                 self?.audioBatchingService.append(buffer)
+                // Send to dictation if recording
+                if self?.dictationService.isRecording == true {
+                    self?.dictationService.sendAudio(buffer)
+                }
             }
 
             audioBatchingService.onBatchReady = { [weak self] batch in
@@ -450,6 +466,7 @@ class AppState: ObservableObject {
         systemAudioService.reset()  // Reset system audio service
         autoAnswerService.reset()  // Reset auto-answer state
         autoAnswerService.resetProactiveState()  // Reset proactive state
+        dictationService.stopRecording()  // Stop dictation if active
         isSessionActive = false
 
         // 2. Get the current session before finalizing
