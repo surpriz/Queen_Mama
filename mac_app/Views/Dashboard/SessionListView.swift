@@ -20,6 +20,10 @@ struct SessionListView: View {
     @State private var selectedSession: Session?
     @State private var sessionToDelete: Session?
     @State private var showingDeleteConfirmation = false
+    @State private var isSelectionMode = false
+    @State private var selectedSessionIds: Set<UUID> = []
+    @State private var showingBulkDeleteConfirmation = false
+    @State private var showingDeleteAllConfirmation = false
 
     private var filteredSessions: [Session] {
         if searchText.isEmpty {
@@ -103,26 +107,124 @@ struct SessionListView: View {
                     .padding(.bottom, QMDesign.Spacing.xs)
                 }
 
+                // Bulk actions toolbar
+                HStack(spacing: QMDesign.Spacing.sm) {
+                    if isSelectionMode {
+                        // Select All / Deselect All
+                        Button(action: {
+                            if selectedSessionIds.count == filteredSessions.count {
+                                selectedSessionIds.removeAll()
+                            } else {
+                                selectedSessionIds = Set(filteredSessions.map { $0.id })
+                            }
+                        }) {
+                            Text(selectedSessionIds.count == filteredSessions.count ? "Deselect All" : "Select All")
+                                .font(QMDesign.Typography.captionSmall)
+                                .foregroundColor(QMDesign.Colors.accent)
+                        }
+                        .buttonStyle(.plain)
+
+                        Spacer()
+
+                        // Delete selected
+                        if !selectedSessionIds.isEmpty {
+                            Button(action: {
+                                showingBulkDeleteConfirmation = true
+                            }) {
+                                HStack(spacing: 4) {
+                                    Image(systemName: "trash")
+                                        .font(.system(size: 11))
+                                    Text("Delete (\(selectedSessionIds.count))")
+                                        .font(QMDesign.Typography.captionSmall)
+                                }
+                                .foregroundColor(QMDesign.Colors.error)
+                            }
+                            .buttonStyle(.plain)
+                        }
+
+                        // Cancel
+                        Button(action: {
+                            isSelectionMode = false
+                            selectedSessionIds.removeAll()
+                        }) {
+                            Text("Cancel")
+                                .font(QMDesign.Typography.captionSmall)
+                                .foregroundColor(QMDesign.Colors.textSecondary)
+                        }
+                        .buttonStyle(.plain)
+                    } else {
+                        // Enter selection mode
+                        Button(action: {
+                            isSelectionMode = true
+                            selectedSessionIds.removeAll()
+                        }) {
+                            HStack(spacing: 4) {
+                                Image(systemName: "checkmark.circle")
+                                    .font(.system(size: 11))
+                                Text("Select")
+                                    .font(QMDesign.Typography.captionSmall)
+                            }
+                            .foregroundColor(QMDesign.Colors.textSecondary)
+                        }
+                        .buttonStyle(.plain)
+
+                        Spacer()
+
+                        // Delete All
+                        Button(action: {
+                            showingDeleteAllConfirmation = true
+                        }) {
+                            HStack(spacing: 4) {
+                                Image(systemName: "trash")
+                                    .font(.system(size: 11))
+                                Text("Delete All")
+                                    .font(QMDesign.Typography.captionSmall)
+                            }
+                            .foregroundColor(QMDesign.Colors.error)
+                        }
+                        .buttonStyle(.plain)
+                        .disabled(filteredSessions.isEmpty)
+                    }
+                }
+                .padding(.horizontal, QMDesign.Spacing.sm)
+                .padding(.bottom, QMDesign.Spacing.xs)
+
                 // Session List
                 ScrollView {
                     LazyVStack(spacing: QMDesign.Spacing.xs) {
                         ForEach(filteredSessions) { session in
-                            ModernSessionCard(
-                                session: session,
-                                isSelected: selectedSession == session,
-                                syncStatus: syncManager.getSyncStatus(for: session.id),
-                                canSync: syncManager.canSync,
-                                action: {
-                                    selectedSession = session
-                                },
-                                onDelete: {
-                                    sessionToDelete = session
-                                    showingDeleteConfirmation = true
-                                },
-                                onSync: session.endTime != nil ? {
-                                    syncManager.queueExistingSession(session)
-                                } : nil
-                            )
+                            HStack(spacing: QMDesign.Spacing.xs) {
+                                if isSelectionMode {
+                                    Button(action: {
+                                        toggleSelection(session)
+                                    }) {
+                                        Image(systemName: selectedSessionIds.contains(session.id) ? "checkmark.circle.fill" : "circle")
+                                            .font(.system(size: 18))
+                                            .foregroundColor(selectedSessionIds.contains(session.id) ? QMDesign.Colors.accent : QMDesign.Colors.textTertiary)
+                                    }
+                                    .buttonStyle(.plain)
+                                }
+
+                                ModernSessionCard(
+                                    session: session,
+                                    isSelected: !isSelectionMode && selectedSession == session,
+                                    syncStatus: syncManager.getSyncStatus(for: session.id),
+                                    canSync: syncManager.canSync,
+                                    action: {
+                                        if isSelectionMode {
+                                            toggleSelection(session)
+                                        } else {
+                                            selectedSession = session
+                                        }
+                                    },
+                                    onDelete: {
+                                        sessionToDelete = session
+                                        showingDeleteConfirmation = true
+                                    },
+                                    onSync: session.endTime != nil ? {
+                                        syncManager.queueExistingSession(session)
+                                    } : nil
+                                )
                             .contextMenu {
                                 Button {
                                     exportSession(session, format: .markdown)
@@ -144,6 +246,7 @@ struct SessionListView: View {
                                     Label("Delete", systemImage: "trash")
                                 }
                             }
+                            } // HStack
                         }
                     }
                     .padding(QMDesign.Spacing.sm)
@@ -175,6 +278,28 @@ struct SessionListView: View {
             Button("Cancel", role: .cancel) {}
         } message: { session in
             Text("Delete \"\(session.title)\"? This cannot be undone.")
+        }
+        .confirmationDialog(
+            "Delete Selected Sessions",
+            isPresented: $showingBulkDeleteConfirmation
+        ) {
+            Button("Delete \(selectedSessionIds.count) session\(selectedSessionIds.count > 1 ? "s" : "")", role: .destructive) {
+                bulkDeleteSelectedSessions()
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("Delete \(selectedSessionIds.count) selected session\(selectedSessionIds.count > 1 ? "s" : "")? This cannot be undone.")
+        }
+        .confirmationDialog(
+            "Delete All Sessions",
+            isPresented: $showingDeleteAllConfirmation
+        ) {
+            Button("Delete all \(filteredSessions.count) session\(filteredSessions.count > 1 ? "s" : "")", role: .destructive) {
+                bulkDeleteAllSessions()
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("Delete all \(filteredSessions.count) session\(filteredSessions.count > 1 ? "s" : "")? This cannot be undone.")
         }
         .onAppear {
             // Set up callback to insert imported sessions into SwiftData
@@ -240,6 +365,30 @@ struct SessionListView: View {
 
         // Delete locally
         sessionManager.deleteSession(session)
+    }
+
+    private func toggleSelection(_ session: Session) {
+        if selectedSessionIds.contains(session.id) {
+            selectedSessionIds.remove(session.id)
+        } else {
+            selectedSessionIds.insert(session.id)
+        }
+    }
+
+    private func bulkDeleteSelectedSessions() {
+        let sessionsToDelete = sessions.filter { selectedSessionIds.contains($0.id) }
+        for session in sessionsToDelete {
+            deleteSession(session)
+        }
+        selectedSessionIds.removeAll()
+        isSelectionMode = false
+    }
+
+    private func bulkDeleteAllSessions() {
+        let sessionsToDelete = Array(filteredSessions)
+        for session in sessionsToDelete {
+            deleteSession(session)
+        }
     }
 }
 
