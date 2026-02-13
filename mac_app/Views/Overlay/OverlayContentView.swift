@@ -1636,8 +1636,8 @@ struct ModernOverlayBackground: View {
                 endPoint: .bottomTrailing
             )
 
-            // Dark overlay
-            Color.black.opacity(0.35)
+            // Dark overlay (minimal to let background show through)
+            Color.black.opacity(0.05)
         }
     }
 }
