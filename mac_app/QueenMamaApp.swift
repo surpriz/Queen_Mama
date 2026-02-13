@@ -187,15 +187,25 @@ struct QueenMamaApp: App {
                     return
 
                 case .unauthenticated, .error(_), .authenticating, .deviceCodePending(_, _, _):
-                    print("[App] User not authenticated, showing onboarding")
-                    launchState = .onboarding
+                    if ConfigurationManager.shared.hasCompletedOnboarding {
+                        print("[App] User not authenticated but onboarding completed, showing dashboard")
+                        launchState = .dashboard
+                    } else {
+                        print("[App] User not authenticated, showing onboarding")
+                        launchState = .onboarding
+                    }
                     return
                 }
             }
 
-            // Timeout - default to onboarding
-            print("[App] Auth check timeout, showing onboarding")
-            launchState = .onboarding
+            // Timeout - check onboarding completion before defaulting
+            if ConfigurationManager.shared.hasCompletedOnboarding {
+                print("[App] Auth check timeout but onboarding completed, showing dashboard")
+                launchState = .dashboard
+            } else {
+                print("[App] Auth check timeout, showing onboarding")
+                launchState = .onboarding
+            }
         }
     }
 }
