@@ -72,56 +72,22 @@ final class AuthenticationManager: ObservableObject {
             // Notify other services
             NotificationCenter.default.post(name: .userDidAuthenticate, object: nil)
 
-        } catch let error as AuthError {
-            switch error {
-            case .serverError(_):
-                // Server error is transient - keep credentials (offline mode)
-                print("[Auth] Server error during refresh: \(error) - keeping credentials")
-                currentUser = storedUser
-                isAuthenticated = true
-                authState = .authenticated(user: storedUser)
-                NotificationCenter.default.post(name: .userDidAuthenticate, object: nil)
-            default:
-                // Actual auth errors (invalidToken, tokenExpired, etc.): clear credentials
-                print("[Auth] Authentication error: \(error) - clearing credentials")
-                tokenStore.clearAll()
-                authState = .unauthenticated
-            }
+        } catch {
+            // NEVER clear credentials during startup auth check.
+            // Only explicit logout() should destroy Keychain data.
+            // Refresh failures can be transient (server restart, token rotation race,
+            // network issues, etc.) - keeping credentials allows retry on next launch
+            // or next getAccessToken() call.
+            print("[Auth] Token refresh failed during startup: \(error)")
+            print("[Auth] Keeping stored credentials - user can retry or will auto-retry on next action")
 
-        } catch let error as URLError {
-            // Network errors: keep credentials, user can retry later
-            print("[Auth] Network error during auth check: \(error.localizedDescription)")
-            print("[Auth] Keeping credentials - will retry on next action")
-
-            // Still mark as authenticated with stored user (offline mode)
+            // Still mark as authenticated with stored user (offline/degraded mode)
+            // This allows the app to function and retry refresh transparently
+            // via getAccessToken() when the user triggers an AI request
             currentUser = storedUser
             isAuthenticated = true
             authState = .authenticated(user: storedUser)
-
-            // Notify other services
             NotificationCenter.default.post(name: .userDidAuthenticate, object: nil)
-
-        } catch {
-            // Check if it's a server-side auth rejection
-            let errorString = String(describing: error).lowercased()
-            let isAuthRejection = errorString.contains("invalid_token") ||
-                                  errorString.contains("token_revoked") ||
-                                  errorString.contains("token_expired") ||
-                                  errorString.contains("401") ||
-                                  errorString.contains("403")
-
-            if isAuthRejection {
-                print("[Auth] Server rejected credentials: \(error) - clearing")
-                tokenStore.clearAll()
-                authState = .unauthenticated
-            } else {
-                // Unknown error but possibly transient - keep credentials
-                print("[Auth] Unknown error: \(error) - keeping credentials")
-                currentUser = storedUser
-                isAuthenticated = true
-                authState = .authenticated(user: storedUser)
-                NotificationCenter.default.post(name: .userDidAuthenticate, object: nil)
-            }
         }
     }
 
