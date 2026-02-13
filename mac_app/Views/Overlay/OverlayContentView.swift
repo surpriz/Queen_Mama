@@ -1517,7 +1517,7 @@ struct ModernInputAreaView: View {
                         dictationService.stopRecording()
                     } else {
                         do {
-                            try await dictationService.startRecording()
+                            try await dictationService.startRecording(useSharedAudio: isSessionActive)
                         } catch {
                             print("[Dictation] Failed to start: \(error.localizedDescription)")
                         }
@@ -1544,15 +1544,12 @@ struct ModernInputAreaView: View {
                         .font(.system(size: 12, weight: dictationService.isRecording ? .bold : .regular))
                         .foregroundColor(dictationService.isRecording
                             ? QMDesign.Colors.error
-                            : (isSessionActive ? QMDesign.Colors.textTertiary : QMDesign.Colors.textTertiary.opacity(0.4)))
+                            : QMDesign.Colors.textTertiary)
                 }
             }
             .buttonStyle(.plain)
-            .disabled(!isSessionActive)
             .onHover { isHoveringMic = $0 }
-            .help(isSessionActive
-                ? (dictationService.isRecording ? "Stop dictation" : "Dictate your message")
-                : "Start a session to use dictation")
+            .help(dictationService.isRecording ? "Stop dictation" : "Dictate your message")
             .onChange(of: dictationService.isRecording) { recording in
                 if recording {
                     withAnimation(.easeInOut(duration: 1.0).repeatForever(autoreverses: false)) {

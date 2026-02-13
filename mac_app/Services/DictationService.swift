@@ -3,9 +3,11 @@
 //  QueenMama
 //
 //  Voice dictation service using Deepgram WebSocket for real-time speech-to-text.
-//  Shares audio buffer from AudioCaptureService during active sessions.
+//  When a session is active, shares audio from AudioCaptureService.
+//  When no session is active, manages its own microphone capture.
 //
 
+import AVFoundation
 import Foundation
 
 @MainActor
@@ -24,23 +26,86 @@ final class DictationService: ObservableObject {
     private var currentToken: TranscriptionToken?
     private var isConnected = false
 
-    // Deepgram configuration (same as session transcription)
+    // Standalone audio capture (used when no session is active)
+    private var standaloneEngine: AVAudioEngine?
+    private var audioConverter: AVAudioConverter?
+    private var isUsingStandaloneAudio = false
+
+    // Deepgram configuration
     private let baseURL = "wss://api.deepgram.com/v1/listen"
     private let model = "nova-3"
     private let language = "multi"
+    private let targetSampleRate: Double = 16000
+    private let targetChannelCount: AVAudioChannelCount = 1
 
     // MARK: - Public Methods
 
-    func startRecording() async throws {
+    /// Start dictation. If `useSharedAudio` is true, audio comes from AppState's audio pipeline.
+    /// If false, DictationService starts its own microphone capture.
+    func startRecording(useSharedAudio: Bool) async throws {
         guard !isRecording else { return }
 
-        print("[Dictation] Starting dictation...")
+        print("[Dictation] Starting dictation (shared audio: \(useSharedAudio))...")
 
         // Clear previous text
         interimText = ""
         finalText = ""
 
-        // Get token and connect WebSocket
+        // Connect Deepgram WebSocket
+        try await connectWebSocket()
+
+        isRecording = true
+
+        // If no session active, start standalone mic capture
+        if !useSharedAudio {
+            try await startStandaloneAudioCapture()
+            isUsingStandaloneAudio = true
+            print("[Dictation] Standalone audio capture started")
+        } else {
+            isUsingStandaloneAudio = false
+            print("[Dictation] Using shared audio from session")
+        }
+    }
+
+    func stopRecording() {
+        print("[Dictation] Stopping dictation...")
+
+        // Apply interim text as final if we have interim but no final yet
+        if isRecording && finalText.isEmpty && !interimText.isEmpty {
+            finalText = interimText
+            interimText = finalText
+        }
+
+        isRecording = false
+
+        // Stop standalone audio if we started it
+        if isUsingStandaloneAudio {
+            stopStandaloneAudioCapture()
+            isUsingStandaloneAudio = false
+        }
+
+        disconnect()
+    }
+
+    func sendAudio(_ data: Data) {
+        guard isConnected, isRecording, let task = webSocketTask else { return }
+
+        let message = URLSessionWebSocketTask.Message.data(data)
+        task.send(message) { error in
+            if let error {
+                print("[Dictation] Send error: \(error.localizedDescription)")
+            }
+        }
+    }
+
+    func reset() {
+        interimText = ""
+        finalText = ""
+    }
+
+    // MARK: - WebSocket Connection
+
+    private func connectWebSocket() async throws {
         guard AuthenticationManager.shared.isAuthenticated else {
             print("[Dictation] Not authenticated")
             throw TranscriptionError.notAuthenticated
@@ -55,7 +120,6 @@ final class DictationService: ObservableObject {
             throw TranscriptionError.noAPIKey
         }
 
-        // Build WebSocket URL
         var components = URLComponents(string: baseURL)!
         components.queryItems = [
             URLQueryItem(name: "model", value: model),
@@ -81,51 +145,19 @@ final class DictationService: ObservableObject {
 
         let config = URLSessionConfiguration.default
         config.timeoutIntervalForRequest = 30
-        config.timeoutIntervalForResource = 300 // 5 min max for dictation
+        config.timeoutIntervalForResource = 300
 
         let session = URLSession(configuration: config)
         webSocketTask = session.webSocketTask(with: request)
         webSocketTask?.resume()
 
         isConnected = true
-        isRecording = true
 
-        print("[Dictation] WebSocket connected, listening...")
+        print("[Dictation] WebSocket connected")
 
         receiveMessages()
         startKeepalive()
     }
-
-    func stopRecording() {
-        print("[Dictation] Stopping dictation...")
-
-        // Apply interim text as final if we have interim but no final yet
-        if isRecording && finalText.isEmpty && !interimText.isEmpty {
-            finalText = interimText
-            interimText = finalText
-        }
-
-        isRecording = false
-        disconnect()
-    }
-
-    func sendAudio(_ data: Data) {
-        guard isConnected, isRecording, let task = webSocketTask else { return }
-
-        let message = URLSessionWebSocketTask.Message.data(data)
-        task.send(message) { error in
-            if let error {
-                print("[Dictation] Send error: \(error.localizedDescription)")
-            }
-        }
-    }
-
-    func reset() {
-        interimText = ""
-        finalText = ""
-    }
-
-    // MARK: - Private Methods
 
     private func disconnect() {
         stopKeepalive()
@@ -134,6 +166,105 @@ final class DictationService: ObservableObject {
         isConnected = false
         currentToken = nil
     }
+
+    // MARK: - Standalone Audio Capture
+
+    private func startStandaloneAudioCapture() async throws {
+        // Request mic permission if needed
+        let status = AVCaptureDevice.authorizationStatus(for: .audio)
+        if status == .notDetermined {
+            let granted = await withCheckedContinuation { continuation in
+                AVCaptureDevice.requestAccess(for: .audio) { granted in
+                    continuation.resume(returning: granted)
+                }
+            }
+            guard granted else {
+                throw AudioCaptureError.microphonePermissionDenied
+            }
+        } else if status == .denied || status == .restricted {
+            throw AudioCaptureError.microphonePermissionDenied
+        }
+
+        let engine = AVAudioEngine()
+        let inputNode = engine.inputNode
+        let inputFormat = inputNode.outputFormat(forBus: 0)
+
+        guard let floatFormat = AVAudioFormat(
+            commonFormat: .pcmFormatFloat32,
+            sampleRate: targetSampleRate,
+            channels: targetChannelCount,
+            interleaved: false
+        ) else {
+            throw AudioCaptureError.formatMismatch
+        }
+
+        let converter = AVAudioConverter(from: inputFormat, to: floatFormat)
+        guard converter != nil else {
+            throw AudioCaptureError.formatMismatch
+        }
+        audioConverter = converter
+
+        let bufferSize: AVAudioFrameCount = 4096
+
+        inputNode.installTap(onBus: 0, bufferSize: bufferSize, format: inputFormat) { [weak self] buffer, _ in
+            self?.processAudioBuffer(buffer, inputFormat: inputFormat, floatFormat: floatFormat)
+        }
+
+        try engine.start()
+        standaloneEngine = engine
+
+        print("[Dictation] Standalone AVAudioEngine started")
+    }
+
+    private func stopStandaloneAudioCapture() {
+        if let engine = standaloneEngine {
+            engine.inputNode.removeTap(onBus: 0)
+            engine.stop()
+            print("[Dictation] Standalone AVAudioEngine stopped")
+        }
+        standaloneEngine = nil
+        audioConverter = nil
+    }
+
+    /// Convert audio buffer from native mic format to 16kHz PCM16 and send to Deepgram
+    private func processAudioBuffer(_ buffer: AVAudioPCMBuffer, inputFormat: AVAudioFormat, floatFormat: AVAudioFormat) {
+        guard let converter = audioConverter else { return }
+
+        let ratio = floatFormat.sampleRate / inputFormat.sampleRate
+        let frameCount = AVAudioFrameCount(Double(buffer.frameLength) * ratio)
+
+        guard let convertedBuffer = AVAudioPCMBuffer(pcmFormat: floatFormat, frameCapacity: frameCount) else {
+            return
+        }
+
+        var error: NSError?
+        let inputBlock: AVAudioConverterInputBlock = { _, outStatus in
+            outStatus.pointee = .haveData
+            return buffer
+        }
+
+        converter.convert(to: convertedBuffer, error: &error, withInputFrom: inputBlock)
+        if error != nil { return }
+
+        guard let floatData = convertedBuffer.floatChannelData else { return }
+
+        let frameLength = Int(convertedBuffer.frameLength)
+        var int16Data = [Int16](repeating: 0, count: frameLength)
+
+        for i in 0..<frameLength {
+            let sample = floatData[0][i]
+            let clampedSample = max(-1.0, min(1.0, sample))
+            int16Data[i] = Int16(clampedSample * Float(Int16.max))
+        }
+
+        let data = Data(bytes: &int16Data, count: frameLength * 2)
+
+        DispatchQueue.main.async { [weak self] in
+            self?.sendAudio(data)
+        }
+    }
+
+    // MARK: - Keepalive
 
     private func startKeepalive() {
         stopKeepalive()
@@ -154,6 +285,8 @@ final class DictationService: ObservableObject {
         let message = URLSessionWebSocketTask.Message.string("{\"type\": \"KeepAlive\"}")
         task.send(message) { _ in }
     }
+
+    // MARK: - Message Handling
 
     private func receiveMessages() {
         guard let task = webSocketTask else { return }
@@ -196,7 +329,6 @@ final class DictationService: ObservableObject {
                   !transcript.isEmpty else { return }
 
             if response.isFinal == true {
-                // Append final text (Deepgram sends finals per utterance)
                 if finalText.isEmpty {
                     finalText = transcript
                 } else {
@@ -205,7 +337,6 @@ final class DictationService: ObservableObject {
                 interimText = finalText
                 print("[Dictation] Final: \"\(transcript)\"")
             } else {
-                // Show interim text (current utterance being spoken)
                 if finalText.isEmpty {
                     interimText = transcript
                 } else {
@@ -218,7 +349,7 @@ final class DictationService: ObservableObject {
     }
 }
 
-// MARK: - Deepgram Response Models (local to dictation)
+// MARK: - Deepgram Response Models
 
 private struct DictationResponse: Codable {
     let type: String?
