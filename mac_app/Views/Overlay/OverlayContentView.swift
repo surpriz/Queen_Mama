@@ -831,8 +831,29 @@ struct ModernExpandedContentView: View {
         }
     }
 
+    @State private var aiErrorDismissTask: Task<Void, Never>?
+
     var body: some View {
         VStack(spacing: QMDesign.Spacing.sm) {
+            // AI Error Toast (shown when appState.errorMessage is set)
+            if let errorMessage = appState.errorMessage, !errorMessage.isEmpty {
+                AIErrorToast(message: errorMessage) {
+                    appState.errorMessage = nil
+                }
+                .transition(.move(edge: .top).combined(with: .opacity))
+                .onAppear {
+                    aiErrorDismissTask?.cancel()
+                    aiErrorDismissTask = Task {
+                        try? await Task.sleep(nanoseconds: 5_000_000_000)
+                        guard !Task.isCancelled else { return }
+                        withAnimation(QMDesign.Animation.smooth) {
+                            appState.errorMessage = nil
+                        }
+                    }
+                }
+                .animation(QMDesign.Animation.smooth, value: appState.errorMessage)
+            }
+
             // Modern Tab Bar (with conditional Briefing tab)
             ModernTabBarView(selectedTab: $selectedTab, visibleTabs: visibleTabs) { tab in
                 if tab != .briefing {
@@ -1838,35 +1859,97 @@ struct TranscriptionConnectionBanner: View {
             )
 
         case .failed:
-            HStack(spacing: QMDesign.Spacing.xs) {
-                Image(systemName: "exclamationmark.triangle.fill")
-                    .font(.system(size: 10))
-                Text("Transcription lost")
-                    .font(QMDesign.Typography.captionSmall)
-                Button(action: onRetry) {
-                    Text("Retry")
+            VStack(alignment: .leading, spacing: 3) {
+                HStack(spacing: QMDesign.Spacing.xs) {
+                    Image(systemName: "pause.circle.fill")
+                        .font(.system(size: 10))
+                    Text("Transcription paused")
                         .font(QMDesign.Typography.captionSmall)
-                        .fontWeight(.semibold)
-                        .padding(.horizontal, 6)
-                        .padding(.vertical, 2)
-                        .background(
-                            Capsule()
-                                .fill(QMDesign.Colors.error.opacity(0.3))
-                        )
+                        .fontWeight(.medium)
+
+                    if transcriptionService.autoRecoveryCountdown > 0 {
+                        Text("· Retry in \(transcriptionService.autoRecoveryCountdown)s")
+                            .font(QMDesign.Typography.captionSmall)
+                            .foregroundColor(QMDesign.Colors.textTertiary)
+                    }
+
+                    Button(action: onRetry) {
+                        Text("Retry now")
+                            .font(QMDesign.Typography.captionSmall)
+                            .fontWeight(.semibold)
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 2)
+                            .background(
+                                Capsule()
+                                    .fill(QMDesign.Colors.error.opacity(0.3))
+                            )
+                    }
+                    .buttonStyle(.plain)
                 }
-                .buttonStyle(.plain)
+
+                // Reassurance: AI still works
+                HStack(spacing: 4) {
+                    Image(systemName: "checkmark.circle.fill")
+                        .font(.system(size: 8))
+                        .foregroundColor(QMDesign.Colors.success)
+                    Text("AI Assist still works with existing transcript")
+                        .font(.system(size: 9))
+                        .foregroundColor(QMDesign.Colors.success)
+                }
             }
             .foregroundColor(QMDesign.Colors.error)
             .padding(.horizontal, QMDesign.Spacing.sm)
-            .padding(.vertical, 4)
+            .padding(.vertical, 5)
             .background(
-                Capsule()
+                RoundedRectangle(cornerRadius: QMDesign.Radius.sm)
                     .fill(QMDesign.Colors.errorLight)
             )
 
         default:
             EmptyView()
         }
+    }
+}
+
+// MARK: - AI Error Toast
+
+struct AIErrorToast: View {
+    let message: String
+    let onDismiss: () -> Void
+
+    var body: some View {
+        HStack(spacing: QMDesign.Spacing.xs) {
+            Image(systemName: "exclamationmark.circle.fill")
+                .font(.system(size: 12, weight: .semibold))
+
+            Text(message)
+                .font(QMDesign.Typography.captionSmall)
+                .lineLimit(2)
+
+            Spacer()
+
+            Button(action: onDismiss) {
+                Image(systemName: "xmark")
+                    .font(.system(size: 9, weight: .bold))
+                    .frame(width: 16, height: 16)
+                    .background(
+                        Circle()
+                            .fill(QMDesign.Colors.error.opacity(0.3))
+                    )
+            }
+            .buttonStyle(.plain)
+        }
+        .foregroundColor(QMDesign.Colors.error)
+        .padding(.horizontal, QMDesign.Spacing.sm)
+        .padding(.vertical, QMDesign.Spacing.xs)
+        .background(
+            RoundedRectangle(cornerRadius: QMDesign.Radius.sm)
+                .fill(QMDesign.Colors.errorLight)
+                .overlay(
+                    RoundedRectangle(cornerRadius: QMDesign.Radius.sm)
+                        .stroke(QMDesign.Colors.error.opacity(0.3), lineWidth: 1)
+                )
+        )
     }
 }
 
