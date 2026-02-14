@@ -53,6 +53,7 @@
 		10000000000000000000003A /* ContactExtractionService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 10000000000000000000003B /* ContactExtractionService.swift */; };
 		10000000000000000000003C /* ContactSyncManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 10000000000000000000003D /* ContactSyncManager.swift */; };
 		100000000000000000000042 /* DictationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 100000000000000000000041 /* DictationService.swift */; };
+		100000000000000000000044 /* SchemaVersioning.swift in Sources */ = {isa = PBXBuildFile; fileRef = 100000000000000000000043 /* SchemaVersioning.swift */; };
 		3BB6D98AB2453F3BF23375A2 /* ProxyAIProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = C4A5D6911606803AAD99FDDE /* ProxyAIProvider.swift */; };
 		5C4CC9402F1F6755008BDBE9 /* Sparkle in Frameworks */ = {isa = PBXBuildFile; productRef = 5C4CC93F2F1F6755008BDBE9 /* Sparkle */; };
 		5C8B7EA42F17D57E00DAE824 /* TranscriptionProviders.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5C8B7EA32F17D57E00DAE824 /* TranscriptionProviders.swift */; };
@@ -130,6 +131,7 @@
 		10000000000000000000003B /* ContactExtractionService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContactExtractionService.swift; sourceTree = "<group>"; };
 		10000000000000000000003D /* ContactSyncManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContactSyncManager.swift; sourceTree = "<group>"; };
 		100000000000000000000041 /* DictationService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DictationService.swift; sourceTree = "<group>"; };
+		100000000000000000000043 /* SchemaVersioning.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SchemaVersioning.swift; sourceTree = "<group>"; };
 		200000000000000000000001 /* QueenMama.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = QueenMama.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		5C8B7EA32F17D57E00DAE824 /* TranscriptionProviders.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TranscriptionProviders.swift; sourceTree = "<group>"; };
 		5C90DF182F1A5197006B0DE0 /* AuthModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthModels.swift; sourceTree = "<group>"; };
@@ -210,6 +212,7 @@
 				100000000000000000000003 /* Mode.swift */,
 				100000000000000000000004 /* AIResponse.swift */,
 				100000000000000000000039 /* Contact.swift */,
+				100000000000000000000043 /* SchemaVersioning.swift */,
 			);
 			path = Models;
 			sourceTree = "<group>";
@@ -535,6 +538,7 @@
 				100000000000000000000038 /* Contact.swift in Sources */,
 				10000000000000000000003A /* ContactExtractionService.swift in Sources */,
 				10000000000000000000003C /* ContactSyncManager.swift in Sources */,
+				100000000000000000000044 /* SchemaVersioning.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

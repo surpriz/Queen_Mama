@@ -275,16 +275,14 @@ final class DeepgramProvider: TranscriptionProvider {
         task.receive { [weak self] result in
             guard let self = self else { return }
 
-            switch result {
-            case .success(let message):
-                Task { @MainActor in
+            Task { @MainActor in
+                switch result {
+                case .success(let message):
                     self.handleMessage(message)
-                }
-                if self.isConnected {
-                    self.receiveMessages()
-                }
-            case .failure(let error):
-                Task { @MainActor in
+                    if self.isConnected {
+                        self.receiveMessages()
+                    }
+                case .failure(let error):
                     self.handleError(error)
                 }
             }
@@ -568,16 +566,14 @@ final class AssemblyAIProvider: TranscriptionProvider {
         task.receive { [weak self] result in
             guard let self = self else { return }
 
-            switch result {
-            case .success(let message):
-                Task { @MainActor in
+            Task { @MainActor in
+                switch result {
+                case .success(let message):
                     self.handleMessage(message)
-                }
-                if self.isConnected {
-                    self.receiveMessages()
-                }
-            case .failure(let error):
-                Task { @MainActor in
+                    if self.isConnected {
+                        self.receiveMessages()
+                    }
+                case .failure(let error):
                     self.handleError(error)
                 }
             }
@@ -835,16 +831,14 @@ final class DeepgramFluxProvider: TranscriptionProvider {
         task.receive { [weak self] result in
             guard let self = self else { return }
 
-            switch result {
-            case .success(let message):
-                Task { @MainActor in
+            Task { @MainActor in
+                switch result {
+                case .success(let message):
                     self.handleMessage(message)
-                }
-                if self.isConnected {
-                    self.receiveMessages()
-                }
-            case .failure(let error):
-                Task { @MainActor in
+                    if self.isConnected {
+                        self.receiveMessages()
+                    }
+                case .failure(let error):
                     self.handleError(error)
                 }
             }
