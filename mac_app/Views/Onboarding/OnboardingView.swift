@@ -33,28 +33,9 @@ struct OnboardingView: View {
             .ignoresSafeArea()
 
             VStack(spacing: 0) {
-                // Top bar with Skip button
-                HStack {
-                    Spacer()
-                    Button(action: skipOnboarding) {
-                        Text("Skip")
-                            .font(QMDesign.Typography.bodySmall)
-                            .foregroundColor(QMDesign.Colors.textSecondary)
-                            .padding(.horizontal, QMDesign.Spacing.md)
-                            .padding(.vertical, QMDesign.Spacing.sm)
-                            .background(
-                                Capsule()
-                                    .fill(QMDesign.Colors.surfaceLight)
-                            )
-                    }
-                    .buttonStyle(.plain)
-                    .padding(.trailing, QMDesign.Spacing.lg)
-                    .padding(.top, QMDesign.Spacing.md)
-                }
-
                 // Step Indicator
                 OnboardingStepIndicator(currentStep: currentStep)
-                    .padding(.top, QMDesign.Spacing.sm)
+                    .padding(.top, QMDesign.Spacing.lg)
                     .padding(.bottom, QMDesign.Spacing.md)
 
                 // Content - use Group instead of TabView to avoid macOS tab bar
@@ -77,11 +58,6 @@ struct OnboardingView: View {
             }
         }
         .frame(minWidth: 700, minHeight: 720)
-    }
-
-    private func skipOnboarding() {
-        config.hasCompletedOnboarding = true
-        onComplete()
     }
 
     private func goToStep(_ step: OnboardingStep) {
