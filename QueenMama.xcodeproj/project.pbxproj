@@ -87,6 +87,21 @@
 		10000000000000000000004C /* AudioBatchingServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 10000000000000000000004B /* AudioBatchingServiceTests.swift */; };
 		10000000000000000000004E /* AudioConverterTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 10000000000000000000004D /* AudioConverterTests.swift */; };
 		100000000000000000000050 /* AudioPipelineIntegrationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 10000000000000000000004F /* AudioPipelineIntegrationTests.swift */; };
+		100000000000000000000052 /* MockAIProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 100000000000000000000051 /* MockAIProvider.swift */; };
+		100000000000000000000054 /* MomentDetectionServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 100000000000000000000053 /* MomentDetectionServiceTests.swift */; };
+		100000000000000000000056 /* AutoAnswerServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 100000000000000000000055 /* AutoAnswerServiceTests.swift */; };
+		100000000000000000000058 /* AIContextTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 100000000000000000000057 /* AIContextTests.swift */; };
+		10000000000000000000005A /* LicenseModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 100000000000000000000059 /* LicenseModelTests.swift */; };
+		10000000000000000000005C /* TranscriptBufferTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 10000000000000000000005B /* TranscriptBufferTests.swift */; };
+		10000000000000000000005E /* ResponseCacheTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 10000000000000000000005D /* ResponseCacheTests.swift */; };
+		100000000000000000000060 /* AIServiceLogicTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 10000000000000000000005F /* AIServiceLogicTests.swift */; };
+		100000000000000000000062 /* SessionModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 100000000000000000000061 /* SessionModelTests.swift */; };
+		100000000000000000000064 /* ContactModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 100000000000000000000063 /* ContactModelTests.swift */; };
+		100000000000000000000066 /* MarkdownParserTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 100000000000000000000065 /* MarkdownParserTests.swift */; };
+		100000000000000000000068 /* TranscriptionConnectionStateTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 100000000000000000000067 /* TranscriptionConnectionStateTests.swift */; };
+		10000000000000000000006A /* ExtensionsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 100000000000000000000069 /* ExtensionsTests.swift */; };
+		10000000000000000000006C /* HealthCheckServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 10000000000000000000006B /* HealthCheckServiceTests.swift */; };
+		10000000000000000000006E /* SessionLifecycleTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 10000000000000000000006D /* SessionLifecycleTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -180,6 +195,21 @@
 		10000000000000000000004B /* AudioBatchingServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioBatchingServiceTests.swift; sourceTree = "<group>"; };
 		10000000000000000000004D /* AudioConverterTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioConverterTests.swift; sourceTree = "<group>"; };
 		10000000000000000000004F /* AudioPipelineIntegrationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioPipelineIntegrationTests.swift; sourceTree = "<group>"; };
+		100000000000000000000051 /* MockAIProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MockAIProvider.swift; sourceTree = "<group>"; };
+		100000000000000000000053 /* MomentDetectionServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MomentDetectionServiceTests.swift; sourceTree = "<group>"; };
+		100000000000000000000055 /* AutoAnswerServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AutoAnswerServiceTests.swift; sourceTree = "<group>"; };
+		100000000000000000000057 /* AIContextTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIContextTests.swift; sourceTree = "<group>"; };
+		100000000000000000000059 /* LicenseModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LicenseModelTests.swift; sourceTree = "<group>"; };
+		10000000000000000000005B /* TranscriptBufferTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TranscriptBufferTests.swift; sourceTree = "<group>"; };
+		10000000000000000000005D /* ResponseCacheTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ResponseCacheTests.swift; sourceTree = "<group>"; };
+		10000000000000000000005F /* AIServiceLogicTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIServiceLogicTests.swift; sourceTree = "<group>"; };
+		100000000000000000000061 /* SessionModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionModelTests.swift; sourceTree = "<group>"; };
+		100000000000000000000063 /* ContactModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContactModelTests.swift; sourceTree = "<group>"; };
+		100000000000000000000065 /* MarkdownParserTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MarkdownParserTests.swift; sourceTree = "<group>"; };
+		100000000000000000000067 /* TranscriptionConnectionStateTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TranscriptionConnectionStateTests.swift; sourceTree = "<group>"; };
+		100000000000000000000069 /* ExtensionsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExtensionsTests.swift; sourceTree = "<group>"; };
+		10000000000000000000006B /* HealthCheckServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthCheckServiceTests.swift; sourceTree = "<group>"; };
+		10000000000000000000006D /* SessionLifecycleTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionLifecycleTests.swift; sourceTree = "<group>"; };
 		200000000000000000000002 /* QueenMamaTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = QueenMamaTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
@@ -243,8 +273,71 @@
 				10000000000000000000004B /* AudioBatchingServiceTests.swift */,
 				10000000000000000000004D /* AudioConverterTests.swift */,
 				10000000000000000000004F /* AudioPipelineIntegrationTests.swift */,
+				400000000000000000000011 /* Mocks */,
+				400000000000000000000012 /* Unit */,
+				400000000000000000000016 /* Integration */,
 			);
 			path = QueenMamaTests;
+			sourceTree = "<group>";
+		};
+		400000000000000000000011 /* Mocks */ = {
+			isa = PBXGroup;
+			children = (
+				100000000000000000000051 /* MockAIProvider.swift */,
+			);
+			path = Mocks;
+			sourceTree = "<group>";
+		};
+		400000000000000000000012 /* Unit */ = {
+			isa = PBXGroup;
+			children = (
+				400000000000000000000013 /* Services */,
+				400000000000000000000014 /* Models */,
+				400000000000000000000015 /* Utilities */,
+			);
+			path = Unit;
+			sourceTree = "<group>";
+		};
+		400000000000000000000013 /* Services */ = {
+			isa = PBXGroup;
+			children = (
+				100000000000000000000053 /* MomentDetectionServiceTests.swift */,
+				100000000000000000000055 /* AutoAnswerServiceTests.swift */,
+				10000000000000000000005B /* TranscriptBufferTests.swift */,
+				10000000000000000000005D /* ResponseCacheTests.swift */,
+				10000000000000000000005F /* AIServiceLogicTests.swift */,
+				100000000000000000000067 /* TranscriptionConnectionStateTests.swift */,
+				10000000000000000000006B /* HealthCheckServiceTests.swift */,
+			);
+			path = Services;
+			sourceTree = "<group>";
+		};
+		400000000000000000000014 /* Models */ = {
+			isa = PBXGroup;
+			children = (
+				100000000000000000000057 /* AIContextTests.swift */,
+				100000000000000000000059 /* LicenseModelTests.swift */,
+				100000000000000000000061 /* SessionModelTests.swift */,
+				100000000000000000000063 /* ContactModelTests.swift */,
+			);
+			path = Models;
+			sourceTree = "<group>";
+		};
+		400000000000000000000015 /* Utilities */ = {
+			isa = PBXGroup;
+			children = (
+				100000000000000000000065 /* MarkdownParserTests.swift */,
+				100000000000000000000069 /* ExtensionsTests.swift */,
+			);
+			path = Utilities;
+			sourceTree = "<group>";
+		};
+		400000000000000000000016 /* Integration */ = {
+			isa = PBXGroup;
+			children = (
+				10000000000000000000006D /* SessionLifecycleTests.swift */,
+			);
+			path = Integration;
 			sourceTree = "<group>";
 		};
 		400000000000000000000004 /* Models */ = {
@@ -627,6 +720,21 @@
 				10000000000000000000004C /* AudioBatchingServiceTests.swift in Sources */,
 				10000000000000000000004E /* AudioConverterTests.swift in Sources */,
 				100000000000000000000050 /* AudioPipelineIntegrationTests.swift in Sources */,
+				100000000000000000000052 /* MockAIProvider.swift in Sources */,
+				100000000000000000000054 /* MomentDetectionServiceTests.swift in Sources */,
+				100000000000000000000056 /* AutoAnswerServiceTests.swift in Sources */,
+				100000000000000000000058 /* AIContextTests.swift in Sources */,
+				10000000000000000000005A /* LicenseModelTests.swift in Sources */,
+				10000000000000000000005C /* TranscriptBufferTests.swift in Sources */,
+				10000000000000000000005E /* ResponseCacheTests.swift in Sources */,
+				100000000000000000000060 /* AIServiceLogicTests.swift in Sources */,
+				100000000000000000000062 /* SessionModelTests.swift in Sources */,
+				100000000000000000000064 /* ContactModelTests.swift in Sources */,
+				100000000000000000000066 /* MarkdownParserTests.swift in Sources */,
+				100000000000000000000068 /* TranscriptionConnectionStateTests.swift in Sources */,
+				10000000000000000000006A /* ExtensionsTests.swift in Sources */,
+				10000000000000000000006C /* HealthCheckServiceTests.swift in Sources */,
+				10000000000000000000006E /* SessionLifecycleTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
