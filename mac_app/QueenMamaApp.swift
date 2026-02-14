@@ -40,6 +40,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                 )
             }
 
+            // Clean up orphaned sessions (endTime == nil) from crashes
+            cleanupOrphanedSessions()
+
             // Explicitly load proxy configuration after auth check
             // This ensures AI providers are available even if notification timing is off
             if AuthenticationManager.shared.isAuthenticated {
@@ -57,6 +60,25 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                 // Perform initial sync (upload unsynced + reconcile remote deletions)
                 // Note: Sessions will be passed from SessionListView once it loads
                 await SyncManager.shared.reconcileRemoteDeletions()
+            }
+        }
+    }
+
+    /// Close sessions left open by a crash (endTime == nil)
+    @MainActor
+    private func cleanupOrphanedSessions() {
+        let context = QueenMamaApp.sharedModelContainer.mainContext
+        let descriptor = FetchDescriptor<Session>(
+            predicate: #Predicate<Session> { $0.endTime == nil }
+        )
+        if let orphans = try? context.fetch(descriptor) {
+            for session in orphans {
+                session.endTime = session.startTime.addingTimeInterval(3600)
+                print("[App] Closed orphaned session: \(session.id)")
+            }
+            if !orphans.isEmpty {
+                try? context.save()
+                print("[App] Cleaned up \(orphans.count) orphaned session(s)")
             }
         }
     }
@@ -88,20 +110,37 @@ struct QueenMamaApp: App {
 
     /// Shared model container - accessible statically for overlay window
     static let sharedModelContainer: ModelContainer = {
-        let schema = Schema([
-            Session.self,
-            TranscriptEntry.self,
-            Mode.self,
-            AIResponse.self,
-            Contact.self,
-            ContactNote.self
-        ])
+        let schema = Schema(versionedSchema: SchemaV1.self)
         let modelConfiguration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
 
         do {
-            return try ModelContainer(for: schema, configurations: [modelConfiguration])
+            return try ModelContainer(for: schema, migrationPlan: QueenMamaMigrationPlan.self,
+                                      configurations: [modelConfiguration])
         } catch {
-            fatalError("Could not create ModelContainer: \(error)")
+            // Attempt to delete corrupted store and recreate
+            print("[App] CRITICAL: ModelContainer creation failed: \(error)")
+            print("[App] Attempting to delete corrupted store and recreate...")
+
+            let url = modelConfiguration.url
+            let fileManager = FileManager.default
+            let storePaths = [url, url.appendingPathExtension("shm"), url.appendingPathExtension("wal")]
+            for path in storePaths {
+                try? fileManager.removeItem(at: path)
+            }
+
+            do {
+                return try ModelContainer(for: schema, migrationPlan: QueenMamaMigrationPlan.self,
+                                          configurations: [modelConfiguration])
+            } catch {
+                // Last resort: use in-memory store
+                print("[App] CRITICAL: Still failed after store deletion: \(error)")
+                let inMemoryConfig = ModelConfiguration(schema: schema, isStoredInMemoryOnly: true)
+                do {
+                    return try ModelContainer(for: schema, configurations: [inMemoryConfig])
+                } catch {
+                    fatalError("Could not create even in-memory ModelContainer: \(error)")
+                }
+            }
         }
     }()
 

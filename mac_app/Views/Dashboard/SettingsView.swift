@@ -1435,13 +1435,15 @@ struct ModernAccountSettingsView: View {
                         }
 
                         // Open link manually
-                        Link(destination: URL(string: response.verificationUrl)!) {
-                            HStack(spacing: QMDesign.Spacing.xs) {
-                                Image(systemName: "arrow.up.right.square")
-                                Text("Open link manually")
+                        if let verificationURL = URL(string: response.verificationUrl) {
+                            Link(destination: verificationURL) {
+                                HStack(spacing: QMDesign.Spacing.xs) {
+                                    Image(systemName: "arrow.up.right.square")
+                                    Text("Open link manually")
+                                }
+                                .font(QMDesign.Typography.captionSmall)
+                                .foregroundStyle(QMDesign.Colors.primaryGradient)
                             }
-                            .font(QMDesign.Typography.captionSmall)
-                            .foregroundStyle(QMDesign.Colors.primaryGradient)
                         }
 
                         HStack(spacing: QMDesign.Spacing.sm) {

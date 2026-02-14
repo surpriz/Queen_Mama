@@ -72,6 +72,7 @@ final class DeepgramProvider: TranscriptionProvider {
     private var isRefreshingToken = false
     private var consecutiveKeepaliveFailures = 0
     private let maxConsecutiveKeepaliveFailures = 3
+    private var urlSession: URLSession?
 
     // Deepgram configuration
     private let baseURL = "wss://api.deepgram.com/v1/listen"
@@ -138,6 +139,9 @@ final class DeepgramProvider: TranscriptionProvider {
         request.setValue("\(authScheme) \(token.token)", forHTTPHeaderField: "Authorization")
         print("[Deepgram] Using \(authScheme) authorization scheme")
 
+        // Invalidate previous URLSession to prevent leaks
+        urlSession?.invalidateAndCancel()
+
         let config = URLSessionConfiguration.default
         config.timeoutIntervalForRequest = 30
         // Use very long timeout for streaming WebSocket (24 hours)
@@ -145,6 +149,7 @@ final class DeepgramProvider: TranscriptionProvider {
         config.timeoutIntervalForResource = 86400
 
         let session = URLSession(configuration: config)
+        urlSession = session
         webSocketTask = session.webSocketTask(with: request)
         webSocketTask?.resume()
 
@@ -203,6 +208,8 @@ final class DeepgramProvider: TranscriptionProvider {
         stopTokenRefresh()
         webSocketTask?.cancel(with: .normalClosure, reason: nil)
         webSocketTask = nil
+        urlSession?.invalidateAndCancel()
+        urlSession = nil
         isConnected = false
         audioBytesSent = 0
         currentToken = nil
@@ -275,16 +282,14 @@ final class DeepgramProvider: TranscriptionProvider {
         task.receive { [weak self] result in
             guard let self = self else { return }
 
-            switch result {
-            case .success(let message):
-                Task { @MainActor in
+            Task { @MainActor in
+                switch result {
+                case .success(let message):
                     self.handleMessage(message)
-                }
-                if self.isConnected {
-                    self.receiveMessages()
-                }
-            case .failure(let error):
-                Task { @MainActor in
+                    if self.isConnected {
+                        self.receiveMessages()
+                    }
+                case .failure(let error):
                     self.handleError(error)
                 }
             }
@@ -386,6 +391,7 @@ final class AssemblyAIProvider: TranscriptionProvider {
     private var currentToken: TranscriptionToken?
     private var tokenRefreshTask: Task<Void, Never>?
     private var isRefreshingToken = false
+    private var urlSession: URLSession?
 
     // AssemblyAI configuration
     private let baseURL = "wss://api.assemblyai.com/v2/realtime/ws"
@@ -430,12 +436,16 @@ final class AssemblyAIProvider: TranscriptionProvider {
         var request = URLRequest(url: url)
         request.setValue(token.token, forHTTPHeaderField: "Authorization")
 
+        // Invalidate previous URLSession to prevent leaks
+        urlSession?.invalidateAndCancel()
+
         let config = URLSessionConfiguration.default
         config.timeoutIntervalForRequest = 30
         // Use very long timeout for streaming WebSocket (24 hours)
         config.timeoutIntervalForResource = 86400
 
         let session = URLSession(configuration: config)
+        urlSession = session
         webSocketTask = session.webSocketTask(with: request)
         webSocketTask?.resume()
 
@@ -501,6 +511,8 @@ final class AssemblyAIProvider: TranscriptionProvider {
 
         webSocketTask?.cancel(with: .normalClosure, reason: nil)
         webSocketTask = nil
+        urlSession?.invalidateAndCancel()
+        urlSession = nil
         isConnected = false
         audioBytesSent = 0
         sessionURL = nil
@@ -568,16 +580,14 @@ final class AssemblyAIProvider: TranscriptionProvider {
         task.receive { [weak self] result in
             guard let self = self else { return }
 
-            switch result {
-            case .success(let message):
-                Task { @MainActor in
+            Task { @MainActor in
+                switch result {
+                case .success(let message):
                     self.handleMessage(message)
-                }
-                if self.isConnected {
-                    self.receiveMessages()
-                }
-            case .failure(let error):
-                Task { @MainActor in
+                    if self.isConnected {
+                        self.receiveMessages()
+                    }
+                case .failure(let error):
                     self.handleError(error)
                 }
             }
@@ -678,6 +688,7 @@ final class DeepgramFluxProvider: TranscriptionProvider {
     private var currentToken: TranscriptionToken?
     private var tokenRefreshTask: Task<Void, Never>?
     private var isRefreshingToken = false
+    private var urlSession: URLSession?
 
     // Deepgram Flux configuration - uses v2 endpoint
     private let baseURL = "wss://api.deepgram.com/v2/listen"
@@ -741,12 +752,16 @@ final class DeepgramFluxProvider: TranscriptionProvider {
         request.setValue("\(authScheme) \(token.token)", forHTTPHeaderField: "Authorization")
         print("[Deepgram Flux] Using \(authScheme) authorization scheme")
 
+        // Invalidate previous URLSession to prevent leaks
+        urlSession?.invalidateAndCancel()
+
         let config = URLSessionConfiguration.default
         config.timeoutIntervalForRequest = 30
         // Use very long timeout for streaming WebSocket (24 hours)
         config.timeoutIntervalForResource = 86400
 
         let session = URLSession(configuration: config)
+        urlSession = session
         webSocketTask = session.webSocketTask(with: request)
         webSocketTask?.resume()
 
@@ -800,6 +815,8 @@ final class DeepgramFluxProvider: TranscriptionProvider {
         stopTokenRefresh()
         webSocketTask?.cancel(with: .normalClosure, reason: nil)
         webSocketTask = nil
+        urlSession?.invalidateAndCancel()
+        urlSession = nil
         isConnected = false
         audioBytesSent = 0
         currentToken = nil
@@ -835,16 +852,14 @@ final class DeepgramFluxProvider: TranscriptionProvider {
         task.receive { [weak self] result in
             guard let self = self else { return }
 
-            switch result {
-            case .success(let message):
-                Task { @MainActor in
+            Task { @MainActor in
+                switch result {
+                case .success(let message):
                     self.handleMessage(message)
-                }
-                if self.isConnected {
-                    self.receiveMessages()
-                }
-            case .failure(let error):
-                Task { @MainActor in
+                    if self.isConnected {
+                        self.receiveMessages()
+                    }
+                case .failure(let error):
                     self.handleError(error)
                 }
             }

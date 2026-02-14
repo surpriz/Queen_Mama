@@ -353,7 +353,10 @@ final class SyncManager: ObservableObject {
             URLQueryItem(name: "limit", value: "100")
         ]
 
-        var request = URLRequest(url: urlComponents.url!)
+        guard let url = urlComponents.url else {
+            throw SyncError.serverError("Invalid URL")
+        }
+        var request = URLRequest(url: url)
         request.httpMethod = "GET"
         request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
 

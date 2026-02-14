@@ -170,8 +170,6 @@ final class AudioCaptureService: ObservableObject {
         // Calculate audio level for visualization
         updateAudioLevelSync(from: buffer)
 
-        audioBufferCount += 1
-
         // Convert to target format
         guard let converter = audioConverter else {
             return
@@ -187,7 +185,14 @@ final class AudioCaptureService: ObservableObject {
 
         var error: NSError?
 
+        // Fix: Signal endOfStream after first call to prevent infinite buffer re-reads
+        var hasProvidedInput = false
         let inputBlock: AVAudioConverterInputBlock = { _, outStatus in
+            if hasProvidedInput {
+                outStatus.pointee = .endOfStream
+                return nil
+            }
+            hasProvidedInput = true
             outStatus.pointee = .haveData
             return buffer
         }
@@ -195,9 +200,7 @@ final class AudioCaptureService: ObservableObject {
         converter.convert(to: convertedBuffer, error: &error, withInputFrom: inputBlock)
 
         if let error {
-            if audioBufferCount % 100 == 0 {
-                print("[AudioCapture] Conversion error: \(error.localizedDescription)")
-            }
+            print("[AudioCapture] Conversion error: \(error.localizedDescription)")
             return
         }
 
@@ -216,12 +219,14 @@ final class AudioCaptureService: ObservableObject {
 
         let data = Data(bytes: &int16Data, count: frameLength * 2)
 
-        // Send on main thread
+        // Send on main thread - audioBufferCount is only accessed here (main thread)
         DispatchQueue.main.async { [weak self] in
-            if self?.audioBufferCount ?? 0 % 100 == 0 {
-                print("[AudioCapture] Processed \(self?.audioBufferCount ?? 0) buffers, sending \(data.count) bytes")
+            guard let self = self else { return }
+            self.audioBufferCount += 1
+            if self.audioBufferCount % 100 == 0 {
+                print("[AudioCapture] Processed \(self.audioBufferCount) buffers, sending \(data.count) bytes")
             }
-            self?.onAudioBuffer?(data)
+            self.onAudioBuffer?(data)
         }
     }
 

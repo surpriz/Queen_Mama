@@ -36,7 +36,7 @@ final class ProxyAPIClient: @unchecked Sendable {
         #endif
 
         let urlString = ProcessInfo.processInfo.environment["API_BASE_URL"] ?? defaultURL
-        self.baseURL = URL(string: urlString)!
+        self.baseURL = URL(string: urlString) ?? URL(string: defaultURL)!
 
         // Standard session for quick API calls (config, tokens, etc.)
         let config = URLSessionConfiguration.default
@@ -376,12 +376,14 @@ final class ProxyAPIClient: @unchecked Sendable {
             // Try to refresh the token and retry once
             if retryCount == 0 {
                 print("[ProxyAPI] 401 Unauthorized - attempting token refresh and retry...")
-                if let refreshToken = tokenStore.refreshToken {
+                if let refreshToken = await MainActor.run(body: { tokenStore.refreshToken }) {
                     do {
                         let refreshResponse = try await AuthAPIClient.shared.refreshTokens(refreshToken)
-                        tokenStore.accessToken = refreshResponse.accessToken
-                        tokenStore.accessTokenExpiry = Date().addingTimeInterval(TimeInterval(refreshResponse.expiresIn))
-                        tokenStore.refreshToken = refreshResponse.refreshToken
+                        await MainActor.run {
+                            tokenStore.accessToken = refreshResponse.accessToken
+                            tokenStore.accessTokenExpiry = Date().addingTimeInterval(TimeInterval(refreshResponse.expiresIn))
+                            tokenStore.refreshToken = refreshResponse.refreshToken
+                        }
 
                         // Rebuild request with new token
                         var retryRequest = request
@@ -439,21 +441,27 @@ final class ProxyAPIClient: @unchecked Sendable {
     }
 
     private func getValidAccessToken(forceRefresh: Bool = false) async -> String? {
-        // Check if we have a valid access token (skip check if force refresh requested)
-        if !forceRefresh, tokenStore.isAccessTokenValid, let token = tokenStore.accessToken {
-            return token
+        // Check if we have a valid access token (MainActor-isolated tokenStore)
+        let cachedToken: String? = await MainActor.run {
+            if !forceRefresh, tokenStore.isAccessTokenValid, let token = tokenStore.accessToken {
+                return token
+            }
+            return nil
         }
+        if let cachedToken { return cachedToken }
 
         // Try to refresh
-        guard let refreshToken = tokenStore.refreshToken else {
+        guard let refreshToken = await MainActor.run(body: { tokenStore.refreshToken }) else {
             return nil
         }
 
         do {
             let response = try await AuthAPIClient.shared.refreshTokens(refreshToken)
-            tokenStore.accessToken = response.accessToken
-            tokenStore.accessTokenExpiry = Date().addingTimeInterval(TimeInterval(response.expiresIn))
-            tokenStore.refreshToken = response.refreshToken
+            await MainActor.run {
+                tokenStore.accessToken = response.accessToken
+                tokenStore.accessTokenExpiry = Date().addingTimeInterval(TimeInterval(response.expiresIn))
+                tokenStore.refreshToken = response.refreshToken
+            }
             return response.accessToken
         } catch {
             print("[ProxyAPI] Token refresh failed: \(error)")

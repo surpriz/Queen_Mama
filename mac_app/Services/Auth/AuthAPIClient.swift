@@ -11,7 +11,7 @@ final class AuthAPIClient {
     private init() {
         // Configure base URL based on environment
         let urlString = AppEnvironment.current.apiBaseURL
-        self.baseURL = URL(string: urlString)!
+        self.baseURL = URL(string: urlString) ?? URL(string: "https://www.queenmama.co")!
 
         let config = URLSessionConfiguration.default
         config.timeoutIntervalForRequest = 30
@@ -269,21 +269,27 @@ final class AuthAPIClient {
     }
 
     private func getValidAccessToken() async -> String? {
-        // Check if we have a valid access token
-        if tokenStore.isAccessTokenValid, let token = tokenStore.accessToken {
-            return token
+        // Check if we have a valid access token (MainActor-isolated tokenStore)
+        let cachedToken: String? = await MainActor.run {
+            if tokenStore.isAccessTokenValid, let token = tokenStore.accessToken {
+                return token
+            }
+            return nil
         }
+        if let cachedToken { return cachedToken }
 
         // Try to refresh
-        guard let refreshToken = tokenStore.refreshToken else {
+        guard let refreshToken = await MainActor.run(body: { tokenStore.refreshToken }) else {
             return nil
         }
 
         do {
             let response = try await refreshTokens(refreshToken)
-            tokenStore.accessToken = response.accessToken
-            tokenStore.accessTokenExpiry = Date().addingTimeInterval(TimeInterval(response.expiresIn))
-            tokenStore.refreshToken = response.refreshToken
+            await MainActor.run {
+                tokenStore.accessToken = response.accessToken
+                tokenStore.accessTokenExpiry = Date().addingTimeInterval(TimeInterval(response.expiresIn))
+                tokenStore.refreshToken = response.refreshToken
+            }
             return response.accessToken
         } catch {
             print("[AuthAPI] Token refresh failed: \(error)")
@@ -332,7 +338,7 @@ extension AuthAPIClient {
                 body: body,
                 requiresAuth: true
             )
-            print("[AuthAPI] Magic link generated successfully: \(response.url)")
+            print("[AuthAPI] Magic link generated successfully")
             return response
         } catch {
             print("[AuthAPI] Magic link generation failed: \(error)")
@@ -346,7 +352,7 @@ extension AuthAPIClient {
 extension AuthAPIClient {
     /// Check if an email exists and what authentication method it uses
     func checkEmail(_ email: String) async throws -> EmailCheckResponse {
-        print("[AuthAPI] Checking email: \(email)")
+        print("[AuthAPI] Checking email: \(email.prefix(3))***")
         let body: [String: Any] = ["email": email]
 
         return try await postPublic(

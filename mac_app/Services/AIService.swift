@@ -197,20 +197,9 @@ final class AIService: ObservableObject {
     }
 
     func clearHistory() {
-        // Clear in-memory responses
         responses.removeAll()
         currentResponse = ""
-
-        // Clear persisted responses
-        if let context = modelContext {
-            do {
-                try context.delete(model: AIResponse.self)
-                try context.save()
-                print("[AIService] Cleared all response history")
-            } catch {
-                print("[AIService] Failed to clear history: \(error)")
-            }
-        }
+        print("[AIService] Cleared in-memory response history")
     }
 
     // MARK: - Public Methods
@@ -346,7 +335,7 @@ final class AIService: ObservableObject {
                 }
 
                 if !canProceed {
-                    continuation.finish(throwing: licenseError!)
+                    continuation.finish(throwing: licenseError ?? AILicenseError.requiresAuthentication)
                     return
                 }
 
@@ -741,7 +730,7 @@ final class AIService: ObservableObject {
                 }
 
                 if !canProceed {
-                    continuation.finish(throwing: licenseError!)
+                    continuation.finish(throwing: licenseError ?? AILicenseError.requiresAuthentication)
                     return
                 }
 

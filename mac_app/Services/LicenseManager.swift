@@ -244,12 +244,8 @@ final class LicenseManager: ObservableObject {
         // SECURITY: Require license secret to be available
         // If not configured, fail-safe by rejecting the signature
         guard let secret = licenseSecret, !secret.isEmpty else {
-            print("[License] SECURITY: LICENSE_SECRET not configured - signature verification skipped")
-            print("[License] SECURITY: Set LICENSE_SECRET environment variable or configure server-side validation")
-            // For non-free plans, we should be strict - but during initial launch
-            // we can allow validation to pass through to server-side checks
-            // The server will still enforce license validity
-            return true // Trust server-side validation when client-side secret is unavailable
+            print("[License] SECURITY: LICENSE_SECRET not configured - rejecting signature")
+            return false
         }
 
         // Build the payload that was signed (same fields as server)
