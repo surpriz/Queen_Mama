@@ -58,7 +58,7 @@ describe("/api/user/api-keys", () => {
   // =========================================
   describe("GET /api/user/api-keys", () => {
     it("should return 401 if not authenticated", async () => {
-      mockedAuth.mockResolvedValue(null);
+      mockedAuth.mockResolvedValue(null as never);
 
       const res = await GET();
       const json = await res.json();
@@ -122,7 +122,7 @@ describe("/api/user/api-keys", () => {
   // =========================================
   describe("POST /api/user/api-keys", () => {
     it("should return 401 if not authenticated", async () => {
-      mockedAuth.mockResolvedValue(null);
+      mockedAuth.mockResolvedValue(null as never);
 
       const res = await POST(
         makePostRequest({ provider: "OPENAI", apiKey: "sk-test12345678" })

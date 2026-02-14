@@ -143,7 +143,7 @@ describe("POST /api/license/validate", () => {
       subscription: null,
     } as never);
     prismaMock.device.updateMany.mockResolvedValue({ count: 1 } as never);
-    prismaMock.usageLog.groupBy.mockResolvedValue([] as never);
+    (prismaMock.usageLog.groupBy as ReturnType<typeof vi.fn>).mockResolvedValue([] as never);
 
     const res = await POST(makeRequest({ deviceId: VALID_UUID }));
     const json = await res.json();
@@ -167,7 +167,7 @@ describe("POST /api/license/validate", () => {
       subscription: createTestSubscription({ plan: "PRO", status: "ACTIVE" }),
     } as never);
     prismaMock.device.updateMany.mockResolvedValue({ count: 1 } as never);
-    prismaMock.usageLog.groupBy.mockResolvedValue([] as never);
+    (prismaMock.usageLog.groupBy as ReturnType<typeof vi.fn>).mockResolvedValue([] as never);
 
     const res = await POST(makeRequest({ deviceId: VALID_UUID }));
     const json = await res.json();
@@ -189,7 +189,7 @@ describe("POST /api/license/validate", () => {
       subscription: createTestSubscription({ plan: "ENTERPRISE", status: "ACTIVE" }),
     } as never);
     prismaMock.device.updateMany.mockResolvedValue({ count: 1 } as never);
-    prismaMock.usageLog.groupBy.mockResolvedValue([] as never);
+    (prismaMock.usageLog.groupBy as ReturnType<typeof vi.fn>).mockResolvedValue([] as never);
 
     const res = await POST(makeRequest({ deviceId: VALID_UUID }));
     const json = await res.json();
@@ -216,7 +216,7 @@ describe("POST /api/license/validate", () => {
       }),
     } as never);
     prismaMock.device.updateMany.mockResolvedValue({ count: 1 } as never);
-    prismaMock.usageLog.groupBy.mockResolvedValue([] as never);
+    (prismaMock.usageLog.groupBy as ReturnType<typeof vi.fn>).mockResolvedValue([] as never);
 
     const res = await POST(makeRequest({ deviceId: VALID_UUID }));
     const json = await res.json();
@@ -234,7 +234,7 @@ describe("POST /api/license/validate", () => {
       subscription: createTestSubscription({ plan: "PRO", status: "ACTIVE" }),
     } as never);
     prismaMock.device.updateMany.mockResolvedValue({ count: 1 } as never);
-    prismaMock.usageLog.groupBy.mockResolvedValue([] as never);
+    (prismaMock.usageLog.groupBy as ReturnType<typeof vi.fn>).mockResolvedValue([] as never);
 
     const res = await POST(makeRequest({ deviceId: VALID_UUID }));
     const json = await res.json();
@@ -251,7 +251,7 @@ describe("POST /api/license/validate", () => {
       subscription: null,
     } as never);
     prismaMock.device.updateMany.mockResolvedValue({ count: 1 } as never);
-    prismaMock.usageLog.groupBy.mockResolvedValue([
+    (prismaMock.usageLog.groupBy as ReturnType<typeof vi.fn>).mockResolvedValue([
       { action: "ai_request", _count: { action: 3 } },
       { action: "smart_mode", _count: { action: 1 } },
     ] as never);
@@ -272,7 +272,7 @@ describe("POST /api/license/validate", () => {
       subscription: null,
     } as never);
     prismaMock.device.updateMany.mockResolvedValue({ count: 1 } as never);
-    prismaMock.usageLog.groupBy.mockResolvedValue([] as never);
+    (prismaMock.usageLog.groupBy as ReturnType<typeof vi.fn>).mockResolvedValue([] as never);
 
     await POST(makeRequest({ deviceId: VALID_UUID }));
 

@@ -256,7 +256,7 @@ describe("POST /api/contacts", () => {
     const { verifyAccessToken } = await import("@/lib/device-auth");
     vi.mocked(verifyAccessToken).mockRejectedValueOnce(new Error("Invalid token"));
     const { auth } = await import("@/lib/auth");
-    vi.mocked(auth).mockResolvedValueOnce(null);
+    vi.mocked(auth).mockResolvedValueOnce(null as never);
 
     const res = await POST(
       makePostRequest({ firstName: "Jane" })
