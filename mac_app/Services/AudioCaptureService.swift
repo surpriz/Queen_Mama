@@ -45,8 +45,8 @@ final class AudioCaptureService: ObservableObject {
     private let targetSampleRate: Double = 16000
     private let targetChannelCount: AVAudioChannelCount = 1
 
-    private var audioConverter: AVAudioConverter?
-    private var convertedBuffer: AVAudioPCMBuffer?
+    // nonisolated(unsafe): written once during setup, read from audio render thread
+    nonisolated(unsafe) private var audioConverter: AVAudioConverter?
 
     // MARK: - Initialization
 
@@ -155,121 +155,110 @@ final class AudioCaptureService: ObservableObject {
         // Calculate buffer sizes - use larger buffer for stability
         let bufferSize: AVAudioFrameCount = 4096
 
+        // Capture converter reference for use on audio thread
+        let converter = audioConverter!
+
         // Install tap on input node
+        // IMPORTANT: All audio processing happens HERE on the audio render thread
+        // to prevent buffer recycling issues (the AVAudioPCMBuffer may be reused
+        // by the audio engine after this callback returns)
         inputNode.installTap(onBus: 0, bufferSize: bufferSize, format: inputFormat) { [weak self] buffer, _ in
-            self?.processAudioBufferSync(buffer, inputFormat: inputFormat, floatFormat: floatFormat)
+            // === Audio render thread - process immediately before buffer is recycled ===
+
+            let inputFrameLength = buffer.frameLength
+            guard inputFrameLength > 0 else { return }
+
+            // 1. Calculate audio level for visualization
+            let meterLevel: Float = {
+                guard let channelData = buffer.floatChannelData else { return 0 }
+                let channelDataValue = channelData.pointee
+                let channelDataValueArray = stride(
+                    from: 0,
+                    to: Int(inputFrameLength),
+                    by: buffer.stride
+                ).map { channelDataValue[$0] }
+
+                let rms = sqrt(channelDataValueArray.map { $0 * $0 }.reduce(0, +) / Float(inputFrameLength))
+                let avgPower = 20 * log10(rms)
+
+                // Scale from dB to 0-1 range
+                let minDb: Float = -80
+                let maxDb: Float = 0
+                if avgPower < minDb { return 0 }
+                else if avgPower >= maxDb { return 1 }
+                else { return (avgPower - minDb) / (maxDb - minDb) }
+            }()
+
+            // 2. Convert to 16kHz Float32 using the pre-created converter
+            let ratio = floatFormat.sampleRate / inputFormat.sampleRate
+            let frameCount = AVAudioFrameCount(Double(inputFrameLength) * ratio)
+            guard frameCount > 0 else { return }
+
+            guard let convertedBuffer = AVAudioPCMBuffer(pcmFormat: floatFormat, frameCapacity: frameCount) else {
+                return
+            }
+
+            // Reset converter state before each conversion - the inputBlock signals
+            // .endOfStream after each buffer, which puts the converter in "stream ended"
+            // state. Without reset, subsequent calls return .endOfStream with 0 output.
+            converter.reset()
+
+            var convError: NSError?
+            var hasProvidedInput = false
+            let inputBlock: AVAudioConverterInputBlock = { _, outStatus in
+                if hasProvidedInput {
+                    outStatus.pointee = .endOfStream
+                    return nil
+                }
+                hasProvidedInput = true
+                outStatus.pointee = .haveData
+                return buffer
+            }
+
+            let status = converter.convert(to: convertedBuffer, error: &convError, withInputFrom: inputBlock)
+
+            if let convError {
+                print("[AudioCapture] Conversion error: \(convError.localizedDescription)")
+                return
+            }
+
+            // 3. Convert float buffer to 16-bit PCM for Deepgram
+            guard let floatData = convertedBuffer.floatChannelData else { return }
+
+            let outputFrameLength = Int(convertedBuffer.frameLength)
+            guard outputFrameLength > 0 else {
+                // Diagnostic: log when conversion produces 0 frames
+                if status != .haveData {
+                    print("[AudioCapture] Converter status: \(status.rawValue), input frames: \(inputFrameLength), output: 0")
+                }
+                return
+            }
+
+            var int16Data = [Int16](repeating: 0, count: outputFrameLength)
+            for i in 0..<outputFrameLength {
+                let sample = floatData[0][i]
+                let clampedSample = max(-1.0, min(1.0, sample))
+                int16Data[i] = Int16(clampedSample * Float(Int16.max))
+            }
+
+            let data = Data(bytes: &int16Data, count: outputFrameLength * 2)
+
+            // === Dispatch results to main thread ===
+            DispatchQueue.main.async { [weak self] in
+                guard let self = self else { return }
+                self.microphoneLevel = meterLevel
+                self.audioBufferCount += 1
+                if self.audioBufferCount % 100 == 0 {
+                    print("[AudioCapture] Processed \(self.audioBufferCount) buffers, sending \(data.count) bytes")
+                }
+                self.onAudioBuffer?(data)
+            }
         }
 
         print("[AudioCapture] Tap installed on input node")
     }
 
     private var audioBufferCount = 0
-
-    // Synchronous processing to avoid threading issues
-    private func processAudioBufferSync(_ buffer: AVAudioPCMBuffer, inputFormat: AVAudioFormat, floatFormat: AVAudioFormat) {
-        // Calculate audio level for visualization
-        updateAudioLevelSync(from: buffer)
-
-        // Convert to target format
-        guard let converter = audioConverter else {
-            return
-        }
-
-        // Calculate output frame count based on sample rate ratio
-        let ratio = floatFormat.sampleRate / inputFormat.sampleRate
-        let frameCount = AVAudioFrameCount(Double(buffer.frameLength) * ratio)
-
-        guard let convertedBuffer = AVAudioPCMBuffer(pcmFormat: floatFormat, frameCapacity: frameCount) else {
-            return
-        }
-
-        var error: NSError?
-
-        // Fix: Signal endOfStream after first call to prevent infinite buffer re-reads
-        var hasProvidedInput = false
-        let inputBlock: AVAudioConverterInputBlock = { _, outStatus in
-            if hasProvidedInput {
-                outStatus.pointee = .endOfStream
-                return nil
-            }
-            hasProvidedInput = true
-            outStatus.pointee = .haveData
-            return buffer
-        }
-
-        converter.convert(to: convertedBuffer, error: &error, withInputFrom: inputBlock)
-
-        if let error {
-            print("[AudioCapture] Conversion error: \(error.localizedDescription)")
-            return
-        }
-
-        // Convert float buffer to 16-bit PCM for Deepgram
-        guard let floatData = convertedBuffer.floatChannelData else { return }
-
-        let frameLength = Int(convertedBuffer.frameLength)
-        var int16Data = [Int16](repeating: 0, count: frameLength)
-
-        for i in 0..<frameLength {
-            let sample = floatData[0][i]
-            // Clamp and convert to Int16
-            let clampedSample = max(-1.0, min(1.0, sample))
-            int16Data[i] = Int16(clampedSample * Float(Int16.max))
-        }
-
-        let data = Data(bytes: &int16Data, count: frameLength * 2)
-
-        // Send on main thread - audioBufferCount is only accessed here (main thread)
-        DispatchQueue.main.async { [weak self] in
-            guard let self = self else { return }
-            self.audioBufferCount += 1
-            if self.audioBufferCount % 100 == 0 {
-                print("[AudioCapture] Processed \(self.audioBufferCount) buffers, sending \(data.count) bytes")
-            }
-            self.onAudioBuffer?(data)
-        }
-    }
-
-    private func updateAudioLevelSync(from buffer: AVAudioPCMBuffer) {
-        guard let channelData = buffer.floatChannelData else { return }
-
-        let channelDataValue = channelData.pointee
-        let channelDataValueArray = stride(
-            from: 0,
-            to: Int(buffer.frameLength),
-            by: buffer.stride
-        ).map { channelDataValue[$0] }
-
-        let rms = sqrt(channelDataValueArray.map { $0 * $0 }.reduce(0, +) / Float(buffer.frameLength))
-        let avgPower = 20 * log10(rms)
-        let meterLevel = scalePower(avgPower)
-
-        DispatchQueue.main.async { [weak self] in
-            self?.microphoneLevel = meterLevel
-        }
-    }
-
-    // Keep old method for compatibility but unused
-    private func processAudioBuffer(_ buffer: AVAudioPCMBuffer, inputFormat: AVAudioFormat, targetFormat: AVAudioFormat) {
-        // Deprecated - use processAudioBufferSync instead
-    }
-
-    private func updateAudioLevel(from buffer: AVAudioPCMBuffer) {
-        guard let channelData = buffer.floatChannelData else { return }
-
-        let channelDataValue = channelData.pointee
-        let channelDataValueArray = stride(
-            from: 0,
-            to: Int(buffer.frameLength),
-            by: buffer.stride
-        ).map { channelDataValue[$0] }
-
-        let rms = sqrt(channelDataValueArray.map { $0 * $0 }.reduce(0, +) / Float(buffer.frameLength))
-        let avgPower = 20 * log10(rms)
-        let meterLevel = scalePower(avgPower)
-
-        microphoneLevel = meterLevel
-    }
 
     private func scalePower(_ power: Float) -> Float {
         // Scale from dB to 0-1 range
