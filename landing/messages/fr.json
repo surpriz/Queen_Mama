@@ -411,6 +411,66 @@
     },
     "badgeNew": "Nouveau",
     "entries": {
+      "voiceDictation": {
+        "title": "Mode dictée vocale",
+        "description": "Dictée vocale autonome pour des requêtes IA rapides sans démarrer une session complète"
+      },
+      "meetingDetection": {
+        "title": "Détection de réunion et rappels",
+        "description": "Détection automatique des réunions en cours avec des rappels intelligents pour lancer l'enregistrement"
+      },
+      "contactManagement": {
+        "title": "Gestion des contacts",
+        "description": "Gestion complète des contacts avec notes, synchronisation et suivi des relations dans Memory Palace"
+      },
+      "bulkSessionDeletion": {
+        "title": "Suppression groupée de sessions",
+        "description": "Sélectionnez et supprimez plusieurs sessions en une fois depuis le tableau de bord"
+      },
+      "memoryPalace": {
+        "title": "Memory Palace",
+        "description": "Mini-CRM alimenté par l'IA qui extrait et gère automatiquement les contacts de vos conversations"
+      },
+      "displaySelection": {
+        "title": "Sélection de l'écran",
+        "description": "Choisissez quel écran utiliser pour la capture d'écran dans les configurations multi-moniteurs"
+      },
+      "internationalisation": {
+        "title": "Site web internationalisé",
+        "description": "Support complet en français et en anglais sur l'ensemble du site avec routage par langue"
+      },
+      "transcriptionReconnection": {
+        "title": "Fiabilité de transcription améliorée",
+        "description": "Logique de reconnexion WebSocket améliorée et récupération d'erreurs plus robuste pour une transcription ininterrompue"
+      },
+      "overlayRefinements": {
+        "title": "Apparence de l'overlay affinée",
+        "description": "Widget overlay plus transparent et soigné pour une expérience moins intrusive"
+      },
+      "aiResponseClarity": {
+        "title": "Qualité des réponses IA améliorée",
+        "description": "Ingénierie de prompts et gestion du contexte améliorées pour des suggestions IA plus claires et exploitables"
+      },
+      "healthMonitoring": {
+        "title": "Surveillance proactive de la santé",
+        "description": "Vérifications de santé des services en arrière-plan pour détecter et résoudre les problèmes avant qu'ils n'impactent votre session"
+      },
+      "authPersistence": {
+        "title": "Correction de la persistance d'authentification",
+        "description": "Résolution d'un problème où l'état d'authentification pouvait être perdu entre les redémarrages de l'application"
+      },
+      "dashboardUrl": {
+        "title": "Correction de l'URL du tableau de bord web",
+        "description": "Correction du bouton Tableau de bord web qui redirigeait vers le mauvais domaine"
+      },
+      "schemaVersioning": {
+        "title": "Versionnage du schéma",
+        "description": "Système de migration de données versionné pour des mises à jour de schéma SwiftData sûres et transparentes"
+      },
+      "orphanedSessionCleanup": {
+        "title": "Nettoyage des sessions orphelines",
+        "description": "Détection et nettoyage automatiques des sessions incomplètes laissées après un crash"
+      },
       "subscriptionSystem": {
         "title": "Système d'abonnement à 4 niveaux",
         "description": "Lancement des formules FREE, PRO et ENTERPRISE avec des fonctionnalités adaptées à chaque usage"
