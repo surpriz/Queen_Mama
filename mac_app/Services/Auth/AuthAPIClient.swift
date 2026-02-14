@@ -269,21 +269,27 @@ final class AuthAPIClient {
     }
 
     private func getValidAccessToken() async -> String? {
-        // Check if we have a valid access token
-        if tokenStore.isAccessTokenValid, let token = tokenStore.accessToken {
-            return token
+        // Check if we have a valid access token (MainActor-isolated tokenStore)
+        let cachedToken: String? = await MainActor.run {
+            if tokenStore.isAccessTokenValid, let token = tokenStore.accessToken {
+                return token
+            }
+            return nil
         }
+        if let cachedToken { return cachedToken }
 
         // Try to refresh
-        guard let refreshToken = tokenStore.refreshToken else {
+        guard let refreshToken = await MainActor.run(body: { tokenStore.refreshToken }) else {
             return nil
         }
 
         do {
             let response = try await refreshTokens(refreshToken)
-            tokenStore.accessToken = response.accessToken
-            tokenStore.accessTokenExpiry = Date().addingTimeInterval(TimeInterval(response.expiresIn))
-            tokenStore.refreshToken = response.refreshToken
+            await MainActor.run {
+                tokenStore.accessToken = response.accessToken
+                tokenStore.accessTokenExpiry = Date().addingTimeInterval(TimeInterval(response.expiresIn))
+                tokenStore.refreshToken = response.refreshToken
+            }
             return response.accessToken
         } catch {
             print("[AuthAPI] Token refresh failed: \(error)")

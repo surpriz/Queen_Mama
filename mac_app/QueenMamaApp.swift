@@ -65,6 +65,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     /// Close sessions left open by a crash (endTime == nil)
+    @MainActor
     private func cleanupOrphanedSessions() {
         let context = QueenMamaApp.sharedModelContainer.mainContext
         let descriptor = FetchDescriptor<Session>(
