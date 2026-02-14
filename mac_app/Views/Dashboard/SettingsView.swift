@@ -385,6 +385,16 @@ struct ModernGeneralSettingsView: View {
                 }
             }
 
+            // Meeting Detection Card
+            SettingsCard(title: "Meeting Detection", icon: "video.fill") {
+                ModernToggleRow(
+                    title: "Meeting Reminders",
+                    description: "Show a reminder to start a session when a meeting app is detected",
+                    isOn: $config.meetingDetectionEnabled,
+                    icon: "bell.badge"
+                )
+            }
+
         }
     }
 }
