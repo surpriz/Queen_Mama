@@ -73,21 +73,25 @@ final class AuthenticationManager: ObservableObject {
             NotificationCenter.default.post(name: .userDidAuthenticate, object: nil)
 
         } catch {
-            // NEVER clear credentials during startup auth check.
-            // Only explicit logout() should destroy Keychain data.
-            // Refresh failures can be transient (server restart, token rotation race,
-            // network issues, etc.) - keeping credentials allows retry on next launch
-            // or next getAccessToken() call.
             print("[Auth] Token refresh failed during startup: \(error)")
-            print("[Auth] Keeping stored credentials - user can retry or will auto-retry on next action")
 
-            // Still mark as authenticated with stored user (offline/degraded mode)
-            // This allows the app to function and retry refresh transparently
-            // via getAccessToken() when the user triggers an AI request
-            currentUser = storedUser
-            isAuthenticated = true
-            authState = .authenticated(user: storedUser)
-            NotificationCenter.default.post(name: .userDidAuthenticate, object: nil)
+            if isPermanentAuthError(error) {
+                // Permanent error (invalid/expired token, blocked account, etc.)
+                // → Force re-login. Do NOT clear Keychain (only logout() does that).
+                print("[Auth] Permanent auth error - user must re-authenticate")
+                currentUser = nil
+                isAuthenticated = false
+                authState = .unauthenticated
+            } else {
+                // Transient error (network, server 5xx, etc.)
+                // → Degraded mode: keep user authenticated with cached data.
+                // getAccessToken() will retry refresh transparently on next action.
+                print("[Auth] Transient error - entering degraded mode with cached user")
+                currentUser = storedUser
+                isAuthenticated = true
+                authState = .authenticated(user: storedUser)
+                NotificationCenter.default.post(name: .userDidAuthenticate, object: nil)
+            }
         }
     }
 
@@ -385,5 +389,31 @@ final class AuthenticationManager: ObservableObject {
     /// Check if an email exists and what authentication method it uses
     func checkEmailAuthMethod(_ email: String) async throws -> EmailCheckResponse {
         return try await api.checkEmail(email)
+    }
+
+    // MARK: - Error Classification
+
+    /// Distinguish permanent auth errors (require re-login) from transient ones (allow degraded mode)
+    private func isPermanentAuthError(_ error: Error) -> Bool {
+        if let authError = error as? AuthError {
+            switch authError {
+            case .invalidToken, .tokenExpired, .invalidCredentials,
+                 .accountBlocked, .deviceLimitReached, .notAuthenticated:
+                return true
+            case .networkError, .serverError:
+                return false
+            default:
+                // Other auth errors (oauthUserNeedsGoogle, etc.) are permanent
+                return true
+            }
+        }
+
+        // URLError = network issue → transient
+        if error is URLError {
+            return false
+        }
+
+        // Unknown errors → treat as permanent to be safe
+        return true
     }
 }

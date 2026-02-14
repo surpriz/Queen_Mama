@@ -9,8 +9,7 @@ struct AccountStepView: View {
     var body: some View {
         SignInChoiceView(
             onAuthenticated: onContinue,
-            allowSkip: true,
-            onSkip: onContinue
+            allowSkip: false
         )
     }
 }

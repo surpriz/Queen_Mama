@@ -106,6 +106,7 @@ struct QueenMamaApp: App {
     enum LaunchState {
         case checking      // Checking existing auth
         case onboarding    // Not authenticated, show onboarding
+        case login         // Known user with expired token, show re-auth
         case dashboard     // Authenticated, show dashboard
     }
 
@@ -165,6 +166,11 @@ struct QueenMamaApp: App {
                     }
                     .environmentObject(appState)
 
+                case .login:
+                    ReauthenticationView {
+                        launchState = .dashboard
+                    }
+
                 case .dashboard:
                     DashboardView()
                         .environmentObject(appState)
@@ -188,7 +194,10 @@ struct QueenMamaApp: App {
         }
         .modelContainer(sharedModelContainer)
         .windowStyle(.hiddenTitleBar)
-        .defaultSize(width: launchState == .onboarding ? 800 : 900, height: launchState == .onboarding ? 600 : 700)
+        .defaultSize(
+            width: launchState == .onboarding ? 800 : launchState == .login ? 500 : 900,
+            height: launchState == .onboarding ? 600 : launchState == .login ? 600 : 700
+        )
 
         // Menu Bar Extra
         MenuBarExtra("Queen Mama", systemImage: appState.isSessionActive ? "waveform.circle.fill" : "waveform.circle") {
@@ -231,8 +240,8 @@ struct QueenMamaApp: App {
 
                 case .unauthenticated, .error(_), .authenticating, .deviceCodePending(_, _, _):
                     if ConfigurationManager.shared.hasCompletedOnboarding {
-                        print("[App] User not authenticated but onboarding completed, showing dashboard")
-                        launchState = .dashboard
+                        print("[App] User not authenticated but onboarding completed, showing login")
+                        launchState = .login
                     } else {
                         print("[App] User not authenticated, showing onboarding")
                         launchState = .onboarding
@@ -243,8 +252,8 @@ struct QueenMamaApp: App {
 
             // Timeout - check onboarding completion before defaulting
             if ConfigurationManager.shared.hasCompletedOnboarding {
-                print("[App] Auth check timeout but onboarding completed, showing dashboard")
-                launchState = .dashboard
+                print("[App] Auth check timeout but onboarding completed, showing login")
+                launchState = .login
             } else {
                 print("[App] Auth check timeout, showing onboarding")
                 launchState = .onboarding

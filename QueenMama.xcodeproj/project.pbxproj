@@ -41,6 +41,7 @@
 		000000000000000000000027 /* SecureStorage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 100000000000000000000027 /* SecureStorage.swift */; };
 		000000000000000000000028 /* UpdaterManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 100000000000000000000028 /* UpdaterManager.swift */; };
 		000000000000000000000029 /* AuthGateView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 100000000000000000000029 /* AuthGateView.swift */; };
+		100000000000000000000070 /* ReauthenticationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 10000000000000000000006F /* ReauthenticationView.swift */; };
 		075FD1B28F548EA76E2128F9 /* ProxyAPIClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = F31BD8E8B721652533B20139 /* ProxyAPIClient.swift */; };
 		10000000000000000000002A /* URLConfigManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 10000000000000000000002B /* URLConfigManager.swift */; };
 		10000000000000000000002C /* AudioBatchingService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 10000000000000000000002D /* AudioBatchingService.swift */; };
@@ -151,6 +152,7 @@
 		100000000000000000000027 /* SecureStorage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SecureStorage.swift; sourceTree = "<group>"; };
 		100000000000000000000028 /* UpdaterManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UpdaterManager.swift; sourceTree = "<group>"; };
 		100000000000000000000029 /* AuthGateView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthGateView.swift; sourceTree = "<group>"; };
+		10000000000000000000006F /* ReauthenticationView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReauthenticationView.swift; sourceTree = "<group>"; };
 		10000000000000000000002B /* URLConfigManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = URLConfigManager.swift; sourceTree = "<group>"; };
 		10000000000000000000002D /* AudioBatchingService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioBatchingService.swift; sourceTree = "<group>"; };
 		10000000000000000000002F /* TranscriptBuffer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TranscriptBuffer.swift; sourceTree = "<group>"; };
@@ -472,6 +474,7 @@
 				5CF69A8F2F35178600B0E097 /* ContactExtractionSheet.swift */,
 				5CF69A8D2F35177900B0E097 /* ContactPickerSheet.swift */,
 				100000000000000000000029 /* AuthGateView.swift */,
+				10000000000000000000006F /* ReauthenticationView.swift */,
 				5C90DF532F2B8A00006B0DE0 /* SignInChoiceView.swift */,
 				5C90DF552F2B8A00006B0DE0 /* EmailSignInView.swift */,
 				5C90DF412F1A5300006B0DE0 /* RegistrationFormView.swift */,
@@ -691,6 +694,7 @@
 				000000000000000000000027 /* SecureStorage.swift in Sources */,
 				000000000000000000000028 /* UpdaterManager.swift in Sources */,
 				000000000000000000000029 /* AuthGateView.swift in Sources */,
+				100000000000000000000070 /* ReauthenticationView.swift in Sources */,
 				5C90DF402F1A5300006B0DE0 /* RegistrationFormView.swift in Sources */,
 				10000000000000000000002A /* URLConfigManager.swift in Sources */,
 				5C90DF502F2B8A00006B0DE0 /* GoogleAuthService.swift in Sources */,
