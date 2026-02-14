@@ -794,7 +794,7 @@ struct WebDashboardButton: View {
                 #if DEBUG
                 let fallbackUrl = "http://localhost:3000/dashboard"
                 #else
-                let fallbackUrl = "https://queenmama.app/dashboard"
+                let fallbackUrl = "https://queenmama.co/dashboard"
                 #endif
                 if let url = URL(string: fallbackUrl) {
                     NSWorkspace.shared.open(url)

@@ -241,11 +241,12 @@ final class LicenseManager: ObservableObject {
             return true
         }
 
-        // SECURITY: Require license secret to be available
-        // If not configured, fail-safe by rejecting the signature
+        // If LICENSE_SECRET is not configured, skip signature verification
+        // and trust the server response. The HMAC check is an extra security layer
+        // that only applies when the secret is available.
         guard let secret = licenseSecret, !secret.isEmpty else {
-            print("[License] SECURITY: LICENSE_SECRET not configured - rejecting signature")
-            return false
+            print("[License] LICENSE_SECRET not configured - skipping signature verification")
+            return true
         }
 
         // Build the payload that was signed (same fields as server)

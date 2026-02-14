@@ -1,5 +1,6 @@
 import SwiftUI
 import SwiftData
+import Combine
 
 // MARK: - App Delegate
 class AppDelegate: NSObject, NSApplicationDelegate {
@@ -178,6 +179,9 @@ struct QueenMamaApp: App {
                                 sessionManager: sessionManager,
                                 modelContainer: QueenMamaApp.sharedModelContainer
                             )
+
+                            // Start meeting detection
+                            appState.setupMeetingDetection()
                         }
                 }
             }
@@ -326,12 +330,16 @@ class AppState: ObservableObject {
     let systemAudioBatchingService = AudioBatchingService()  // Separate batching for system audio
     let transcriptBuffer = TranscriptBuffer()
     let dictationService = DictationService()
+    let meetingDetectionService = MeetingDetectionService()
 
     // System Audio Service for speaker separation ("Moi" vs "Interlocuteur")
     let systemAudioService = SystemAudioCaptureService()
 
     // Session Manager reference (injected from QueenMamaApp)
     weak var sessionManager: SessionManager?
+
+    /// Meeting detection config observer
+    private var meetingDetectionObserver: AnyCancellable?
 
     /// Memory Palace: Contact to associate with current session
     var currentSessionContact: Contact?
@@ -698,6 +706,42 @@ class AppState: ObservableObject {
         autoAnswerService.lastDetectedMoment = nil
 
         AnalyticsService.shared.capture("proactive_suggestion_dismissed", properties: [:])
+    }
+
+    // MARK: - Meeting Detection
+
+    func setupMeetingDetection() {
+        // Wire up callbacks
+        meetingDetectionService.isSessionActive = { [weak self] in
+            self?.isSessionActive ?? false
+        }
+
+        meetingDetectionService.onMeetingDetected = { [weak self] appName in
+            guard let self else { return }
+            MeetingReminderController.shared.showReminder(
+                appName: appName,
+                onStartSession: {
+                    Task { @MainActor in
+                        await self.startSession()
+                    }
+                },
+                onDismiss: {
+                    // Cooldown already recorded by detection service
+                }
+            )
+        }
+
+        // Observe config changes
+        meetingDetectionObserver = ConfigurationManager.shared.$meetingDetectionEnabled
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] enabled in
+                guard let self else { return }
+                if enabled {
+                    self.meetingDetectionService.startMonitoring()
+                } else {
+                    self.meetingDetectionService.stopMonitoring()
+                }
+            }
     }
 }
 

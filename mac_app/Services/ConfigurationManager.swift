@@ -93,6 +93,12 @@ final class ConfigurationManager: ObservableObject {
         didSet { defaults.set(proactiveClosingEnabled, forKey: Keys.proactiveClosing) }
     }
 
+    // MARK: - Meeting Detection
+
+    @Published var meetingDetectionEnabled: Bool {
+        didSet { defaults.set(meetingDetectionEnabled, forKey: Keys.meetingDetection) }
+    }
+
     // MARK: - Keyboard Shortcuts
 
     @Published var shortcutToggleWidget: String {
@@ -136,6 +142,8 @@ final class ConfigurationManager: ObservableObject {
         static let proactiveHesitations = "proactive_hesitations"
         static let proactiveClosing = "proactive_closing"
         static let selectedDisplayID = "selected_display_id"
+        // Meeting Detection
+        static let meetingDetection = "meeting_detection_enabled"
     }
 
     // MARK: - Initialization
@@ -177,6 +185,9 @@ final class ConfigurationManager: ObservableObject {
         self.proactiveQuestionsEnabled = defaults.object(forKey: Keys.proactiveQuestions) as? Bool ?? true
         self.proactiveHesitationsEnabled = defaults.object(forKey: Keys.proactiveHesitations) as? Bool ?? false
         self.proactiveClosingEnabled = defaults.object(forKey: Keys.proactiveClosing) as? Bool ?? true
+
+        // Meeting Detection
+        self.meetingDetectionEnabled = defaults.object(forKey: Keys.meetingDetection) as? Bool ?? true
     }
 
     // MARK: - Onboarding
@@ -225,6 +236,8 @@ final class ConfigurationManager: ObservableObject {
         proactiveQuestionsEnabled = true
         proactiveHesitationsEnabled = false
         proactiveClosingEnabled = true
+        // Meeting Detection
+        meetingDetectionEnabled = true
     }
 
     // MARK: - Proactive Moment Check
