@@ -17,8 +17,8 @@ final class URLConfigManager: @unchecked Sendable {
 
         let baseString = ProcessInfo.processInfo.environment["API_BASE_URL"] ?? defaultBase
 
-        self.apiBaseURL = URL(string: baseString)!
-        self.webBaseURL = URL(string: baseString)!
+        self.apiBaseURL = URL(string: baseString) ?? URL(string: defaultBase)!
+        self.webBaseURL = URL(string: baseString) ?? URL(string: defaultBase)!
     }
 
     // MARK: - Helper URLs

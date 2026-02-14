@@ -36,7 +36,7 @@ final class ProxyAPIClient: @unchecked Sendable {
         #endif
 
         let urlString = ProcessInfo.processInfo.environment["API_BASE_URL"] ?? defaultURL
-        self.baseURL = URL(string: urlString)!
+        self.baseURL = URL(string: urlString) ?? URL(string: defaultURL)!
 
         // Standard session for quick API calls (config, tokens, etc.)
         let config = URLSessionConfiguration.default

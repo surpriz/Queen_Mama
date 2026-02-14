@@ -40,6 +40,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                 )
             }
 
+            // Clean up orphaned sessions (endTime == nil) from crashes
+            cleanupOrphanedSessions()
+
             // Explicitly load proxy configuration after auth check
             // This ensures AI providers are available even if notification timing is off
             if AuthenticationManager.shared.isAuthenticated {
@@ -57,6 +60,24 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                 // Perform initial sync (upload unsynced + reconcile remote deletions)
                 // Note: Sessions will be passed from SessionListView once it loads
                 await SyncManager.shared.reconcileRemoteDeletions()
+            }
+        }
+    }
+
+    /// Close sessions left open by a crash (endTime == nil)
+    private func cleanupOrphanedSessions() {
+        let context = QueenMamaApp.sharedModelContainer.mainContext
+        let descriptor = FetchDescriptor<Session>(
+            predicate: #Predicate<Session> { $0.endTime == nil }
+        )
+        if let orphans = try? context.fetch(descriptor) {
+            for session in orphans {
+                session.endTime = session.startTime.addingTimeInterval(3600)
+                print("[App] Closed orphaned session: \(session.id)")
+            }
+            if !orphans.isEmpty {
+                try? context.save()
+                print("[App] Cleaned up \(orphans.count) orphaned session(s)")
             }
         }
     }

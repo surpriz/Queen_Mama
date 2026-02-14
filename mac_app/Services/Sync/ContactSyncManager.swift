@@ -284,7 +284,10 @@ final class ContactSyncManager: ObservableObject {
             URLQueryItem(name: "limit", value: "500"),
         ]
 
-        var request = URLRequest(url: urlComponents.url!)
+        guard let url = urlComponents.url else {
+            throw SyncError.invalidResponse
+        }
+        var request = URLRequest(url: url)
         request.httpMethod = "GET"
         request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
 

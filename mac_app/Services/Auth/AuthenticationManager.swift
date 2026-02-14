@@ -42,7 +42,7 @@ final class AuthenticationManager: ObservableObject {
             return
         }
 
-        print("[Auth] Found stored credentials for user: \(storedUser.email)")
+        print("[Auth] Found stored credentials for user: \(storedUser.email.prefix(3))***")
         print("[Auth] Has refresh token: \(tokenStore.refreshToken != nil)")
         print("[Auth] Access token valid: \(tokenStore.isAccessTokenValid)")
 
@@ -67,7 +67,7 @@ final class AuthenticationManager: ObservableObject {
             currentUser = storedUser
             isAuthenticated = true
             authState = .authenticated(user: storedUser)
-            print("[Auth] Authentication restored for: \(storedUser.email)")
+            print("[Auth] Authentication restored for: \(storedUser.email.prefix(3))***")
 
             // Notify other services
             NotificationCenter.default.post(name: .userDidAuthenticate, object: nil)

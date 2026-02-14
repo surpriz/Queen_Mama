@@ -11,7 +11,7 @@ final class AuthAPIClient {
     private init() {
         // Configure base URL based on environment
         let urlString = AppEnvironment.current.apiBaseURL
-        self.baseURL = URL(string: urlString)!
+        self.baseURL = URL(string: urlString) ?? URL(string: "https://www.queenmama.co")!
 
         let config = URLSessionConfiguration.default
         config.timeoutIntervalForRequest = 30
@@ -332,7 +332,7 @@ extension AuthAPIClient {
                 body: body,
                 requiresAuth: true
             )
-            print("[AuthAPI] Magic link generated successfully: \(response.url)")
+            print("[AuthAPI] Magic link generated successfully")
             return response
         } catch {
             print("[AuthAPI] Magic link generation failed: \(error)")
@@ -346,7 +346,7 @@ extension AuthAPIClient {
 extension AuthAPIClient {
     /// Check if an email exists and what authentication method it uses
     func checkEmail(_ email: String) async throws -> EmailCheckResponse {
-        print("[AuthAPI] Checking email: \(email)")
+        print("[AuthAPI] Checking email: \(email.prefix(3))***")
         let body: [String: Any] = ["email": email]
 
         return try await postPublic(

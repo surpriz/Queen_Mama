@@ -5,6 +5,7 @@ import Security
 /// - Access token: stored in memory (short-lived)
 /// - Refresh token: stored in Keychain (long-lived)
 /// - User info: stored in Keychain (persistent)
+@MainActor
 final class AuthTokenStore {
     static let shared = AuthTokenStore()
 
@@ -135,7 +136,7 @@ final class AuthTokenStore {
     // MARK: - Store/Clear All
 
     func storeTokens(_ tokens: AuthTokens, user: AuthUser) {
-        print("[TokenStore] Storing tokens for user: \(user.email)")
+        print("[TokenStore] Storing tokens for user: \(user.email.prefix(3))***")
 
         _accessToken = tokens.accessToken
         _accessTokenExpiry = tokens.expiresAt
@@ -168,7 +169,7 @@ final class AuthTokenStore {
         print("[TokenStore] Has refresh token: \(hasRefresh)")
         print("[TokenStore] Has stored user: \(hasUser)")
         if let user = storedUser {
-            print("[TokenStore] Stored user email: \(user.email)")
+            print("[TokenStore] Stored user email: \(user.email.prefix(3))***")
         }
         print("[TokenStore] ========================================")
         return hasRefresh && hasUser

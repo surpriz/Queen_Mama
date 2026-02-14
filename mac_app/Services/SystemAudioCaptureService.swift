@@ -166,16 +166,18 @@ final class SystemAudioCaptureService: ObservableObject {
         let floatCount = totalLength / MemoryLayout<Float>.size
 
         // De-interleave stereo to non-interleaved format
-        if channelCount == 2 && inputBuffer.floatChannelData != nil {
-            let leftChannel = inputBuffer.floatChannelData![0]
-            let rightChannel = inputBuffer.floatChannelData![1]
+        guard let channelData = inputBuffer.floatChannelData else { return }
+
+        if channelCount == 2 {
+            let leftChannel = channelData[0]
+            let rightChannel = channelCount > 1 ? channelData[1] : channelData[0]
 
             for i in 0..<min(frameCount, floatCount / 2) {
                 leftChannel[i] = floatPointer[i * 2]
                 rightChannel[i] = floatPointer[i * 2 + 1]
             }
-        } else if channelCount == 1 && inputBuffer.floatChannelData != nil {
-            memcpy(inputBuffer.floatChannelData![0], floatPointer, min(totalLength, frameCount * MemoryLayout<Float>.size))
+        } else if channelCount == 1 {
+            memcpy(channelData[0], floatPointer, min(totalLength, frameCount * MemoryLayout<Float>.size))
         }
 
         // Calculate audio level for visualization (use left channel or mono)

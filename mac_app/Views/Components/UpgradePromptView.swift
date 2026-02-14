@@ -128,7 +128,7 @@ struct UpgradePromptView: View {
                 // Generate magic link for auto-login
                 print("[Upgrade] Calling generateMagicLink...")
                 let response = try await AuthAPIClient.shared.generateMagicLink(redirect: "/dashboard/billing")
-                print("[Upgrade] Magic link generated: \(response.url)")
+                print("[Upgrade] Magic link generated successfully")
                 if let url = URL(string: response.url) {
                     NSWorkspace.shared.open(url)
                 }
