@@ -17,8 +17,108 @@ export interface ChangelogRelease {
 
 export const changelogData: ChangelogRelease[] = [
   {
-    date: "January 2026",
+    date: "February 2026",
     isNew: true,
+    sections: [
+      {
+        category: "features",
+        changes: [
+          {
+            id: "voiceDictation",
+            title: "Voice Dictation Mode",
+            description: "Standalone voice dictation for quick AI queries without starting a full session"
+          },
+          {
+            id: "meetingDetection",
+            title: "Meeting Detection & Reminders",
+            description: "Automatic detection of active meetings with smart reminders to start recording"
+          },
+          {
+            id: "contactManagement",
+            title: "Contact Management",
+            description: "Full contact management with notes, sync, and relationship tracking in Memory Palace"
+          },
+          {
+            id: "bulkSessionDeletion",
+            title: "Bulk Session Deletion",
+            description: "Select and delete multiple sessions at once from the dashboard"
+          },
+          {
+            id: "memoryPalace",
+            title: "Memory Palace",
+            description: "AI-powered mini-CRM that automatically extracts and manages contacts from your conversations"
+          },
+          {
+            id: "displaySelection",
+            title: "Display Selection",
+            description: "Choose which display to use for screen capture in multi-monitor setups"
+          },
+          {
+            id: "internationalisation",
+            title: "Internationalized Landing Site",
+            description: "Full French and English support across the entire website with locale-based routing"
+          }
+        ]
+      },
+      {
+        category: "improvements",
+        changes: [
+          {
+            id: "transcriptionReconnection",
+            title: "Improved Transcription Reliability",
+            description: "Enhanced WebSocket reconnection logic and more robust error recovery for uninterrupted transcription"
+          },
+          {
+            id: "overlayRefinements",
+            title: "Refined Overlay Appearance",
+            description: "More transparent and polished overlay widget for a less intrusive experience"
+          },
+          {
+            id: "aiResponseClarity",
+            title: "Enhanced AI Response Quality",
+            description: "Improved prompt engineering and context handling for clearer, more actionable AI suggestions"
+          },
+          {
+            id: "healthMonitoring",
+            title: "Proactive Health Monitoring",
+            description: "Background service health checks to detect and recover from issues before they impact your session"
+          }
+        ]
+      },
+      {
+        category: "fixes",
+        changes: [
+          {
+            id: "authPersistence",
+            title: "Authentication Persistence Fix",
+            description: "Resolved an issue where authentication state could be lost between app restarts"
+          },
+          {
+            id: "dashboardUrl",
+            title: "Web Dashboard URL Fix",
+            description: "Fixed the Web Dashboard button redirecting to the wrong domain"
+          }
+        ]
+      },
+      {
+        category: "technical",
+        changes: [
+          {
+            id: "schemaVersioning",
+            title: "Schema Versioning",
+            description: "Versioned data migration system for safe and seamless SwiftData schema updates"
+          },
+          {
+            id: "orphanedSessionCleanup",
+            title: "Orphaned Session Cleanup",
+            description: "Automatic detection and cleanup of incomplete sessions left behind after crashes"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    date: "January 2026",
     sections: [
       {
         category: "features",

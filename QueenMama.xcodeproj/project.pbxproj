@@ -84,7 +84,35 @@
 		6937AD307161BE7D38D20A02 /* ProxyConfigManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6FF34DCBA9126388FFC21F75 /* ProxyConfigManager.swift */; };
 		72E5F74C2ED54F91ABC5DA43 /* MarkdownRenderer.swift in Sources */ = {isa = PBXBuildFile; fileRef = AED67FF476044F25BA92C2A6 /* MarkdownRenderer.swift */; };
 		7B923343FFD53C5B186B448C /* AppEnvironment.swift in Sources */ = {isa = PBXBuildFile; fileRef = E21A69063C57255B141AA522 /* AppEnvironment.swift */; };
+		10000000000000000000004C /* AudioBatchingServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 10000000000000000000004B /* AudioBatchingServiceTests.swift */; };
+		10000000000000000000004E /* AudioConverterTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 10000000000000000000004D /* AudioConverterTests.swift */; };
+		100000000000000000000050 /* AudioPipelineIntegrationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 10000000000000000000004F /* AudioPipelineIntegrationTests.swift */; };
+		100000000000000000000052 /* MockAIProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 100000000000000000000051 /* MockAIProvider.swift */; };
+		100000000000000000000054 /* MomentDetectionServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 100000000000000000000053 /* MomentDetectionServiceTests.swift */; };
+		100000000000000000000056 /* AutoAnswerServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 100000000000000000000055 /* AutoAnswerServiceTests.swift */; };
+		100000000000000000000058 /* AIContextTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 100000000000000000000057 /* AIContextTests.swift */; };
+		10000000000000000000005A /* LicenseModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 100000000000000000000059 /* LicenseModelTests.swift */; };
+		10000000000000000000005C /* TranscriptBufferTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 10000000000000000000005B /* TranscriptBufferTests.swift */; };
+		10000000000000000000005E /* ResponseCacheTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 10000000000000000000005D /* ResponseCacheTests.swift */; };
+		100000000000000000000060 /* AIServiceLogicTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 10000000000000000000005F /* AIServiceLogicTests.swift */; };
+		100000000000000000000062 /* SessionModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 100000000000000000000061 /* SessionModelTests.swift */; };
+		100000000000000000000064 /* ContactModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 100000000000000000000063 /* ContactModelTests.swift */; };
+		100000000000000000000066 /* MarkdownParserTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 100000000000000000000065 /* MarkdownParserTests.swift */; };
+		100000000000000000000068 /* TranscriptionConnectionStateTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 100000000000000000000067 /* TranscriptionConnectionStateTests.swift */; };
+		10000000000000000000006A /* ExtensionsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 100000000000000000000069 /* ExtensionsTests.swift */; };
+		10000000000000000000006C /* HealthCheckServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 10000000000000000000006B /* HealthCheckServiceTests.swift */; };
+		10000000000000000000006E /* SessionLifecycleTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 10000000000000000000006D /* SessionLifecycleTests.swift */; };
 /* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		900000000000000000000001 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 700000000000000000000001 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 500000000000000000000001;
+			remoteInfo = QueenMama;
+		};
+/* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
 		100000000000000000000001 /* QueenMamaApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QueenMamaApp.swift; sourceTree = "<group>"; };
@@ -164,6 +192,25 @@
 		C4A5D6911606803AAD99FDDE /* ProxyAIProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProxyAIProvider.swift; sourceTree = "<group>"; };
 		E21A69063C57255B141AA522 /* AppEnvironment.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppEnvironment.swift; sourceTree = "<group>"; };
 		F31BD8E8B721652533B20139 /* ProxyAPIClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProxyAPIClient.swift; sourceTree = "<group>"; };
+		10000000000000000000004B /* AudioBatchingServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioBatchingServiceTests.swift; sourceTree = "<group>"; };
+		10000000000000000000004D /* AudioConverterTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioConverterTests.swift; sourceTree = "<group>"; };
+		10000000000000000000004F /* AudioPipelineIntegrationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioPipelineIntegrationTests.swift; sourceTree = "<group>"; };
+		100000000000000000000051 /* MockAIProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MockAIProvider.swift; sourceTree = "<group>"; };
+		100000000000000000000053 /* MomentDetectionServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MomentDetectionServiceTests.swift; sourceTree = "<group>"; };
+		100000000000000000000055 /* AutoAnswerServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AutoAnswerServiceTests.swift; sourceTree = "<group>"; };
+		100000000000000000000057 /* AIContextTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIContextTests.swift; sourceTree = "<group>"; };
+		100000000000000000000059 /* LicenseModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LicenseModelTests.swift; sourceTree = "<group>"; };
+		10000000000000000000005B /* TranscriptBufferTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TranscriptBufferTests.swift; sourceTree = "<group>"; };
+		10000000000000000000005D /* ResponseCacheTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ResponseCacheTests.swift; sourceTree = "<group>"; };
+		10000000000000000000005F /* AIServiceLogicTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIServiceLogicTests.swift; sourceTree = "<group>"; };
+		100000000000000000000061 /* SessionModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionModelTests.swift; sourceTree = "<group>"; };
+		100000000000000000000063 /* ContactModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContactModelTests.swift; sourceTree = "<group>"; };
+		100000000000000000000065 /* MarkdownParserTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MarkdownParserTests.swift; sourceTree = "<group>"; };
+		100000000000000000000067 /* TranscriptionConnectionStateTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TranscriptionConnectionStateTests.swift; sourceTree = "<group>"; };
+		100000000000000000000069 /* ExtensionsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExtensionsTests.swift; sourceTree = "<group>"; };
+		10000000000000000000006B /* HealthCheckServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthCheckServiceTests.swift; sourceTree = "<group>"; };
+		10000000000000000000006D /* SessionLifecycleTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionLifecycleTests.swift; sourceTree = "<group>"; };
+		200000000000000000000002 /* QueenMamaTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = QueenMamaTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -177,6 +224,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		300000000000000000000002 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
@@ -184,6 +238,7 @@
 			isa = PBXGroup;
 			children = (
 				400000000000000000000002 /* mac_app */,
+				400000000000000000000010 /* QueenMamaTests */,
 				400000000000000000000003 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -207,8 +262,82 @@
 			isa = PBXGroup;
 			children = (
 				200000000000000000000001 /* QueenMama.app */,
+				200000000000000000000002 /* QueenMamaTests.xctest */,
 			);
 			name = Products;
+			sourceTree = "<group>";
+		};
+		400000000000000000000010 /* QueenMamaTests */ = {
+			isa = PBXGroup;
+			children = (
+				10000000000000000000004B /* AudioBatchingServiceTests.swift */,
+				10000000000000000000004D /* AudioConverterTests.swift */,
+				10000000000000000000004F /* AudioPipelineIntegrationTests.swift */,
+				400000000000000000000011 /* Mocks */,
+				400000000000000000000012 /* Unit */,
+				400000000000000000000016 /* Integration */,
+			);
+			path = QueenMamaTests;
+			sourceTree = "<group>";
+		};
+		400000000000000000000011 /* Mocks */ = {
+			isa = PBXGroup;
+			children = (
+				100000000000000000000051 /* MockAIProvider.swift */,
+			);
+			path = Mocks;
+			sourceTree = "<group>";
+		};
+		400000000000000000000012 /* Unit */ = {
+			isa = PBXGroup;
+			children = (
+				400000000000000000000013 /* Services */,
+				400000000000000000000014 /* Models */,
+				400000000000000000000015 /* Utilities */,
+			);
+			path = Unit;
+			sourceTree = "<group>";
+		};
+		400000000000000000000013 /* Services */ = {
+			isa = PBXGroup;
+			children = (
+				100000000000000000000053 /* MomentDetectionServiceTests.swift */,
+				100000000000000000000055 /* AutoAnswerServiceTests.swift */,
+				10000000000000000000005B /* TranscriptBufferTests.swift */,
+				10000000000000000000005D /* ResponseCacheTests.swift */,
+				10000000000000000000005F /* AIServiceLogicTests.swift */,
+				100000000000000000000067 /* TranscriptionConnectionStateTests.swift */,
+				10000000000000000000006B /* HealthCheckServiceTests.swift */,
+			);
+			path = Services;
+			sourceTree = "<group>";
+		};
+		400000000000000000000014 /* Models */ = {
+			isa = PBXGroup;
+			children = (
+				100000000000000000000057 /* AIContextTests.swift */,
+				100000000000000000000059 /* LicenseModelTests.swift */,
+				100000000000000000000061 /* SessionModelTests.swift */,
+				100000000000000000000063 /* ContactModelTests.swift */,
+			);
+			path = Models;
+			sourceTree = "<group>";
+		};
+		400000000000000000000015 /* Utilities */ = {
+			isa = PBXGroup;
+			children = (
+				100000000000000000000065 /* MarkdownParserTests.swift */,
+				100000000000000000000069 /* ExtensionsTests.swift */,
+			);
+			path = Utilities;
+			sourceTree = "<group>";
+		};
+		400000000000000000000016 /* Integration */ = {
+			isa = PBXGroup;
+			children = (
+				10000000000000000000006D /* SessionLifecycleTests.swift */,
+			);
+			path = Integration;
 			sourceTree = "<group>";
 		};
 		400000000000000000000004 /* Models */ = {
@@ -424,6 +553,24 @@
 			productReference = 200000000000000000000001 /* QueenMama.app */;
 			productType = "com.apple.product-type.application";
 		};
+		500000000000000000000004 /* QueenMamaTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 600000000000000000000003 /* Build configuration list for PBXNativeTarget "QueenMamaTests" */;
+			buildPhases = (
+				500000000000000000000005 /* Sources */,
+				300000000000000000000002 /* Frameworks */,
+				500000000000000000000006 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				A00000000000000000000001 /* PBXTargetDependency */,
+			);
+			name = QueenMamaTests;
+			productName = QueenMamaTests;
+			productReference = 200000000000000000000002 /* QueenMamaTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -436,6 +583,10 @@
 				TargetAttributes = {
 					500000000000000000000001 = {
 						CreatedOnToolsVersion = 15.0;
+					};
+					500000000000000000000004 = {
+						CreatedOnToolsVersion = 15.0;
+						TestTargetID = 500000000000000000000001;
 					};
 				};
 			};
@@ -458,6 +609,7 @@
 			projectRoot = "";
 			targets = (
 				500000000000000000000001 /* QueenMama */,
+				500000000000000000000004 /* QueenMamaTests */,
 			);
 		};
 /* End PBXProject section */
@@ -468,6 +620,13 @@
 			buildActionMask = 2147483647;
 			files = (
 				000000000000000000000019 /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		500000000000000000000006 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -554,7 +713,40 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		500000000000000000000005 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				10000000000000000000004C /* AudioBatchingServiceTests.swift in Sources */,
+				10000000000000000000004E /* AudioConverterTests.swift in Sources */,
+				100000000000000000000050 /* AudioPipelineIntegrationTests.swift in Sources */,
+				100000000000000000000052 /* MockAIProvider.swift in Sources */,
+				100000000000000000000054 /* MomentDetectionServiceTests.swift in Sources */,
+				100000000000000000000056 /* AutoAnswerServiceTests.swift in Sources */,
+				100000000000000000000058 /* AIContextTests.swift in Sources */,
+				10000000000000000000005A /* LicenseModelTests.swift in Sources */,
+				10000000000000000000005C /* TranscriptBufferTests.swift in Sources */,
+				10000000000000000000005E /* ResponseCacheTests.swift in Sources */,
+				100000000000000000000060 /* AIServiceLogicTests.swift in Sources */,
+				100000000000000000000062 /* SessionModelTests.swift in Sources */,
+				100000000000000000000064 /* ContactModelTests.swift in Sources */,
+				100000000000000000000066 /* MarkdownParserTests.swift in Sources */,
+				100000000000000000000068 /* TranscriptionConnectionStateTests.swift in Sources */,
+				10000000000000000000006A /* ExtensionsTests.swift in Sources */,
+				10000000000000000000006C /* HealthCheckServiceTests.swift in Sources */,
+				10000000000000000000006E /* SessionLifecycleTests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		A00000000000000000000001 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 500000000000000000000001 /* QueenMama */;
+			targetProxy = 900000000000000000000001 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
 		800000000000000000000001 /* Debug */ = {
@@ -761,6 +953,46 @@
 			};
 			name = Release;
 		};
+		800000000000000000000005 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEAD_CODE_STRIPPING = YES;
+				DEVELOPMENT_TEAM = WNNDDTBPGK;
+				GENERATE_INFOPLIST_FILE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 14.2;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.queenmama.app.tests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_STRICT_CONCURRENCY = complete;
+				SWIFT_VERSION = 5.0;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/QueenMama.app/Contents/MacOS/QueenMama";
+			};
+			name = Debug;
+		};
+		800000000000000000000006 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEAD_CODE_STRIPPING = YES;
+				DEVELOPMENT_TEAM = WNNDDTBPGK;
+				GENERATE_INFOPLIST_FILE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 14.2;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.queenmama.app.tests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_STRICT_CONCURRENCY = complete;
+				SWIFT_VERSION = 5.0;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/QueenMama.app/Contents/MacOS/QueenMama";
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -778,6 +1010,15 @@
 			buildConfigurations = (
 				800000000000000000000001 /* Debug */,
 				800000000000000000000002 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		600000000000000000000003 /* Build configuration list for PBXNativeTarget "QueenMamaTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				800000000000000000000005 /* Debug */,
+				800000000000000000000006 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

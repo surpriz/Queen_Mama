@@ -1,0 +1,52 @@
+name: Tests Web
+
+on:
+  push:
+    branches: [main, staging]
+    paths:
+      - 'landing/**'
+      - '.github/workflows/test-web.yml'
+  pull_request:
+    branches: [main, staging]
+    paths:
+      - 'landing/**'
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: landing
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: landing/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Generate Prisma client
+        run: npx prisma generate
+
+      - name: Run tests
+        run: npx vitest run --reporter=verbose 2>&1 | tee test-output.log
+
+      - name: Test Summary
+        if: always()
+        run: |
+          echo "## Web Test Results" >> $GITHUB_STEP_SUMMARY
+          if grep -q "Tests.*passed" test-output.log; then
+            PASSED=$(grep -oP '\d+ passed' test-output.log | head -1)
+            echo "✅ **$PASSED**" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "❌ **Tests failed**" >> $GITHUB_STEP_SUMMARY
+          fi
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          tail -20 test-output.log >> $GITHUB_STEP_SUMMARY || true
+          echo '```' >> $GITHUB_STEP_SUMMARY
