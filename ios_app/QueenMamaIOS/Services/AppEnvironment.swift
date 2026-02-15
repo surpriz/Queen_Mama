@@ -33,7 +33,13 @@ enum AppEnvironment: String, CaseIterable {
     var apiBaseURL: String {
         switch self {
         case .development:
+            // Use Mac's local IP so physical iPhone can reach the dev server
+            // localhost only works on the Simulator
+            #if targetEnvironment(simulator)
             return "http://localhost:3000"
+            #else
+            return "http://192.168.1.39:3000"
+            #endif
         case .staging:
             return "https://staging.queenmama.co"
         case .production:

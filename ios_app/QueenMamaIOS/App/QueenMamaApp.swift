@@ -14,6 +14,13 @@ class AppDelegate: NSObject, UIApplicationDelegate {
         Task { @MainActor in
             await AuthenticationManager.shared.checkExistingAuth()
 
+            // Explicitly validate license after auth is restored
+            // (LicenseManager's Combine subscription uses .dropFirst() which
+            // misses the initial value when initialized after auth completes)
+            if AuthenticationManager.shared.isAuthenticated {
+                await LicenseManager.shared.revalidate()
+            }
+
             if let user = AuthenticationManager.shared.currentUser {
                 CrashReporter.shared.setUser(id: user.id, email: user.email)
                 AnalyticsService.shared.identify(
@@ -62,11 +69,8 @@ class AppDelegate: NSObject, UIApplicationDelegate {
         }
     }
 
-    func applicationDidBecomeActive(_ application: UIApplication) {
-        Task { @MainActor in
-            await LicenseManager.shared.revalidate()
-        }
-    }
+    // Note: applicationDidBecomeActive is NOT called in SwiftUI scene-based lifecycle.
+    // License revalidation on foreground is handled via ScenePhase in QueenMamaApp.body.
 }
 
 @main
@@ -77,6 +81,7 @@ struct QueenMamaApp: App {
     @StateObject private var sessionManager = SessionManager()
     @StateObject private var authManager = AuthenticationManager.shared
 
+    @Environment(\.scenePhase) private var scenePhase
     @State private var launchState: LaunchState = .checking
 
     enum LaunchState {
@@ -154,6 +159,13 @@ struct QueenMamaApp: App {
             .preferredColorScheme(.dark)
         }
         .modelContainer(sharedModelContainer)
+        .onChange(of: scenePhase) { _, newPhase in
+            if newPhase == .active {
+                Task { @MainActor in
+                    await LicenseManager.shared.revalidate()
+                }
+            }
+        }
     }
 
     private func checkAuthAndSetLaunchState() {
