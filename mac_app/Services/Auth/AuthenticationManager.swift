@@ -74,19 +74,19 @@ final class AuthenticationManager: ObservableObject {
 
         } catch {
             print("[Auth] Token refresh failed during startup: \(error)")
+            print("[Auth] Error type: \(type(of: error)), description: \(error.localizedDescription)")
 
             if isPermanentAuthError(error) {
-                // Permanent error (invalid/expired token, blocked account, etc.)
-                // → Force re-login. Do NOT clear Keychain (only logout() does that).
+                // Permanent error (account blocked, device limit) - force re-login
                 print("[Auth] Permanent auth error - user must re-authenticate")
                 currentUser = nil
                 isAuthenticated = false
                 authState = .unauthenticated
             } else {
-                // Transient error (network, server 5xx, etc.)
+                // All other errors (network, invalid token, server, decoding, etc.)
                 // → Degraded mode: keep user authenticated with cached data.
                 // getAccessToken() will retry refresh transparently on next action.
-                print("[Auth] Transient error - entering degraded mode with cached user")
+                print("[Auth] Non-permanent error - entering degraded mode with cached user")
                 currentUser = storedUser
                 isAuthenticated = true
                 authState = .authenticated(user: storedUser)
@@ -393,27 +393,22 @@ final class AuthenticationManager: ObservableObject {
 
     // MARK: - Error Classification
 
-    /// Distinguish permanent auth errors (require re-login) from transient ones (allow degraded mode)
+    /// Only truly unrecoverable errors should be permanent.
+    /// Everything else → degraded mode (getAccessToken() will retry on next action).
     private func isPermanentAuthError(_ error: Error) -> Bool {
         if let authError = error as? AuthError {
             switch authError {
-            case .invalidToken, .tokenExpired, .invalidCredentials,
-                 .accountBlocked, .deviceLimitReached, .notAuthenticated:
+            case .accountBlocked, .deviceLimitReached:
+                // Account-level blocks that won't resolve by retrying
                 return true
-            case .networkError, .serverError:
-                return false
             default:
-                // Other auth errors (oauthUserNeedsGoogle, etc.) are permanent
-                return true
+                // All other auth errors (.invalidToken, .tokenExpired, .serverError,
+                // .networkError, etc.) → allow degraded mode with transparent retry
+                return false
             }
         }
 
-        // URLError = network issue → transient
-        if error is URLError {
-            return false
-        }
-
-        // Unknown errors → treat as permanent to be safe
-        return true
+        // All non-AuthError errors (URLError, DecodingError, etc.) → transient
+        return false
     }
 }
