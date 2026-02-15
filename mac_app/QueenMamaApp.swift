@@ -234,8 +234,13 @@ struct QueenMamaApp: App {
                     attempts += 1
 
                 case .authenticated(_):
-                    print("[App] User authenticated, skipping onboarding")
-                    launchState = .dashboard
+                    if ConfigurationManager.shared.hasCompletedOnboarding {
+                        print("[App] User authenticated, showing dashboard")
+                        launchState = .dashboard
+                    } else {
+                        print("[App] User authenticated but onboarding not completed, showing onboarding")
+                        launchState = .onboarding
+                    }
                     return
 
                 case .unauthenticated, .error(_), .authenticating, .deviceCodePending(_, _, _):
