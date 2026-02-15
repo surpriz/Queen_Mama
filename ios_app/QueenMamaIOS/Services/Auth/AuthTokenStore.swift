@@ -1,0 +1,250 @@
+import Foundation
+import Security
+
+/// Securely stores authentication tokens
+/// - Access token: stored in memory (short-lived)
+/// - Refresh token: stored in Keychain (long-lived)
+/// - User info: stored in Keychain (persistent)
+@MainActor
+final class AuthTokenStore {
+    static let shared = AuthTokenStore()
+
+    // Use a consistent service name that works across all build configurations
+    // Note: We use a fixed service name rather than Bundle.main.bundleIdentifier
+    // to ensure tokens persist across different builds (debug, release, Xcode, production)
+    private let service = "com.queenmama.app.auth"
+    private let legacyService = "com.queenmama.app"  // For migration
+    private let refreshTokenAccount = "refresh_token"
+    private let userInfoAccount = "user_info"
+    private let tokenExpiryAccount = "token_expiry"
+
+    // In-memory storage for access token
+    private var _accessToken: String?
+    private var _accessTokenExpiry: Date?
+
+    private init() {}
+
+    // MARK: - Access Token (Memory)
+
+    var accessToken: String? {
+        get {
+            guard let token = _accessToken,
+                  let expiry = _accessTokenExpiry,
+                  expiry > Date() else {
+                return nil
+            }
+            return token
+        }
+        set {
+            _accessToken = newValue
+        }
+    }
+
+    var accessTokenExpiry: Date? {
+        get { _accessTokenExpiry }
+        set { _accessTokenExpiry = newValue }
+    }
+
+    var isAccessTokenValid: Bool {
+        guard let expiry = _accessTokenExpiry else { return false }
+        // Consider token expired 60 seconds early to avoid edge cases
+        return expiry.addingTimeInterval(-60) > Date()
+    }
+
+    // MARK: - Refresh Token (Keychain)
+
+    var refreshToken: String? {
+        get {
+            // Try new service first
+            if let token = try? getString(account: refreshTokenAccount, service: service) {
+                return token
+            }
+            // Fallback to legacy service for migration
+            if let legacyToken = try? getString(account: refreshTokenAccount, service: legacyService) {
+                print("[TokenStore] Found token in legacy keychain, migrating...")
+                // Migrate to new service
+                try? saveString(legacyToken, account: refreshTokenAccount, service: service)
+                // Delete from legacy (optional, keep for safety)
+                return legacyToken
+            }
+            return nil
+        }
+        set {
+            if let token = newValue {
+                try? saveString(token, account: refreshTokenAccount, service: service)
+            } else {
+                try? delete(account: refreshTokenAccount, service: service)
+                try? delete(account: refreshTokenAccount, service: legacyService)
+            }
+        }
+    }
+
+    // MARK: - User Info (Keychain)
+
+    var storedUser: AuthUser? {
+        get {
+            // Try new service first
+            if let data = try? getData(account: userInfoAccount, service: service),
+               let user = try? JSONDecoder().decode(AuthUser.self, from: data) {
+                return user
+            }
+            // Fallback to legacy service for migration
+            if let legacyData = try? getData(account: userInfoAccount, service: legacyService),
+               let user = try? JSONDecoder().decode(AuthUser.self, from: legacyData) {
+                print("[TokenStore] Found user in legacy keychain, migrating...")
+                try? saveData(legacyData, account: userInfoAccount, service: service)
+                return user
+            }
+            return nil
+        }
+        set {
+            if let user = newValue,
+               let data = try? JSONEncoder().encode(user) {
+                try? saveData(data, account: userInfoAccount, service: service)
+            } else {
+                try? delete(account: userInfoAccount, service: service)
+                try? delete(account: userInfoAccount, service: legacyService)
+            }
+        }
+    }
+
+    // MARK: - Token Expiry Persistence
+
+    var storedTokenExpiry: Date? {
+        get {
+            // Try new service first
+            if let string = try? getString(account: tokenExpiryAccount, service: service) {
+                return ISO8601DateFormatter().date(from: string)
+            }
+            // Fallback to legacy service
+            if let legacyString = try? getString(account: tokenExpiryAccount, service: legacyService) {
+                return ISO8601DateFormatter().date(from: legacyString)
+            }
+            return nil
+        }
+        set {
+            if let expiry = newValue {
+                let string = ISO8601DateFormatter().string(from: expiry)
+                try? saveString(string, account: tokenExpiryAccount, service: service)
+            } else {
+                try? delete(account: tokenExpiryAccount, service: service)
+                try? delete(account: tokenExpiryAccount, service: legacyService)
+            }
+        }
+    }
+
+    // MARK: - Store/Clear All
+
+    func storeTokens(_ tokens: AuthTokens, user: AuthUser) {
+        print("[TokenStore] Storing tokens for user: \(user.email.prefix(3))***")
+
+        _accessToken = tokens.accessToken
+        _accessTokenExpiry = tokens.expiresAt
+
+        refreshToken = tokens.refreshToken
+        storedUser = user
+        storedTokenExpiry = tokens.expiresAt
+
+        // Verify storage
+        let hasRefresh = self.refreshToken != nil
+        let hasUser = self.storedUser != nil
+        print("[TokenStore] Storage verification - refreshToken: \(hasRefresh), user: \(hasUser)")
+    }
+
+    func clearAll() {
+        print("[TokenStore] Clearing all stored credentials")
+        _accessToken = nil
+        _accessTokenExpiry = nil
+        refreshToken = nil  // This will clear both services
+        storedUser = nil    // This will clear both services
+        storedTokenExpiry = nil  // This will clear both services
+    }
+
+    var hasStoredCredentials: Bool {
+        let hasRefresh = refreshToken != nil
+        let hasUser = storedUser != nil
+        print("[TokenStore] ========== CREDENTIALS CHECK ==========")
+        print("[TokenStore] Keychain service: \(service)")
+        print("[TokenStore] Bundle ID: \(Bundle.main.bundleIdentifier ?? "unknown")")
+        print("[TokenStore] Has refresh token: \(hasRefresh)")
+        print("[TokenStore] Has stored user: \(hasUser)")
+        if let user = storedUser {
+            print("[TokenStore] Stored user email: \(user.email.prefix(3))***")
+        }
+        print("[TokenStore] ========================================")
+        return hasRefresh && hasUser
+    }
+
+    // MARK: - Keychain Operations
+
+    private func saveString(_ string: String, account: String, service svc: String? = nil) throws {
+        let data = Data(string.utf8)
+        try saveData(data, account: account, service: svc)
+    }
+
+    private func getString(account: String, service svc: String? = nil) throws -> String {
+        let data = try getData(account: account, service: svc)
+        guard let string = String(data: data, encoding: .utf8) else {
+            throw KeychainError.invalidData
+        }
+        return string
+    }
+
+    private func saveData(_ data: Data, account: String, service svc: String? = nil) throws {
+        let serviceToUse = svc ?? service
+        let query: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrService as String: serviceToUse,
+            kSecAttrAccount as String: account,
+            kSecValueData as String: data
+        ]
+
+        // Delete existing item first
+        SecItemDelete(query as CFDictionary)
+
+        let status = SecItemAdd(query as CFDictionary, nil)
+        guard status == errSecSuccess else {
+            print("[TokenStore] Keychain save FAILED for \(account) in \(serviceToUse): OSStatus \(status)")
+            throw KeychainError.unexpectedStatus(status)
+        }
+        print("[TokenStore] Keychain save SUCCESS for \(account) in \(serviceToUse)")
+    }
+
+    private func getData(account: String, service svc: String? = nil) throws -> Data {
+        let serviceToUse = svc ?? service
+        let query: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrService as String: serviceToUse,
+            kSecAttrAccount as String: account,
+            kSecReturnData as String: true,
+            kSecMatchLimit as String: kSecMatchLimitOne
+        ]
+
+        var result: AnyObject?
+        let status = SecItemCopyMatching(query as CFDictionary, &result)
+
+        guard status == errSecSuccess else {
+            throw KeychainError.itemNotFound
+        }
+
+        guard let data = result as? Data else {
+            throw KeychainError.invalidData
+        }
+
+        return data
+    }
+
+    private func delete(account: String, service svc: String? = nil) throws {
+        let serviceToUse = svc ?? service
+        let query: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrService as String: serviceToUse,
+            kSecAttrAccount as String: account
+        ]
+
+        let status = SecItemDelete(query as CFDictionary)
+        guard status == errSecSuccess || status == errSecItemNotFound else {
+            throw KeychainError.unexpectedStatus(status)
+        }
+    }
+}
