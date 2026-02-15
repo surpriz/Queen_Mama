@@ -1,0 +1,38 @@
+name: Deploy Web (Gated)
+
+on:
+  push:
+    branches: [main, staging]
+    paths:
+      - 'landing/**'
+
+jobs:
+  test:
+    uses: ./.github/workflows/test-web.yml
+
+  validate:
+    uses: ./.github/workflows/deploy-web.yml
+
+  deploy:
+    needs: [test, validate]
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Vercel CLI
+        run: npm i -g vercel
+
+      - name: Deploy to Vercel
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+        run: |
+          if [ "${{ github.ref_name }}" = "main" ]; then
+            echo "Deploying to PRODUCTION..."
+            vercel deploy --prod --token=$VERCEL_TOKEN
+          else
+            echo "Deploying to PREVIEW (staging)..."
+            vercel deploy --token=$VERCEL_TOKEN
+          fi
