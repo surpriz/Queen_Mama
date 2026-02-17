@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import SwiftData
 @preconcurrency import ScreenCaptureKit
 
 // MARK: - Overlay Position
@@ -175,7 +176,13 @@ struct ModeMenuItem: View {
     let isHovered: Bool
     let onSelect: (Mode) -> Void
 
+    @Query(sort: \Mode.createdAt) private var allModes: [Mode]
+
     private let builtInModes: [Mode] = [.defaultMode, .professionalMode, .interviewMode, .salesMode, .developerExamMode]
+
+    private var customModes: [Mode] {
+        allModes.filter { !$0.isDefault }
+    }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -217,12 +224,38 @@ struct ModeMenuItem: View {
             // Submenu with mode options
             if isExpanded {
                 VStack(spacing: 2) {
+                    // Built-in modes
                     ForEach(builtInModes, id: \.name) { mode in
                         ModeOptionButton(
                             mode: mode,
                             isSelected: selectedMode?.name == mode.name,
                             onSelect: { onSelect(mode) }
                         )
+                    }
+
+                    // Custom modes section
+                    if !customModes.isEmpty {
+                        // Separator
+                        HStack(spacing: QMDesign.Spacing.xs) {
+                            Rectangle()
+                                .fill(QMDesign.Colors.borderSubtle)
+                                .frame(height: 1)
+                            Text("CUSTOM")
+                                .font(.system(size: 8, weight: .semibold))
+                                .foregroundColor(QMDesign.Colors.textTertiary)
+                            Rectangle()
+                                .fill(QMDesign.Colors.borderSubtle)
+                                .frame(height: 1)
+                        }
+                        .padding(.vertical, QMDesign.Spacing.xxs)
+
+                        ForEach(customModes, id: \.id) { mode in
+                            ModeOptionButton(
+                                mode: mode,
+                                isSelected: selectedMode?.id == mode.id,
+                                onSelect: { onSelect(mode) }
+                            )
+                        }
                     }
                 }
                 .padding(QMDesign.Spacing.xs)
