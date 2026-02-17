@@ -970,11 +970,20 @@ struct ModernTabButton: View {
                         RoundedRectangle(cornerRadius: QMDesign.Radius.sm)
                             .fill(QMDesign.Colors.primaryGradient.opacity(0.2))
                             .matchedGeometryEffect(id: "tabBackground", in: namespace)
-                    } else if isHovered {
+                    } else {
                         RoundedRectangle(cornerRadius: QMDesign.Radius.sm)
-                            .fill(QMDesign.Colors.surfaceHover)
+                            .fill(isHovered ? QMDesign.Colors.surfaceHover : QMDesign.Colors.surfaceMedium.opacity(0.5))
                     }
                 }
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: QMDesign.Radius.sm)
+                    .stroke(
+                        isSelected ? QMDesign.Colors.accent.opacity(0.3) :
+                        isHovered ? QMDesign.Colors.borderSubtle.opacity(0.8) :
+                        QMDesign.Colors.borderSubtle.opacity(0.4),
+                        lineWidth: 0.5
+                    )
             )
             .foregroundColor(isSelected ? QMDesign.Colors.accent : QMDesign.Colors.textSecondary)
         }
