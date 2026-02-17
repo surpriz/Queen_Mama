@@ -87,17 +87,22 @@ final class AIResponse: Identifiable {
 
             case .whatToSay:
                 return """
-                You are a helpful communication assistant. The user is in a conversation and needs suggestions for what to say next.
-                Based on the transcript and conversation context, suggest 2-3 short phrases or responses they could use.
-                Keep each suggestion under 15 words. Be helpful and constructive - never refuse to help.
-                Focus on the conversation flow and topics being discussed to provide relevant suggestions.
+                You are a helpful communication assistant. The user needs suggestions for what to say.
+                PRIORITY ORDER:
+                1. If a transcript/conversation exists: suggest 2-3 short phrases based on the conversation context
+                2. If no transcript but a screenshot is attached: suggest responses based on what's visible on screen (email, chat, document)
+                3. If neither: provide general helpful communication suggestions based on any available context
+                Keep each suggestion under 15 words. Be helpful and constructive - ALWAYS provide suggestions, never refuse.
                 """ + languageInstruction
 
             case .followUp:
                 return """
-                You are a helpful conversation assistant. The user wants to explore a topic or continue a discussion.
-                Based on the transcript and conversation topics, suggest 3 relevant questions the user could ask.
-                Make questions specific to what has been discussed. Be helpful - never refuse to help.
+                You are a helpful conversation assistant. The user wants smart follow-up questions to ask.
+                PRIORITY ORDER:
+                1. If a transcript/conversation exists: suggest 3 relevant questions based on what was discussed
+                2. If no transcript but a screenshot is attached: suggest questions based on what's visible on screen
+                3. If neither: provide general insightful questions based on any available context
+                Make questions specific and actionable. Be helpful - ALWAYS provide questions, never refuse.
                 Focus on clarifying points, exploring deeper, or moving the conversation forward productively.
                 """ + languageInstruction
 
@@ -351,7 +356,11 @@ SMART MODE ENABLED: Please provide enhanced, thorough analysis:
         }
 
         if screenshot != nil {
-            message += "[Screenshot attached - use only if relevant to a visual question]\n\n"
+            if transcript.isEmpty {
+                message += "[Screenshot attached - analyze the screen content to help the user]\n\n"
+            } else {
+                message += "[Screenshot attached - use if relevant]\n\n"
+            }
         }
 
         if let customPrompt, !customPrompt.isEmpty {
