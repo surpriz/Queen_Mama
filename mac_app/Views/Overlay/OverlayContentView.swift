@@ -489,11 +489,8 @@ struct ModernPillHeaderView: View {
             .animation(QMDesign.Animation.quick, value: isHoveringExpand)
             .animation(QMDesign.Animation.smooth, value: isExpanded)
             .onAppear {
-                // Start pulsing animation when collapsed
                 if !isExpanded {
-                    withAnimation(.easeInOut(duration: 1.5).repeatForever(autoreverses: true)) {
-                        isChevronPulsing = true
-                    }
+                    startChevronPulse()
                 }
             }
             .onChange(of: isExpanded) { expanded in
@@ -501,9 +498,7 @@ struct ModernPillHeaderView: View {
                     isChevronPulsing = false
                     showExpandPreview = false
                 } else {
-                    withAnimation(.easeInOut(duration: 1.5).repeatForever(autoreverses: true)) {
-                        isChevronPulsing = true
-                    }
+                    startChevronPulse()
                 }
             }
             .help(isExpanded ? "Collapse panel" : "Expand AI assistant")
@@ -754,9 +749,7 @@ struct ModernPillHeaderView: View {
                 .onHover { isHoveringPlay = $0 }
                 .animation(QMDesign.Animation.quick, value: isHoveringPlay)
                 .onAppear {
-                    withAnimation(.easeInOut(duration: 1.2).repeatForever(autoreverses: true)) {
-                        isPlayPulsing = true
-                    }
+                    startPlayPulse()
                 }
                 .help("Start session (Cmd+Shift+S)")
             }
@@ -781,6 +774,30 @@ struct ModernPillHeaderView: View {
         .padding(.vertical, QMDesign.Spacing.xs)
         .frame(maxWidth: .infinity)
         .frame(height: QMDesign.Dimensions.Overlay.headerHeight)
+    }
+
+    /// Pulse chevron for 3 seconds then stop to save energy
+    private func startChevronPulse() {
+        withAnimation(.easeInOut(duration: 1.5).repeatForever(autoreverses: true)) {
+            isChevronPulsing = true
+        }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
+            withAnimation(.easeOut(duration: 0.3)) {
+                isChevronPulsing = false
+            }
+        }
+    }
+
+    /// Pulse play button for 3 seconds then stop to save energy
+    private func startPlayPulse() {
+        withAnimation(.easeInOut(duration: 1.2).repeatForever(autoreverses: true)) {
+            isPlayPulsing = true
+        }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
+            withAnimation(.easeOut(duration: 0.3)) {
+                isPlayPulsing = false
+            }
+        }
     }
 
     private func toggleDashboard() {
