@@ -132,18 +132,20 @@ struct OverlayContentView: View {
             }
         }
         .onChange(of: config.smartModeEnabled) { isEnabled in
-            // Show toast only on first activation
-            if isEnabled && !hasSeenSmartModeHint {
+            if isEnabled {
                 withAnimation(QMDesign.Animation.smooth) {
                     showSmartModeToast = true
                 }
-                hasSeenSmartModeHint = true
 
                 // Auto-dismiss after 4 seconds
                 DispatchQueue.main.asyncAfter(deadline: .now() + 4) {
                     withAnimation(QMDesign.Animation.smooth) {
                         showSmartModeToast = false
                     }
+                }
+            } else {
+                withAnimation(QMDesign.Animation.smooth) {
+                    showSmartModeToast = false
                 }
             }
         }
