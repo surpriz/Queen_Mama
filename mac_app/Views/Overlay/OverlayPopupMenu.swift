@@ -99,17 +99,6 @@ struct OverlayPopupMenu: View {
 
             MenuDivider()
 
-            // Position Submenu
-            PositionMenuItem(
-                isExpanded: $showPositionSubmenu,
-                isHovered: hoveredItem == "position",
-                onSelect: { position in
-                    onMovePosition(position)
-                    isVisible = false
-                }
-            )
-            .onHover { if $0 { hoveredItem = "position" } }
-
             // Display Submenu
             DisplayMenuItem(
                 isExpanded: $showDisplaySubmenu,
