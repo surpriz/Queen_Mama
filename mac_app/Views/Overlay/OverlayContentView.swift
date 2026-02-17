@@ -1427,17 +1427,17 @@ struct StatusSection: View {
             // Warning if no session
             if !isSessionActive {
                 HStack(spacing: 4) {
-                    Image(systemName: "display")
+                    Image(systemName: enableScreenCapture ? "display" : "exclamationmark.triangle")
                         .font(.system(size: 10))
-                    Text("Screen only")
+                    Text(enableScreenCapture ? "Screen only" : "No input")
                         .font(QMDesign.Typography.captionSmall)
                 }
-                .foregroundColor(QMDesign.Colors.warning)
+                .foregroundColor(enableScreenCapture ? QMDesign.Colors.warning : QMDesign.Colors.error)
                 .padding(.horizontal, QMDesign.Spacing.xs)
                 .padding(.vertical, 3)
                 .background(
                     Capsule()
-                        .fill(QMDesign.Colors.warningLight)
+                        .fill(enableScreenCapture ? QMDesign.Colors.warningLight : QMDesign.Colors.errorLight)
                 )
             }
 
