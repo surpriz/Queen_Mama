@@ -3,14 +3,16 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
+    "dev": "concurrently --names \"next,proxy\" --prefix-colors \"blue,green\" \"next dev\" \"tsx scripts/start-transcription-proxy.ts\"",
+    "dev:next": "next dev",
     "build": "prisma generate && next build",
     "start": "next start",
     "lint": "eslint",
     "postinstall": "prisma generate",
     "test:models": "tsx scripts/test-model-ids.ts",
     "benchmark": "tsx scripts/benchmark-models.ts",
-    "benchmark:quality": "tsx scripts/benchmark-quality.ts"
+    "benchmark:quality": "tsx scripts/benchmark-quality.ts",
+    "proxy:transcription": "tsx scripts/start-transcription-proxy.ts"
   },
   "dependencies": {
     "@auth/prisma-adapter": "^2.11.1",
@@ -31,6 +33,7 @@
     "react-markdown": "^10.1.0",
     "stripe": "^20.1.2",
     "tailwind-merge": "^3.4.0",
+    "ws": "^8.19.0",
     "zod": "^4.3.5"
   },
   "devDependencies": {
@@ -39,6 +42,8 @@
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "@types/ws": "^8.18.1",
+    "concurrently": "^9.2.1",
     "dotenv": "^17.2.3",
     "eslint": "^9",
     "eslint-config-next": "16.1.1",

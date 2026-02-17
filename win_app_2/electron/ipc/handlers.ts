@@ -1,12 +1,23 @@
-import { ipcMain, app, shell, safeStorage, BrowserWindow, desktopCapturer } from 'electron'
+import { ipcMain, app, shell, safeStorage, BrowserWindow, desktopCapturer, dialog } from 'electron'
 import { IPC_CHANNELS } from './channels'
 import { v4 as uuidv4 } from 'uuid'
 import * as os from 'os'
 import * as path from 'path'
 import * as fs from 'fs'
 import Store from 'electron-store'
-import { executeQuery, executeQueryGet, executeQueryAll } from '../db/database'
+import { executeQuery, executeQueryGet, executeQueryAll, walCheckpoint } from '../db/database'
 import { startOAuthServer, stopOAuthServer } from '../services/oauthServer'
+import { checkForUpdates } from '../services/updater'
+import { safeSendToWindow, safeSendToOverlayWindows, safeSendToMainWindow } from '../utils/ipcUtils'
+import {
+  toggleOverlay,
+  showOverlay,
+  hideOverlay,
+  setOverlayExpanded,
+  setOverlayPosition,
+  setOverlaySize,
+  getOverlayWindow,
+} from '../windows/overlayWindow'
 
 const store = new Store()
 
@@ -109,6 +120,37 @@ export function registerIPCHandlers(): void {
     BrowserWindow.fromWebContents(event.sender)?.close()
   })
 
+  // Overlay management
+  ipcMain.on(IPC_CHANNELS.OVERLAY_TOGGLE, () => {
+    toggleOverlay()
+  })
+
+  ipcMain.on(IPC_CHANNELS.OVERLAY_SHOW, () => {
+    showOverlay()
+  })
+
+  ipcMain.on(IPC_CHANNELS.OVERLAY_HIDE, () => {
+    hideOverlay()
+  })
+
+  ipcMain.on(IPC_CHANNELS.OVERLAY_SET_EXPANDED, (_event, expanded: boolean) => {
+    setOverlayExpanded(expanded)
+  })
+
+  ipcMain.on(IPC_CHANNELS.OVERLAY_SET_POSITION, (_event, position: string) => {
+    setOverlayPosition(position as Parameters<typeof setOverlayPosition>[0])
+  })
+
+  ipcMain.on(IPC_CHANNELS.OVERLAY_SET_SIZE, (_event, width: number, height: number) => {
+    setOverlaySize(width, height)
+  })
+
+  ipcMain.handle(IPC_CHANNELS.OVERLAY_GET_BOUNDS, () => {
+    const win = getOverlayWindow()
+    if (!win || win.isDestroyed()) return null
+    return win.getBounds()
+  })
+
   // Show main window (from overlay)
   ipcMain.on('window:show', () => {
     const windows = BrowserWindow.getAllWindows()
@@ -164,24 +206,44 @@ export function registerIPCHandlers(): void {
     }
   })
 
+  // Updater
+  ipcMain.handle(IPC_CHANNELS.UPDATER_CHECK, () => {
+    checkForUpdates()
+    return true
+  })
+
+  // File dialog (for mode file attachments)
+  ipcMain.handle(IPC_CHANNELS.DIALOG_OPEN_FILE, async (event) => {
+    const win = BrowserWindow.fromWebContents(event.sender)
+    if (!win) return { canceled: true, filePaths: [] }
+    const result = await dialog.showOpenDialog(win, {
+      properties: ['openFile'],
+      filters: [
+        { name: 'Documents', extensions: ['pdf', 'txt', 'rtf', 'md', 'docx'] },
+        { name: 'All Files', extensions: ['*'] },
+      ],
+    })
+    return result
+  })
+
+  // Read file as text (for AI context)
+  ipcMain.handle(IPC_CHANNELS.FILE_READ_TEXT, (_event, filePath: string) => {
+    try {
+      return fs.readFileSync(filePath, 'utf-8')
+    } catch (error) {
+      console.error('[IPC] File read failed:', error)
+      return null
+    }
+  })
+
   // Cross-window relay: main window → overlay window
   ipcMain.on(IPC_CHANNELS.RELAY_TO_OVERLAY, (_event, channel: string, data: unknown) => {
-    const windows = BrowserWindow.getAllWindows()
-    for (const win of windows) {
-      if (win.isAlwaysOnTop() && !win.isDestroyed()) {
-        win.webContents.send(channel, data)
-      }
-    }
+    safeSendToOverlayWindows(channel, data)
   })
 
   // Cross-window relay: overlay → main window
   ipcMain.on(IPC_CHANNELS.RELAY_TO_MAIN, (_event, channel: string, data: unknown) => {
-    const windows = BrowserWindow.getAllWindows()
-    for (const win of windows) {
-      if (!win.isAlwaysOnTop() && !win.isDestroyed()) {
-        win.webContents.send(channel, data)
-      }
-    }
+    safeSendToMainWindow(channel, data)
   })
 
   // Database operations
@@ -263,6 +325,16 @@ export function registerIPCHandlers(): void {
       }
     }
   )
+
+  ipcMain.handle(IPC_CHANNELS.DB_WAL_CHECKPOINT, () => {
+    try {
+      walCheckpoint()
+      return { success: true }
+    } catch (error) {
+      console.error('[IPC] WAL checkpoint failed:', error)
+      throw error
+    }
+  })
 
   // OAuth server for loopback authentication
   ipcMain.handle(IPC_CHANNELS.AUTH_START_OAUTH_SERVER, async () => {

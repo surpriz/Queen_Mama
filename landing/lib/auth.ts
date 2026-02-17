@@ -1,27 +1,19 @@
 import NextAuth from "next-auth";
-import Google from "next-auth/providers/google";
 import Credentials from "next-auth/providers/credentials";
 import { PrismaAdapter } from "@auth/prisma-adapter";
 import { prisma } from "@/lib/prisma";
 import bcrypt from "bcryptjs";
 import { signInSchema } from "@/lib/validations";
 import type { Adapter } from "next-auth/adapters";
+import { authConfig } from "@/lib/auth.config";
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
+  ...authConfig,
   adapter: PrismaAdapter(prisma) as Adapter,
-  session: { strategy: "jwt" },
-  trustHost: true,
-  secret: process.env.AUTH_SECRET,
-  pages: {
-    signIn: "/signin",
-    error: "/auth/error",
-  },
   providers: [
-    // GitHub provider removed - simplified to Google + Email only
-    Google({
-      clientId: process.env.AUTH_GOOGLE_ID,
-      clientSecret: process.env.AUTH_GOOGLE_SECRET,
-    }),
+    // Keep Google from base config
+    ...authConfig.providers.filter((p) => (p as { id?: string }).id !== "credentials"),
+    // Override Credentials with actual authorize logic (needs Prisma)
     Credentials({
       name: "credentials",
       credentials: {
@@ -65,6 +57,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     }),
   ],
   callbacks: {
+    ...authConfig.callbacks,
     async jwt({ token, user, trigger }) {
       if (user) {
         token.id = user.id;

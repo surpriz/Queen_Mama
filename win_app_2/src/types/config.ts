@@ -41,11 +41,11 @@ export const DEFAULT_CONFIG: AppConfig = {
   isUndetectabilityEnabled: false,
   captureSystemAudio: true,
   captureMicrophone: true,
-  autoScreenCapture: true,
+  autoScreenCapture: false,
   screenCaptureIntervalSeconds: 5.0,
   smartModeEnabled: false,
   selectedAIProvider: 'OpenAI' as AIProviderType,
-  primaryLanguage: 'en',
+  primaryLanguage: 'fr',
 
   autoAnswerEnabled: false,
   autoAnswerSilenceThreshold: 2.5,

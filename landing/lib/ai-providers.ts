@@ -134,13 +134,25 @@ export const PROVIDER_URLS = {
   grok: "https://api.x.ai/v1/chat/completions",
 } as const;
 
-// Get API key for a provider from database (async)
+// Get API key for a provider from database, with env var fallback
 export async function getProviderApiKey(
   provider: AIProviderType | TranscriptionProviderType
 ): Promise<string | null> {
   const prismaProvider = providerToPrisma[provider];
   if (!prismaProvider) return null;
-  return getAdminApiKey(prismaProvider);
+
+  // Try database first (admin-configured keys)
+  const dbKey = await getAdminApiKey(prismaProvider);
+  if (dbKey) return dbKey;
+
+  // Fallback to environment variables (useful for dev or if DB keys not yet configured)
+  const envKey = getProviderApiKeySync(provider);
+  if (envKey && envKey.length > 0) {
+    console.warn(`[AIProviders] Using env var fallback for ${provider} (no DB key found)`);
+    return envKey;
+  }
+
+  return null;
 }
 
 // Get API key synchronously from environment (fallback for edge cases)

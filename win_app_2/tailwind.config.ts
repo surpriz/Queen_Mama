@@ -43,7 +43,7 @@ const config: Config = {
           'border-medium': 'rgba(255, 255, 255, 0.15)',
           'border-strong': 'rgba(255, 255, 255, 0.25)',
           // Overlay
-          overlay: 'rgba(0, 0, 0, 0.85)',
+          overlay: '#000000',
           'overlay-light': 'rgba(0, 0, 0, 0.5)',
           // Auto-Answer
           'auto-answer': '#F97316',

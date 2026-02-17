@@ -87,21 +87,6 @@ export function SessionDetail({ sessionId, onBack }: SessionDetailProps) {
         </div>
       )}
 
-      {/* Action Items */}
-      {session.actionItems.length > 0 && (
-        <div className="mb-6 p-4 rounded-qm-lg bg-qm-surface-light border border-qm-border-subtle">
-          <h3 className="text-label-md text-qm-text-secondary mb-2">Action Items</h3>
-          <ul className="space-y-1.5">
-            {session.actionItems.map((item, i) => (
-              <li key={i} className="flex items-start gap-2 text-body-sm text-qm-text-primary">
-                <span className="text-qm-accent mt-0.5">•</span>
-                {item}
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
-
       {/* Transcript */}
       <div className="p-4 rounded-qm-lg bg-qm-surface-light border border-qm-border-subtle">
         <h3 className="text-label-md text-qm-text-secondary mb-2">Transcript</h3>

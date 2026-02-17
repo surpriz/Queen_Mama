@@ -1,16 +1,20 @@
-import { Sparkles, MessageSquare, HelpCircle, RotateCcw } from 'lucide-react'
+import { Sparkles, MessageSquare, MessageCircleQuestion, RotateCcw } from 'lucide-react'
 import { useOverlayStore } from '@/stores/overlayStore'
 import { ResponseType } from '@/types/models'
 import { cn } from '@/lib/utils'
 
 const TABS = [
   { type: ResponseType.Assist, label: 'Assist', icon: Sparkles },
-  { type: ResponseType.WhatToSay, label: 'Say', icon: MessageSquare },
-  { type: ResponseType.FollowUp, label: 'Follow-up', icon: HelpCircle },
+  { type: ResponseType.WhatToSay, label: 'What to say', icon: MessageSquare },
+  { type: ResponseType.FollowUp, label: 'Follow-up', icon: MessageCircleQuestion },
   { type: ResponseType.Recap, label: 'Recap', icon: RotateCcw },
 ] as const
 
-export function TabBar() {
+interface TabBarProps {
+  onTabSelected?: (type: ResponseType) => void
+}
+
+export function TabBar({ onTabSelected }: TabBarProps) {
   const selectedTab = useOverlayStore((s) => s.selectedTab)
   const setSelectedTab = useOverlayStore((s) => s.setSelectedTab)
 
@@ -19,7 +23,10 @@ export function TabBar() {
       {TABS.map(({ type, label, icon: Icon }) => (
         <button
           key={type}
-          onClick={() => setSelectedTab(type)}
+          onClick={() => {
+            setSelectedTab(type)
+            onTabSelected?.(type)
+          }}
           className={cn(
             'flex items-center gap-1.5 px-3 py-1.5 text-caption font-medium rounded-qm-sm transition-colors',
             selectedTab === type

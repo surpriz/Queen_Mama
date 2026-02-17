@@ -96,14 +96,41 @@ async function fetchAPI<T>(
     headers['Authorization'] = `Bearer ${token}`
   }
 
-  const response = await fetch(url, {
-    method,
-    headers,
-    body: body ? JSON.stringify(body) : undefined,
-  })
+  log.info(`API Request: ${method} ${url}`)
+
+  let response: Response
+  try {
+    // Add timeout to prevent hanging requests
+    const controller = new AbortController()
+    const timeoutId = setTimeout(() => controller.abort(), 30000) // 30 second timeout
+
+    response = await fetch(url, {
+      method,
+      headers,
+      body: body ? JSON.stringify(body) : undefined,
+      signal: controller.signal,
+    })
+
+    clearTimeout(timeoutId)
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error)
+    log.error(`Network error on ${method} ${url}:`, errorMessage)
+
+    if (errorMessage.includes('aborted')) {
+      throw new AuthError('Request timed out. Please check your internet connection.', 'timeout')
+    }
+
+    throw new AuthError(
+      `Network error: ${errorMessage}. Please check your internet connection.`,
+      'network_error'
+    )
+  }
+
+  log.info(`API Response: ${response.status} ${response.statusText}`)
 
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({}))
+    log.error(`API Error ${response.status}:`, errorData)
 
     if (response.status === 401) {
       if (errorData.error === 'oauth_user') {

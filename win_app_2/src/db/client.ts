@@ -59,6 +59,18 @@ export const db = {
   async delete(table: string, where: string, whereParams: unknown[] = []): Promise<QueryResult> {
     return window.electronAPI.db.delete(table, where, whereParams)
   },
+
+  /**
+   * Force a WAL checkpoint to flush all pending writes to disk
+   */
+  async walCheckpoint(): Promise<void> {
+    await window.electronAPI.db.walCheckpoint()
+  },
+}
+
+// Accessor function for sessionDb and other consumers
+export function getDb() {
+  return db
 }
 
 // Legacy exports for compatibility with existing code that imports initializeDatabase

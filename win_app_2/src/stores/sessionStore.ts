@@ -49,9 +49,13 @@ export const useSessionStore = create<SessionStoreState>((set, get) => ({
 
   filteredSessions: () => {
     const { sessions, searchQuery } = get()
-    if (!searchQuery.trim()) return sessions
+    // Always sort newest first
+    const sorted = [...sessions].sort(
+      (a, b) => new Date(b.startTime).getTime() - new Date(a.startTime).getTime(),
+    )
+    if (!searchQuery.trim()) return sorted
     const q = searchQuery.toLowerCase()
-    return sessions.filter(
+    return sorted.filter(
       (s) =>
         s.title.toLowerCase().includes(q) ||
         s.transcript.toLowerCase().includes(q) ||

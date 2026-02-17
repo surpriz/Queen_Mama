@@ -1,49 +1,63 @@
-import { globalShortcut, BrowserWindow } from 'electron'
+import { globalShortcut } from 'electron'
 import { IPC_CHANNELS } from '../ipc/channels'
-import { getMainWindow } from '../windows/mainWindow'
-import { getOverlayWindow, toggleOverlay } from '../windows/overlayWindow'
+import { toggleOverlay } from '../windows/overlayWindow'
+import { safeSendToAllWindows, safeSendToOverlayWindows } from '../utils/ipcUtils'
 
-function sendToAllWindows(channel: string, ...args: unknown[]): void {
-  BrowserWindow.getAllWindows().forEach((win) => {
-    win.webContents.send(channel, ...args)
+function registerShortcut(accelerator: string, label: string, handler: () => void): void {
+  const success = globalShortcut.register(accelerator, () => {
+    console.log(`[Shortcuts] ${label} triggered (${accelerator})`)
+    handler()
   })
+  if (success) {
+    console.log(`[Shortcuts] ✓ Registered: ${label} (${accelerator})`)
+  } else {
+    console.warn(`[Shortcuts] ✗ FAILED to register: ${label} (${accelerator}) - may be in use by another app`)
+  }
 }
 
 export function registerGlobalShortcuts(): void {
-  // Ctrl+Shift+S: Start/Stop Session
-  globalShortcut.register('Ctrl+Shift+S', () => {
-    sendToAllWindows(IPC_CHANNELS.SESSION_TOGGLE)
+  console.log('[Shortcuts] Registering global shortcuts...')
+
+  // Ctrl+Shift+S: Start/Stop Session (overlay only - session lives there)
+  registerShortcut('Ctrl+Shift+S', 'Toggle Session', () => {
+    const count = safeSendToOverlayWindows(IPC_CHANNELS.SESSION_TOGGLE)
+    console.log(`[Shortcuts] SESSION_TOGGLE sent to ${count} overlay window(s)`)
   })
 
-  // Ctrl+\: Toggle Widget Visibility
-  globalShortcut.register('Ctrl+\\', () => {
+  // Ctrl+Shift+H: Toggle Widget Visibility (cross-platform safe)
+  registerShortcut('Ctrl+Shift+H', 'Toggle Widget', () => {
     toggleOverlay()
-    sendToAllWindows(IPC_CHANNELS.SHORTCUT_TOGGLE_WIDGET)
+    const count = safeSendToOverlayWindows(IPC_CHANNELS.SHORTCUT_TOGGLE_WIDGET)
+    console.log(`[Shortcuts] TOGGLE_WIDGET sent to ${count} overlay window(s)`)
   })
 
-  // Ctrl+Enter: Trigger AI Assist
-  globalShortcut.register('Ctrl+Return', () => {
-    sendToAllWindows(IPC_CHANNELS.SHORTCUT_TRIGGER_ASSIST)
+  // Ctrl+Enter: Trigger AI Assist (overlay only - prevents duplicate responses)
+  registerShortcut('Ctrl+Return', 'Trigger Assist', () => {
+    const count = safeSendToOverlayWindows(IPC_CHANNELS.SHORTCUT_TRIGGER_ASSIST)
+    console.log(`[Shortcuts] TRIGGER_ASSIST sent to ${count} overlay window(s)`)
   })
 
-  // Ctrl+R: Clear Context
-  globalShortcut.register('Ctrl+Shift+R', () => {
-    sendToAllWindows(IPC_CHANNELS.SHORTCUT_CLEAR_CONTEXT)
+  // Ctrl+Shift+R: Clear Context (overlay only)
+  registerShortcut('Ctrl+Shift+R', 'Clear Context', () => {
+    const count = safeSendToOverlayWindows(IPC_CHANNELS.SHORTCUT_CLEAR_CONTEXT)
+    console.log(`[Shortcuts] CLEAR_CONTEXT sent to ${count} overlay window(s)`)
   })
 
-  // Ctrl+Arrows: Move Widget
-  globalShortcut.register('Ctrl+Up', () => {
-    sendToAllWindows(IPC_CHANNELS.SHORTCUT_MOVE_WIDGET, 'up')
+  // Ctrl+Arrows: Move Widget (overlay only)
+  registerShortcut('Ctrl+Up', 'Move Up', () => {
+    safeSendToOverlayWindows(IPC_CHANNELS.SHORTCUT_MOVE_WIDGET, 'up')
   })
-  globalShortcut.register('Ctrl+Down', () => {
-    sendToAllWindows(IPC_CHANNELS.SHORTCUT_MOVE_WIDGET, 'down')
+  registerShortcut('Ctrl+Down', 'Move Down', () => {
+    safeSendToOverlayWindows(IPC_CHANNELS.SHORTCUT_MOVE_WIDGET, 'down')
   })
-  globalShortcut.register('Ctrl+Left', () => {
-    sendToAllWindows(IPC_CHANNELS.SHORTCUT_MOVE_WIDGET, 'left')
+  registerShortcut('Ctrl+Left', 'Move Left', () => {
+    safeSendToOverlayWindows(IPC_CHANNELS.SHORTCUT_MOVE_WIDGET, 'left')
   })
-  globalShortcut.register('Ctrl+Right', () => {
-    sendToAllWindows(IPC_CHANNELS.SHORTCUT_MOVE_WIDGET, 'right')
+  registerShortcut('Ctrl+Right', 'Move Right', () => {
+    safeSendToOverlayWindows(IPC_CHANNELS.SHORTCUT_MOVE_WIDGET, 'right')
   })
+
+  console.log('[Shortcuts] Registration complete')
 }
 
 export function unregisterGlobalShortcuts(): void {

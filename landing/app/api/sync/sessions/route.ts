@@ -63,6 +63,8 @@ export async function POST(request: Request) {
     if (body.sessions) {
       const parsed = sessionSyncBatchSchema.safeParse(body);
       if (!parsed.success) {
+        console.error("[Sync] Validation error:", JSON.stringify(parsed.error.flatten(), null, 2));
+        console.error("[Sync] Request body:", JSON.stringify(body, null, 2));
         return NextResponse.json(
           { error: "invalid_request", details: parsed.error.flatten() },
           { status: 400 }
@@ -72,6 +74,8 @@ export async function POST(request: Request) {
     } else {
       const parsed = sessionSyncSchema.safeParse(body);
       if (!parsed.success) {
+        console.error("[Sync] Validation error:", JSON.stringify(parsed.error.flatten(), null, 2));
+        console.error("[Sync] Request body:", JSON.stringify(body, null, 2));
         return NextResponse.json(
           { error: "invalid_request", details: parsed.error.flatten() },
           { status: 400 }

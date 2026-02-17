@@ -1,10 +1,47 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
+import { verifyAccessToken } from "@/lib/device-auth";
 import { getKnowledgeStats, getTopPerformingAtoms } from "@/lib/knowledge-retrieval";
 import { getExtractionStats } from "@/lib/knowledge-extraction";
 import { KnowledgeType, Prisma } from "@prisma/client";
 import { z } from "zod";
+
+// CORS headers for desktop app requests
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "GET, POST, DELETE, OPTIONS",
+  "Access-Control-Allow-Headers": "Content-Type, Authorization",
+};
+
+/**
+ * OPTIONS /api/knowledge
+ * Handle preflight CORS requests
+ */
+export async function OPTIONS() {
+  return new NextResponse(null, { status: 204, headers: corsHeaders });
+}
+
+/**
+ * Authenticate via Bearer token (desktop app) or NextAuth session (web).
+ * Returns the user ID or null.
+ */
+async function authenticateRequest(request: Request): Promise<string | null> {
+  // Try Bearer token first (desktop app)
+  const authHeader = request.headers.get("Authorization");
+  if (authHeader?.startsWith("Bearer ")) {
+    try {
+      const token = authHeader.slice(7);
+      const payload = await verifyAccessToken(token);
+      return payload.sub;
+    } catch {
+      return null;
+    }
+  }
+  // Fallback to NextAuth session (web dashboard)
+  const session = await auth();
+  return session?.user?.id || null;
+}
 
 /**
  * GET /api/knowledge
@@ -12,22 +49,22 @@ import { z } from "zod";
  */
 export async function GET(request: Request) {
   try {
-    const session = await auth();
+    const userId = await authenticateRequest(request);
 
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+    if (!userId) {
+      return NextResponse.json({ error: "unauthorized" }, { status: 401, headers: corsHeaders });
     }
 
     // Check if user is Enterprise
     const user = await prisma.user.findUnique({
-      where: { id: session.user.id },
+      where: { id: userId },
       include: { subscription: true },
     });
 
     if (user?.subscription?.plan !== "ENTERPRISE") {
       return NextResponse.json(
         { error: "enterprise_required", message: "Knowledge Base requires Enterprise subscription" },
-        { status: 403 }
+        { status: 403, headers: corsHeaders }
       );
     }
 
@@ -39,7 +76,7 @@ export async function GET(request: Request) {
     const sortOrder = url.searchParams.get("sortOrder") || "desc";
 
     // Build where clause
-    const where: Prisma.KnowledgeAtomWhereInput = { userId: session.user.id };
+    const where: Prisma.KnowledgeAtomWhereInput = { userId };
     if (type) {
       where.type = type as KnowledgeType;
     }
@@ -78,8 +115,8 @@ export async function GET(request: Request) {
         },
       }),
       prisma.knowledgeAtom.count({ where }),
-      getExtractionStats(session.user.id),
-      getTopPerformingAtoms(session.user.id, 5),
+      getExtractionStats(userId),
+      getTopPerformingAtoms(userId, 5),
     ]);
 
     // Calculate helpful ratio for each atom
@@ -95,12 +132,12 @@ export async function GET(request: Request) {
       offset,
       stats,
       topPerforming: topAtoms,
-    });
+    }, { headers: corsHeaders });
   } catch (error) {
     console.error("Get knowledge error:", error);
     return NextResponse.json(
       { error: "server_error" },
-      { status: 500 }
+      { status: 500, headers: corsHeaders }
     );
   }
 }
@@ -111,10 +148,10 @@ export async function GET(request: Request) {
  */
 export async function DELETE(request: Request) {
   try {
-    const session = await auth();
+    const userId = await authenticateRequest(request);
 
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+    if (!userId) {
+      return NextResponse.json({ error: "unauthorized" }, { status: 401, headers: corsHeaders });
     }
 
     const url = new URL(request.url);
@@ -123,7 +160,7 @@ export async function DELETE(request: Request) {
     if (!atomId) {
       return NextResponse.json(
         { error: "invalid_request", message: "Atom ID required" },
-        { status: 400 }
+        { status: 400, headers: corsHeaders }
       );
     }
 
@@ -131,23 +168,23 @@ export async function DELETE(request: Request) {
     const result = await prisma.knowledgeAtom.deleteMany({
       where: {
         id: atomId,
-        userId: session.user.id,
+        userId,
       },
     });
 
     if (result.count === 0) {
       return NextResponse.json(
         { error: "not_found", message: "Knowledge atom not found" },
-        { status: 404 }
+        { status: 404, headers: corsHeaders }
       );
     }
 
-    return NextResponse.json({ success: true, deleted: atomId });
+    return NextResponse.json({ success: true, deleted: atomId }, { headers: corsHeaders });
   } catch (error) {
     console.error("Delete knowledge error:", error);
     return NextResponse.json(
       { error: "server_error" },
-      { status: 500 }
+      { status: 500, headers: corsHeaders }
     );
   }
 }
@@ -171,22 +208,22 @@ const createAtomSchema = z.object({
  */
 export async function POST(request: Request) {
   try {
-    const session = await auth();
+    const userId = await authenticateRequest(request);
 
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+    if (!userId) {
+      return NextResponse.json({ error: "unauthorized" }, { status: 401, headers: corsHeaders });
     }
 
     // Check if user is Enterprise
     const user = await prisma.user.findUnique({
-      where: { id: session.user.id },
+      where: { id: userId },
       include: { subscription: true },
     });
 
     if (user?.subscription?.plan !== "ENTERPRISE") {
       return NextResponse.json(
         { error: "enterprise_required" },
-        { status: 403 }
+        { status: 403, headers: corsHeaders }
       );
     }
 
@@ -196,7 +233,7 @@ export async function POST(request: Request) {
     if (!parsed.success) {
       return NextResponse.json(
         { error: "invalid_request", details: parsed.error.flatten() },
-        { status: 400 }
+        { status: 400, headers: corsHeaders }
       );
     }
 
@@ -206,7 +243,7 @@ export async function POST(request: Request) {
 
     const atom = await prisma.knowledgeAtom.create({
       data: {
-        userId: session.user.id,
+        userId,
         type: parsed.data.type,
         content: parsed.data.content,
         embedding: embeddingResult.embedding,
@@ -227,12 +264,12 @@ export async function POST(request: Request) {
         content: atom.content,
         createdAt: atom.createdAt,
       },
-    });
+    }, { headers: corsHeaders });
   } catch (error) {
     console.error("Create knowledge error:", error);
     return NextResponse.json(
       { error: "server_error" },
-      { status: 500 }
+      { status: 500, headers: corsHeaders }
     );
   }
 }

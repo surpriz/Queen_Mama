@@ -2,23 +2,40 @@ import { createLogger } from '@/lib/logger'
 import { useAuthStore } from '@/stores/authStore'
 import * as authApi from './authApiClient'
 import { startGoogleAuth } from './googleAuthService'
+import * as licenseManager from '@/services/license/licenseManager'
 import type { AuthUser, DeviceInfo } from '@/types/auth'
 
 const log = createLogger('Auth')
 
 let pollingInterval: ReturnType<typeof setInterval> | null = null
 
+// Fallback device ID - persisted in memory for consistency across the session
+let fallbackDeviceId: string | null = null
+
+function getFallbackDeviceId(): string {
+  if (!fallbackDeviceId) {
+    fallbackDeviceId = crypto.randomUUID()
+  }
+  return fallbackDeviceId
+}
+
 async function getDeviceInfo(): Promise<DeviceInfo> {
   const info = await window.electronAPI?.getDeviceInfo()
   return (
     info || {
-      deviceId: 'unknown',
+      deviceId: getFallbackDeviceId(),
       deviceName: 'Unknown',
       platform: 'windows' as const,
       osVersion: 'Unknown',
       appVersion: '1.0.0',
     }
   )
+}
+
+// Export for use by syncManager
+export async function getDeviceId(): Promise<string> {
+  const info = await getDeviceInfo()
+  return info.deviceId
 }
 
 async function storeTokens(
@@ -60,6 +77,11 @@ export async function checkExistingAuth(): Promise<void> {
 
     store.setAuthenticated(user)
     log.info(`Authentication restored for: ${user.email}`)
+
+    // Revalidate license after restoring auth
+    licenseManager.revalidate().catch((err) => {
+      log.warn('License revalidation failed:', err)
+    })
   } catch (error) {
     const errorStr = String(error).toLowerCase()
     const isAuthRejection =
@@ -90,6 +112,11 @@ export async function loginWithCredentials(email: string, password: string): Pro
 
     await storeTokens(response.accessToken, response.refreshToken, response.expiresIn, response.user)
     store.setAuthenticated(response.user)
+
+    // Revalidate license after login
+    licenseManager.revalidate().catch((err) => {
+      log.warn('License revalidation failed:', err)
+    })
   } catch (error) {
     store.setError(error instanceof Error ? error.message : 'Login failed')
     throw error
@@ -110,6 +137,11 @@ export async function registerWithCredentials(
 
     await storeTokens(response.accessToken, response.refreshToken, response.expiresIn, response.user)
     store.setAuthenticated(response.user)
+
+    // Revalidate license after registration
+    licenseManager.revalidate().catch((err) => {
+      log.warn('License revalidation failed:', err)
+    })
   } catch (error) {
     store.setError(error instanceof Error ? error.message : 'Registration failed')
     throw error
@@ -184,6 +216,11 @@ function startPolling(deviceCode: string, expiresIn: number): void {
           response.user,
         )
         useAuthStore.getState().setAuthenticated(response.user)
+
+        // Revalidate license after device code auth
+        licenseManager.revalidate().catch((err) => {
+          log.warn('License revalidation failed:', err)
+        })
         return
       }
 
@@ -217,23 +254,38 @@ export async function loginWithGoogle(): Promise<void> {
 
     if (!result.success || !result.code || !result.codeVerifier || !result.redirectUri) {
       log.error('Google OAuth failed:', result.error)
+      // Stop OAuth server on failure
+      await window.electronAPI?.auth?.stopOAuthServer()
       throw new Error(result.error || 'Google sign-in failed')
     }
 
     log.info('Google OAuth code received, exchanging with backend...')
+    log.info('Backend URL:', result.redirectUri)
 
     // Exchange authorization code for tokens with our backend
     const deviceInfo = await getDeviceInfo()
-    const response = await authApi.exchangeGoogleAuth(
-      result.code,
-      result.codeVerifier,
-      result.redirectUri,
-      deviceInfo,
-    )
 
-    log.info('Google sign-in successful')
-    await storeTokens(response.accessToken, response.refreshToken, response.expiresIn, response.user)
-    store.setAuthenticated(response.user)
+    try {
+      const response = await authApi.exchangeGoogleAuth(
+        result.code,
+        result.codeVerifier,
+        result.redirectUri,
+        deviceInfo,
+      )
+
+      log.info('Google sign-in successful')
+      await storeTokens(response.accessToken, response.refreshToken, response.expiresIn, response.user)
+      store.setAuthenticated(response.user)
+
+      // Revalidate license after Google sign-in
+      licenseManager.revalidate().catch((err) => {
+        log.warn('License revalidation failed:', err)
+      })
+    } finally {
+      // Always stop OAuth server after token exchange attempt (success or failure)
+      log.info('Stopping OAuth server after token exchange')
+      await window.electronAPI?.auth?.stopOAuthServer()
+    }
   } catch (error) {
     log.error('Google sign-in failed:', error)
     store.setError(error instanceof Error ? error.message : 'Google sign-in failed')

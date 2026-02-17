@@ -1,16 +1,15 @@
-import { useCallback, useEffect } from 'react'
+import { useCallback } from 'react'
 import { useLicenseStore } from '@/stores/licenseStore'
 import { Feature } from '@/types/auth'
 
 export function useLicense() {
-  const license = useLicenseStore((s) => s.license)
+  const currentLicense = useLicenseStore((s) => s.currentLicense)
   const isValidating = useLicenseStore((s) => s.isValidating)
   const canUse = useLicenseStore((s) => s.canUse)
-  const validate = useLicenseStore((s) => s.validate)
+  const isPro = useLicenseStore((s) => s.isPro)
+  const isEnterprise = useLicenseStore((s) => s.isEnterprise)
 
-  const isPro = license?.plan === 'pro' || license?.plan === 'enterprise'
-  const isEnterprise = license?.plan === 'enterprise'
-  const isFree = !license || license.plan === 'free'
+  const isFree = !isPro()
 
   const checkFeature = useCallback(
     (feature: Feature) => {
@@ -19,24 +18,12 @@ export function useLicense() {
     [canUse],
   )
 
-  // Periodic revalidation
-  useEffect(() => {
-    const interval = setInterval(
-      () => {
-        validate()
-      },
-      60 * 60 * 1000,
-    ) // Every hour
-    return () => clearInterval(interval)
-  }, [validate])
-
   return {
-    license,
+    license: currentLicense,
     isValidating,
-    isPro,
-    isEnterprise,
+    isPro: isPro(),
+    isEnterprise: isEnterprise(),
     isFree,
     checkFeature,
-    validate,
   }
 }

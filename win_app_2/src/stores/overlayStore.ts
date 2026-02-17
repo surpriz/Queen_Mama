@@ -1,6 +1,16 @@
 import { create } from 'zustand'
+import { v4 as uuidv4 } from 'uuid'
 import { ResponseType } from '@/types/models'
 import type { OverlayPosition } from '@/types/electron.d'
+import { db } from '@/db/client'
+
+const MAX_RESPONSES_IN_MEMORY = 50
+
+// Set externally by sessionLifecycle to avoid circular imports
+let _currentSessionId: string | null = null
+export function setOverlaySessionId(id: string | null): void {
+  _currentSessionId = id
+}
 
 interface OverlayStoreState {
   isExpanded: boolean
@@ -50,11 +60,32 @@ export const useOverlayStore = create<OverlayStoreState>((set) => ({
   appendStreamingContent: (chunk) =>
     set((state) => ({ streamingContent: state.streamingContent + chunk })),
   addToHistory: (type, content) =>
-    set((state) => ({
-      responseHistory: [
-        { type, content, timestamp: new Date().toISOString() },
+    set((state) => {
+      // Dedup: skip if the most recent entry has identical content
+      const last = state.responseHistory[0]
+      if (last && last.content === content && last.type === type) {
+        return state
+      }
+      const timestamp = new Date().toISOString()
+      const updated = [
+        { type, content, timestamp },
         ...state.responseHistory,
-      ],
-    })),
+      ]
+
+      // Persist AI response to DB (fire-and-forget)
+      if (_currentSessionId) {
+        db.query(
+          `INSERT INTO ai_responses (id, session_id, type, content, timestamp, is_automatic)
+           VALUES (?, ?, ?, ?, ?, ?)`,
+          [uuidv4(), _currentSessionId, type, content, timestamp, 0],
+        ).catch(() => {})
+      }
+
+      return {
+        responseHistory: updated.length > MAX_RESPONSES_IN_MEMORY
+          ? updated.slice(0, MAX_RESPONSES_IN_MEMORY)
+          : updated,
+      }
+    }),
   clearHistory: () => set({ responseHistory: [], streamingContent: '' }),
 }))

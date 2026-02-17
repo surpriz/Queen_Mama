@@ -1,5 +1,8 @@
-import { auth } from "@/lib/auth";
+import NextAuth from "next-auth";
+import { authConfig } from "@/lib/auth.config";
 import { NextResponse } from "next/server";
+
+const { auth } = NextAuth(authConfig);
 
 export default auth((req) => {
   const isLoggedIn = !!req.auth;
@@ -17,7 +20,8 @@ export default auth((req) => {
     !pathname.startsWith("/api/usage") &&
     !pathname.startsWith("/api/sync") &&
     !pathname.startsWith("/api/waitlist") &&
-    !pathname.startsWith("/api/contact");
+    !pathname.startsWith("/api/contact") &&
+    !pathname.startsWith("/api/knowledge");
   const isAdminApi = pathname.startsWith("/api/admin");
 
   // Redirect logged-in users away from auth pages

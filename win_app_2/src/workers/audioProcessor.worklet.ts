@@ -1,14 +1,21 @@
 // AudioWorklet processor: resample from native sample rate to 16kHz PCM16
 // This runs in the AudioWorklet thread
 
+// AudioWorklet globals (available in worklet scope, not in main thread)
+declare class AudioWorkletProcessor {
+  readonly port: MessagePort
+  constructor(options?: AudioWorkletNodeOptions)
+  process(inputs: Float32Array[][], outputs: Float32Array[][], parameters: Record<string, Float32Array>): boolean
+}
+declare function registerProcessor(name: string, processorCtor: new (options?: AudioWorkletNodeOptions) => AudioWorkletProcessor): void
+
 class AudioProcessor extends AudioWorkletProcessor {
   private inputSampleRate: number
   private targetSampleRate = 16000
-  private resampleBuffer: Float32Array = new Float32Array(0)
 
-  constructor(options: AudioWorkletNodeOptions) {
+  constructor(options?: AudioWorkletNodeOptions) {
     super()
-    this.inputSampleRate = options.processorOptions?.sampleRate || 48000
+    this.inputSampleRate = options?.processorOptions?.sampleRate || 48000
   }
 
   process(inputs: Float32Array[][], _outputs: Float32Array[][], _parameters: Record<string, Float32Array>): boolean {

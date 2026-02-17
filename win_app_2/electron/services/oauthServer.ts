@@ -1,9 +1,14 @@
 import { createServer, Server, IncomingMessage, ServerResponse } from 'http'
 import { BrowserWindow } from 'electron'
 import { IPC_CHANNELS } from '../ipc/channels'
+import { safeSendToAllWindows } from '../utils/ipcUtils'
 
 let server: Server | null = null
 let currentPort: number | null = null
+let serverTimeout: ReturnType<typeof setTimeout> | null = null
+
+// Timeout for OAuth flow (5 minutes)
+const OAUTH_TIMEOUT_MS = 5 * 60 * 1000
 
 /**
  * Start a local HTTP server to receive OAuth callbacks.
@@ -15,7 +20,11 @@ export function startOAuthServer(): Promise<number> {
     // Stop any existing server
     stopOAuthServer()
 
+    console.log('[OAuth] Creating server...')
+
     server = createServer((req: IncomingMessage, res: ServerResponse) => {
+      console.log(`[OAuth] Received request: ${req.method} ${req.url}`)
+
       const url = new URL(req.url || '/', `http://127.0.0.1`)
 
       // Handle the OAuth callback
@@ -27,29 +36,34 @@ export function startOAuthServer(): Promise<number> {
         // Build the callback URL to send to renderer
         let callbackUrl: string
         if (error) {
+          console.log(`[OAuth] Received error: ${error}`)
           callbackUrl = `oauth://callback?error=${encodeURIComponent(error)}`
           if (errorDescription) {
             callbackUrl += `&error_description=${encodeURIComponent(errorDescription)}`
           }
         } else if (code) {
+          console.log(`[OAuth] Received authorization code (length: ${code.length})`)
           callbackUrl = `oauth://callback?code=${encodeURIComponent(code)}`
         } else {
+          console.log('[OAuth] No code or error in callback')
           callbackUrl = `oauth://callback?error=no_code`
         }
 
-        // Send to all windows
-        const windows = BrowserWindow.getAllWindows()
-        for (const win of windows) {
-          if (!win.isDestroyed()) {
-            win.webContents.send(IPC_CHANNELS.AUTH_PROTOCOL_CALLBACK, callbackUrl)
-          }
-        }
+        // Send to all windows - using safe send to prevent "Object has been destroyed" error
+        console.log('[OAuth] Sending callback to renderer...')
+        const sentCount = safeSendToAllWindows(IPC_CHANNELS.AUTH_PROTOCOL_CALLBACK, callbackUrl)
+        console.log(`[OAuth] Callback sent to ${sentCount} window(s)`)
 
         // Focus main window
-        const mainWindow = windows.find((w) => !w.isAlwaysOnTop() && !w.isDestroyed())
-        if (mainWindow) {
-          if (mainWindow.isMinimized()) mainWindow.restore()
-          mainWindow.focus()
+        try {
+          const windows = BrowserWindow.getAllWindows()
+          const mainWindow = windows.find((w) => !w.isAlwaysOnTop() && !w.isDestroyed())
+          if (mainWindow) {
+            if (mainWindow.isMinimized()) mainWindow.restore()
+            mainWindow.focus()
+          }
+        } catch (error) {
+          console.warn('[OAuth] Could not focus main window:', error)
         }
 
         // Send success response with auto-close script
@@ -111,8 +125,11 @@ export function startOAuthServer(): Promise<number> {
           </html>
         `)
 
-        // Stop server after handling callback
-        setTimeout(() => stopOAuthServer(), 1000)
+        // Don't stop the server immediately - let the renderer complete the token exchange
+        // The server will be stopped by the timeout (5 min) or explicitly by the renderer
+        console.log('[OAuth] Callback processed, waiting for token exchange to complete...')
+        // Note: Server will be stopped by renderer after successful token exchange
+        // or by the 5-minute timeout if something goes wrong
       } else {
         // 404 for other paths
         res.writeHead(404)
@@ -121,11 +138,24 @@ export function startOAuthServer(): Promise<number> {
     })
 
     // Find an available port
-    server.listen(0, '127.0.0.1', () => {
+    // Listen on 0.0.0.0 to accept connections from both 127.0.0.1 and localhost on Windows
+    // Google OAuth will redirect to 127.0.0.1 which should work
+    server.listen(0, () => {
       const address = server?.address()
       if (address && typeof address === 'object') {
         currentPort = address.port
         console.log(`[OAuth] Server started on port ${currentPort}`)
+        console.log(`[OAuth] Listening on http://127.0.0.1:${currentPort}/callback`)
+        console.log(`[OAuth] Also accepting: http://localhost:${currentPort}/callback`)
+        console.log(`[OAuth] Waiting for OAuth callback (timeout: 5 min)...`)
+
+        // Set a timeout to stop the server if no callback received
+        if (serverTimeout) clearTimeout(serverTimeout)
+        serverTimeout = setTimeout(() => {
+          console.log('[OAuth] Server timeout - no callback received')
+          stopOAuthServer()
+        }, OAUTH_TIMEOUT_MS)
+
         resolve(currentPort)
       } else {
         reject(new Error('Failed to get server port'))
@@ -136,6 +166,11 @@ export function startOAuthServer(): Promise<number> {
       console.error('[OAuth] Server error:', err)
       reject(err)
     })
+
+    // Handle server close
+    server.on('close', () => {
+      console.log('[OAuth] Server connection closed')
+    })
   })
 }
 
@@ -143,6 +178,10 @@ export function startOAuthServer(): Promise<number> {
  * Stop the OAuth callback server
  */
 export function stopOAuthServer(): void {
+  if (serverTimeout) {
+    clearTimeout(serverTimeout)
+    serverTimeout = null
+  }
   if (server) {
     server.close()
     server = null

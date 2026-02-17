@@ -86,8 +86,8 @@ const MOMENT_PATTERNS: MomentPattern[] = [
   {
     type: 'closingOpportunity',
     patterns: [
-      // French
-      /ça (m'|nous) (int[eé]resse|pla[iî]t)/i,
+      // French (handle: "ça m'intéresse", "ça nous intéresse", "ça me plaît")
+      /[çÇ]a (m['']int[eé]resse|nous int[eé]resse|m['']? ?pla[iî]t)/i,
       /comment on (proc[eè]de|fait|commence)/i,
       /quelles sont les (prochaines|[eé]tapes)/i,
       /on peut commencer quand/i,
@@ -170,4 +170,90 @@ function extractContext(transcript: string, trigger: string): string {
 
 export function getMomentLabel(type: MomentType): string {
   return MOMENT_LABELS[type]
+}
+
+// Suggested responses based on moment type
+const MOMENT_SUGGESTIONS: Record<MomentType, string[]> = {
+  objection: [
+    'Acknowledge their concern',
+    'Ask what specifically concerns them',
+    'Share relevant success stories',
+    'Quantify the ROI or value',
+  ],
+  expertiseQuestion: [
+    'Provide a clear, concise explanation',
+    'Use analogies they can relate to',
+    'Offer to share documentation',
+    'Schedule a technical deep-dive',
+  ],
+  hesitation: [
+    'Give them space to think',
+    'Ask clarifying questions',
+    'Summarize what you\'ve discussed',
+    'Offer additional examples',
+  ],
+  closingOpportunity: [
+    'Summarize key benefits',
+    'Propose next steps clearly',
+    'Offer to send a proposal',
+    'Set up a follow-up meeting',
+  ],
+}
+
+export function getMomentSuggestions(type: MomentType): string[] {
+  return MOMENT_SUGGESTIONS[type] || []
+}
+
+// Priority score for moment types (higher = more important to act on)
+const MOMENT_PRIORITY: Record<MomentType, number> = {
+  closingOpportunity: 4,
+  objection: 3,
+  expertiseQuestion: 2,
+  hesitation: 1,
+}
+
+export function getMomentPriority(type: MomentType): number {
+  return MOMENT_PRIORITY[type] || 0
+}
+
+// Sort moments by priority and confidence
+export function sortMomentsByImportance(moments: DetectedMoment[]): DetectedMoment[] {
+  return [...moments].sort((a, b) => {
+    const priorityDiff = getMomentPriority(b.type) - getMomentPriority(a.type)
+    if (priorityDiff !== 0) return priorityDiff
+    return b.confidence - a.confidence
+  })
+}
+
+// Callback types for moment detection
+type MomentCallback = (moments: DetectedMoment[]) => void
+let momentCallbacks: MomentCallback[] = []
+let lastDetectedMoments: DetectedMoment[] = []
+
+export function onMomentsDetected(callback: MomentCallback): () => void {
+  momentCallbacks.push(callback)
+  return () => {
+    momentCallbacks = momentCallbacks.filter((cb) => cb !== callback)
+  }
+}
+
+export function processTranscriptForMoments(transcript: string): DetectedMoment[] {
+  const moments = detectMoments(transcript)
+  const sortedMoments = sortMomentsByImportance(moments)
+
+  // Only notify if moments changed
+  const momentTypes = sortedMoments.map((m) => m.type).join(',')
+  const lastTypes = lastDetectedMoments.map((m) => m.type).join(',')
+
+  if (momentTypes !== lastTypes && sortedMoments.length > 0) {
+    lastDetectedMoments = sortedMoments
+    momentCallbacks.forEach((cb) => cb(sortedMoments))
+    log.info(`Detected moments: ${sortedMoments.map((m) => `${m.type}(${m.confidence.toFixed(2)})`).join(', ')}`)
+  }
+
+  return sortedMoments
+}
+
+export function clearMomentState(): void {
+  lastDetectedMoments = []
 }

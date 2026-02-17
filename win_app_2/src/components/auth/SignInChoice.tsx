@@ -14,8 +14,8 @@ interface SignInChoiceProps {
 export function SignInChoice({ onEmailSignIn, onRegister }: SignInChoiceProps) {
   const { authState, loginWithGoogle, startDeviceCodeFlow, cancelDeviceCodeFlow } = useAuth()
   const [isLoading, setIsLoading] = useState(false)
-  const [showEmailForm, setShowEmailForm] = useState(false)
-  const [showRegisterForm, setShowRegisterForm] = useState(false)
+  const [, setShowEmailForm] = useState(false)
+  const [, setShowRegisterForm] = useState(false)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
 
   const handleEmailSignIn = () => {
