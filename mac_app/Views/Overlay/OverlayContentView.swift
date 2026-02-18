@@ -132,18 +132,20 @@ struct OverlayContentView: View {
             }
         }
         .onChange(of: config.smartModeEnabled) { isEnabled in
-            // Show toast only on first activation
-            if isEnabled && !hasSeenSmartModeHint {
+            if isEnabled {
                 withAnimation(QMDesign.Animation.smooth) {
                     showSmartModeToast = true
                 }
-                hasSeenSmartModeHint = true
 
                 // Auto-dismiss after 4 seconds
                 DispatchQueue.main.asyncAfter(deadline: .now() + 4) {
                     withAnimation(QMDesign.Animation.smooth) {
                         showSmartModeToast = false
                     }
+                }
+            } else {
+                withAnimation(QMDesign.Animation.smooth) {
+                    showSmartModeToast = false
                 }
             }
         }
@@ -487,11 +489,8 @@ struct ModernPillHeaderView: View {
             .animation(QMDesign.Animation.quick, value: isHoveringExpand)
             .animation(QMDesign.Animation.smooth, value: isExpanded)
             .onAppear {
-                // Start pulsing animation when collapsed
                 if !isExpanded {
-                    withAnimation(.easeInOut(duration: 1.5).repeatForever(autoreverses: true)) {
-                        isChevronPulsing = true
-                    }
+                    startChevronPulse()
                 }
             }
             .onChange(of: isExpanded) { expanded in
@@ -499,9 +498,7 @@ struct ModernPillHeaderView: View {
                     isChevronPulsing = false
                     showExpandPreview = false
                 } else {
-                    withAnimation(.easeInOut(duration: 1.5).repeatForever(autoreverses: true)) {
-                        isChevronPulsing = true
-                    }
+                    startChevronPulse()
                 }
             }
             .help(isExpanded ? "Collapse panel" : "Expand AI assistant")
@@ -752,9 +749,7 @@ struct ModernPillHeaderView: View {
                 .onHover { isHoveringPlay = $0 }
                 .animation(QMDesign.Animation.quick, value: isHoveringPlay)
                 .onAppear {
-                    withAnimation(.easeInOut(duration: 1.2).repeatForever(autoreverses: true)) {
-                        isPlayPulsing = true
-                    }
+                    startPlayPulse()
                 }
                 .help("Start session (Cmd+Shift+S)")
             }
@@ -779,6 +774,30 @@ struct ModernPillHeaderView: View {
         .padding(.vertical, QMDesign.Spacing.xs)
         .frame(maxWidth: .infinity)
         .frame(height: QMDesign.Dimensions.Overlay.headerHeight)
+    }
+
+    /// Pulse chevron for 3 seconds then stop to save energy
+    private func startChevronPulse() {
+        withAnimation(.easeInOut(duration: 1.5).repeatForever(autoreverses: true)) {
+            isChevronPulsing = true
+        }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
+            withAnimation(.easeOut(duration: 0.3)) {
+                isChevronPulsing = false
+            }
+        }
+    }
+
+    /// Pulse play button for 3 seconds then stop to save energy
+    private func startPlayPulse() {
+        withAnimation(.easeInOut(duration: 1.2).repeatForever(autoreverses: true)) {
+            isPlayPulsing = true
+        }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
+            withAnimation(.easeOut(duration: 0.3)) {
+                isPlayPulsing = false
+            }
+        }
     }
 
     private func toggleDashboard() {
@@ -970,11 +989,20 @@ struct ModernTabButton: View {
                         RoundedRectangle(cornerRadius: QMDesign.Radius.sm)
                             .fill(QMDesign.Colors.primaryGradient.opacity(0.2))
                             .matchedGeometryEffect(id: "tabBackground", in: namespace)
-                    } else if isHovered {
+                    } else {
                         RoundedRectangle(cornerRadius: QMDesign.Radius.sm)
-                            .fill(QMDesign.Colors.surfaceHover)
+                            .fill(isHovered ? QMDesign.Colors.surfaceHover : QMDesign.Colors.surfaceMedium.opacity(0.5))
                     }
                 }
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: QMDesign.Radius.sm)
+                    .stroke(
+                        isSelected ? QMDesign.Colors.accent.opacity(0.3) :
+                        isHovered ? QMDesign.Colors.borderSubtle.opacity(0.8) :
+                        QMDesign.Colors.borderSubtle.opacity(0.4),
+                        lineWidth: 0.5
+                    )
             )
             .foregroundColor(isSelected ? QMDesign.Colors.accent : QMDesign.Colors.textSecondary)
         }
@@ -1427,17 +1455,17 @@ struct StatusSection: View {
             // Warning if no session
             if !isSessionActive {
                 HStack(spacing: 4) {
-                    Image(systemName: "display")
+                    Image(systemName: enableScreenCapture ? "display" : "exclamationmark.triangle")
                         .font(.system(size: 10))
-                    Text("Screen only")
+                    Text(enableScreenCapture ? "Screen only" : "No input")
                         .font(QMDesign.Typography.captionSmall)
                 }
-                .foregroundColor(QMDesign.Colors.warning)
+                .foregroundColor(enableScreenCapture ? QMDesign.Colors.warning : QMDesign.Colors.error)
                 .padding(.horizontal, QMDesign.Spacing.xs)
                 .padding(.vertical, 3)
                 .background(
                     Capsule()
-                        .fill(QMDesign.Colors.warningLight)
+                        .fill(enableScreenCapture ? QMDesign.Colors.warningLight : QMDesign.Colors.errorLight)
                 )
             }
 

@@ -582,6 +582,26 @@
       "multipleAIModes": {
         "title": "Modes IA multiples",
         "description": "Modes préconfigurés pour les réunions professionnelles, entretiens, appels commerciaux et plus encore"
+      },
+      "customModesOverlay": {
+        "title": "Modes personnalisés dans l'overlay",
+        "description": "Basculez entre vos modes IA personnalisés directement depuis le menu popup du widget overlay"
+      },
+      "overlayUiPolish": {
+        "title": "Widget overlay amélioré",
+        "description": "Boutons d'onglets, indicateurs de statut et menu popup affinés pour une expérience plus fluide"
+      },
+      "aiSuggestionsRefinement": {
+        "title": "Suggestions IA plus pertinentes",
+        "description": "Gestion des prompts et intégration des captures d'écran améliorées pour des réponses IA plus adaptées"
+      },
+      "energyOptimization": {
+        "title": "Optimisation énergétique",
+        "description": "Consommation d'énergie réduite grâce à l'optimisation des animations qui ne s'exécutent que lorsque nécessaire"
+      },
+      "deploymentPipeline": {
+        "title": "Pipeline de déploiement",
+        "description": "Environnements de staging et production séparés avec déploiements conditionnés par les tests"
       }
     }
   },

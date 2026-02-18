@@ -582,6 +582,26 @@
       "multipleAIModes": {
         "title": "Multiple AI Modes",
         "description": "Pre-configured modes for Professional meetings, Interviews, Sales calls, and more"
+      },
+      "customModesOverlay": {
+        "title": "Custom Modes in Overlay",
+        "description": "Switch between custom AI modes directly from the overlay widget popup menu"
+      },
+      "overlayUiPolish": {
+        "title": "Polished Overlay Widget",
+        "description": "Refined tab buttons, status indicators, and popup menu for a smoother overlay experience"
+      },
+      "aiSuggestionsRefinement": {
+        "title": "Smarter AI Suggestions",
+        "description": "Improved prompt handling and screenshot integration for more relevant AI responses"
+      },
+      "energyOptimization": {
+        "title": "Energy Optimization",
+        "description": "Reduced energy consumption by optimizing animations to only run when needed"
+      },
+      "deploymentPipeline": {
+        "title": "Deployment Pipeline",
+        "description": "Separate staging and production environments with test-gated deployments"
       }
     }
   },

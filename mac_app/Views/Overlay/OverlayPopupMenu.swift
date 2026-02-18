@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import SwiftData
 @preconcurrency import ScreenCaptureKit
 
 // MARK: - Overlay Position
@@ -98,17 +99,6 @@ struct OverlayPopupMenu: View {
 
             MenuDivider()
 
-            // Position Submenu
-            PositionMenuItem(
-                isExpanded: $showPositionSubmenu,
-                isHovered: hoveredItem == "position",
-                onSelect: { position in
-                    onMovePosition(position)
-                    isVisible = false
-                }
-            )
-            .onHover { if $0 { hoveredItem = "position" } }
-
             // Display Submenu
             DisplayMenuItem(
                 isExpanded: $showDisplaySubmenu,
@@ -175,7 +165,13 @@ struct ModeMenuItem: View {
     let isHovered: Bool
     let onSelect: (Mode) -> Void
 
+    @Query(sort: \Mode.createdAt) private var allModes: [Mode]
+
     private let builtInModes: [Mode] = [.defaultMode, .professionalMode, .interviewMode, .salesMode, .developerExamMode]
+
+    private var customModes: [Mode] {
+        allModes.filter { !$0.isDefault }
+    }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -193,12 +189,14 @@ struct ModeMenuItem: View {
                         Text("Mode")
                             .font(QMDesign.Typography.captionSmall)
                             .foregroundColor(QMDesign.Colors.textTertiary)
+                            .lineLimit(1)
                         Text(selectedMode?.name ?? "Default")
                             .font(QMDesign.Typography.bodySmall)
                             .foregroundColor(QMDesign.Colors.textPrimary)
+                            .lineLimit(1)
                     }
 
-                    Spacer()
+                    Spacer(minLength: QMDesign.Spacing.xs)
 
                     // Expand chevron
                     Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
@@ -217,12 +215,38 @@ struct ModeMenuItem: View {
             // Submenu with mode options
             if isExpanded {
                 VStack(spacing: 2) {
+                    // Built-in modes
                     ForEach(builtInModes, id: \.name) { mode in
                         ModeOptionButton(
                             mode: mode,
                             isSelected: selectedMode?.name == mode.name,
                             onSelect: { onSelect(mode) }
                         )
+                    }
+
+                    // Custom modes section
+                    if !customModes.isEmpty {
+                        // Separator
+                        HStack(spacing: QMDesign.Spacing.xs) {
+                            Rectangle()
+                                .fill(QMDesign.Colors.borderSubtle)
+                                .frame(height: 1)
+                            Text("CUSTOM")
+                                .font(.system(size: 8, weight: .semibold))
+                                .foregroundColor(QMDesign.Colors.textTertiary)
+                            Rectangle()
+                                .fill(QMDesign.Colors.borderSubtle)
+                                .frame(height: 1)
+                        }
+                        .padding(.vertical, QMDesign.Spacing.xxs)
+
+                        ForEach(customModes, id: \.id) { mode in
+                            ModeOptionButton(
+                                mode: mode,
+                                isSelected: selectedMode?.id == mode.id,
+                                onSelect: { onSelect(mode) }
+                            )
+                        }
                     }
                 }
                 .padding(QMDesign.Spacing.xs)
@@ -263,8 +287,9 @@ struct ModeOptionButton: View {
                 Text(mode.name)
                     .font(QMDesign.Typography.bodySmall)
                     .foregroundColor(isSelected ? QMDesign.Colors.textPrimary : QMDesign.Colors.textSecondary)
+                    .lineLimit(1)
 
-                Spacer()
+                Spacer(minLength: QMDesign.Spacing.xs)
 
                 // Checkmark
                 if isSelected {
@@ -321,20 +346,17 @@ struct MenuToggleItem: View {
                     Text(title)
                         .font(QMDesign.Typography.bodySmall)
                         .foregroundColor(QMDesign.Colors.textPrimary)
+                        .lineLimit(1)
 
                     if let subtitle = subtitle {
                         Text(subtitle)
                             .font(QMDesign.Typography.captionSmall)
                             .foregroundColor(QMDesign.Colors.textTertiary)
+                            .lineLimit(1)
                     }
                 }
 
-                Spacer()
-
-                // Shortcut badge
-                if let shortcut = shortcut {
-                    KeyboardShortcutBadge(shortcut: shortcut, size: .small)
-                }
+                Spacer(minLength: QMDesign.Spacing.xs)
 
                 // Toggle indicator
                 ToggleIndicator(isEnabled: isEnabled, accentColor: accentColor)
@@ -394,8 +416,9 @@ struct MenuActionItem: View {
                 Text(title)
                     .font(QMDesign.Typography.bodySmall)
                     .foregroundColor(isDestructive ? QMDesign.Colors.error : QMDesign.Colors.textPrimary)
+                    .lineLimit(1)
 
-                Spacer()
+                Spacer(minLength: QMDesign.Spacing.xs)
 
                 // Shortcut badge
                 if let shortcut = shortcut {
@@ -536,12 +559,14 @@ struct DisplayMenuItem: View {
                         Text("Display")
                             .font(QMDesign.Typography.captionSmall)
                             .foregroundColor(QMDesign.Colors.textTertiary)
+                            .lineLimit(1)
                         Text(currentDisplayName)
                             .font(QMDesign.Typography.bodySmall)
                             .foregroundColor(QMDesign.Colors.textPrimary)
+                            .lineLimit(1)
                     }
 
-                    Spacer()
+                    Spacer(minLength: QMDesign.Spacing.xs)
 
                     Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
                         .font(.system(size: 10, weight: .semibold))
@@ -672,6 +697,7 @@ struct DisplayMenuOptionButton: View {
                     Text(display.name)
                         .font(QMDesign.Typography.bodySmall)
                         .foregroundColor(isSelected ? QMDesign.Colors.textPrimary : QMDesign.Colors.textSecondary)
+                        .lineLimit(1)
                     Text(display.resolution)
                         .font(QMDesign.Typography.captionSmall)
                         .foregroundColor(QMDesign.Colors.textTertiary)

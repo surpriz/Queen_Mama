@@ -11,6 +11,7 @@ on:
     paths:
       - 'landing/**'
   workflow_dispatch:
+  workflow_call:
 
 jobs:
   validate:

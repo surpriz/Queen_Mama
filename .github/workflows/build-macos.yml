@@ -21,7 +21,30 @@ env:
   TEAM_ID: WNNDDTBPGK
 
 jobs:
+  test:
+    runs-on: macos-14
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Select Xcode
+        run: sudo xcode-select -s /Applications/Xcode_16.2.app
+
+      - name: Run Tests
+        run: |
+          xcodebuild test \
+            -project $XCODE_PROJECT \
+            -scheme $SCHEME \
+            -destination 'platform=macOS' \
+            -only-testing:QueenMamaTests \
+            CODE_SIGN_IDENTITY=- \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=NO \
+            -skipPackagePluginValidation \
+            -skipMacroValidation
+
   build:
+    needs: [test]
     runs-on: macos-14
     timeout-minutes: 30  # Prevent infinite hangs
     permissions:
