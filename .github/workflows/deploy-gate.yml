@@ -5,6 +5,7 @@ on:
     branches: [main, staging]
     paths:
       - 'landing/**'
+  workflow_dispatch:
 
 jobs:
   test:

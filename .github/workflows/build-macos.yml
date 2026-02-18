@@ -522,7 +522,11 @@ jobs:
 
           git push origin main
 
-          echo "✅ appcast.xml updated and pushed to main"
+          # GITHUB_TOKEN pushes don't trigger push-based workflows (anti-loop protection)
+          # but workflow_dispatch events ARE triggered, so we explicitly invoke deploy-gate
+          echo "🔄 Triggering Vercel deployment for appcast update..."
+          gh workflow run deploy-gate.yml --ref main
+          echo "✅ appcast.xml updated, pushed, and Vercel deployment triggered"
 
       - name: Cleanup
         if: always()
