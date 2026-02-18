@@ -57,6 +57,11 @@ export const changelogData: ChangelogRelease[] = [
             id: "internationalisation",
             title: "Internationalized Landing Site",
             description: "Full French and English support across the entire website with locale-based routing"
+          },
+          {
+            id: "customModesOverlay",
+            title: "Custom Modes in Overlay",
+            description: "Switch between custom AI modes directly from the overlay widget popup menu"
           }
         ]
       },
@@ -82,6 +87,21 @@ export const changelogData: ChangelogRelease[] = [
             id: "healthMonitoring",
             title: "Proactive Health Monitoring",
             description: "Background service health checks to detect and recover from issues before they impact your session"
+          },
+          {
+            id: "overlayUiPolish",
+            title: "Polished Overlay Widget",
+            description: "Refined tab buttons, status indicators, and popup menu for a smoother overlay experience"
+          },
+          {
+            id: "aiSuggestionsRefinement",
+            title: "Smarter AI Suggestions",
+            description: "Improved prompt handling and screenshot integration for more relevant AI responses"
+          },
+          {
+            id: "energyOptimization",
+            title: "Energy Optimization",
+            description: "Reduced energy consumption by optimizing animations to only run when needed"
           }
         ]
       },
@@ -112,6 +132,11 @@ export const changelogData: ChangelogRelease[] = [
             id: "orphanedSessionCleanup",
             title: "Orphaned Session Cleanup",
             description: "Automatic detection and cleanup of incomplete sessions left behind after crashes"
+          },
+          {
+            id: "deploymentPipeline",
+            title: "Deployment Pipeline",
+            description: "Separate staging and production environments with test-gated deployments"
           }
         ]
       }
