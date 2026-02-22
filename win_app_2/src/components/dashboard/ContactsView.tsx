@@ -1,5 +1,6 @@
 import { useState, useCallback } from 'react'
-import { Search, Trash2, Users, ArrowLeft, Save } from 'lucide-react'
+import { Search, Trash2, Users, ArrowLeft, Save, Plus } from 'lucide-react'
+import { v4 as uuidv4 } from 'uuid'
 import { useContactStore } from '@/stores/contactStore'
 import * as contactDb from '@/services/contacts/contactDb'
 import type { Contact } from '@/types/models'
@@ -16,6 +17,7 @@ function ContactDetail({
   onDelete: (id: string) => void
 }) {
   const [name, setName] = useState(contact.name)
+  const [email, setEmail] = useState(contact.email || '')
   const [role, setRole] = useState(contact.role || '')
   const [company, setCompany] = useState(contact.company || '')
   const [notes, setNotes] = useState(contact.notes)
@@ -26,6 +28,7 @@ function ContactDetail({
     const updated: Contact = {
       ...contact,
       name,
+      email: email || undefined,
       role: role || undefined,
       company: company || undefined,
       notes,
@@ -34,7 +37,7 @@ function ContactDetail({
     await contactDb.upsertContact(updated)
     onSave(updated)
     setIsSaving(false)
-  }, [contact, name, role, company, notes, onSave])
+  }, [contact, name, email, role, company, notes, onSave])
 
   return (
     <div className="flex flex-col h-full p-6">
@@ -56,6 +59,16 @@ function ContactDetail({
             value={name}
             onChange={(e) => setName(e.target.value)}
             className="w-full px-3 py-2.5 rounded-qm-md bg-qm-surface-light border border-qm-border-subtle text-body-sm text-qm-text-primary focus:border-qm-accent focus:outline-none"
+          />
+        </div>
+        <div>
+          <label className="block text-caption font-medium text-qm-text-secondary mb-1.5">Email</label>
+          <input
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder="email@example.com"
+            className="w-full px-3 py-2.5 rounded-qm-md bg-qm-surface-light border border-qm-border-subtle text-body-sm text-qm-text-primary placeholder:text-qm-text-disabled focus:border-qm-accent focus:outline-none"
           />
         </div>
         <div>
@@ -126,6 +139,109 @@ function ContactDetail({
   )
 }
 
+function CreateContactForm({
+  onBack,
+  onCreated,
+}: {
+  onBack: () => void
+  onCreated: (contact: Contact) => void
+}) {
+  const [name, setName] = useState('')
+  const [email, setEmail] = useState('')
+  const [role, setRole] = useState('')
+  const [company, setCompany] = useState('')
+  const [isSaving, setIsSaving] = useState(false)
+
+  const handleCreate = useCallback(async () => {
+    if (!name.trim()) return
+    setIsSaving(true)
+    const now = new Date().toISOString()
+    const newContact: Contact = {
+      id: uuidv4(),
+      name: name.trim(),
+      email: email.trim() || undefined,
+      role: role.trim() || undefined,
+      company: company.trim() || undefined,
+      notes: '',
+      sessionCount: 0,
+      createdAt: now,
+      updatedAt: now,
+    }
+    await contactDb.upsertContact(newContact)
+    onCreated(newContact)
+    setIsSaving(false)
+  }, [name, email, role, company, onCreated])
+
+  return (
+    <div className="flex flex-col h-full p-6">
+      <div className="flex items-center gap-3 mb-6">
+        <button
+          onClick={onBack}
+          className="p-2 rounded-qm-sm bg-qm-surface-light hover:bg-qm-surface-hover text-qm-text-secondary transition-colors"
+        >
+          <ArrowLeft size={16} />
+        </button>
+        <h2 className="text-title-sm font-semibold text-qm-text-primary">New Contact</h2>
+      </div>
+
+      <div className="space-y-4 max-w-lg">
+        <div>
+          <label className="block text-caption font-medium text-qm-text-secondary mb-1.5">
+            Name <span className="text-qm-error">*</span>
+          </label>
+          <input
+            type="text"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="Full name"
+            autoFocus
+            className="w-full px-3 py-2.5 rounded-qm-md bg-qm-surface-light border border-qm-border-subtle text-body-sm text-qm-text-primary placeholder:text-qm-text-disabled focus:border-qm-accent focus:outline-none"
+          />
+        </div>
+        <div>
+          <label className="block text-caption font-medium text-qm-text-secondary mb-1.5">Email</label>
+          <input
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder="email@example.com"
+            className="w-full px-3 py-2.5 rounded-qm-md bg-qm-surface-light border border-qm-border-subtle text-body-sm text-qm-text-primary placeholder:text-qm-text-disabled focus:border-qm-accent focus:outline-none"
+          />
+        </div>
+        <div>
+          <label className="block text-caption font-medium text-qm-text-secondary mb-1.5">Role</label>
+          <input
+            type="text"
+            value={role}
+            onChange={(e) => setRole(e.target.value)}
+            placeholder="e.g. CTO, Project Manager"
+            className="w-full px-3 py-2.5 rounded-qm-md bg-qm-surface-light border border-qm-border-subtle text-body-sm text-qm-text-primary placeholder:text-qm-text-disabled focus:border-qm-accent focus:outline-none"
+          />
+        </div>
+        <div>
+          <label className="block text-caption font-medium text-qm-text-secondary mb-1.5">Company</label>
+          <input
+            type="text"
+            value={company}
+            onChange={(e) => setCompany(e.target.value)}
+            placeholder="e.g. Acme Corp"
+            className="w-full px-3 py-2.5 rounded-qm-md bg-qm-surface-light border border-qm-border-subtle text-body-sm text-qm-text-primary placeholder:text-qm-text-disabled focus:border-qm-accent focus:outline-none"
+          />
+        </div>
+
+        <button
+          onClick={handleCreate}
+          disabled={isSaving || !name.trim()}
+          className="flex items-center gap-2 px-4 py-2.5 rounded-qm-md bg-gradient-to-r from-qm-gradient-start to-qm-gradient-end text-white text-body-sm font-medium hover:shadow-qm-glow transition-shadow disabled:opacity-50"
+        >
+          <Plus size={14} />
+          {isSaving ? 'Creating...' : 'Create Contact'}
+        </button>
+      </div>
+    </div>
+  )
+}
+
 export function ContactsView() {
   const contacts = useContactStore((s) => s.contacts)
   const searchQuery = useContactStore((s) => s.searchQuery)
@@ -133,7 +249,9 @@ export function ContactsView() {
   const selectedContact = useContactStore((s) => s.selectedContact)
   const setSelectedContact = useContactStore((s) => s.setSelectedContact)
   const updateContact = useContactStore((s) => s.updateContact)
+  const addContact = useContactStore((s) => s.addContact)
   const removeContact = useContactStore((s) => s.removeContact)
+  const [isCreating, setIsCreating] = useState(false)
 
   const handleDelete = useCallback(async (id: string) => {
     await contactDb.deleteContact(id)
@@ -146,15 +264,30 @@ export function ContactsView() {
     setSelectedContact(null)
   }, [updateContact, setSelectedContact])
 
+  const handleCreated = useCallback((contact: Contact) => {
+    addContact(contact)
+    setIsCreating(false)
+  }, [addContact])
+
   const filtered = contacts.filter((c) => {
     if (!searchQuery) return true
     const q = searchQuery.toLowerCase()
     return (
       c.name.toLowerCase().includes(q) ||
+      (c.email?.toLowerCase().includes(q) ?? false) ||
       (c.role?.toLowerCase().includes(q) ?? false) ||
       (c.company?.toLowerCase().includes(q) ?? false)
     )
   })
+
+  if (isCreating) {
+    return (
+      <CreateContactForm
+        onBack={() => setIsCreating(false)}
+        onCreated={handleCreated}
+      />
+    )
+  }
 
   if (selectedContact) {
     return (
@@ -174,9 +307,17 @@ export function ContactsView() {
           <Users size={22} className="text-qm-accent" />
           <h2 className="text-title-sm font-semibold text-qm-text-primary">Contacts</h2>
         </div>
-        <span className="text-caption text-qm-text-tertiary">
-          {filtered.length} contacts
-        </span>
+        <div className="flex items-center gap-3">
+          <span className="text-caption text-qm-text-tertiary">
+            {filtered.length} contacts
+          </span>
+          <button
+            onClick={() => setIsCreating(true)}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-qm-pill bg-gradient-to-r from-qm-gradient-start to-qm-gradient-end text-white text-body-sm font-medium hover:shadow-qm-glow transition-shadow"
+          >
+            <Plus size={14} /> New Contact
+          </button>
+        </div>
       </div>
 
       {/* Search */}
@@ -195,7 +336,7 @@ export function ContactsView() {
       <div className="flex-1 overflow-y-auto space-y-2">
         {filtered.length === 0 ? (
           <div className="text-center py-12 text-qm-text-tertiary text-body-sm">
-            {searchQuery ? 'No matching contacts' : 'No contacts yet. Start a session and contacts will be automatically extracted.'}
+            {searchQuery ? 'No matching contacts' : 'No contacts yet. Start a session or create one manually.'}
           </div>
         ) : (
           filtered.map((contact) => (
@@ -216,6 +357,9 @@ export function ContactsView() {
                   <h3 className="text-body-md font-medium text-qm-text-primary truncate">
                     {contact.name}
                   </h3>
+                  {contact.isSynced && (
+                    <span className="text-[10px] text-green-400 bg-green-400/10 px-1.5 py-0.5 rounded">synced</span>
+                  )}
                 </div>
                 <div className="flex items-center gap-2 text-caption text-qm-text-tertiary">
                   {contact.role && <span>{contact.role}</span>}

@@ -45,3 +45,9 @@
     -webkit-app-region: no-drag;
   }
 }
+
+/* Meeting reminder auto-dismiss countdown animation */
+@keyframes shrink-width {
+  0% { width: 100%; }
+  100% { width: 0%; }
+}

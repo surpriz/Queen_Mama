@@ -160,6 +160,14 @@ const electronAPI = {
     return () => ipcRenderer.removeListener(IPC_CHANNELS.RELAY_AI_RESPONSE, handler)
   },
 
+  // Meeting detection (main → renderer)
+  onMeetingDetected: (callback: (data: { appName: string }) => void) => {
+    const handler = (_event: Electron.IpcRendererEvent, data: { appName: string }) => callback(data)
+    ipcRenderer.on(IPC_CHANNELS.MEETING_DETECTED, handler)
+    return () => ipcRenderer.removeListener(IPC_CHANNELS.MEETING_DETECTED, handler)
+  },
+  meetingDismiss: (appName: string) => ipcRenderer.send(IPC_CHANNELS.MEETING_DISMISS, appName),
+
   // Event listeners (main → renderer)
   onSessionToggle: (callback: () => void) => {
     ipcRenderer.on(IPC_CHANNELS.SESSION_TOGGLE, callback)

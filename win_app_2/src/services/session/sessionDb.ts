@@ -36,12 +36,12 @@ export interface DbAiResponse {
 export interface DbMode {
   id: string
   name: string
-  systemPrompt: string
-  isBuiltIn: number
-  icon: string
-  sortOrder: number
-  createdAt: string
-  updatedAt: string
+  system_prompt: string
+  is_default: number
+  is_built_in: number
+  created_at: string
+  updated_at: string
+  attached_files: string
 }
 
 export const sessionDb = {
@@ -166,17 +166,17 @@ export const sessionDb = {
   async createMode(mode: DbMode): Promise<void> {
     const db = getDb()
     await db.query(
-      `INSERT INTO modes (id, name, systemPrompt, isBuiltIn, icon, sortOrder, createdAt, updatedAt)
+      `INSERT INTO modes (id, name, system_prompt, is_default, is_built_in, created_at, updated_at, attached_files)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         mode.id,
         mode.name,
-        mode.systemPrompt,
-        mode.isBuiltIn,
-        mode.icon,
-        mode.sortOrder,
-        mode.createdAt,
-        mode.updatedAt,
+        mode.system_prompt,
+        mode.is_default,
+        mode.is_built_in,
+        mode.created_at,
+        mode.updated_at,
+        mode.attached_files,
       ],
     )
   },
@@ -192,11 +192,11 @@ export const sessionDb = {
 
   async getAllModes(): Promise<DbMode[]> {
     const db = getDb()
-    return db.queryAll<DbMode>('SELECT * FROM modes ORDER BY sortOrder ASC')
+    return db.queryAll<DbMode>('SELECT * FROM modes ORDER BY is_built_in DESC, created_at ASC')
   },
 
   async deleteMode(id: string): Promise<void> {
     const db = getDb()
-    await db.query('DELETE FROM modes WHERE id = ? AND isBuiltIn = 0', [id])
+    await db.query('DELETE FROM modes WHERE id = ? AND is_built_in = 0', [id])
   },
 }

@@ -87,6 +87,12 @@ export const IPC_CHANNELS = {
   DIALOG_OPEN_FILE: 'dialog:open-file',
   FILE_READ_TEXT: 'file:read-text',
 
+  // Meeting detection (main → renderer)
+  MEETING_DETECTED: 'meeting:detected',
+  MEETING_MONITOR_START: 'meeting:monitor-start',
+  MEETING_MONITOR_STOP: 'meeting:monitor-stop',
+  MEETING_DISMISS: 'meeting:dismiss',
+
   // Database operations
   DB_QUERY: 'db:query',
   DB_QUERY_GET: 'db:query-get',

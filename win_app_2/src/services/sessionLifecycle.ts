@@ -21,6 +21,7 @@ import { useConfigStore } from '@/stores/configStore'
 import { ResponseType, type Mode } from '@/types/models'
 import { extractContactsFromTranscript } from '@/services/contacts/contactExtractor'
 import { useContactStore } from '@/stores/contactStore'
+import { transcriptBuffer } from '@/services/transcription/transcriptBuffer'
 
 const MAX_TRANSCRIPT_MEMORY = 50000 // 50KB - max in-memory transcript size for display
 
@@ -64,52 +65,57 @@ export async function startSession(mode?: Mode | null): Promise<void> {
       useAppStore.getState().setAudioLevel(level)
     })
 
+    // Start transcript buffer for debounced UI updates (reduces redraws by ~3-5x)
+    transcriptBuffer.start((_batchedText: string) => {
+      // Buffer flushed — update UI + broadcast with current full transcript
+      const currentStore = useAppStore.getState()
+
+      // Trim in-memory transcript for display if it exceeds limit
+      let displayTranscript = fullTranscript
+      if (displayTranscript.length > MAX_TRANSCRIPT_MEMORY) {
+        displayTranscript = '[...previous content truncated...]\n\n' + displayTranscript.slice(-MAX_TRANSCRIPT_MEMORY)
+      }
+      currentStore.setCurrentTranscript(displayTranscript)
+      currentStore.setInterimTranscript('')
+
+      // Broadcast transcript to all windows (cross-process sync)
+      window.electronAPI?.relay?.broadcast('relay:transcript', {
+        transcript: displayTranscript,
+        interim: '',
+        audioLevel: currentStore.audioLevel,
+        isSessionActive: true,
+        sessionStartedAt: currentStore.sessionStartedAt,
+      })
+
+      // Feed to auto-answer detection (use full transcript for accuracy)
+      autoAnswer.onTranscriptReceived(fullTranscript)
+
+      // Feed to moment detection (proactive suggestions)
+      const config = useConfigStore.getState()
+      if (config.proactiveEnabled) {
+        processTranscriptForMoments(fullTranscript)
+      }
+    })
+
     // Set up transcription callbacks
     // IMPORTANT: Always use useAppStore.getState() inside callbacks to get fresh state.
     // The 'store' variable captured at startSession() is a stale snapshot.
     transcription.setCallbacks({
       onTranscript: (text: string) => {
-        const currentStore = useAppStore.getState()
-
-        // Append to module-level fullTranscript (always grows, never trimmed)
+        // Append to module-level fullTranscript immediately (always grows, never trimmed)
         const separator = fullTranscript.length > 0 ? ' ' : ''
         fullTranscript = fullTranscript + separator + text
 
-        // Persist full transcript to session record (DB keeps everything)
+        // Persist full transcript to session record immediately (DB keeps everything)
         sessionMgr.updateTranscript(fullTranscript)
 
-        // Trim in-memory transcript for display if it exceeds limit
-        let displayTranscript = fullTranscript
-        if (displayTranscript.length > MAX_TRANSCRIPT_MEMORY) {
-          displayTranscript = '[...previous content truncated...]\n\n' + displayTranscript.slice(-MAX_TRANSCRIPT_MEMORY)
-        }
-        currentStore.setCurrentTranscript(displayTranscript)
-
-        // Clear interim transcript when final arrives
-        currentStore.setInterimTranscript('')
-
-        // Broadcast transcript to all windows (cross-process sync)
-        window.electronAPI?.relay?.broadcast('relay:transcript', {
-          transcript: displayTranscript,
-          interim: '',
-          audioLevel: currentStore.audioLevel,
-          isSessionActive: true,
-          sessionStartedAt: currentStore.sessionStartedAt,
-        })
-
-        // Persist transcript entry
+        // Persist transcript entry immediately
         if (currentSessionId) {
           sessionMgr.addTranscriptEntry('user', text, true)
         }
 
-        // Feed to auto-answer detection (use full transcript for accuracy)
-        autoAnswer.onTranscriptReceived(fullTranscript)
-
-        // Feed to moment detection (proactive suggestions)
-        const config = useConfigStore.getState()
-        if (config.proactiveEnabled) {
-          processTranscriptForMoments(fullTranscript)
-        }
+        // Buffer the UI update (flushes every 500ms)
+        transcriptBuffer.append(text)
       },
       onInterimTranscript: (text: string) => {
         const currentStore = useAppStore.getState()
@@ -355,6 +361,7 @@ export async function toggleSession(mode?: Mode | null): Promise<void> {
 }
 
 function cleanup(): void {
+  transcriptBuffer.stop()
   audioCapture.stopCapture()
   transcription.disconnect()
   screenCaptureService.stopAutoCapture()

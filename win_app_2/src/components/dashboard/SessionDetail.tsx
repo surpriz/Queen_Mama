@@ -1,7 +1,7 @@
-import { ArrowLeft, Download, Copy, Check } from 'lucide-react'
-import { useState } from 'react'
+import { ArrowLeft, Download, Copy, Check, ChevronDown, CheckCircle, Clock, Circle } from 'lucide-react'
+import { useState, useRef, useEffect } from 'react'
 import { useSessionStore } from '@/stores/sessionStore'
-import { exportSession } from '@/services/session/sessionExport'
+import { exportSession, type ExportFormat } from '@/services/session/sessionExport'
 import { formatDate, formatDuration } from '@/lib/utils'
 
 interface SessionDetailProps {
@@ -12,6 +12,18 @@ interface SessionDetailProps {
 export function SessionDetail({ sessionId, onBack }: SessionDetailProps) {
   const session = useSessionStore((s) => s.sessions.find((se) => se.id === sessionId))
   const [copied, setCopied] = useState(false)
+  const [showExportMenu, setShowExportMenu] = useState(false)
+  const exportMenuRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (exportMenuRef.current && !exportMenuRef.current.contains(event.target as Node)) {
+        setShowExportMenu(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [])
 
   if (!session) {
     return (
@@ -34,16 +46,54 @@ export function SessionDetail({ sessionId, onBack }: SessionDetailProps) {
     setTimeout(() => setCopied(false), 2000)
   }
 
-  const handleExport = (format: 'markdown' | 'plaintext' | 'json') => {
+  const handleExport = (format: ExportFormat) => {
     const content = exportSession(session, format)
-    const ext = format === 'markdown' ? 'md' : format === 'json' ? 'json' : 'txt'
-    const blob = new Blob([content], { type: 'text/plain' })
+    const extMap: Record<ExportFormat, string> = {
+      markdown: 'md',
+      plaintext: 'txt',
+      json: 'json',
+      csv: 'csv',
+    }
+    const mimeMap: Record<ExportFormat, string> = {
+      markdown: 'text/markdown',
+      plaintext: 'text/plain',
+      json: 'application/json',
+      csv: 'text/csv',
+    }
+    const blob = new Blob([content], { type: mimeMap[format] })
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url
-    a.download = `${session.title}.${ext}`
+    a.download = `${session.title}.${extMap[format]}`
     a.click()
     URL.revokeObjectURL(url)
+    setShowExportMenu(false)
+  }
+
+  const syncBadge = () => {
+    const status = session.syncStatus || 'local'
+    switch (status) {
+      case 'synced':
+        return (
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium bg-green-500/15 text-green-400">
+            <CheckCircle size={12} /> Synced
+          </span>
+        )
+      case 'pending':
+        return (
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium bg-yellow-500/15 text-yellow-400">
+            <Clock size={12} /> Pending
+          </span>
+        )
+      case 'local':
+        return (
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium bg-gray-500/15 text-gray-400">
+            <Circle size={10} /> Local
+          </span>
+        )
+      default:
+        return null
+    }
   }
 
   return (
@@ -57,7 +107,10 @@ export function SessionDetail({ sessionId, onBack }: SessionDetailProps) {
           <ArrowLeft size={18} />
         </button>
         <div className="flex-1">
-          <h2 className="text-title-sm font-semibold text-qm-text-primary">{session.title}</h2>
+          <div className="flex items-center gap-2">
+            <h2 className="text-title-sm font-semibold text-qm-text-primary">{session.title}</h2>
+            {syncBadge()}
+          </div>
           <p className="text-caption text-qm-text-tertiary">
             {formatDate(session.startTime)}
             {duration && ` · ${formatDuration(duration)}`}
@@ -70,12 +123,42 @@ export function SessionDetail({ sessionId, onBack }: SessionDetailProps) {
           >
             {copied ? <Check size={16} className="text-qm-success" /> : <Copy size={16} />}
           </button>
-          <button
-            onClick={() => handleExport('markdown')}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-qm-md bg-qm-surface-medium hover:bg-qm-surface-hover text-body-sm text-qm-text-secondary transition-colors"
-          >
-            <Download size={14} /> Export
-          </button>
+          <div className="relative" ref={exportMenuRef}>
+            <button
+              onClick={() => setShowExportMenu(!showExportMenu)}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-qm-md bg-qm-surface-medium hover:bg-qm-surface-hover text-body-sm text-qm-text-secondary transition-colors"
+            >
+              <Download size={14} /> Export <ChevronDown size={12} />
+            </button>
+            {showExportMenu && (
+              <div className="absolute right-0 top-full mt-1 w-40 rounded-qm-md bg-qm-surface-medium border border-qm-border-subtle shadow-lg z-50 py-1">
+                <button
+                  onClick={() => handleExport('markdown')}
+                  className="w-full text-left px-3 py-1.5 text-body-sm text-qm-text-secondary hover:bg-qm-surface-hover transition-colors"
+                >
+                  Markdown
+                </button>
+                <button
+                  onClick={() => handleExport('plaintext')}
+                  className="w-full text-left px-3 py-1.5 text-body-sm text-qm-text-secondary hover:bg-qm-surface-hover transition-colors"
+                >
+                  Plain Text
+                </button>
+                <button
+                  onClick={() => handleExport('json')}
+                  className="w-full text-left px-3 py-1.5 text-body-sm text-qm-text-secondary hover:bg-qm-surface-hover transition-colors"
+                >
+                  JSON
+                </button>
+                <button
+                  onClick={() => handleExport('csv')}
+                  className="w-full text-left px-3 py-1.5 text-body-sm text-qm-text-secondary hover:bg-qm-surface-hover transition-colors"
+                >
+                  CSV
+                </button>
+              </div>
+            )}
+          </div>
         </div>
       </div>
 

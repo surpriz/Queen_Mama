@@ -18,7 +18,7 @@ interface OverlayStoreState {
   position: OverlayPosition
   isAutoAnswer: boolean
   streamingContent: string
-  responseHistory: Array<{ type: ResponseType; content: string; timestamp: string }>
+  responseHistory: Array<{ type: ResponseType; content: string; timestamp: string; provider?: string }>
 
   // Actions
   setExpanded: (expanded: boolean) => void

@@ -248,11 +248,14 @@ export const BUILT_IN_MODE_NAMES = ['Default', 'Professional', 'Interview', 'Sal
 export interface Contact {
   id: string
   name: string
+  email?: string
   role?: string
   company?: string
   notes: string
   lastSeen?: string
   sessionCount: number
+  isSynced?: boolean
+  remoteId?: string
   createdAt: string
   updatedAt: string
 }

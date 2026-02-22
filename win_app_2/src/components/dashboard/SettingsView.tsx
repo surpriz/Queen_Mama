@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
+import { DisplaySelector } from './DisplaySelector'
 import { useConfigStore } from '@/stores/configStore'
 import { useLicenseStore } from '@/stores/licenseStore'
 import { useAuth } from '@/hooks/useAuth'
@@ -221,16 +222,19 @@ export function SettingsView() {
               onToggle={(v) => handleToggle('autoScreenCapture', v)}
             />
             {config.autoScreenCapture && (
-              <SliderRow
-                label="Capture Interval"
-                description="Time between automatic screen captures"
-                value={config.screenCaptureIntervalSeconds}
-                min={1}
-                max={30}
-                step={1}
-                displayValue={`${config.screenCaptureIntervalSeconds}s`}
-                onChange={(v) => config.updateConfig({ screenCaptureIntervalSeconds: v })}
-              />
+              <>
+                <SliderRow
+                  label="Capture Interval"
+                  description="Time between automatic screen captures"
+                  value={config.screenCaptureIntervalSeconds}
+                  min={1}
+                  max={30}
+                  step={1}
+                  displayValue={`${config.screenCaptureIntervalSeconds}s`}
+                  onChange={(v) => config.updateConfig({ screenCaptureIntervalSeconds: v })}
+                />
+                <DisplaySelector />
+              </>
             )}
           </div>
         </section>

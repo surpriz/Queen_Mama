@@ -163,7 +163,7 @@ export function registerIPCHandlers(): void {
     }
   })
 
-  // Screen capture
+  // Screen capture (supports multi-display selection)
   ipcMain.handle(IPC_CHANNELS.SCREEN_CAPTURE, async () => {
     try {
       const sources = await desktopCapturer.getSources({
@@ -171,7 +171,24 @@ export function registerIPCHandlers(): void {
         thumbnailSize: { width: 1920, height: 1080 },
       })
       if (sources.length === 0) return null
-      return sources[0].thumbnail.toDataURL('image/jpeg', 0.5)
+
+      // Check if user has selected a specific display
+      let selectedSource = sources[0] // Default to primary
+      try {
+        const Store = (await import('electron-store')).default
+        const store = new Store()
+        const selectedDisplayId = store.get('selectedDisplayId') as string | undefined
+        if (selectedDisplayId) {
+          const match = sources.find((s) => s.id === selectedDisplayId || s.display_id === selectedDisplayId)
+          if (match) {
+            selectedSource = match
+          }
+        }
+      } catch {
+        // electron-store not available, use primary
+      }
+
+      return selectedSource.thumbnail.toDataURL('image/jpeg', 0.5)
     } catch (error) {
       console.error('[IPC] Screen capture failed:', error)
       return null

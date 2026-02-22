@@ -98,6 +98,7 @@ const config: Config = {
         'qm-pulse': 'qm-pulse 1s ease-in-out infinite alternate',
         'qm-fade-in': 'qm-fade-in 0.25s ease-in-out',
         'qm-slide-up': 'qm-slide-up 0.25s ease-out',
+        'slide-in-right': 'slide-in-right 0.3s ease-out',
       },
       keyframes: {
         'qm-pulse': {
@@ -111,6 +112,14 @@ const config: Config = {
         'qm-slide-up': {
           '0%': { opacity: '0', transform: 'translateY(8px)' },
           '100%': { opacity: '1', transform: 'translateY(0)' },
+        },
+        'slide-in-right': {
+          '0%': { opacity: '0', transform: 'translateX(16px)' },
+          '100%': { opacity: '1', transform: 'translateX(0)' },
+        },
+        'shrink-width': {
+          '0%': { width: '100%' },
+          '100%': { width: '0%' },
         },
       },
       transitionDuration: {

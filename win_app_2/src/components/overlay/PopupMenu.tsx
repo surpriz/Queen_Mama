@@ -1,10 +1,11 @@
 import { useState, useRef, useEffect } from 'react'
-import { MoreVertical, Move, Settings, Trash2, Monitor, ChevronRight, Zap, Brain, Camera, Layers } from 'lucide-react'
+import { MoreVertical, Move, Settings, Trash2, Monitor, ChevronRight, Zap, Brain, Camera, Layers, EyeOff } from 'lucide-react'
 import { useOverlayStore } from '@/stores/overlayStore'
 import type { OverlayPosition } from '@/types/electron.d'
 import { useConfigStore } from '@/stores/configStore'
 import { useAppStore } from '@/stores/appStore'
-import { BUILT_IN_MODES } from '@/types/models'
+import type { Mode } from '@/types/models'
+import { useModes } from '@/hooks/useModes'
 import { cn } from '@/lib/utils'
 
 const POSITIONS: { value: OverlayPosition; label: string }[] = [
@@ -32,6 +33,9 @@ export function PopupMenu() {
 
   const selectedMode = useAppStore((s) => s.selectedMode)
   const setSelectedMode = useAppStore((s) => s.setSelectedMode)
+  const toggleOverlay = useAppStore((s) => s.toggleOverlay)
+
+  const { modes } = useModes()
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -64,16 +68,14 @@ export function PopupMenu() {
     setIsOpen(false)
   }
 
-  const handleSelectMode = (mode: (typeof BUILT_IN_MODES)[number]) => {
-    setSelectedMode({
-      id: `builtin-${mode.name.toLowerCase().replace(/\s+/g, '-')}`,
-      name: mode.name,
-      systemPrompt: mode.systemPrompt,
-      isDefault: mode.isDefault,
-      createdAt: new Date().toISOString(),
-      attachedFiles: [],
-    })
+  const handleSelectMode = (mode: Mode) => {
+    setSelectedMode(mode)
     setShowModes(false)
+    setIsOpen(false)
+  }
+
+  const handleHideWidget = () => {
+    toggleOverlay()
     setIsOpen(false)
   }
 
@@ -141,10 +143,10 @@ export function PopupMenu() {
           </button>
 
           {showModes && (
-            <div className="border-t border-qm-border-subtle bg-qm-surface-dark">
-              {BUILT_IN_MODES.map((mode) => (
+            <div className="border-t border-qm-border-subtle bg-qm-surface-dark max-h-48 overflow-y-auto">
+              {modes.map((mode) => (
                 <button
-                  key={mode.name}
+                  key={mode.id}
                   onClick={() => handleSelectMode(mode)}
                   className={cn(
                     'flex items-center gap-2 w-full px-4 py-1.5 text-caption transition-colors',
@@ -221,6 +223,15 @@ export function PopupMenu() {
           >
             <Settings size={14} />
             Settings
+          </button>
+
+          {/* Hide Widget */}
+          <button
+            onClick={handleHideWidget}
+            className="flex items-center gap-2 w-full px-3 py-2 text-body-sm text-qm-text-secondary hover:bg-qm-surface-hover transition-colors"
+          >
+            <EyeOff size={14} />
+            Hide Widget
           </button>
 
           {/* Clear context */}

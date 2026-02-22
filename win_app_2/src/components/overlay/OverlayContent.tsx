@@ -10,8 +10,16 @@ export function OverlayContent() {
       {/* Collapsed: Pill header */}
       <PillHeader />
 
-      {/* Expanded: Full content */}
-      {isExpanded && <ExpandedContent />}
+      {/* Expanded: Full content with smooth transition */}
+      <div
+        className="transition-[max-height,opacity] duration-300 ease-in-out overflow-hidden"
+        style={{
+          maxHeight: isExpanded ? 480 : 0,
+          opacity: isExpanded ? 1 : 0,
+        }}
+      >
+        <ExpandedContent />
+      </div>
     </div>
   )
 }

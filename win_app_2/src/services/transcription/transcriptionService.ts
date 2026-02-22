@@ -8,9 +8,12 @@ import { useConfigStore } from '@/stores/configStore'
 
 const log = createLogger('Transcription')
 
-const MAX_RECONNECT_ATTEMPTS = 5
-const BASE_DELAY = 1000 // 1 second
-const MAX_DELAY = 30000 // 30 seconds
+const MAX_RECONNECT_ATTEMPTS = 8
+const BASE_DELAY = 3000 // 3 seconds (matches macOS)
+const MAX_DELAY = 60000 // 60 seconds
+const MAX_RECONNECTS_IN_WINDOW = 20
+const RECONNECT_WINDOW_DURATION = 600000 // 10 minutes in ms
+const AUTO_RECOVERY_INTERVAL = 60000 // 60 seconds
 
 // Audio batching config
 const BATCH_INTERVAL = 400 // ms
@@ -22,6 +25,9 @@ let isConnected = false
 let isReconnecting = false
 let reconnectAttempts = 0
 let intentionalDisconnect = false
+let reconnectTimestamps: number[] = [] // Sliding window budget
+let autoRecoveryTimer: ReturnType<typeof setInterval> | null = null
+let autoRecoveryCountdown = 0
 
 // Audio batching state
 let batchBuffer: ArrayBuffer[] = []
@@ -32,6 +38,7 @@ let onTranscript: ((text: string) => void) | null = null
 let onInterimTranscript: ((text: string) => void) | null = null
 let onError: ((error: Error) => void) | null = null
 let onConnectionChanged: ((connected: boolean, provider: string | null) => void) | null = null
+let onReconnectionBudgetExhausted: ((countdown: number) => void) | null = null
 
 const providers: TranscriptionProvider[] = [
   new DeepgramProvider(),
@@ -63,11 +70,13 @@ export function setCallbacks(callbacks: {
   onInterimTranscript?: (text: string) => void
   onError?: (error: Error) => void
   onConnectionChanged?: (connected: boolean, provider: string | null) => void
+  onReconnectionBudgetExhausted?: (countdown: number) => void
 }): void {
   onTranscript = callbacks.onTranscript || null
   onInterimTranscript = callbacks.onInterimTranscript || null
   onError = callbacks.onError || null
   onConnectionChanged = callbacks.onConnectionChanged || null
+  onReconnectionBudgetExhausted = callbacks.onReconnectionBudgetExhausted || null
 }
 
 export async function connect(): Promise<void> {
@@ -80,6 +89,8 @@ export async function connect(): Promise<void> {
 
   intentionalDisconnect = false
   reconnectAttempts = 0
+  reconnectTimestamps = []
+  stopAutoRecovery()
 
   // Set language from user config on all providers
   const language = useConfigStore.getState().primaryLanguage || 'fr'
@@ -129,12 +140,14 @@ export function disconnect(): void {
   // Flush any remaining batched audio before disconnecting
   flushBatch()
   stopBatchTimer()
+  stopAutoRecovery()
 
   currentProvider?.disconnect()
   currentProvider = null
   currentProviderType = null
   isConnected = false
   isReconnecting = false
+  reconnectTimestamps = []
   batchBuffer = []
   batchBufferSize = 0
   onConnectionChanged?.(false, null)
@@ -187,30 +200,90 @@ export function sendAudio(data: ArrayBuffer): void {
 async function attemptReconnect(): Promise<void> {
   if (isReconnecting) return
   isReconnecting = true
-  reconnectAttempts++
 
-  if (reconnectAttempts > MAX_RECONNECT_ATTEMPTS) {
-    log.warn('Max reconnection attempts reached')
+  const now = Date.now()
+
+  // Record this reconnection attempt in the sliding window
+  reconnectTimestamps.push(now)
+  // Prune old entries outside the window
+  reconnectTimestamps = reconnectTimestamps.filter(
+    (ts) => now - ts < RECONNECT_WINDOW_DURATION
+  )
+
+  // Check sliding window budget
+  if (reconnectTimestamps.length > MAX_RECONNECTS_IN_WINDOW) {
+    log.warn(`Reconnection budget exhausted: ${reconnectTimestamps.length} reconnections in ${RECONNECT_WINDOW_DURATION / 1000}s window`)
     isReconnecting = false
+    startAutoRecovery()
     return
   }
 
-  // Exponential backoff with jitter
-  const exponentialDelay = Math.min(MAX_DELAY, BASE_DELAY * Math.pow(2, reconnectAttempts))
-  const jitter = Math.random() * 1000
+  reconnectAttempts++
+
+  // Check linear attempt limit
+  if (reconnectAttempts > MAX_RECONNECT_ATTEMPTS) {
+    log.warn('Max reconnection attempts reached')
+    isReconnecting = false
+    startAutoRecovery()
+    return
+  }
+
+  // Exponential backoff with proportional jitter (0-50% of delay, matches macOS)
+  const exponentialDelay = Math.min(MAX_DELAY, BASE_DELAY * Math.pow(2, reconnectAttempts - 1))
+  const jitter = Math.random() * 0.5 * exponentialDelay
   const delay = exponentialDelay + jitter
-  log.info(`Reconnecting in ${Math.round(delay)}ms (attempt ${reconnectAttempts}/${MAX_RECONNECT_ATTEMPTS}, base delay: ${exponentialDelay}ms)`)
+  log.info(`Reconnecting in ${Math.round(delay)}ms (attempt ${reconnectAttempts}/${MAX_RECONNECT_ATTEMPTS}, window: ${reconnectTimestamps.length}/${MAX_RECONNECTS_IN_WINDOW})`)
 
   await sleep(delay)
 
   try {
     await connect()
     isReconnecting = false
+    reconnectAttempts = 0 // Reset linear counter on success (keep window history)
     log.info('Reconnected successfully')
   } catch {
     isReconnecting = false
     attemptReconnect()
   }
+}
+
+function startAutoRecovery(): void {
+  if (autoRecoveryTimer) return
+
+  autoRecoveryCountdown = AUTO_RECOVERY_INTERVAL / 1000
+  log.info(`Starting auto-recovery: retrying in ${autoRecoveryCountdown}s`)
+  onReconnectionBudgetExhausted?.(autoRecoveryCountdown)
+
+  autoRecoveryTimer = setInterval(async () => {
+    autoRecoveryCountdown--
+
+    if (autoRecoveryCountdown <= 0) {
+      stopAutoRecovery()
+
+      // Reset budgets and retry
+      reconnectAttempts = 0
+      reconnectTimestamps = []
+      log.info('Auto-recovery: resetting budgets and retrying connection')
+
+      try {
+        await connect()
+        log.info('Auto-recovery: reconnected successfully')
+      } catch {
+        log.warn('Auto-recovery: reconnection failed, restarting countdown')
+        startAutoRecovery()
+      }
+    } else {
+      onReconnectionBudgetExhausted?.(autoRecoveryCountdown)
+    }
+  }, 1000)
+}
+
+function stopAutoRecovery(): void {
+  if (autoRecoveryTimer) {
+    clearInterval(autoRecoveryTimer)
+    autoRecoveryTimer = null
+  }
+  autoRecoveryCountdown = 0
 }
 
 export function getIsConnected(): boolean {
@@ -219,4 +292,8 @@ export function getIsConnected(): boolean {
 
 export function getCurrentProviderType(): TranscriptionProviderType | null {
   return currentProviderType
+}
+
+export function getAutoRecoveryCountdown(): number {
+  return autoRecoveryCountdown
 }

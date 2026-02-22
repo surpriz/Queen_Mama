@@ -97,6 +97,24 @@ function FeedbackButtons({ responseId, sessionId }: { responseId: string; sessio
   )
 }
 
+// ── Provider badge ──────────────────────────────────────────────────
+
+const PROVIDER_COLORS: Record<string, string> = {
+  OpenAI: 'bg-green-500/15 text-green-400',
+  Anthropic: 'bg-purple-500/15 text-purple-400',
+  'Google Gemini': 'bg-blue-500/15 text-blue-400',
+  'xAI Grok': 'bg-orange-500/15 text-orange-400',
+}
+
+function ProviderBadge({ provider }: { provider: string }) {
+  const colorClass = PROVIDER_COLORS[provider] ?? 'bg-qm-surface-medium text-qm-text-tertiary'
+  return (
+    <span className={`text-[10px] font-medium leading-none px-1.5 py-0.5 rounded ${colorClass} select-none`}>
+      {provider}
+    </span>
+  )
+}
+
 // ── Main component ───────────────────────────────────────────────────
 
 export function ResponseDisplay() {
@@ -158,6 +176,7 @@ export function ResponseDisplay() {
                       AUTO
                     </span>
                   )}
+                  {entry.provider && <ProviderBadge provider={entry.provider} />}
                   <FeedbackButtons responseId={entry.timestamp} sessionId="" />
                   <CopyButton text={entry.content} />
                 </div>

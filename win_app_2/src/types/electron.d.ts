@@ -168,6 +168,10 @@ export interface ElectronAPI {
   onAudioLevelSync: (callback: (data: { audioLevel: number }) => void) => () => void
   onAIResponseSync: (callback: (data: { type: 'streaming' | 'history'; streamingContent?: string; entry?: { type: string; content: string; timestamp: string } }) => void) => () => void
 
+  // Meeting detection
+  onMeetingDetected: (callback: (data: { appName: string }) => void) => () => void
+  meetingDismiss: (appName: string) => void
+
   // Event listeners
   onSessionToggle: (callback: () => void) => () => void
   onShortcutToggleWidget: (callback: () => void) => () => void

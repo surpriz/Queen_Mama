@@ -6,7 +6,7 @@ import { createLogger } from '@/lib/logger'
 
 const log = createLogger('SessionExport')
 
-export type ExportFormat = 'markdown' | 'plaintext' | 'json'
+export type ExportFormat = 'markdown' | 'plaintext' | 'json' | 'csv'
 
 export interface ExportOptions {
   includeTranscript?: boolean
@@ -32,6 +32,8 @@ export function canExportFormat(format: ExportFormat): boolean {
       return licenseStore.canUse(Feature.ExportMarkdown).type === 'allowed'
     case 'json':
       return licenseStore.canUse(Feature.ExportJson).type === 'allowed'
+    case 'csv':
+      return licenseStore.canUse(Feature.ExportJson).type === 'allowed'
     default:
       return false
   }
@@ -45,6 +47,9 @@ export function getAvailableFormats(): ExportFormat[] {
   }
   if (canExportFormat('json')) {
     formats.push('json')
+  }
+  if (canExportFormat('csv')) {
+    formats.push('csv')
   }
 
   return formats
@@ -69,6 +74,8 @@ export function exportSession(
       return exportPlainText(session, opts)
     case 'json':
       return exportJSON(session, opts)
+    case 'csv':
+      return exportToCSV(session)
   }
 }
 
@@ -120,6 +127,8 @@ export function exportMultipleSessions(
       return sessions.map((s) => exportPlainText(s, opts)).join('\n\n========================================\n\n')
     case 'json':
       return JSON.stringify(sessions, null, 2)
+    case 'csv':
+      return sessions.map((s) => exportToCSV(s)).join('\n')
   }
 }
 
@@ -224,6 +233,35 @@ function exportJSON(session: Session, options: ExportOptions): string {
   return JSON.stringify(exportData, null, 2)
 }
 
+function escapeCSVField(field: string): string {
+  if (field.includes(',') || field.includes('"') || field.includes('\n') || field.includes('\r')) {
+    return `"${field.replace(/"/g, '""')}"`
+  }
+  return field
+}
+
+export function exportToCSV(session: Session): string {
+  const header = 'timestamp,speaker,text,is_final'
+  const entries = session.entries || []
+
+  if (entries.length === 0) {
+    // Fallback: export full transcript as a single row if no individual entries
+    const timestamp = session.startTime || new Date().toISOString()
+    const text = escapeCSVField(session.transcript || '')
+    return `${header}\n${escapeCSVField(timestamp)},unknown,${text},true`
+  }
+
+  const rows = entries.map((entry) => {
+    const timestamp = escapeCSVField(entry.timestamp)
+    const speaker = escapeCSVField(entry.speaker)
+    const text = escapeCSVField(entry.text)
+    const isFinal = entry.isFinal ? 'true' : 'false'
+    return `${timestamp},${speaker},${text},${isFinal}`
+  })
+
+  return [header, ...rows].join('\n')
+}
+
 function formatTranscriptMarkdown(session: Session): string {
   if (!session.entries || session.entries.length === 0) {
     return session.transcript
@@ -253,6 +291,8 @@ function getFileExtension(format: ExportFormat): string {
       return '.txt'
     case 'json':
       return '.json'
+    case 'csv':
+      return '.csv'
   }
 }
 
@@ -264,6 +304,8 @@ function getFileFilters(format: ExportFormat): Array<{ name: string; extensions:
       return [{ name: 'Text Files', extensions: ['txt'] }]
     case 'json':
       return [{ name: 'JSON Files', extensions: ['json'] }]
+    case 'csv':
+      return [{ name: 'CSV Files', extensions: ['csv'] }]
   }
 }
 

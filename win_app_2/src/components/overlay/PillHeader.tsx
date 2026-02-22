@@ -144,7 +144,10 @@ export function PillHeader() {
       {/* 3. Expand/Collapse chevron (Mac position: left side, after dashboard) */}
       <button
         onClick={(e) => { e.stopPropagation(); toggleExpanded() }}
-        className="p-1 rounded-qm-sm hover:bg-qm-surface-hover transition-colors titlebar-no-drag"
+        className={cn(
+          'p-1 rounded-qm-sm hover:bg-qm-surface-hover transition-colors titlebar-no-drag',
+          isExpanded && isSessionActive && 'animate-pulse ring-1 ring-qm-accent/30',
+        )}
         style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}
       >
         {isExpanded ? (
@@ -204,7 +207,7 @@ export function PillHeader() {
 
         {/* 7. Auto-answer badge */}
         {autoAnswerEnabled && (
-          <div className="flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-qm-auto-answer/20">
+          <div className="flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-qm-auto-answer/20 animate-pulse ring-1 ring-qm-auto-answer/30">
             <Zap size={11} className="text-qm-auto-answer" />
             <span className="text-caption-sm text-qm-auto-answer font-medium">Auto</span>
           </div>
@@ -230,7 +233,7 @@ export function PillHeader() {
           className={cn(
             'flex items-center justify-center w-7 h-7 rounded-full transition-colors flex-shrink-0',
             isSessionActive
-              ? 'bg-red-500/20 hover:bg-red-500/30'
+              ? 'bg-red-500/20 hover:bg-red-500/30 ring-2 ring-qm-success/40 animate-pulse'
               : 'bg-qm-accent/20 hover:bg-qm-accent/30',
           )}
           title={isSessionActive ? 'Stop session' : 'Start session'}
