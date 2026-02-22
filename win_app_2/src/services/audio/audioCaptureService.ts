@@ -1,4 +1,5 @@
 import { createLogger } from '@/lib/logger'
+import { useConfigStore } from '@/stores/configStore'
 
 const log = createLogger('AudioCapture')
 
@@ -6,9 +7,12 @@ export type AudioBufferCallback = (buffer: ArrayBuffer) => void
 export type AudioLevelCallback = (level: number) => void
 
 let audioContext: AudioContext | null = null
-let mediaStream: MediaStream | null = null
+let micStream: MediaStream | null = null
+let systemStream: MediaStream | null = null
 let workletNode: AudioWorkletNode | null = null
-let sourceNode: MediaStreamAudioSourceNode | null = null
+let micSourceNode: MediaStreamAudioSourceNode | null = null
+let systemSourceNode: MediaStreamAudioSourceNode | null = null
+let mergerNode: ChannelMergerNode | null = null
 let isCapturing = false
 
 let onAudioBuffer: AudioBufferCallback | null = null
@@ -32,6 +36,46 @@ function scalePower(rms: number): number {
   return (db - minDb) / (maxDb - minDb)
 }
 
+async function captureSystemAudio(): Promise<MediaStream | null> {
+  try {
+    // In Electron, desktopCapturer + getUserMedia with chromeMediaSource: 'desktop'
+    // captures system audio output (loopback). Video track is required but we discard it.
+    const stream = await navigator.mediaDevices.getUserMedia({
+      audio: {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        mandatory: {
+          chromeMediaSource: 'desktop',
+        },
+      } as unknown as MediaTrackConstraints,
+      video: {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        mandatory: {
+          chromeMediaSource: 'desktop',
+          minWidth: 1,
+          maxWidth: 1,
+          minHeight: 1,
+          maxHeight: 1,
+        },
+      } as unknown as MediaTrackConstraints,
+    })
+
+    // Remove video tracks - we only need audio
+    stream.getVideoTracks().forEach((track) => track.stop())
+
+    const audioTracks = stream.getAudioTracks()
+    if (audioTracks.length === 0) {
+      log.warn('System audio: no audio tracks available')
+      return null
+    }
+
+    log.info(`System audio captured: ${audioTracks.length} track(s)`)
+    return new MediaStream(audioTracks)
+  } catch (error) {
+    log.warn('System audio capture not available:', error)
+    return null
+  }
+}
+
 export async function startCapture(): Promise<void> {
   if (isCapturing) {
     log.warn('Already capturing')
@@ -40,20 +84,45 @@ export async function startCapture(): Promise<void> {
 
   log.info('Starting capture...')
 
-  // Request microphone access
-  try {
-    mediaStream = await navigator.mediaDevices.getUserMedia({
-      audio: {
-        echoCancellation: false,
-        noiseSuppression: false,
-        autoGainControl: false,
-        channelCount: 1,
-        sampleRate: { ideal: 48000 },
-      },
-    })
-  } catch (error) {
-    log.error('Microphone permission denied', error)
-    throw new Error('Microphone permission denied. Please enable in system settings.')
+  const config = useConfigStore.getState()
+  const useMic = config.captureMicrophone
+  const useSystem = config.captureSystemAudio
+
+  if (!useMic && !useSystem) {
+    log.warn('Both mic and system audio disabled, nothing to capture')
+    return
+  }
+
+  // 1. Capture microphone if enabled
+  if (useMic) {
+    try {
+      micStream = await navigator.mediaDevices.getUserMedia({
+        audio: {
+          echoCancellation: false,
+          noiseSuppression: false,
+          autoGainControl: false,
+          channelCount: 1,
+          sampleRate: { ideal: 48000 },
+        },
+      })
+      log.info('Microphone captured')
+    } catch (error) {
+      log.error('Microphone permission denied', error)
+      if (!useSystem) {
+        throw new Error('Microphone permission denied. Please enable in system settings.')
+      }
+      // Continue with system audio only
+    }
+  }
+
+  // 2. Capture system audio if enabled
+  if (useSystem) {
+    systemStream = await captureSystemAudio()
+  }
+
+  // Ensure we have at least one source
+  if (!micStream && !systemStream) {
+    throw new Error('No audio sources available. Please enable microphone or system audio.')
   }
 
   // Create AudioContext
@@ -61,23 +130,32 @@ export async function startCapture(): Promise<void> {
   log.info(`AudioContext sample rate: ${audioContext.sampleRate}`)
 
   // Load AudioWorklet
+  let useWorklet = true
   try {
     const workletUrl = new URL('../../workers/audioProcessor.worklet.ts', import.meta.url).href
     await audioContext.audioWorklet.addModule(workletUrl)
   } catch {
-    // Fallback: use inline worklet
     log.warn('Failed to load worklet module, using ScriptProcessorNode fallback')
-    startWithScriptProcessor()
-    return
+    useWorklet = false
   }
 
-  // Create nodes
-  sourceNode = audioContext.createMediaStreamSource(mediaStream)
+  if (useWorklet) {
+    startWithWorklet()
+  } else {
+    startWithScriptProcessor()
+  }
+
+  isCapturing = true
+  log.info(`Audio capture started (mic: ${!!micStream}, system: ${!!systemStream})`)
+}
+
+function startWithWorklet(): void {
+  if (!audioContext) return
+
   workletNode = new AudioWorkletNode(audioContext, 'audio-processor', {
     processorOptions: { sampleRate: audioContext.sampleRate },
   })
 
-  // Handle messages from worklet
   workletNode.port.onmessage = (event) => {
     const { type, pcm16, audioLevel } = event.data
     if (type === 'audio') {
@@ -86,21 +164,32 @@ export async function startCapture(): Promise<void> {
     }
   }
 
-  // Connect pipeline: mic → worklet
-  sourceNode.connect(workletNode)
-  // Don't connect worklet to destination (we don't want playback)
-
-  isCapturing = true
-  log.info('Audio capture started')
+  // Connect sources: mic and/or system audio → merger → worklet
+  if (micStream && systemStream) {
+    // Both sources: mix them together via ChannelMergerNode
+    micSourceNode = audioContext.createMediaStreamSource(micStream)
+    systemSourceNode = audioContext.createMediaStreamSource(systemStream)
+    // Use a GainNode merger approach: both into a single destination
+    const micGain = audioContext.createGain()
+    const sysGain = audioContext.createGain()
+    micGain.gain.value = 1.0
+    sysGain.gain.value = 0.8 // Slightly lower system audio to balance with mic
+    micSourceNode.connect(micGain)
+    systemSourceNode.connect(sysGain)
+    micGain.connect(workletNode)
+    sysGain.connect(workletNode)
+  } else if (micStream) {
+    micSourceNode = audioContext.createMediaStreamSource(micStream)
+    micSourceNode.connect(workletNode)
+  } else if (systemStream) {
+    systemSourceNode = audioContext.createMediaStreamSource(systemStream)
+    systemSourceNode.connect(workletNode)
+  }
 }
 
-// Fallback for environments where AudioWorklet isn't available
 function startWithScriptProcessor(): void {
-  if (!audioContext || !mediaStream) return
+  if (!audioContext) return
 
-  sourceNode = audioContext.createMediaStreamSource(mediaStream)
-
-  // Use deprecated ScriptProcessorNode as fallback
   const bufferSize = 4096
   const scriptNode = audioContext.createScriptProcessor(bufferSize, 1, 1)
   const inputSampleRate = audioContext.sampleRate
@@ -135,24 +224,46 @@ function startWithScriptProcessor(): void {
     onAudioBuffer?.(pcm16.buffer)
   }
 
-  sourceNode.connect(scriptNode)
-  scriptNode.connect(audioContext.destination) // Required for ScriptProcessor to work
+  // Connect sources
+  if (micStream && systemStream) {
+    micSourceNode = audioContext.createMediaStreamSource(micStream)
+    systemSourceNode = audioContext.createMediaStreamSource(systemStream)
+    const micGain = audioContext.createGain()
+    const sysGain = audioContext.createGain()
+    micGain.gain.value = 1.0
+    sysGain.gain.value = 0.8
+    micSourceNode.connect(micGain)
+    systemSourceNode.connect(sysGain)
+    micGain.connect(scriptNode)
+    sysGain.connect(scriptNode)
+  } else if (micStream) {
+    micSourceNode = audioContext.createMediaStreamSource(micStream)
+    micSourceNode.connect(scriptNode)
+  } else if (systemStream) {
+    systemSourceNode = audioContext.createMediaStreamSource(systemStream)
+    systemSourceNode.connect(scriptNode)
+  }
 
-  isCapturing = true
-  log.info('Audio capture started (ScriptProcessor fallback)')
+  scriptNode.connect(audioContext.destination) // Required for ScriptProcessor to work
 }
 
 export function stopCapture(): void {
   if (!isCapturing) return
 
   workletNode?.disconnect()
-  sourceNode?.disconnect()
-  mediaStream?.getTracks().forEach((track) => track.stop())
+  micSourceNode?.disconnect()
+  systemSourceNode?.disconnect()
+  mergerNode?.disconnect()
+  micStream?.getTracks().forEach((track) => track.stop())
+  systemStream?.getTracks().forEach((track) => track.stop())
   audioContext?.close()
 
   workletNode = null
-  sourceNode = null
-  mediaStream = null
+  micSourceNode = null
+  systemSourceNode = null
+  mergerNode = null
+  micStream = null
+  systemStream = null
   audioContext = null
   isCapturing = false
 

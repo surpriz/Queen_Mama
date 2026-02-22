@@ -1,255 +1,230 @@
 import { useRef, useEffect, useState, useCallback } from 'react'
-import { Copy, Check, Sparkles, MessageSquare, HelpCircle, RotateCcw, Command, ChevronDown } from 'lucide-react'
-import { motion, AnimatePresence } from 'framer-motion'
+import { Copy, Check, Sparkles, ThumbsUp, ThumbsDown, AlertCircle } from 'lucide-react'
 import { useOverlayStore } from '@/stores/overlayStore'
 import { useAppStore } from '@/stores/appStore'
-import { ResponseType } from '@/types/models'
+import { useLicenseStore } from '@/stores/licenseStore'
+import { Feature } from '@/types/auth'
+import { submitFeedback } from '@/services/proxy/proxyApiClient'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
-import { cn } from '@/lib/utils'
-import { AutoResponseBadge } from './AutoResponseBadge'
-import { ScreenshotIndicator } from './ScreenshotIndicator'
-import { ResponseFeedback } from './ResponseFeedback'
 
-const TYPE_CONFIG = {
-  [ResponseType.Assist]: { icon: Sparkles, label: 'Assist', color: 'text-qm-accent' },
-  [ResponseType.WhatToSay]: { icon: MessageSquare, label: 'What to say', color: 'text-qm-info' },
-  [ResponseType.FollowUp]: { icon: HelpCircle, label: 'Follow-up', color: 'text-qm-warning' },
-  [ResponseType.Recap]: { icon: RotateCcw, label: 'Recap', color: 'text-qm-success' },
-  [ResponseType.Custom]: { icon: Sparkles, label: 'Custom', color: 'text-qm-text-secondary' },
+// ── Relative time helper ─────────────────────────────────────────────
+
+function formatRelativeTime(isoTimestamp: string): string {
+  const diff = Date.now() - new Date(isoTimestamp).getTime()
+  const seconds = Math.floor(diff / 1000)
+
+  if (seconds < 5) return 'just now'
+  if (seconds < 60) return `${seconds}s ago`
+
+  const minutes = Math.floor(seconds / 60)
+  if (minutes < 60) return `${minutes}m ago`
+
+  const hours = Math.floor(minutes / 60)
+  if (hours < 24) return `${hours}h ago`
+
+  const days = Math.floor(hours / 24)
+  return `${days}d ago`
 }
 
-interface ResponseItemProps {
-  content: string
-  type?: ResponseType
-  isStreaming?: boolean
-  timestamp?: string
-  isAutomatic?: boolean
-  hasScreenshot?: boolean
-  screenshotTimestamp?: string
-  responseId?: string
-}
+// ── Per-bubble copy button ───────────────────────────────────────────
 
-function ResponseItem({
-  content,
-  type = ResponseType.Assist,
-  isStreaming,
-  timestamp,
-  isAutomatic = false,
-  hasScreenshot = false,
-  screenshotTimestamp,
-  responseId,
-}: ResponseItemProps) {
+function CopyButton({ text }: { text: string }) {
   const [copied, setCopied] = useState(false)
-  const config = TYPE_CONFIG[type] || TYPE_CONFIG[ResponseType.Assist]
-  const Icon = config.icon
 
-  const handleCopy = () => {
-    navigator.clipboard.writeText(content)
+  const handleCopy = useCallback(() => {
+    navigator.clipboard.writeText(text)
     setCopied(true)
     setTimeout(() => setCopied(false), 2000)
-  }
-
-  const formattedTime = timestamp
-    ? new Date(timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-    : new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+  }, [text])
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 8 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.2 }}
-      className={cn(
-        'rounded-qm-md bg-qm-surface-light p-3 mb-3 relative',
-        isAutomatic && 'border-l-[3px] border-l-qm-auto-answer',
-        isStreaming && 'border border-qm-accent/30'
-      )}
+    <button
+      onClick={handleCopy}
+      className="p-1 rounded-qm-sm bg-qm-surface-medium hover:bg-qm-surface-hover text-qm-text-tertiary transition-colors"
+      title="Copy to clipboard"
     >
-      {/* Screenshot indicator - positioned above content */}
-      {hasScreenshot && screenshotTimestamp && (
-        <div className="mb-2">
-          <ScreenshotIndicator timestamp={screenshotTimestamp} />
-        </div>
-      )}
-
-      {/* Header row - Type label, icons, timestamp */}
-      <div className="flex items-center justify-between mb-2">
-        {/* Left - Auto badge OR Type label */}
-        <div className="flex items-center gap-2">
-          {isAutomatic ? (
-            <AutoResponseBadge />
-          ) : (
-            <div className={cn('flex items-center gap-1.5 text-[12px] font-medium', config.color)}>
-              <Icon size={14} />
-              {config.label}
-            </div>
-          )}
-        </div>
-
-        {/* Right - Keyboard icon, Copy, Timestamp */}
-        <div className="flex items-center gap-2 text-qm-text-disabled">
-          <Command size={12} />
-          <button
-            onClick={handleCopy}
-            className="hover:text-qm-text-secondary transition-colors"
-            title="Copy to clipboard"
-          >
-            {copied ? <Check size={12} className="text-qm-success" /> : <Copy size={12} />}
-          </button>
-          <span className="text-[11px] tabular-nums">{formattedTime}</span>
-        </div>
-      </div>
-
-      {/* Content */}
-      <div className="prose prose-invert prose-sm max-w-none text-body-sm leading-relaxed">
-        <ReactMarkdown remarkPlugins={[remarkGfm]}>{content}</ReactMarkdown>
-        {/* Streaming indicator */}
-        {isStreaming && (
-          <span className="inline-flex items-center ml-1">
-            <span className="w-1.5 h-4 bg-qm-accent rounded-sm animate-pulse" />
-          </span>
-        )}
-      </div>
-
-      {/* Feedback buttons - only shown when not streaming and for Enterprise */}
-      {!isStreaming && content && responseId && (
-        <div className="flex justify-end mt-2 pt-2 border-t border-qm-border-subtle/50">
-          <ResponseFeedback responseId={responseId} />
-        </div>
-      )}
-    </motion.div>
+      {copied ? <Check size={12} className="text-qm-success" /> : <Copy size={12} />}
+    </button>
   )
 }
+
+// ── Per-bubble feedback buttons ─────────────────────────────────────
+
+function FeedbackButtons({ responseId, sessionId }: { responseId: string; sessionId: string }) {
+  const [feedback, setFeedback] = useState<'positive' | 'negative' | null>(null)
+  const canUseKB = useLicenseStore((s) => s.canUse)(Feature.KnowledgeBase).type === 'allowed'
+
+  if (!canUseKB) return null
+
+  const handleFeedback = useCallback(async (isHelpful: boolean) => {
+    const rating = isHelpful ? 'positive' : 'negative'
+    setFeedback(rating)
+    try {
+      await submitFeedback(responseId, sessionId, isHelpful)
+    } catch {
+      // Silently fail - feedback is not critical
+    }
+  }, [responseId, sessionId])
+
+  return (
+    <>
+      <button
+        onClick={() => handleFeedback(true)}
+        disabled={feedback !== null}
+        className={`p-1 rounded-qm-sm transition-colors ${
+          feedback === 'positive'
+            ? 'bg-qm-success/20 text-qm-success'
+            : 'bg-qm-surface-medium hover:bg-qm-surface-hover text-qm-text-tertiary'
+        } ${feedback !== null ? 'opacity-60 cursor-default' : ''}`}
+        title="Helpful"
+      >
+        <ThumbsUp size={12} />
+      </button>
+      <button
+        onClick={() => handleFeedback(false)}
+        disabled={feedback !== null}
+        className={`p-1 rounded-qm-sm transition-colors ${
+          feedback === 'negative'
+            ? 'bg-red-500/20 text-red-400'
+            : 'bg-qm-surface-medium hover:bg-qm-surface-hover text-qm-text-tertiary'
+        } ${feedback !== null ? 'opacity-60 cursor-default' : ''}`}
+        title="Not helpful"
+      >
+        <ThumbsDown size={12} />
+      </button>
+    </>
+  )
+}
+
+// ── Main component ───────────────────────────────────────────────────
 
 export function ResponseDisplay() {
   const streamingContent = useOverlayStore((s) => s.streamingContent)
   const responseHistory = useOverlayStore((s) => s.responseHistory)
-  const selectedTab = useOverlayStore((s) => s.selectedTab)
+  const isAutoAnswer = useOverlayStore((s) => s.isAutoAnswer)
   const isProcessing = useAppStore((s) => s.isProcessing)
+  const errorMessage = useAppStore((s) => s.errorMessage)
   const scrollRef = useRef<HTMLDivElement>(null)
 
-  // Smart scroll state - disable auto-scroll when user scrolls up
-  const [isUserScrolling, setIsUserScrolling] = useState(false)
-  const [showScrollButton, setShowScrollButton] = useState(false)
-
-  // Detect user scroll
-  const handleScroll = useCallback(() => {
-    if (!scrollRef.current) return
-
-    const { scrollTop, scrollHeight, clientHeight } = scrollRef.current
-    const isAtBottom = scrollHeight - scrollTop - clientHeight < 20
-
-    if (!isAtBottom && !isUserScrolling) {
-      setIsUserScrolling(true)
-      setShowScrollButton(true)
-    } else if (isAtBottom && isUserScrolling) {
-      setIsUserScrolling(false)
-      setShowScrollButton(false)
+  // Auto-clear error messages after 4 seconds
+  useEffect(() => {
+    if (errorMessage) {
+      const timer = setTimeout(() => {
+        useAppStore.getState().setErrorMessage(null)
+      }, 4000)
+      return () => clearTimeout(timer)
     }
-  }, [isUserScrolling])
+  }, [errorMessage])
 
-  // Scroll to bottom function
-  const scrollToBottom = useCallback(() => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollTo({
-        top: scrollRef.current.scrollHeight,
-        behavior: 'smooth',
-      })
-      setIsUserScrolling(false)
-      setShowScrollButton(false)
-    }
+  // Force re-render every 30s so relative timestamps stay fresh
+  const [, setTick] = useState(0)
+  useEffect(() => {
+    const interval = setInterval(() => setTick((t) => t + 1), 30_000)
+    return () => clearInterval(interval)
   }, [])
 
-  // Auto-scroll only when not user scrolling
+  // Auto-scroll on new content
   useEffect(() => {
-    if (!isUserScrolling && scrollRef.current) {
+    if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight
     }
-  }, [streamingContent, isUserScrolling])
-
-  // Reset user scrolling when new response starts
-  useEffect(() => {
-    if (isProcessing) {
-      setIsUserScrolling(false)
-      setShowScrollButton(false)
-    }
-  }, [isProcessing])
+  }, [streamingContent, responseHistory.length])
 
   const hasContent = streamingContent || responseHistory.length > 0
 
   return (
-    <div className="flex-1 relative overflow-hidden min-h-0">
-      <div ref={scrollRef} onScroll={handleScroll} className="h-full overflow-y-auto p-3">
-        <AnimatePresence mode="popLayout">
-          {hasContent ? (
-            <>
-              {/* Show streaming content if available */}
-              {streamingContent && (
-                <ResponseItem
-                  key="streaming"
-                  content={streamingContent}
-                  type={selectedTab}
-                  isStreaming={isProcessing}
-                />
-              )}
+    <div className="flex-1 relative overflow-hidden">
+      {/* Error toast */}
+      {errorMessage && (
+        <div className="absolute top-2 left-2 right-2 z-10 flex items-center gap-2 px-3 py-2 rounded-qm-md bg-red-500/15 border border-red-500/30 text-red-300 text-caption animate-in fade-in slide-in-from-top-1 duration-200">
+          <AlertCircle size={14} className="flex-shrink-0" />
+          <span className="truncate">{errorMessage}</span>
+        </div>
+      )}
+      <div ref={scrollRef} className="h-full overflow-y-auto p-3 space-y-3">
+        {hasContent ? (
+          <>
+            {/* History bubbles (newest first in store, render oldest first) */}
+            {[...responseHistory].reverse().map((entry, idx) => (
+              <div
+                key={`${entry.timestamp}-${idx}`}
+                className="relative rounded-qm-md bg-qm-surface-medium/40 p-3"
+              >
+                {/* Top-right actions */}
+                <div className="absolute top-2 right-2 flex items-center gap-1.5">
+                  {isAutoAnswer && (
+                    <span className="text-[10px] font-medium leading-none px-1.5 py-0.5 rounded bg-qm-accent/20 text-qm-accent select-none">
+                      AUTO
+                    </span>
+                  )}
+                  <FeedbackButtons responseId={entry.timestamp} sessionId="" />
+                  <CopyButton text={entry.content} />
+                </div>
 
-              {/* Show response history when no streaming */}
-              {!streamingContent &&
-                responseHistory.slice(0, 5).map((response, index) => (
-                  <ResponseItem
-                    key={`${response.timestamp}-${index}`}
-                    content={response.content}
-                    type={response.type}
-                    timestamp={response.timestamp}
-                  />
-                ))}
-            </>
-          ) : (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="flex flex-col items-center justify-center h-full text-center py-8"
-            >
-              {isProcessing ? (
-                <div className="flex items-center gap-2">
-                  <span className="relative flex h-2 w-2">
-                    <span className="absolute inline-flex h-full w-full rounded-full bg-qm-accent animate-ping opacity-75" />
-                    <span className="relative inline-flex h-2 w-2 rounded-full bg-qm-accent" />
+                {/* Markdown body */}
+                <div className="prose prose-invert prose-sm max-w-none text-body-sm leading-relaxed pr-16">
+                  <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                    {entry.content}
+                  </ReactMarkdown>
+                </div>
+
+                {/* Timestamp */}
+                <div className="mt-1.5 text-right">
+                  <span className="text-[10px] text-qm-text-tertiary/60 select-none">
+                    {formatRelativeTime(entry.timestamp)}
                   </span>
-                  <span className="text-body-sm text-qm-text-secondary">Generating response...</span>
                 </div>
-              ) : (
-                <div className="space-y-2">
-                  <p className="text-body-sm text-qm-text-tertiary">
-                    Press <kbd className="px-1.5 py-0.5 rounded bg-qm-surface-medium text-qm-text-secondary text-[10px] font-mono">Ctrl+Enter</kbd> for AI assistance
-                  </p>
-                  <p className="text-caption-sm text-qm-text-disabled">
-                    Or enable Auto-Answer for automatic responses
-                  </p>
-                </div>
-              )}
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </div>
+              </div>
+            ))}
 
-      {/* Scroll to bottom button - appears when user scrolls up */}
-      <AnimatePresence>
-        {showScrollButton && (
-          <motion.button
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.9 }}
-            transition={{ duration: 0.15 }}
-            onClick={scrollToBottom}
-            className="absolute bottom-3 right-3 w-8 h-8 rounded-full bg-qm-accent shadow-qm-lg flex items-center justify-center hover:bg-qm-accent-light transition-colors"
-            title="Scroll to bottom"
-          >
-            <ChevronDown size={16} className="text-white" />
-          </motion.button>
+            {/* Live streaming content (not yet in history) */}
+            {streamingContent && (
+              <div className="relative rounded-qm-md bg-qm-surface-medium/40 p-3">
+                {/* Top-right actions */}
+                <div className="absolute top-2 right-2 flex items-center gap-1.5">
+                  {isAutoAnswer && (
+                    <span className="text-[10px] font-medium leading-none px-1.5 py-0.5 rounded bg-qm-accent/20 text-qm-accent select-none">
+                      AUTO
+                    </span>
+                  )}
+                  {!isProcessing && <CopyButton text={streamingContent} />}
+                </div>
+
+                <div className="prose prose-invert prose-sm max-w-none text-body-sm leading-relaxed pr-16">
+                  <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                    {streamingContent}
+                  </ReactMarkdown>
+                  {isProcessing && (
+                    <span className="inline-block w-1.5 h-4 bg-qm-accent animate-pulse ml-0.5" />
+                  )}
+                </div>
+
+                {/* Timestamp placeholder for live content */}
+                <div className="mt-1.5 text-right">
+                  <span className="text-[10px] text-qm-text-tertiary/60 select-none">
+                    {isProcessing ? 'streaming...' : 'just now'}
+                  </span>
+                </div>
+              </div>
+            )}
+          </>
+        ) : (
+          <div className="flex flex-col items-center justify-center h-full gap-2">
+            {isProcessing ? (
+              <span className="text-qm-text-tertiary text-body-sm">Generating...</span>
+            ) : (
+              <>
+                <Sparkles size={24} className="text-qm-accent" />
+                <span className="text-qm-text-secondary text-body-sm">Ready to assist</span>
+                <div className="flex items-center gap-1 text-qm-text-tertiary text-caption">
+                  <span>Type a question or click a tab</span>
+                </div>
+              </>
+            )}
+          </div>
         )}
-      </AnimatePresence>
+      </div>
     </div>
   )
 }

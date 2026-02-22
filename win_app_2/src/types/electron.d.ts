@@ -1,7 +1,7 @@
 export interface DeviceInfo {
   deviceId: string
   deviceName: string
-  platform: string
+  platform: 'windows' | 'macos' | 'linux' | string
   osVersion: string
   appVersion: string
 }
@@ -37,6 +37,7 @@ export interface DatabaseAPI {
     whereParams?: unknown[]
   ) => Promise<QueryResult>
   delete: (table: string, where: string, whereParams?: unknown[]) => Promise<QueryResult>
+  walCheckpoint: () => Promise<{ success: boolean }>
 }
 
 export type OverlayPosition =
@@ -60,6 +61,8 @@ export interface OverlayAPI {
   hide: () => void
   setExpanded: (expanded: boolean) => void
   setPosition: (position: OverlayPosition) => void
+  setSize: (width: number, height: number) => void
+  getBounds: () => Promise<{ x: number; y: number; width: number; height: number } | null>
 }
 
 export interface DeviceAPI {
@@ -76,6 +79,20 @@ export interface AuthAPI {
   onProtocolCallback: (callback: (url: string) => void) => () => void
   startOAuthServer: () => Promise<{ success: boolean; port?: number; error?: string }>
   stopOAuthServer: () => Promise<{ success: boolean }>
+}
+
+export interface DialogAPI {
+  openFile: () => Promise<{ canceled: boolean; filePaths: string[] }>
+  showSaveDialog: (options: {
+    title?: string
+    defaultPath?: string
+    filters?: Array<{ name: string; extensions: string[] }>
+  }) => Promise<{ canceled: boolean; filePath?: string }>
+}
+
+export interface FileAPI {
+  readText: (filePath: string) => Promise<string | null>
+  writeFile: (filePath: string, content: string) => Promise<void>
 }
 
 export interface ElectronAPI {
@@ -100,6 +117,11 @@ export interface ElectronAPI {
   overlayHide: () => void
   overlaySetExpanded: (expanded: boolean) => void
   overlaySetPosition: (position: OverlayPosition) => void
+
+  // Dialog / File
+  dialog: DialogAPI
+  file: FileAPI
+  fs: FileAPI
 
   // Auth / OAuth
   auth: AuthAPI
@@ -132,6 +154,19 @@ export interface ElectronAPI {
 
   // Updater
   checkForUpdates: () => Promise<void>
+
+  // Cross-window relay
+  relay: {
+    toOverlay: (channel: string, data: unknown) => void
+    toMain: (channel: string, data: unknown) => void
+    broadcast: (channel: string, data: unknown) => void
+  }
+
+  // Cross-window sync listeners
+  onTranscriptSync: (callback: (data: { transcript: string; interim: string; audioLevel: number; isSessionActive: boolean; sessionStartedAt: number | null }) => void) => () => void
+  onSessionStateSync: (callback: (data: { isSessionActive: boolean; sessionStartedAt: number | null; isFinalizingSession?: boolean; sessionFinalized?: boolean }) => void) => () => void
+  onAudioLevelSync: (callback: (data: { audioLevel: number }) => void) => () => void
+  onAIResponseSync: (callback: (data: { type: 'streaming' | 'history'; streamingContent?: string; entry?: { type: string; content: string; timestamp: string } }) => void) => () => void
 
   // Event listeners
   onSessionToggle: (callback: () => void) => () => void

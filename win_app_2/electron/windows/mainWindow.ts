@@ -1,4 +1,4 @@
-import { BrowserWindow, shell } from 'electron'
+import { BrowserWindow, shell, app } from 'electron'
 import { join } from 'path'
 
 let mainWindow: BrowserWindow | null = null
@@ -27,6 +27,12 @@ export function createMainWindow(): BrowserWindow {
 
   mainWindow.on('ready-to-show', () => {
     mainWindow?.show()
+  })
+
+  // Quit app when main window is closed
+  mainWindow.on('closed', () => {
+    mainWindow = null
+    app.quit()
   })
 
   // Error handlers for debugging
@@ -68,5 +74,8 @@ export function createMainWindow(): BrowserWindow {
 }
 
 export function getMainWindow(): BrowserWindow | null {
+  if (mainWindow && mainWindow.isDestroyed()) {
+    mainWindow = null
+  }
   return mainWindow
 }

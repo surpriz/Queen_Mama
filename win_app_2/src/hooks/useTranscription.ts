@@ -1,5 +1,5 @@
 import { useState, useCallback, useRef } from 'react'
-import { transcriptionService } from '@/services/transcription/transcriptionService'
+import * as transcriptionService from '@/services/transcription/transcriptionService'
 
 interface TranscriptEntry {
   text: string
@@ -19,38 +19,37 @@ export function useTranscription() {
     try {
       setError(null)
 
-      transcriptionService.onTranscript((text, isFinal) => {
-        const entry: TranscriptEntry = {
-          text,
-          isFinal,
-          speaker: 'user',
-          timestamp: new Date(),
-        }
+      transcriptionService.setCallbacks({
+        onTranscript: (text: string) => {
+          const entry: TranscriptEntry = {
+            text,
+            isFinal: true,
+            speaker: 'user',
+            timestamp: new Date(),
+          }
 
-        if (isFinal) {
           setTranscript((prev) => [...prev, entry])
           setFullText((prev) => {
             const separator = prev.length > 0 ? ' ' : ''
             return prev + separator + text
           })
           interimRef.current = ''
-        } else {
+        },
+        onInterimTranscript: (text: string) => {
           interimRef.current = text
-        }
-      })
-
-      transcriptionService.onError((err) => {
-        setError(err)
-        console.error('[useTranscription] Error:', err)
-      })
-
-      transcriptionService.onConnectionChange((connected) => {
-        setIsConnected(connected)
+        },
+        onError: (err: Error) => {
+          setError(err.message)
+          console.error('[useTranscription] Error:', err)
+        },
+        onConnectionChanged: (connected: boolean) => {
+          setIsConnected(connected)
+        },
       })
 
       await transcriptionService.connect()
       setIsConnected(true)
-    } catch (err) {
+    } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Transcription connection failed'
       setError(message)
     }

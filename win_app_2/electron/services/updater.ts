@@ -1,5 +1,6 @@
 import { autoUpdater, type UpdateInfo } from 'electron-updater'
 import { BrowserWindow } from 'electron'
+import { safeSendToWindow } from '../utils/ipcUtils'
 
 let mainWindow: BrowserWindow | null = null
 
@@ -46,9 +47,7 @@ export function initAutoUpdater(window: BrowserWindow) {
 }
 
 function sendStatusToWindow(status: string, data?: unknown) {
-  if (mainWindow && !mainWindow.isDestroyed()) {
-    mainWindow.webContents.send('updater:status', { status, data })
-  }
+  safeSendToWindow(mainWindow, 'updater:status', { status, data })
 }
 
 export function checkForUpdates() {

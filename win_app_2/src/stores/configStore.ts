@@ -9,7 +9,7 @@ interface ConfigStoreState extends AppConfig {
   loadFromStorage: () => Promise<void>
 }
 
-export const useConfigStore = create<ConfigStoreState>((set, get) => ({
+export const useConfigStore = create<ConfigStoreState>((set) => ({
   ...DEFAULT_CONFIG,
 
   updateConfig: (partial) => {
@@ -18,6 +18,10 @@ export const useConfigStore = create<ConfigStoreState>((set, get) => ({
     Object.entries(partial).forEach(([key, value]) => {
       window.electronAPI?.store.set(`config.${key}`, value)
     })
+    // Wire content protection to main process when undetectability changes
+    if ('isUndetectabilityEnabled' in partial) {
+      window.electronAPI?.setDisplayAffinity(!!partial.isUndetectabilityEnabled)
+    }
   },
 
   resetToDefaults: () => {
@@ -37,6 +41,10 @@ export const useConfigStore = create<ConfigStoreState>((set, get) => ({
     }
     if (Object.keys(loaded).length > 0) {
       set(loaded)
+      // Restore content protection state on startup
+      if (loaded.isUndetectabilityEnabled) {
+        window.electronAPI?.setDisplayAffinity(true)
+      }
     }
   },
 }))

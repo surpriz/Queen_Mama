@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { Loader2, Copy, Check, ExternalLink } from 'lucide-react'
 import { useAuthStore } from '@/stores/authStore'
-import { authApiClient } from '@/services/auth/authApiClient'
+import * as authApi from '@/services/auth/authApiClient'
 import { getApiBaseUrl } from '@/services/config/appEnvironment'
 
 interface DeviceCodeAuthProps {
@@ -15,14 +15,14 @@ export function DeviceCodeAuth({ onBack }: DeviceCodeAuthProps) {
   const [copied, setCopied] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [isPolling, setIsPolling] = useState(false)
-  const login = useAuthStore((s) => s.login)
+  const setAuthenticated = useAuthStore((s) => s.setAuthenticated)
 
   const startFlow = useCallback(async () => {
     try {
       setError(null)
       const deviceInfo = await window.electronAPI?.device.getInfo()
 
-      const result = await authApiClient.requestDeviceCode({
+      const result = await authApi.requestDeviceCode({
         deviceId: deviceInfo?.deviceId ?? 'unknown',
         deviceName: deviceInfo?.deviceName ?? 'Windows PC',
         platform: 'windows',
@@ -50,12 +50,13 @@ export function DeviceCodeAuth({ onBack }: DeviceCodeAuthProps) {
 
     const interval = setInterval(async () => {
       try {
-        const result = await authApiClient.pollDeviceCode(deviceCode)
+        const result = await authApi.pollDeviceCode(deviceCode)
 
-        if (result.status === 'authorized' && result.tokens && result.user) {
+        if (result.accessToken && result.user) {
           setIsPolling(false)
-          login(result.user, result.tokens)
-        } else if (result.status === 'expired') {
+          authApi.setAccessToken(result.accessToken, result.expiresIn ?? 3600)
+          setAuthenticated(result.user)
+        } else if (result.error === 'expired') {
           setIsPolling(false)
           setError('Device code expired. Please try again.')
         }
@@ -66,7 +67,7 @@ export function DeviceCodeAuth({ onBack }: DeviceCodeAuthProps) {
     }, 5000)
 
     return () => clearInterval(interval)
-  }, [isPolling, deviceCode, login])
+  }, [isPolling, deviceCode, setAuthenticated])
 
   const handleCopyCode = () => {
     if (userCode) {

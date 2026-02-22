@@ -30,7 +30,7 @@ export interface AuthTokens {
 export interface DeviceInfo {
   deviceId: string
   deviceName: string
-  platform: 'windows'
+  platform: string
   osVersion: string
   appVersion: string
 }

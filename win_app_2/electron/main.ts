@@ -1,4 +1,5 @@
 import { app, BrowserWindow, ipcMain, globalShortcut } from 'electron'
+import { execSync } from 'child_process'
 import {
   createMainWindow,
   getMainWindow,
@@ -18,9 +19,13 @@ import { registerIPCHandlers } from './ipc/handlers'
 import { registerGlobalShortcuts } from './services/globalShortcuts'
 import { IPC_CHANNELS } from './ipc/channels'
 import { initializeDatabase, closeDatabase } from './db/database'
+import { safeSendToAllWindows, safeSendToWindow } from './utils/ipcUtils'
 
-// Google OAuth client ID (same as renderer)
-const GOOGLE_CLIENT_ID = '499912921957-jskmos4jm1cpfgu6h7pmomeqvtltj9jq.apps.googleusercontent.com'
+// Google OAuth client ID - Desktop type for Windows/Electron (supports loopback redirects)
+// This should match the Client ID used in the renderer (googleAuthService.ts)
+const GOOGLE_CLIENT_ID =
+  process.env.VITE_GOOGLE_CLIENT_ID ||
+  '499912921957-791r0pvvs9j3ptem6gcdvf2qhbha381v.apps.googleusercontent.com'
 
 // Custom protocol for OAuth callbacks - uses reversed client ID format
 // e.g., "499912921957-xxx.apps.googleusercontent.com" -> "com.googleusercontent.apps.499912921957-xxx"
@@ -54,19 +59,18 @@ if (process.defaultApp) {
 function handleProtocolUrl(url: string): void {
   console.log('[Main] Protocol URL received:', url)
 
-  // Send to all windows (main and overlay)
-  const windows = BrowserWindow.getAllWindows()
-  for (const win of windows) {
-    if (!win.isDestroyed()) {
-      win.webContents.send(IPC_CHANNELS.AUTH_PROTOCOL_CALLBACK, url)
-    }
-  }
+  // Send to all windows (main and overlay) - using safe send to prevent "Object has been destroyed" error
+  safeSendToAllWindows(IPC_CHANNELS.AUTH_PROTOCOL_CALLBACK, url)
 
   // Focus the main window when auth callback is received
   const mainWindow = getMainWindow()
-  if (mainWindow && !mainWindow.isDestroyed()) {
-    if (mainWindow.isMinimized()) mainWindow.restore()
-    mainWindow.focus()
+  try {
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      if (mainWindow.isMinimized()) mainWindow.restore()
+      mainWindow.focus()
+    }
+  } catch (error) {
+    console.warn('[Main] Could not focus main window:', error)
   }
 }
 
@@ -80,7 +84,7 @@ if (!gotTheLock) {
   app.on('second-instance', (_event, commandLine) => {
     // Focus the existing window
     const mainWindow = getMainWindow()
-    if (mainWindow) {
+    if (mainWindow && !mainWindow.isDestroyed()) {
       if (mainWindow.isMinimized()) mainWindow.restore()
       mainWindow.focus()
     }
@@ -151,7 +155,7 @@ if (!gotTheLock) {
     // Register global keyboard shortcuts
     registerGlobalShortcuts()
 
-    // Auto-updater (delayed start)
+    // Auto-updater
     try {
       initAutoUpdater(mainWindow)
     } catch (error) {
@@ -164,9 +168,9 @@ if (!gotTheLock) {
       }
     })
 
-    // Don't quit when all windows are closed (keep tray)
+    // Quit when all windows are closed
     app.on('window-all-closed', () => {
-      // Keep running in system tray
+      app.quit()
     })
   })
 
@@ -174,5 +178,26 @@ if (!gotTheLock) {
   app.on('will-quit', () => {
     globalShortcut.unregisterAll()
     closeDatabase()
+
+    // In dev mode, kill backend/proxy processes to free all ports
+    if (process.env.NODE_ENV !== 'production' || process.env['ELECTRON_RENDERER_URL']) {
+      const devPorts = [3000, 3001] // backend + WS proxy
+      for (const port of devPorts) {
+        try {
+          const result = execSync(`netstat -ano | findstr :${port}`, { encoding: 'utf-8' })
+          const lines = result.split('\n').filter((l: string) => l.includes('LISTENING'))
+          for (const line of lines) {
+            const parts = line.trim().split(/\s+/)
+            const pid = parts[parts.length - 1]
+            if (pid && pid !== '0') {
+              try {
+                execSync(`taskkill /F /PID ${pid}`, { stdio: 'ignore' })
+                console.log(`[Main] Cleanup: killed process ${pid} on port ${port}`)
+              } catch {}
+            }
+          }
+        } catch {}
+      }
+    }
   })
 }

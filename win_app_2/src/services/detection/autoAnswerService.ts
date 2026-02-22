@@ -84,8 +84,19 @@ function trigger(): void {
   onTrigger?.()
 }
 
+/**
+ * Reset all state (called on session stop)
+ */
 export function reset(): void {
   lastTriggerTime = 0
   lastTranscriptLength = 0
   silenceStartTime = 0
+}
+
+/**
+ * Record that a manual AI request was just made (e.g. Ctrl+Enter).
+ * This resets the cooldown timer so auto-answer won't fire right after.
+ */
+export function recordManualTrigger(): void {
+  lastTriggerTime = Date.now()
 }

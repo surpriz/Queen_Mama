@@ -1,12 +1,20 @@
-import type { AIProviderType } from '@/types/models'
+import { AIProviderType } from '@/types/models'
 import type { ProxyConfig } from '@/types/api'
 
 // Maps internal provider types to backend proxy names
 const PROVIDER_BACKEND_MAP: Record<AIProviderType, string> = {
-  openai: 'openai',
-  anthropic: 'anthropic',
-  gemini: 'gemini',
-  grok: 'grok',
+  [AIProviderType.OpenAI]: 'openai',
+  [AIProviderType.Anthropic]: 'anthropic',
+  [AIProviderType.Gemini]: 'gemini',
+  [AIProviderType.Grok]: 'grok',
+}
+
+// Maps backend names back to AIProviderType
+const BACKEND_TO_PROVIDER: Record<string, AIProviderType> = {
+  openai: AIProviderType.OpenAI,
+  anthropic: AIProviderType.Anthropic,
+  gemini: AIProviderType.Gemini,
+  grok: AIProviderType.Grok,
 }
 
 export function getBackendProviderName(provider: AIProviderType): string {
@@ -16,14 +24,14 @@ export function getBackendProviderName(provider: AIProviderType): string {
 export function getAvailableProviders(config: ProxyConfig): AIProviderType[] {
   const available: AIProviderType[] = []
 
-  if (config.providers?.openai?.enabled) available.push('openai')
-  if (config.providers?.anthropic?.enabled) available.push('anthropic')
-  if (config.providers?.gemini?.enabled) available.push('gemini')
-  if (config.providers?.grok?.enabled) available.push('grok')
+  for (const name of config.aiProviders) {
+    const provider = BACKEND_TO_PROVIDER[name.toLowerCase()]
+    if (provider) available.push(provider)
+  }
 
   // Default fallback order if no config
   if (available.length === 0) {
-    return ['openai', 'anthropic', 'gemini']
+    return [AIProviderType.OpenAI, AIProviderType.Anthropic, AIProviderType.Gemini]
   }
 
   return available
@@ -31,13 +39,13 @@ export function getAvailableProviders(config: ProxyConfig): AIProviderType[] {
 
 export function getDefaultModel(provider: AIProviderType): string {
   switch (provider) {
-    case 'openai':
+    case AIProviderType.OpenAI:
       return 'gpt-4o'
-    case 'anthropic':
+    case AIProviderType.Anthropic:
       return 'claude-sonnet-4-20250514'
-    case 'gemini':
+    case AIProviderType.Gemini:
       return 'gemini-2.0-flash'
-    case 'grok':
+    case AIProviderType.Grok:
       return 'grok-2'
     default:
       return 'gpt-4o'

@@ -2,28 +2,54 @@ import { createLogger } from '@/lib/logger'
 import { useAppStore } from '@/stores/appStore'
 import { useOverlayStore } from '@/stores/overlayStore'
 import { useLicenseStore } from '@/stores/licenseStore'
+import { useConfigStore } from '@/stores/configStore'
 import * as proxyApi from '../proxy/proxyApiClient'
 import { buildSystemPrompt, buildUserMessage, buildTitlePrompt, buildSummaryPrompt } from './aiContext'
+import { getCachedResponse, setCachedResponse, clearCache } from './responseCache'
+import { recordUsage, estimateTokens } from './tokenUsageTracker'
+import { screenCaptureService } from '../screenCapture/screenCaptureService'
 import type { AIContextParams } from './aiContext'
+import { Feature } from '@/types/auth'
 import type { ResponseType, Mode } from '@/types/models'
 import type { AIMessage } from '@/types/api'
 
 const log = createLogger('AIService')
 
 let isProcessing = false
+let lastResponseTime = 0
 const UI_BATCH_INTERVAL = 50 // ms
+const MIN_RESPONSE_COOLDOWN = 2000 // 2 seconds between auto-responses
 
-export async function generateStreamingResponse(params: AIContextParams): Promise<string> {
+export interface StreamingOptions {
+  manualTrigger?: boolean // Skip cooldown for user-typed questions
+}
+
+export async function generateStreamingResponse(params: AIContextParams, options?: StreamingOptions): Promise<string> {
   if (isProcessing) {
-    log.warn('Already processing')
+    log.warn('Already processing, skipping duplicate')
+    useAppStore.getState().setErrorMessage('Already processing a request...')
     return ''
+  }
+
+  // Prevent duplicate responses within cooldown window (skip for manual triggers)
+  if (!options?.manualTrigger) {
+    const timeSinceLastResponse = Date.now() - lastResponseTime
+    if (timeSinceLastResponse < MIN_RESPONSE_COOLDOWN) {
+      log.warn(`Response cooldown active (${Math.round(timeSinceLastResponse / 1000)}s/${MIN_RESPONSE_COOLDOWN / 1000}s), skipping`)
+      return ''
+    }
   }
 
   // License check
   const licenseStore = useLicenseStore.getState()
-  const access = licenseStore.canUse('aiRequest')
+  const access = licenseStore.canUse(Feature.AiRequest)
   if (access.type !== 'allowed') {
     log.warn('AI request not allowed', access)
+    if (access.type === 'limitReached') {
+      useAppStore.getState().setErrorMessage('Daily AI request limit reached')
+    } else {
+      useAppStore.getState().setErrorMessage('AI request not available on your plan')
+    }
     return ''
   }
 
@@ -31,6 +57,28 @@ export async function generateStreamingResponse(params: AIContextParams): Promis
   useAppStore.getState().setProcessing(true)
   const overlayStore = useOverlayStore.getState()
   overlayStore.setStreamingContent('')
+
+  // Check cache first
+  const cached = await getCachedResponse(
+    params.transcript,
+    params.mode?.id ?? null,
+    params.responseType,
+  )
+  if (cached) {
+    overlayStore.addToHistory(params.responseType, cached)
+    overlayStore.setStreamingContent('')
+    // Broadcast cached response to all windows
+    window.electronAPI?.relay?.broadcast('relay:ai-response', {
+      type: 'history',
+      streamingContent: '',
+      entry: { type: params.responseType, content: cached, timestamp: new Date().toISOString() },
+    })
+    lastResponseTime = Date.now()
+    isProcessing = false
+    useAppStore.getState().setProcessing(false)
+    log.info(`Served from cache (${cached.length} chars)`)
+    return cached
+  }
 
   const systemPrompt = buildSystemPrompt(params)
   const userMessages = buildUserMessage(params)
@@ -47,6 +95,11 @@ export async function generateStreamingResponse(params: AIContextParams): Promis
   const flushBatch = () => {
     if (batchedContent) {
       overlayStore.setStreamingContent(batchedContent)
+      // Broadcast streaming content to all windows
+      window.electronAPI?.relay?.broadcast('relay:ai-response', {
+        type: 'streaming',
+        streamingContent: batchedContent,
+      })
     }
     batchTimer = null
   }
@@ -76,12 +129,36 @@ export async function generateStreamingResponse(params: AIContextParams): Promis
     }
     overlayStore.setStreamingContent(fullContent)
 
-    // Record to history
+    // Record to history and clear streaming content (so it doesn't show twice)
     overlayStore.addToHistory(params.responseType, fullContent)
+    overlayStore.setStreamingContent('')
+
+    // Broadcast completed response to all windows
+    const timestamp = new Date().toISOString()
+    window.electronAPI?.relay?.broadcast('relay:ai-response', {
+      type: 'history',
+      streamingContent: '',
+      entry: { type: params.responseType, content: fullContent, timestamp },
+    })
+
+    // Cache the response
+    await setCachedResponse(
+      params.transcript,
+      params.mode?.id ?? null,
+      params.responseType,
+      fullContent,
+    )
 
     // Record usage
     licenseStore.recordAiRequestUsage()
 
+    // Estimate token usage from character counts (1 token ≈ 4 chars)
+    const inputText = messages.map((m) => m.content).join('')
+    const estInputTokens = estimateTokens(inputText)
+    const estOutputTokens = estimateTokens(fullContent)
+    recordUsage(estInputTokens, estOutputTokens)
+
+    lastResponseTime = Date.now()
     log.info(`Response generated (${fullContent.length} chars)`)
   } catch (error) {
     log.error('Streaming error', error)
@@ -96,39 +173,59 @@ export async function generateStreamingResponse(params: AIContextParams): Promis
   return fullContent
 }
 
+// Auto-fetch screenshot if screen capture is enabled
+async function getScreenshotIfEnabled(): Promise<string | undefined> {
+  try {
+    if (useConfigStore.getState().autoScreenCapture) {
+      const screenshot = await screenCaptureService.getCachedOrCapture()
+      return screenshot ?? undefined
+    }
+  } catch (err) {
+    log.warn('Failed to fetch screenshot for AI context', err)
+  }
+  return undefined
+}
+
 // Convenience methods matching macOS API
 export async function assist(
   transcript: string,
   mode: Mode | null,
   screenshot?: string,
 ): Promise<string> {
+  const finalScreenshot = screenshot ?? await getScreenshotIfEnabled()
   return generateStreamingResponse({
     transcript,
-    screenshot,
+    screenshot: finalScreenshot,
     mode,
     responseType: 'Assist' as ResponseType,
   })
 }
 
 export async function whatToSay(transcript: string, mode: Mode | null): Promise<string> {
+  const screenshot = await getScreenshotIfEnabled()
   return generateStreamingResponse({
     transcript,
+    screenshot,
     mode,
     responseType: 'What should I say?' as ResponseType,
   })
 }
 
 export async function followUp(transcript: string, mode: Mode | null): Promise<string> {
+  const screenshot = await getScreenshotIfEnabled()
   return generateStreamingResponse({
     transcript,
+    screenshot,
     mode,
-    responseType: 'Follow-up questions' as ResponseType,
+    responseType: 'Follow-up' as ResponseType,
   })
 }
 
 export async function recap(transcript: string, mode: Mode | null): Promise<string> {
+  const screenshot = await getScreenshotIfEnabled()
   return generateStreamingResponse({
     transcript,
+    screenshot,
     mode,
     responseType: 'Recap' as ResponseType,
   })
@@ -139,12 +236,14 @@ export async function askCustomQuestion(
   question: string,
   mode: Mode | null,
 ): Promise<string> {
+  const screenshot = await getScreenshotIfEnabled()
   return generateStreamingResponse({
     transcript,
+    screenshot,
     mode,
     responseType: 'Custom' as ResponseType,
     customPrompt: question,
-  })
+  }, { manualTrigger: true })
 }
 
 // Title generation (non-streaming)
@@ -183,6 +282,7 @@ export async function generateSessionSummary(transcript: string): Promise<string
 
 export function clearHistory(): void {
   useOverlayStore.getState().clearHistory()
+  clearCache()
 }
 
 export function getIsProcessing(): boolean {

@@ -9,7 +9,6 @@ import {
   Sliders,
   ChevronLeft,
   ChevronRight,
-  Keyboard,
   Monitor,
   Mic,
   User,
@@ -220,7 +219,7 @@ function AIHelpTourContent() {
       <AIFeatureCard
         icon={<MessageCircle className="w-5 h-5" />}
         title="Follow-up"
-        description="Smart follow-up questions to keep the conversation going"
+        description="Get smart follow-up questions to deepen the conversation"
         example="Suggests relevant questions based on context"
         color="from-orange-500 to-yellow-500"
       />

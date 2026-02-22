@@ -29,6 +29,9 @@ const electronAPI = {
       ipcRenderer.send(IPC_CHANNELS.OVERLAY_SET_EXPANDED, expanded),
     setPosition: (position: OverlayPosition) =>
       ipcRenderer.send(IPC_CHANNELS.OVERLAY_SET_POSITION, position),
+    setSize: (width: number, height: number) =>
+      ipcRenderer.send(IPC_CHANNELS.OVERLAY_SET_SIZE, width, height),
+    getBounds: () => ipcRenderer.invoke(IPC_CHANNELS.OVERLAY_GET_BOUNDS),
   },
   // Overlay (flat - backward compat)
   overlayToggle: () => ipcRenderer.send(IPC_CHANNELS.OVERLAY_TOGGLE),
@@ -79,6 +82,20 @@ const electronAPI = {
 
   // Updater
   checkForUpdates: () => ipcRenderer.invoke(IPC_CHANNELS.UPDATER_CHECK),
+  onUpdaterStatus: (callback: (payload: { status: string; data?: unknown }) => void) => {
+    const handler = (_event: Electron.IpcRendererEvent, payload: { status: string; data?: unknown }) =>
+      callback(payload)
+    ipcRenderer.on(IPC_CHANNELS.UPDATER_STATUS, handler)
+    return () => ipcRenderer.removeListener(IPC_CHANNELS.UPDATER_STATUS, handler)
+  },
+
+  // File operations
+  dialog: {
+    openFile: () => ipcRenderer.invoke(IPC_CHANNELS.DIALOG_OPEN_FILE),
+  },
+  file: {
+    readText: (filePath: string) => ipcRenderer.invoke(IPC_CHANNELS.FILE_READ_TEXT, filePath),
+  },
 
   // Database operations
   db: {
@@ -94,6 +111,7 @@ const electronAPI = {
       ipcRenderer.invoke(IPC_CHANNELS.DB_UPDATE, table, data, where, whereParams),
     delete: (table: string, where: string, whereParams?: unknown[]) =>
       ipcRenderer.invoke(IPC_CHANNELS.DB_DELETE, table, where, whereParams),
+    walCheckpoint: () => ipcRenderer.invoke(IPC_CHANNELS.DB_WAL_CHECKPOINT),
   },
 
   // Auth / OAuth
@@ -105,6 +123,41 @@ const electronAPI = {
     },
     startOAuthServer: () => ipcRenderer.invoke(IPC_CHANNELS.AUTH_START_OAUTH_SERVER),
     stopOAuthServer: () => ipcRenderer.invoke(IPC_CHANNELS.AUTH_STOP_OAUTH_SERVER),
+  },
+
+  // Cross-window relay
+  relay: {
+    toOverlay: (channel: string, data: unknown) =>
+      ipcRenderer.send(IPC_CHANNELS.RELAY_TO_OVERLAY, channel, data),
+    toMain: (channel: string, data: unknown) =>
+      ipcRenderer.send(IPC_CHANNELS.RELAY_TO_MAIN, channel, data),
+    broadcast: (channel: string, data: unknown) => {
+      // Send to both overlay and main windows
+      ipcRenderer.send(IPC_CHANNELS.RELAY_TO_OVERLAY, channel, data)
+      ipcRenderer.send(IPC_CHANNELS.RELAY_TO_MAIN, channel, data)
+    },
+  },
+
+  // Cross-window event listeners
+  onTranscriptSync: (callback: (data: { transcript: string; interim: string; audioLevel: number; isSessionActive: boolean; sessionStartedAt: number | null }) => void) => {
+    const handler = (_event: Electron.IpcRendererEvent, data: { transcript: string; interim: string; audioLevel: number; isSessionActive: boolean; sessionStartedAt: number | null }) => callback(data)
+    ipcRenderer.on(IPC_CHANNELS.RELAY_TRANSCRIPT, handler)
+    return () => ipcRenderer.removeListener(IPC_CHANNELS.RELAY_TRANSCRIPT, handler)
+  },
+  onSessionStateSync: (callback: (data: { isSessionActive: boolean; sessionStartedAt: number | null }) => void) => {
+    const handler = (_event: Electron.IpcRendererEvent, data: { isSessionActive: boolean; sessionStartedAt: number | null }) => callback(data)
+    ipcRenderer.on(IPC_CHANNELS.RELAY_SESSION_STATE, handler)
+    return () => ipcRenderer.removeListener(IPC_CHANNELS.RELAY_SESSION_STATE, handler)
+  },
+  onAudioLevelSync: (callback: (data: { audioLevel: number }) => void) => {
+    const handler = (_event: Electron.IpcRendererEvent, data: { audioLevel: number }) => callback(data)
+    ipcRenderer.on(IPC_CHANNELS.RELAY_AUDIO_LEVEL, handler)
+    return () => ipcRenderer.removeListener(IPC_CHANNELS.RELAY_AUDIO_LEVEL, handler)
+  },
+  onAIResponseSync: (callback: (data: { type: 'streaming' | 'history'; streamingContent?: string; entry?: { type: string; content: string; timestamp: string } }) => void) => {
+    const handler = (_event: Electron.IpcRendererEvent, data: { type: 'streaming' | 'history'; streamingContent?: string; entry?: { type: string; content: string; timestamp: string } }) => callback(data)
+    ipcRenderer.on(IPC_CHANNELS.RELAY_AI_RESPONSE, handler)
+    return () => ipcRenderer.removeListener(IPC_CHANNELS.RELAY_AI_RESPONSE, handler)
   },
 
   // Event listeners (main → renderer)

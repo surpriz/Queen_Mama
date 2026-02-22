@@ -41,11 +41,11 @@ export const DEFAULT_CONFIG: AppConfig = {
   isUndetectabilityEnabled: false,
   captureSystemAudio: true,
   captureMicrophone: true,
-  autoScreenCapture: true,
+  autoScreenCapture: false,
   screenCaptureIntervalSeconds: 5.0,
   smartModeEnabled: false,
   selectedAIProvider: 'OpenAI' as AIProviderType,
-  primaryLanguage: 'en',
+  primaryLanguage: 'fr',
 
   autoAnswerEnabled: false,
   autoAnswerSilenceThreshold: 2.5,
@@ -81,13 +81,13 @@ export const ENVIRONMENTS: Record<string, AppEnvironment> = {
   },
   staging: {
     name: 'staging',
-    apiBaseUrl: 'https://staging.queenmama.co',
-    webBaseUrl: 'https://staging.queenmama.co',
+    apiBaseUrl: 'https://staging.queenmama.ai',
+    webBaseUrl: 'https://staging.queenmama.ai',
   },
   production: {
     name: 'production',
-    apiBaseUrl: 'https://queenmama.co',
-    webBaseUrl: 'https://queenmama.co',
+    apiBaseUrl: 'https://queenmama.ai',
+    webBaseUrl: 'https://queenmama.ai',
   },
 }
 

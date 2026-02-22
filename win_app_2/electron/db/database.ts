@@ -16,6 +16,8 @@ export function initializeDatabase(): Database.Database {
 
   // Enable WAL mode for better concurrent access
   db.pragma('journal_mode = WAL')
+  // Enable foreign keys so ON DELETE CASCADE works
+  db.pragma('foreign_keys = ON')
 
   // Create tables
   db.exec(`
@@ -63,6 +65,24 @@ export function initializeDatabase(): Database.Database {
       created_at TEXT NOT NULL,
       attached_files TEXT NOT NULL DEFAULT '[]'
     );
+
+    CREATE TABLE IF NOT EXISTS contacts (
+      id TEXT PRIMARY KEY,
+      name TEXT NOT NULL,
+      role TEXT,
+      company TEXT,
+      notes TEXT NOT NULL DEFAULT '',
+      last_seen TEXT,
+      session_count INTEGER NOT NULL DEFAULT 0,
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS session_contacts (
+      session_id TEXT NOT NULL REFERENCES sessions(id) ON DELETE CASCADE,
+      contact_id TEXT NOT NULL REFERENCES contacts(id) ON DELETE CASCADE,
+      PRIMARY KEY (session_id, contact_id)
+    );
   `)
 
   console.log('[Database] Tables created')
@@ -76,8 +96,20 @@ export function getDatabase(): Database.Database {
   return db
 }
 
+export function walCheckpoint(): void {
+  if (db) {
+    try {
+      db.pragma('wal_checkpoint(TRUNCATE)')
+      console.log('[Database] WAL checkpoint completed')
+    } catch (err) {
+      console.error('[Database] WAL checkpoint failed:', err)
+    }
+  }
+}
+
 export function closeDatabase(): void {
   if (db) {
+    walCheckpoint()
     db.close()
     db = null
     console.log('[Database] Closed')

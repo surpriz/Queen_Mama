@@ -1,4 +1,4 @@
-import { Sparkles, Mic, Eye, EyeOff } from 'lucide-react'
+import { Sparkles, Mic, EyeOff } from 'lucide-react'
 import { GradientText } from '@/components/common/GradientText'
 
 interface WelcomeStepProps {

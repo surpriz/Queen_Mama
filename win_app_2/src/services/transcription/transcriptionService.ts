@@ -4,10 +4,17 @@ import { DeepgramProvider } from './deepgramProvider'
 import { AssemblyAIProvider } from './assemblyAIProvider'
 import { DeepgramFluxProvider } from './deepgramFluxProvider'
 import { sleep } from '@/lib/utils'
+import { useConfigStore } from '@/stores/configStore'
 
 const log = createLogger('Transcription')
 
-const MAX_RECONNECT_ATTEMPTS = 3
+const MAX_RECONNECT_ATTEMPTS = 5
+const BASE_DELAY = 1000 // 1 second
+const MAX_DELAY = 30000 // 30 seconds
+
+// Audio batching config
+const BATCH_INTERVAL = 400 // ms
+const MAX_BATCH_SIZE = 32000 // bytes (~1s at 16kHz mono)
 
 let currentProvider: TranscriptionProvider | null = null
 let currentProviderType: TranscriptionProviderType | null = null
@@ -15,6 +22,11 @@ let isConnected = false
 let isReconnecting = false
 let reconnectAttempts = 0
 let intentionalDisconnect = false
+
+// Audio batching state
+let batchBuffer: ArrayBuffer[] = []
+let batchBufferSize = 0
+let batchTimer: ReturnType<typeof setInterval> | null = null
 
 let onTranscript: ((text: string) => void) | null = null
 let onInterimTranscript: ((text: string) => void) | null = null
@@ -69,6 +81,13 @@ export async function connect(): Promise<void> {
   intentionalDisconnect = false
   reconnectAttempts = 0
 
+  // Set language from user config on all providers
+  const language = useConfigStore.getState().primaryLanguage || 'fr'
+  for (const p of providers) {
+    p.language = language
+  }
+  log.info(`Language set to: ${language}`)
+
   const configuredProviders = providers.filter((p) => p.isConfigured)
   let lastError: Error | null = null
 
@@ -87,6 +106,9 @@ export async function connect(): Promise<void> {
       isConnected = true
       onConnectionChanged?.(true, provider.name)
 
+      // Start audio batch timer
+      startBatchTimer()
+
       log.info(`Connected with ${provider.name}`)
       return
     } catch (error) {
@@ -103,17 +125,63 @@ export async function connect(): Promise<void> {
 export function disconnect(): void {
   log.info('Disconnecting...')
   intentionalDisconnect = true
+
+  // Flush any remaining batched audio before disconnecting
+  flushBatch()
+  stopBatchTimer()
+
   currentProvider?.disconnect()
   currentProvider = null
   currentProviderType = null
   isConnected = false
   isReconnecting = false
+  batchBuffer = []
+  batchBufferSize = 0
   onConnectionChanged?.(false, null)
+}
+
+function flushBatch(): void {
+  if (batchBuffer.length === 0 || !isConnected || !currentProvider) return
+
+  // Concatenate all buffered ArrayBuffers into a single one
+  const totalSize = batchBufferSize
+  const merged = new Uint8Array(totalSize)
+  let offset = 0
+  for (const buf of batchBuffer) {
+    merged.set(new Uint8Array(buf), offset)
+    offset += buf.byteLength
+  }
+
+  batchBuffer = []
+  batchBufferSize = 0
+
+  currentProvider.sendAudio(merged.buffer)
+}
+
+function startBatchTimer(): void {
+  stopBatchTimer()
+  batchTimer = setInterval(() => {
+    flushBatch()
+  }, BATCH_INTERVAL)
+}
+
+function stopBatchTimer(): void {
+  if (batchTimer) {
+    clearInterval(batchTimer)
+    batchTimer = null
+  }
 }
 
 export function sendAudio(data: ArrayBuffer): void {
   if (!isConnected || !currentProvider) return
-  currentProvider.sendAudio(data)
+
+  batchBuffer.push(data)
+  batchBufferSize += data.byteLength
+
+  // Flush immediately if batch exceeds max size
+  if (batchBufferSize >= MAX_BATCH_SIZE) {
+    flushBatch()
+  }
 }
 
 async function attemptReconnect(): Promise<void> {
@@ -127,8 +195,11 @@ async function attemptReconnect(): Promise<void> {
     return
   }
 
-  const delay = reconnectAttempts * 2000
-  log.info(`Reconnecting in ${delay}ms (attempt ${reconnectAttempts}/${MAX_RECONNECT_ATTEMPTS})`)
+  // Exponential backoff with jitter
+  const exponentialDelay = Math.min(MAX_DELAY, BASE_DELAY * Math.pow(2, reconnectAttempts))
+  const jitter = Math.random() * 1000
+  const delay = exponentialDelay + jitter
+  log.info(`Reconnecting in ${Math.round(delay)}ms (attempt ${reconnectAttempts}/${MAX_RECONNECT_ATTEMPTS}, base delay: ${exponentialDelay}ms)`)
 
   await sleep(delay)
 
