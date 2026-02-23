@@ -99,6 +99,8 @@ const config: Config = {
         'qm-fade-in': 'qm-fade-in 0.25s ease-in-out',
         'qm-slide-up': 'qm-slide-up 0.25s ease-out',
         'slide-in-right': 'slide-in-right 0.3s ease-out',
+        'pulsing-ring': 'pulsing-ring 1.5s ease-in-out infinite',
+        'pulsing-ring-play': 'pulsing-ring-play 1.2s ease-in-out infinite',
       },
       keyframes: {
         'qm-pulse': {
@@ -120,6 +122,14 @@ const config: Config = {
         'shrink-width': {
           '0%': { width: '100%' },
           '100%': { width: '0%' },
+        },
+        'pulsing-ring': {
+          '0%': { transform: 'scale(1)', opacity: '0.6' },
+          '100%': { transform: 'scale(1.3)', opacity: '0' },
+        },
+        'pulsing-ring-play': {
+          '0%': { transform: 'scale(1)', opacity: '0.5' },
+          '100%': { transform: 'scale(1.2)', opacity: '0' },
         },
       },
       transitionDuration: {

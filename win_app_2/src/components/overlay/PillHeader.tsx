@@ -1,7 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import {
   ChevronDown,
-  ChevronUp,
   Music,
   EyeOff,
   Zap,
@@ -63,6 +62,10 @@ export function PillHeader() {
   const [currentMoment, setCurrentMoment] = useState<DetectedMoment | null>(null)
   const [momentVisible, setMomentVisible] = useState(false)
 
+  // Pulsing ring states (auto-stop after 3s)
+  const [isExpandPulsing, setIsExpandPulsing] = useState(false)
+  const [isStartPulsing, setIsStartPulsing] = useState(false)
+
   // Subscribe to moment detection events
   useEffect(() => {
     let hideTimer: ReturnType<typeof setTimeout> | null = null
@@ -71,9 +74,7 @@ export function PillHeader() {
       if (moments.length > 0) {
         setCurrentMoment(moments[0])
         setMomentVisible(true)
-        // Clear any previous auto-hide timer
         if (hideTimer) clearTimeout(hideTimer)
-        // Auto-hide after 8 seconds
         hideTimer = setTimeout(() => setMomentVisible(false), 8000)
       }
     })
@@ -83,6 +84,28 @@ export function PillHeader() {
       if (hideTimer) clearTimeout(hideTimer)
     }
   }, [])
+
+  // Pulsing ring for expand button: pulse when collapsed, stop after 3s
+  useEffect(() => {
+    if (!isExpanded) {
+      setIsExpandPulsing(true)
+      const t = setTimeout(() => setIsExpandPulsing(false), 3000)
+      return () => clearTimeout(t)
+    } else {
+      setIsExpandPulsing(false)
+    }
+  }, [isExpanded])
+
+  // Pulsing ring for start button: pulse when not in session, stop after 3s
+  useEffect(() => {
+    if (!isSessionActive) {
+      setIsStartPulsing(true)
+      const t = setTimeout(() => setIsStartPulsing(false), 3000)
+      return () => clearTimeout(t)
+    } else {
+      setIsStartPulsing(false)
+    }
+  }, [isSessionActive])
 
   const handleToggleSession = useCallback(
     async (e: React.MouseEvent) => {
@@ -120,42 +143,50 @@ export function PillHeader() {
   return (
     <div
       className={cn(
-        'flex items-center gap-1.5 px-2.5 cursor-pointer select-none transition-all',
+        'flex items-center gap-2 px-3 cursor-pointer select-none transition-all',
         isExpanded ? '' : 'rounded-2xl',
       )}
-      style={{ height: 40, WebkitAppRegion: 'drag' } as React.CSSProperties}
+      style={{ height: 44, WebkitAppRegion: 'drag' } as React.CSSProperties}
       onClick={toggleExpanded}
     >
-      {/* 1. Logo */}
-      <div className="flex items-center justify-center w-6 h-6 rounded-full bg-qm-accent/20 flex-shrink-0">
-        <Music size={12} className="text-qm-accent" />
+      {/* 1. Logo - 28px gradient circle with white icon */}
+      <div className="flex items-center justify-center w-7 h-7 rounded-full bg-gradient-to-br from-qm-gradient-start to-qm-gradient-end flex-shrink-0 shadow-sm">
+        <Music size={13} className="text-white" />
       </div>
 
-      {/* 2. Dashboard button */}
+      {/* 2. Dashboard button - gradient on hover */}
       <button
         onClick={handleOpenDashboard}
-        className="flex items-center justify-center w-6 h-6 rounded-full bg-qm-surface-medium hover:bg-qm-surface-hover transition-colors flex-shrink-0 titlebar-no-drag"
+        className="flex items-center justify-center w-[26px] h-[26px] rounded-full bg-qm-surface-medium hover:bg-gradient-to-br hover:from-qm-gradient-start/40 hover:to-qm-gradient-end/40 transition-all hover-scale-lg flex-shrink-0 titlebar-no-drag"
         style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}
         title="Open Dashboard"
       >
         <Home size={13} className="text-qm-text-secondary" />
       </button>
 
-      {/* 3. Expand/Collapse chevron (Mac position: left side, after dashboard) */}
-      <button
-        onClick={(e) => { e.stopPropagation(); toggleExpanded() }}
-        className={cn(
-          'p-1 rounded-qm-sm hover:bg-qm-surface-hover transition-colors titlebar-no-drag',
-          isExpanded && isSessionActive && 'animate-pulse ring-1 ring-qm-accent/30',
+      {/* 3. Expand/Collapse chevron - gradient circle when collapsed, surface when expanded */}
+      <div className="relative flex-shrink-0 titlebar-no-drag" style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}>
+        {/* Pulsing ring behind button (only when collapsed) */}
+        {isExpandPulsing && !isExpanded && (
+          <span className="absolute inset-0 rounded-full bg-qm-accent/40 animate-pulsing-ring pointer-events-none" />
         )}
-        style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}
-      >
-        {isExpanded ? (
-          <ChevronUp size={14} className="text-qm-text-secondary" />
-        ) : (
-          <ChevronDown size={14} className="text-qm-text-secondary" />
-        )}
-      </button>
+        <button
+          onClick={(e) => { e.stopPropagation(); toggleExpanded() }}
+          className={cn(
+            'relative flex items-center justify-center w-7 h-7 rounded-full transition-all',
+            isExpanded
+              ? 'bg-qm-surface-medium hover:bg-qm-surface-hover'
+              : 'bg-gradient-to-br from-qm-gradient-start to-qm-gradient-end shadow-sm',
+          )}
+        >
+          <div
+            className="transition-transform duration-300"
+            style={{ transform: isExpanded ? 'rotate(180deg)' : 'rotate(0deg)' }}
+          >
+            <ChevronDown size={14} className={isExpanded ? 'text-qm-text-secondary' : 'text-white'} />
+          </div>
+        </button>
+      </div>
 
       {/* 4. Spacer / drag region */}
       <div className="flex-1 min-w-2 titlebar-drag" />
@@ -169,7 +200,7 @@ export function PillHeader() {
         {momentVisible && currentMoment && (
           <div
             className={cn(
-              'flex items-center gap-0.5 px-1.5 py-0.5 rounded-full animate-qm-fade-in',
+              'flex items-center gap-0.5 px-1.5 py-0.5 rounded-full animate-qm-fade-in transition-opacity duration-250',
               MOMENT_BG_COLORS[currentMoment.type],
             )}
             title={currentMoment.triggerPhrase}
@@ -207,7 +238,7 @@ export function PillHeader() {
 
         {/* 7. Auto-answer badge */}
         {autoAnswerEnabled && (
-          <div className="flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-qm-auto-answer/20 animate-pulse ring-1 ring-qm-auto-answer/30">
+          <div className="flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-qm-auto-answer/20 animate-pulse ring-1 ring-qm-auto-answer/30 transition-opacity duration-250">
             <Zap size={11} className="text-qm-auto-answer" />
             <span className="text-caption-sm text-qm-auto-answer font-medium">Auto</span>
           </div>
@@ -227,23 +258,29 @@ export function PillHeader() {
           <Camera size={13} />
         </button>
 
-        {/* 9. Start/Stop Session (Mac position: far right) */}
-        <button
-          onClick={handleToggleSession}
-          className={cn(
-            'flex items-center justify-center w-7 h-7 rounded-full transition-colors flex-shrink-0',
-            isSessionActive
-              ? 'bg-red-500/20 hover:bg-red-500/30 ring-2 ring-qm-success/40 animate-pulse'
-              : 'bg-qm-accent/20 hover:bg-qm-accent/30',
+        {/* 9. Start/Stop Session - gradient with pulsing glow ring */}
+        <div className="relative flex-shrink-0">
+          {/* Pulsing glow ring for start button */}
+          {isStartPulsing && !isSessionActive && (
+            <span className="absolute inset-0 rounded-full bg-qm-accent/30 animate-pulsing-ring-play pointer-events-none" />
           )}
-          title={isSessionActive ? 'Stop session' : 'Start session'}
-        >
-          {isSessionActive ? (
-            <Square size={10} className="text-red-400" fill="currentColor" />
-          ) : (
-            <Play size={12} className="text-qm-accent" fill="currentColor" />
-          )}
-        </button>
+          <button
+            onClick={handleToggleSession}
+            className={cn(
+              'relative flex items-center justify-center rounded-full transition-all flex-shrink-0',
+              isSessionActive
+                ? 'w-[26px] h-[26px] bg-red-500/15 hover:bg-red-500/25'
+                : 'w-8 h-8 bg-gradient-to-br from-qm-gradient-start to-qm-gradient-end shadow-qm-glow hover-scale-lg',
+            )}
+            title={isSessionActive ? 'Stop session' : 'Start session'}
+          >
+            {isSessionActive ? (
+              <Square size={10} className="text-red-400" fill="currentColor" />
+            ) : (
+              <Play size={14} className="text-white" fill="currentColor" />
+            )}
+          </button>
+        </div>
       </div>
     </div>
   )

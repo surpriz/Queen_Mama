@@ -5,6 +5,32 @@ import { useContactStore } from '@/stores/contactStore'
 import * as contactDb from '@/services/contacts/contactDb'
 import type { Contact } from '@/types/models'
 
+const AVATAR_COLORS = [
+  'bg-purple-500/20 text-purple-400',
+  'bg-blue-500/20 text-blue-400',
+  'bg-emerald-500/20 text-emerald-400',
+  'bg-amber-500/20 text-amber-400',
+  'bg-pink-500/20 text-pink-400',
+  'bg-cyan-500/20 text-cyan-400',
+  'bg-rose-500/20 text-rose-400',
+]
+
+function getInitials(name: string): string {
+  const parts = name.trim().split(/\s+/)
+  if (parts.length >= 2) {
+    return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase()
+  }
+  return name.slice(0, 2).toUpperCase()
+}
+
+function getAvatarColor(name: string): string {
+  let hash = 0
+  for (let i = 0; i < name.length; i++) {
+    hash = name.charCodeAt(i) + ((hash << 5) - hash)
+  }
+  return AVATAR_COLORS[Math.abs(hash) % AVATAR_COLORS.length]
+}
+
 function ContactDetail({
   contact,
   onBack,
@@ -232,7 +258,7 @@ function CreateContactForm({
         <button
           onClick={handleCreate}
           disabled={isSaving || !name.trim()}
-          className="flex items-center gap-2 px-4 py-2.5 rounded-qm-md bg-gradient-to-r from-qm-gradient-start to-qm-gradient-end text-white text-body-sm font-medium hover:shadow-qm-glow transition-shadow disabled:opacity-50"
+          className="flex items-center gap-2 px-4 py-2.5 rounded-qm-md bg-gradient-to-r from-qm-gradient-start to-qm-gradient-end text-white text-body-sm font-medium hover:shadow-qm-glow hover-scale transition-all disabled:opacity-50"
         >
           <Plus size={14} />
           {isSaving ? 'Creating...' : 'Create Contact'}
@@ -313,7 +339,7 @@ export function ContactsView() {
           </span>
           <button
             onClick={() => setIsCreating(true)}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-qm-pill bg-gradient-to-r from-qm-gradient-start to-qm-gradient-end text-white text-body-sm font-medium hover:shadow-qm-glow transition-shadow"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-qm-pill bg-gradient-to-r from-qm-gradient-start to-qm-gradient-end text-white text-body-sm font-medium hover:shadow-qm-glow hover-scale transition-all"
           >
             <Plus size={14} /> New Contact
           </button>
@@ -345,10 +371,10 @@ export function ContactsView() {
               onClick={() => setSelectedContact(contact)}
               className="flex items-center gap-4 p-4 rounded-qm-lg bg-qm-surface-medium hover:bg-qm-surface-hover cursor-pointer transition-colors group"
             >
-              {/* Avatar placeholder */}
-              <div className="w-10 h-10 rounded-full bg-qm-accent/20 flex items-center justify-center flex-shrink-0">
-                <span className="text-body-md font-semibold text-qm-accent">
-                  {contact.name.charAt(0).toUpperCase()}
+              {/* Avatar with 2-letter initials + color cycling */}
+              <div className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${getAvatarColor(contact.name)}`}>
+                <span className="text-body-sm font-semibold">
+                  {getInitials(contact.name)}
                 </span>
               </div>
 

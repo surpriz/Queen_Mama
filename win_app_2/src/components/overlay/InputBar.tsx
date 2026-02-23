@@ -1,8 +1,10 @@
 import { useState, useEffect, useRef } from 'react'
-import { Send, Brain } from 'lucide-react'
+import { ArrowUp, Brain } from 'lucide-react'
 import { useAppStore } from '@/stores/appStore'
 import { useConfigStore } from '@/stores/configStore'
 import * as aiService from '@/services/ai/aiService'
+import { DictationButton } from './DictationButton'
+import { KeyboardShortcutBadge } from '@/components/common/KeyboardShortcutBadge'
 import { cn } from '@/lib/utils'
 
 export function InputBar() {
@@ -43,6 +45,10 @@ export function InputBar() {
     }
   }
 
+  const handleDictationText = (text: string) => {
+    setInput((prev) => (prev ? `${prev} ${text}` : text))
+  }
+
   useEffect(() => {
     return () => {
       if (toastTimerRef.current) clearTimeout(toastTimerRef.current)
@@ -50,7 +56,7 @@ export function InputBar() {
   }, [])
 
   return (
-    <div className="relative flex items-center gap-2 px-3 border-t border-qm-border-subtle" style={{ height: 48 }}>
+    <div className="relative px-2 pb-2 pt-1.5">
       {/* Smart Mode activated toast */}
       {showSmartToast && (
         <div className="absolute -top-8 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full bg-purple-500/20 text-purple-300 text-caption-sm font-medium whitespace-nowrap animate-qm-fade-in transition-opacity duration-500"
@@ -60,37 +66,49 @@ export function InputBar() {
         </div>
       )}
 
-      {/* Smart Mode toggle */}
-      <button
-        onClick={handleToggleSmart}
-        className={cn(
-          'flex items-center gap-1 px-2 py-1 rounded-full text-caption-sm font-medium transition-colors flex-shrink-0',
-          smartModeEnabled
-            ? 'bg-purple-500/15 text-purple-400'
-            : 'bg-qm-surface-medium text-qm-text-tertiary hover:bg-qm-surface-hover',
-        )}
-        title={smartModeEnabled ? 'Smart Mode ON' : 'Smart Mode OFF'}
-      >
-        <Brain size={12} />
-        <span>Smart</span>
-      </button>
+      <div className="flex items-center gap-2 px-3 bg-qm-surface-light border border-qm-border-subtle rounded-qm-lg" style={{ height: 44 }}>
+        {/* Smart Mode toggle */}
+        <button
+          onClick={handleToggleSmart}
+          className={cn(
+            'flex items-center gap-1 px-2 py-1 rounded-full text-caption-sm font-medium transition-colors flex-shrink-0',
+            smartModeEnabled
+              ? 'bg-purple-500/15 text-purple-400'
+              : 'bg-qm-surface-medium text-qm-text-tertiary hover:bg-qm-surface-hover',
+          )}
+          title={smartModeEnabled ? 'Smart Mode ON' : 'Smart Mode OFF'}
+        >
+          <Brain size={12} />
+          <span>Smart</span>
+        </button>
 
-      <input
-        type="text"
-        value={input}
-        onChange={(e) => setInput(e.target.value)}
-        onKeyDown={handleKeyDown}
-        placeholder="Ask about your screen or conversation..."
-        disabled={isProcessing}
-        className="flex-1 bg-transparent text-body-sm text-qm-text-primary placeholder:text-qm-text-disabled focus:outline-none disabled:opacity-50"
-      />
-      <button
-        onClick={handleSubmit}
-        disabled={!input.trim() || isProcessing}
-        className="p-1.5 rounded-full bg-qm-accent/20 text-qm-accent hover:bg-qm-accent/30 disabled:opacity-30 disabled:hover:bg-transparent transition-colors"
-      >
-        <Send size={14} />
-      </button>
+        {/* Dictation button */}
+        <DictationButton onTextReady={handleDictationText} />
+
+        <input
+          type="text"
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
+          onKeyDown={handleKeyDown}
+          placeholder="Ask about your screen or conversation..."
+          disabled={isProcessing}
+          className="flex-1 bg-transparent text-body-sm text-qm-text-primary placeholder:text-qm-text-disabled focus:outline-none disabled:opacity-50"
+        />
+
+        {/* Keyboard shortcut badge when input is empty */}
+        {!input.trim() && (
+          <KeyboardShortcutBadge shortcut="Ctrl+Enter" size="small" className="flex-shrink-0 opacity-50" />
+        )}
+
+        {/* Submit button - gradient circle with arrow up */}
+        <button
+          onClick={handleSubmit}
+          disabled={!input.trim() || isProcessing}
+          className="flex items-center justify-center w-7 h-7 rounded-full bg-gradient-to-r from-qm-gradient-start to-qm-gradient-end text-white hover:scale-110 hover:shadow-qm-glow disabled:opacity-30 disabled:hover:scale-100 disabled:hover:shadow-none transition-all flex-shrink-0"
+        >
+          <ArrowUp size={14} />
+        </button>
+      </div>
     </div>
   )
 }
