@@ -109,6 +109,11 @@ export const changelogData: ChangelogRelease[] = [
         category: "fixes",
         changes: [
           {
+            id: "websocketRecovery",
+            title: "WebSocket Connection Recovery",
+            description: "Fixed infinite reconnection loop that could leave transcription stuck on 'Reconnecting' during WiFi disruptions"
+          },
+          {
             id: "authPersistence",
             title: "Authentication Persistence Fix",
             description: "Resolved an issue where authentication state could be lost between app restarts"

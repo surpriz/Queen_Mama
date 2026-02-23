@@ -455,6 +455,10 @@
         "title": "Surveillance proactive de la santé",
         "description": "Vérifications de santé des services en arrière-plan pour détecter et résoudre les problèmes avant qu'ils n'impactent votre session"
       },
+      "websocketRecovery": {
+        "title": "Récupération de connexion WebSocket",
+        "description": "Correction d'une boucle de reconnexion infinie pouvant bloquer la transcription sur « Reconnexion en cours » lors de coupures WiFi"
+      },
       "authPersistence": {
         "title": "Correction de la persistance d'authentification",
         "description": "Résolution d'un problème où l'état d'authentification pouvait être perdu entre les redémarrages de l'application"
