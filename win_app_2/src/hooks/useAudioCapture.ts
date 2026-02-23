@@ -1,22 +1,28 @@
 import { useState, useCallback, useRef, useEffect } from 'react'
-import { audioCaptureService } from '@/services/audio/audioCaptureService'
+import * as audioCaptureService from '@/services/audio/audioCaptureService'
 
 export function useAudioCapture() {
   const [isCapturing, setIsCapturing] = useState(false)
   const [audioLevel, setAudioLevel] = useState(0)
   const [error, setError] = useState<string | null>(null)
-  const levelInterval = useRef<ReturnType<typeof setInterval> | null>(null)
+  const audioDataCallbackRef = useRef<((data: ArrayBuffer) => void) | null>(null)
 
   const start = useCallback(async () => {
     try {
       setError(null)
-      await audioCaptureService.start()
-      setIsCapturing(true)
 
-      // Poll audio level
-      levelInterval.current = setInterval(() => {
-        setAudioLevel(audioCaptureService.getAudioLevel())
-      }, 100)
+      // Set up audio level callback
+      audioCaptureService.setOnAudioLevel((level: number) => {
+        setAudioLevel(level)
+      })
+
+      // Set up audio data callback
+      if (audioDataCallbackRef.current) {
+        audioCaptureService.setOnAudioBuffer(audioDataCallbackRef.current)
+      }
+
+      await audioCaptureService.startCapture()
+      setIsCapturing(true)
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to start audio capture'
       setError(message)
@@ -25,27 +31,23 @@ export function useAudioCapture() {
   }, [])
 
   const stop = useCallback(() => {
-    audioCaptureService.stop()
+    audioCaptureService.stopCapture()
     setIsCapturing(false)
     setAudioLevel(0)
-
-    if (levelInterval.current) {
-      clearInterval(levelInterval.current)
-      levelInterval.current = null
-    }
   }, [])
 
   const onAudioData = useCallback((callback: (data: ArrayBuffer) => void) => {
-    audioCaptureService.onAudioData(callback)
+    audioDataCallbackRef.current = callback
+    audioCaptureService.setOnAudioBuffer(callback)
   }, [])
 
   useEffect(() => {
     return () => {
-      if (levelInterval.current) {
-        clearInterval(levelInterval.current)
+      if (isCapturing) {
+        audioCaptureService.stopCapture()
       }
     }
-  }, [])
+  }, [isCapturing])
 
   return {
     isCapturing,

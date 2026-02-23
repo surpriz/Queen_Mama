@@ -1,4 +1,4 @@
-import { getApiBaseUrl, getEnvironment, setEnvironment, type AppEnvironmentType } from './appEnvironment'
+import { getApiBaseUrl, getCurrentEnvironment, type AppEnvironment } from './appEnvironment'
 
 export const urlConfigManager = {
   getBaseUrl(): string {
@@ -23,11 +23,7 @@ export const urlConfigManager = {
     return this.getApiUrl(`/api/sync${endpoint.startsWith('/') ? endpoint : `/${endpoint}`}`)
   },
 
-  getCurrentEnvironment(): AppEnvironmentType {
-    return getEnvironment()
-  },
-
-  setEnvironment(env: AppEnvironmentType): void {
-    setEnvironment(env)
+  getCurrentEnvironment(): AppEnvironment {
+    return getCurrentEnvironment()
   },
 }

@@ -65,11 +65,19 @@ export function SessionsView() {
                       : 'bg-qm-surface-light hover:bg-qm-surface-medium border border-transparent',
                   )}
                 >
-                  {/* Title + Delete */}
+                  {/* Title + Sync dot + Delete */}
                   <div className="flex items-start justify-between gap-2 mb-2">
-                    <h3 className="text-body-md font-medium text-qm-text-primary line-clamp-1">
-                      {session.title}
-                    </h3>
+                    <div className="flex items-center gap-1.5 min-w-0">
+                      {session.syncStatus === 'synced' && (
+                        <span className="w-2 h-2 rounded-full bg-green-400 shrink-0" title="Synced" />
+                      )}
+                      {session.syncStatus === 'pending' && (
+                        <span className="w-2 h-2 rounded-full bg-yellow-400 shrink-0" title="Pending" />
+                      )}
+                      <h3 className="text-body-md font-medium text-qm-text-primary line-clamp-1">
+                        {session.title}
+                      </h3>
+                    </div>
                     <button
                       onClick={(e) => {
                         e.stopPropagation()

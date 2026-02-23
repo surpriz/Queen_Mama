@@ -132,7 +132,7 @@ export const QMDesign = {
 export const RESPONSE_TYPE_ICONS = {
   assist: 'Sparkles',
   whatToSay: 'MessageSquare',
-  followUp: 'HelpCircle',
+  followUp: 'MessageCircleQuestion',
   recap: 'RotateCcw',
   custom: 'MessageCircle',
 } as const

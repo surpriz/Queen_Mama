@@ -1,7 +1,11 @@
 import { useState, useRef, useEffect } from 'react'
-import { MoreHorizontal, Move, Settings, Trash2, Monitor, EyeOff, Eye, Keyboard } from 'lucide-react'
-import { useOverlayStore, type OverlayPosition } from '@/stores/overlayStore'
+import { MoreVertical, Move, Settings, Trash2, Monitor, ChevronRight, Zap, Brain, Camera, Layers, EyeOff } from 'lucide-react'
+import { useOverlayStore } from '@/stores/overlayStore'
+import type { OverlayPosition } from '@/types/electron.d'
 import { useConfigStore } from '@/stores/configStore'
+import { useAppStore } from '@/stores/appStore'
+import type { Mode } from '@/types/models'
+import { useModes } from '@/hooks/useModes'
 import { cn } from '@/lib/utils'
 
 const POSITIONS: { value: OverlayPosition; label: string }[] = [
@@ -16,18 +20,29 @@ const POSITIONS: { value: OverlayPosition; label: string }[] = [
 export function PopupMenu() {
   const [isOpen, setIsOpen] = useState(false)
   const [showPositions, setShowPositions] = useState(false)
+  const [showModes, setShowModes] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
   const position = useOverlayStore((s) => s.position)
   const setPosition = useOverlayStore((s) => s.setPosition)
   const clearHistory = useOverlayStore((s) => s.clearHistory)
-  const isUndetectabilityEnabled = useConfigStore((s) => s.isUndetectabilityEnabled)
+
+  const autoAnswerEnabled = useConfigStore((s) => s.autoAnswerEnabled)
+  const smartModeEnabled = useConfigStore((s) => s.smartModeEnabled)
+  const autoScreenCapture = useConfigStore((s) => s.autoScreenCapture)
   const updateConfig = useConfigStore((s) => s.updateConfig)
+
+  const selectedMode = useAppStore((s) => s.selectedMode)
+  const setSelectedMode = useAppStore((s) => s.setSelectedMode)
+  const toggleOverlay = useAppStore((s) => s.toggleOverlay)
+
+  const { modes } = useModes()
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
       if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
         setIsOpen(false)
         setShowPositions(false)
+        setShowModes(false)
       }
     }
     if (isOpen) {
@@ -53,80 +68,57 @@ export function PopupMenu() {
     setIsOpen(false)
   }
 
-  const handleToggleHiddenMode = () => {
-    updateConfig({ isUndetectabilityEnabled: !isUndetectabilityEnabled })
+  const handleSelectMode = (mode: Mode) => {
+    setSelectedMode(mode)
+    setShowModes(false)
+    setIsOpen(false)
+  }
+
+  const handleHideWidget = () => {
+    toggleOverlay()
+    setIsOpen(false)
+  }
+
+  const handleToggleAutoAnswer = () => {
+    updateConfig({ autoAnswerEnabled: !autoAnswerEnabled })
+  }
+
+  const handleToggleSmartMode = () => {
+    updateConfig({ smartModeEnabled: !smartModeEnabled })
+  }
+
+  const handleToggleScreenCapture = () => {
+    updateConfig({ autoScreenCapture: !autoScreenCapture })
   }
 
   return (
     <div ref={menuRef} className="relative">
       <button
-        onClick={(e) => {
-          e.stopPropagation()
-          setIsOpen(!isOpen)
-        }}
-        className="flex items-center justify-center w-[26px] h-[26px] rounded-full bg-qm-surface-light text-qm-text-tertiary hover:text-qm-text-secondary hover:bg-qm-surface-hover transition-colors"
+        onClick={() => setIsOpen(!isOpen)}
+        className="p-1 rounded-qm-sm text-qm-text-tertiary hover:text-qm-text-secondary hover:bg-white/5 transition-colors"
       >
-        <MoreHorizontal size={14} />
+        <MoreVertical size={14} />
       </button>
 
       {isOpen && (
-        <div className="absolute right-0 top-full mt-1 w-52 bg-qm-bg-elevated border border-qm-border-subtle rounded-qm-lg shadow-qm-lg z-50 overflow-hidden">
-          {/* Hidden Mode Toggle */}
-          <button
-            onClick={handleToggleHiddenMode}
-            className="flex items-center justify-between w-full px-3 py-2.5 text-body-sm hover:bg-qm-surface-hover transition-colors"
-          >
-            <div className="flex items-center gap-2">
-              {isUndetectabilityEnabled ? (
-                <EyeOff size={14} className="text-qm-accent" />
-              ) : (
-                <Eye size={14} className="text-qm-text-secondary" />
-              )}
-              <span className={isUndetectabilityEnabled ? 'text-qm-accent' : 'text-qm-text-secondary'}>
-                Hidden Mode
-              </span>
-            </div>
-            <div className="flex items-center gap-2">
-              <kbd className="px-1 py-0.5 rounded bg-qm-surface-light text-qm-text-disabled text-[9px] font-mono">
-                Ctrl+H
-              </kbd>
-              {/* Toggle indicator */}
-              <div
-                className={cn(
-                  'w-8 h-4 rounded-full transition-colors relative',
-                  isUndetectabilityEnabled ? 'bg-qm-accent' : 'bg-qm-surface-medium',
-                )}
-              >
-                <div
-                  className={cn(
-                    'absolute top-0.5 w-3 h-3 rounded-full bg-white transition-transform',
-                    isUndetectabilityEnabled ? 'translate-x-4' : 'translate-x-0.5',
-                  )}
-                />
-              </div>
-            </div>
-          </button>
-
-          <div className="border-t border-qm-border-subtle" />
-
+        <div className="absolute right-0 top-full mt-1 w-48 bg-qm-surface-medium border border-qm-border-subtle rounded-qm-md shadow-qm-lg z-50 overflow-hidden">
           {/* Position submenu */}
           <button
             onClick={() => setShowPositions(!showPositions)}
-            className="flex items-center gap-2 w-full px-3 py-2.5 text-body-sm text-qm-text-secondary hover:bg-qm-surface-hover transition-colors"
+            className="flex items-center gap-2 w-full px-3 py-2 text-body-sm text-qm-text-secondary hover:bg-qm-surface-hover transition-colors"
           >
             <Move size={14} />
             Position
-            <span className="ml-auto text-qm-text-disabled">▸</span>
           </button>
 
           {showPositions && (
-            <div className="border-t border-qm-border-subtle bg-qm-bg-secondary">
+            <div className="border-t border-qm-border-subtle bg-qm-surface-dark">
               {POSITIONS.map(({ value, label }) => (
                 <button
                   key={value}
                   onClick={() => handlePositionChange(value)}
                   className={cn(
-                    'flex items-center gap-2 w-full px-4 py-2 text-caption transition-colors',
+                    'flex items-center gap-2 w-full px-4 py-1.5 text-caption transition-colors',
                     position === value
                       ? 'text-qm-accent bg-qm-accent/10'
                       : 'text-qm-text-tertiary hover:bg-qm-surface-hover',
@@ -134,39 +126,118 @@ export function PopupMenu() {
                 >
                   <Monitor size={12} />
                   {label}
-                  {position === value && <span className="ml-auto">✓</span>}
                 </button>
               ))}
             </div>
           )}
 
+          {/* Mode selector submenu */}
+          <button
+            onClick={() => setShowModes(!showModes)}
+            className="flex items-center gap-2 w-full px-3 py-2 text-body-sm text-qm-text-secondary hover:bg-qm-surface-hover transition-colors"
+          >
+            <Layers size={14} />
+            <span className="flex-1 text-left">Mode</span>
+            <span className="text-caption text-qm-text-tertiary mr-1">{selectedMode?.name ?? 'Default'}</span>
+            <ChevronRight size={12} className="text-qm-text-tertiary" />
+          </button>
+
+          {showModes && (
+            <div className="border-t border-qm-border-subtle bg-qm-surface-dark max-h-48 overflow-y-auto">
+              {modes.map((mode) => (
+                <button
+                  key={mode.id}
+                  onClick={() => handleSelectMode(mode)}
+                  className={cn(
+                    'flex items-center gap-2 w-full px-4 py-1.5 text-caption transition-colors',
+                    (selectedMode?.name ?? 'Default') === mode.name
+                      ? 'text-qm-accent bg-qm-accent/10'
+                      : 'text-qm-text-tertiary hover:bg-qm-surface-hover',
+                  )}
+                >
+                  {mode.name}
+                </button>
+              ))}
+            </div>
+          )}
+
+          <div className="border-t border-qm-border-subtle" />
+
+          {/* Auto-Answer toggle */}
+          <button
+            onClick={handleToggleAutoAnswer}
+            className="flex items-center gap-2 w-full px-3 py-2 text-body-sm text-qm-text-secondary hover:bg-qm-surface-hover transition-colors"
+          >
+            <Zap size={14} className={autoAnswerEnabled ? 'text-qm-auto-answer' : ''} />
+            <span className="flex-1 text-left">Auto-Answer</span>
+            <span className={cn(
+              'text-caption-sm font-medium px-1.5 py-0.5 rounded-full',
+              autoAnswerEnabled
+                ? 'bg-qm-auto-answer/20 text-qm-auto-answer'
+                : 'bg-qm-surface-dark text-qm-text-tertiary',
+            )}>
+              {autoAnswerEnabled ? 'ON' : 'OFF'}
+            </span>
+          </button>
+
+          {/* Smart Mode toggle */}
+          <button
+            onClick={handleToggleSmartMode}
+            className="flex items-center gap-2 w-full px-3 py-2 text-body-sm text-qm-text-secondary hover:bg-qm-surface-hover transition-colors"
+          >
+            <Brain size={14} className={smartModeEnabled ? 'text-purple-400' : ''} />
+            <span className="flex-1 text-left">Smart Mode</span>
+            <span className={cn(
+              'text-caption-sm font-medium px-1.5 py-0.5 rounded-full',
+              smartModeEnabled
+                ? 'bg-purple-500/20 text-purple-400'
+                : 'bg-qm-surface-dark text-qm-text-tertiary',
+            )}>
+              {smartModeEnabled ? 'ON' : 'OFF'}
+            </span>
+          </button>
+
+          {/* Screen Capture toggle */}
+          <button
+            onClick={handleToggleScreenCapture}
+            className="flex items-center gap-2 w-full px-3 py-2 text-body-sm text-qm-text-secondary hover:bg-qm-surface-hover transition-colors"
+          >
+            <Camera size={14} className={autoScreenCapture ? 'text-qm-accent' : ''} />
+            <span className="flex-1 text-left">Screen Capture</span>
+            <span className={cn(
+              'text-caption-sm font-medium px-1.5 py-0.5 rounded-full',
+              autoScreenCapture
+                ? 'bg-qm-accent/20 text-qm-accent'
+                : 'bg-qm-surface-dark text-qm-text-tertiary',
+            )}>
+              {autoScreenCapture ? 'ON' : 'OFF'}
+            </span>
+          </button>
+
+          <div className="border-t border-qm-border-subtle" />
+
           {/* Settings */}
           <button
             onClick={handleOpenSettings}
-            className="flex items-center gap-2 w-full px-3 py-2.5 text-body-sm text-qm-text-secondary hover:bg-qm-surface-hover transition-colors"
+            className="flex items-center gap-2 w-full px-3 py-2 text-body-sm text-qm-text-secondary hover:bg-qm-surface-hover transition-colors"
           >
             <Settings size={14} />
             Settings
           </button>
 
-          {/* Keyboard shortcuts */}
+          {/* Hide Widget */}
           <button
-            onClick={() => {
-              // TODO: Open keyboard shortcuts modal
-              setIsOpen(false)
-            }}
-            className="flex items-center gap-2 w-full px-3 py-2.5 text-body-sm text-qm-text-secondary hover:bg-qm-surface-hover transition-colors"
+            onClick={handleHideWidget}
+            className="flex items-center gap-2 w-full px-3 py-2 text-body-sm text-qm-text-secondary hover:bg-qm-surface-hover transition-colors"
           >
-            <Keyboard size={14} />
-            Shortcuts
+            <EyeOff size={14} />
+            Hide Widget
           </button>
-
-          <div className="border-t border-qm-border-subtle" />
 
           {/* Clear context */}
           <button
             onClick={handleClearContext}
-            className="flex items-center gap-2 w-full px-3 py-2.5 text-body-sm text-qm-error hover:bg-qm-error/10 transition-colors"
+            className="flex items-center gap-2 w-full px-3 py-2 text-body-sm text-qm-error hover:bg-qm-error/10 transition-colors border-t border-qm-border-subtle"
           >
             <Trash2 size={14} />
             Clear Context

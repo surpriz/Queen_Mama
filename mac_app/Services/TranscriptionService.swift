@@ -101,6 +101,9 @@ final class TranscriptionService: ObservableObject {
     private var autoRecoveryTask: Task<Void, Never>?
     private let autoRecoveryInterval: TimeInterval = 60  // Retry every 60 seconds
     @Published var autoRecoveryCountdown: Int = 0
+    private var autoRecoveryAttempts = 0
+    private let maxAutoRecoveryAttempts = 5
+    private var connectionStabilityTask: Task<Void, Never>?
 
     // MARK: - Audio Batching Configuration
     // Accumulates audio buffers to reduce WebSocket message frequency by ~50%
@@ -175,6 +178,8 @@ final class TranscriptionService: ObservableObject {
         // Cancel any pending reconnection and auto-recovery
         reconnectTask?.cancel()
         reconnectTask = nil
+        connectionStabilityTask?.cancel()
+        connectionStabilityTask = nil
         stopAutoRecovery()
 
         // Flush any pending audio before disconnecting
@@ -287,6 +292,14 @@ final class TranscriptionService: ObservableObject {
 
     private func handleError(_ error: Error) {
         print("[Transcription] Error: \(error.localizedDescription)")
+
+        // Skip service-level reconnection if the provider is doing a planned token refresh
+        // This prevents double-reconnection (provider + service simultaneously)
+        if let provider = currentActiveProvider, provider.isTokenRefreshing {
+            print("[Transcription] Suppressing reconnection during provider token refresh")
+            return
+        }
+
         errorMessage = error.localizedDescription
         isConnected = false
         onError?(error)
@@ -315,6 +328,9 @@ final class TranscriptionService: ObservableObject {
     func resetReconnectionBudget() {
         reconnectTimestamps.removeAll()
         reconnectAttempts = 0
+        autoRecoveryAttempts = 0
+        connectionStabilityTask?.cancel()
+        connectionStabilityTask = nil
         stopAutoRecovery()
         print("[Transcription] Reconnection budget reset by user")
     }
@@ -421,7 +437,8 @@ final class TranscriptionService: ObservableObject {
     // MARK: - Auto-Recovery
 
     /// Start periodic auto-recovery when reconnection budget is exhausted.
-    /// Runs every 60s with a visible countdown, resets budget, and tries to reconnect.
+    /// Runs every 60s with a visible countdown, resets attempt counter (but NOT timestamps),
+    /// and tries to reconnect. Caps at maxAutoRecoveryAttempts to avoid infinite loops.
     private func startAutoRecovery() {
         stopAutoRecovery()
         autoRecoveryCountdown = Int(autoRecoveryInterval)
@@ -430,6 +447,26 @@ final class TranscriptionService: ObservableObject {
             guard let self = self else { return }
 
             while !Task.isCancelled {
+                // Check auto-recovery attempt cap
+                let currentAttempt = await MainActor.run { self.autoRecoveryAttempts }
+                if currentAttempt >= self.maxAutoRecoveryAttempts {
+                    print("[Transcription] Auto-recovery exhausted (\(self.maxAutoRecoveryAttempts) attempts)")
+                    await MainActor.run {
+                        self.connectionState = .failed(reason: "Connection could not be restored. Please retry manually.")
+                        self.stopAutoRecovery()
+
+                        CrashReporter.shared.captureMessage(
+                            "Transcription auto-recovery exhausted after \(self.maxAutoRecoveryAttempts) attempts",
+                            level: .error
+                        )
+                        AnalyticsService.shared.capture("transcription_auto_recovery_exhausted", properties: [
+                            "max_attempts": self.maxAutoRecoveryAttempts,
+                            "provider": self.currentProvider?.rawValue ?? "unknown"
+                        ])
+                    }
+                    return
+                }
+
                 // Countdown loop (1 tick per second)
                 for remaining in stride(from: Int(self.autoRecoveryInterval), through: 1, by: -1) {
                     guard !Task.isCancelled else { return }
@@ -439,18 +476,22 @@ final class TranscriptionService: ObservableObject {
 
                 guard !Task.isCancelled, !self.intentionalDisconnect else { return }
 
-                // Reset budget and attempt reconnection
+                // Reset attempt counter only (preserve timestamps for sliding window protection)
                 await MainActor.run {
                     self.autoRecoveryCountdown = 0
-                    self.reconnectTimestamps.removeAll()
+                    self.autoRecoveryAttempts += 1
                     self.reconnectAttempts = 0
-                    print("[Transcription] Auto-recovery: resetting budget and attempting reconnect")
+                    print("[Transcription] Auto-recovery attempt \(self.autoRecoveryAttempts)/\(self.maxAutoRecoveryAttempts): resetting attempt counter")
                 }
 
                 do {
                     try await self.connect(isReconnectAttempt: false)
                     print("[Transcription] Auto-recovery succeeded!")
-                    await MainActor.run { self.stopAutoRecovery() }
+                    await MainActor.run {
+                        self.stopAutoRecovery()
+                        // Schedule delayed cleanup: only clear timestamps if connection stays stable for 30s
+                        self.scheduleConnectionStabilityCheck()
+                    }
                     return
                 } catch {
                     print("[Transcription] Auto-recovery failed: \(error.localizedDescription)")
@@ -465,6 +506,25 @@ final class TranscriptionService: ObservableObject {
         autoRecoveryTask?.cancel()
         autoRecoveryTask = nil
         autoRecoveryCountdown = 0
+    }
+
+    /// After a successful auto-recovery reconnection, wait 30s to confirm stability
+    /// before clearing the sliding window timestamps. This prevents rapid disconnect→reconnect
+    /// cycles from bypassing the circuit breaker.
+    private func scheduleConnectionStabilityCheck() {
+        connectionStabilityTask?.cancel()
+        connectionStabilityTask = Task { [weak self] in
+            try? await Task.sleep(nanoseconds: 30_000_000_000) // 30 seconds
+            guard let self = self, !Task.isCancelled else { return }
+
+            await MainActor.run {
+                if self.isConnected && self.connectionState == .connected {
+                    print("[Transcription] Connection stable for 30s, clearing reconnection history")
+                    self.reconnectTimestamps.removeAll()
+                    self.autoRecoveryAttempts = 0
+                }
+            }
+        }
     }
 
     // MARK: - System Audio Connection (Second WebSocket)

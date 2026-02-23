@@ -11,6 +11,7 @@ export interface TranscriptionToken {
   token: string
   expiresAt: string
   provider: string
+  tokenType?: 'bearer' | 'token' // 'bearer' for JWT, 'token' for API key
 }
 
 export interface AIProxyRequest {
@@ -19,6 +20,15 @@ export interface AIProxyRequest {
   stream?: boolean
   max_tokens?: number
   temperature?: number
+}
+
+// Request format for /api/proxy/ai/stream endpoint
+export interface AIStreamRequest {
+  systemPrompt: string
+  userMessage: string
+  screenshot?: string // base64 encoded
+  cascadeMode?: 'standard' | 'smart' | 'recap'
+  maxTokens?: number
 }
 
 export interface AIMessage {
@@ -58,11 +68,12 @@ export interface SyncSessionPayload {
   originalId: string
   title: string
   startTime: string
-  endTime: string | null
+  endTime?: string
+  duration?: number
   transcript: string
-  summary: string | null
+  summary?: string
   actionItems: string[]
-  modeId: string | null
+  modeUsed?: string
   deviceId: string
   version: number
   checksum: string

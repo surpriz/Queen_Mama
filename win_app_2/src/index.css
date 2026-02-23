@@ -2,74 +2,6 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Pulsing animations for macOS parity */
-@keyframes pulse-expand-ring {
-  0%, 100% { transform: scale(1); opacity: 0.6; }
-  50% { transform: scale(1.3); opacity: 0; }
-}
-
-@keyframes pulse-dot {
-  0%, 100% { transform: scale(1); opacity: 1; }
-  50% { transform: scale(1.4); opacity: 0.6; }
-}
-
-@keyframes pulse-play-glow {
-  0%, 100% { transform: scale(1); opacity: 0.3; }
-  50% { transform: scale(1.2); opacity: 0; }
-}
-
-@keyframes pulse-recording {
-  0%, 100% { transform: scale(1); opacity: 0.8; }
-  50% { transform: scale(1.15); opacity: 0.4; }
-}
-
-/* Pulsing chevron animation - macOS parity */
-@keyframes pulse-chevron {
-  0%, 100% {
-    transform: translateY(0);
-    opacity: 1;
-  }
-  50% {
-    transform: translateY(2px);
-    opacity: 0.6;
-  }
-}
-
-.animate-pulse-chevron {
-  animation: pulse-chevron 1.5s ease-in-out infinite;
-}
-
-/* Screenshot flash animation */
-@keyframes screenshot-flash {
-  0% { transform: scale(0.8); opacity: 0; }
-  50% { transform: scale(1.2); opacity: 1; }
-  100% { transform: scale(1); opacity: 1; }
-}
-
-.animate-screenshot-flash {
-  animation: screenshot-flash 0.3s ease-out;
-}
-
-/* Glass morphism overlay */
-.overlay-glass {
-  backdrop-filter: blur(24px) saturate(1.2);
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.06) 0%, transparent 40%),
-    linear-gradient(135deg, rgba(139, 92, 246, 0.08) 0%, rgba(59, 130, 246, 0.04) 100%),
-    rgba(0, 0, 0, 0.4);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-/* Pill header glass variant */
-.pill-glass {
-  backdrop-filter: blur(20px) saturate(1.2);
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.05) 0%, transparent 50%),
-    linear-gradient(135deg, rgba(139, 92, 246, 0.06) 0%, rgba(59, 130, 246, 0.03) 100%),
-    rgba(0, 0, 0, 0.35);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-}
-
 @layer base {
   :root {
     --qm-gradient-start: #7C3AED;
@@ -112,4 +44,10 @@
   .titlebar-no-drag {
     -webkit-app-region: no-drag;
   }
+}
+
+/* Meeting reminder auto-dismiss countdown animation */
+@keyframes shrink-width {
+  0% { width: 100%; }
+  100% { width: 0%; }
 }

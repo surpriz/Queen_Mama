@@ -15,6 +15,8 @@ export const IPC_CHANNELS = {
   OVERLAY_HIDE: 'overlay:hide',
   OVERLAY_SET_EXPANDED: 'overlay:set-expanded',
   OVERLAY_SET_POSITION: 'overlay:set-position',
+  OVERLAY_SET_SIZE: 'overlay:set-size',
+  OVERLAY_GET_BOUNDS: 'overlay:get-bounds',
   OVERLAY_STATE_CHANGED: 'overlay:state-changed',
 
   // Session events (main → renderer)
@@ -79,6 +81,17 @@ export const IPC_CHANNELS = {
   RELAY_SESSION_STATE: 'relay:session-state',
   RELAY_TRANSCRIPT: 'relay:transcript',
   RELAY_AI_RESPONSE: 'relay:ai-response',
+  RELAY_AUDIO_LEVEL: 'relay:audio-level',
+
+  // Dialog / file operations
+  DIALOG_OPEN_FILE: 'dialog:open-file',
+  FILE_READ_TEXT: 'file:read-text',
+
+  // Meeting detection (main → renderer)
+  MEETING_DETECTED: 'meeting:detected',
+  MEETING_MONITOR_START: 'meeting:monitor-start',
+  MEETING_MONITOR_STOP: 'meeting:monitor-stop',
+  MEETING_DISMISS: 'meeting:dismiss',
 
   // Database operations
   DB_QUERY: 'db:query',
@@ -87,6 +100,7 @@ export const IPC_CHANNELS = {
   DB_INSERT: 'db:insert',
   DB_UPDATE: 'db:update',
   DB_DELETE: 'db:delete',
+  DB_WAL_CHECKPOINT: 'db:wal-checkpoint',
 } as const
 
 export type IPCChannel = (typeof IPC_CHANNELS)[keyof typeof IPC_CHANNELS]

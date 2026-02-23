@@ -101,34 +101,51 @@ export async function startGoogleAuth(): Promise<GoogleAuthResult> {
   }
 
   const port = serverResult.port
+  // IMPORTANT: Google OAuth for desktop apps requires 127.0.0.1, not localhost
+  // The redirect_uri must exactly match what the OAuth server is listening on
   const redirectUri = `http://127.0.0.1:${port}/callback`
 
   // Generate PKCE code verifier and challenge
   const codeVerifier = generateCodeVerifier()
   const codeChallenge = await generateCodeChallenge(codeVerifier)
 
+  console.log('[GoogleAuth] ========================================')
   console.log('[GoogleAuth] Starting OAuth flow with PKCE')
   console.log('[GoogleAuth] Client ID:', GOOGLE_CLIENT_ID.substring(0, 20) + '...')
   console.log('[GoogleAuth] Redirect URI:', redirectUri)
+  console.log('[GoogleAuth] OAuth server port:', port)
+  console.log('[GoogleAuth] ========================================')
 
   return new Promise((resolve) => {
     let cleanupFn: (() => void) | undefined
     let resolved = false
+    let timeoutId: ReturnType<typeof setTimeout> | undefined
 
     const cleanup = () => {
+      console.log('[GoogleAuth] Cleaning up...')
+      if (timeoutId) {
+        clearTimeout(timeoutId)
+        timeoutId = undefined
+      }
       cleanupFn?.()
-      window.electronAPI?.auth?.stopOAuthServer()
+      // Don't stop the server here - let the server handle its own cleanup
+      // The server will stop itself after sending the response
     }
 
     // Handler for the callback from the loopback server
     const handleCallback = (url: string) => {
-      if (resolved) return
+      console.log('[GoogleAuth] Callback handler invoked with URL:', url)
+
+      if (resolved) {
+        console.log('[GoogleAuth] Already resolved, ignoring callback')
+        return
+      }
       resolved = true
 
-      // Clean up listener and server
+      // Clean up listener (but not server - it handles its own cleanup)
       cleanup()
 
-      console.log('[GoogleAuth] Received callback URL')
+      console.log('[GoogleAuth] Processing callback URL...')
 
       try {
         const parsed = new URL(url)
@@ -140,7 +157,7 @@ export async function startGoogleAuth(): Promise<GoogleAuthResult> {
           console.error('[GoogleAuth] OAuth error:', error, errorDescription)
           resolve({ success: false, error: errorDescription || error })
         } else if (code) {
-          console.log('[GoogleAuth] Authorization code received')
+          console.log('[GoogleAuth] Authorization code received successfully!')
           resolve({
             success: true,
             code,
@@ -158,19 +175,25 @@ export async function startGoogleAuth(): Promise<GoogleAuthResult> {
     }
 
     // Register listener for callback from the loopback server
+    console.log('[GoogleAuth] Registering callback listener...')
     cleanupFn = window.electronAPI?.auth?.onProtocolCallback?.(handleCallback)
 
-    // Build and open OAuth URL
-    const authUrl = buildAuthorizationUrl(codeChallenge, redirectUri)
-    console.log('[GoogleAuth] Opening OAuth URL')
-    window.electronAPI?.openExternal(authUrl)
+    // Small delay to ensure server is fully ready before opening browser
+    setTimeout(() => {
+      // Build and open OAuth URL
+      const authUrl = buildAuthorizationUrl(codeChallenge, redirectUri)
+      console.log('[GoogleAuth] Opening OAuth URL in browser...')
+      console.log('[GoogleAuth] Auth URL:', authUrl.substring(0, 100) + '...')
+      window.electronAPI?.openExternal(authUrl)
+    }, 100)
 
     // Timeout after 5 minutes
-    setTimeout(() => {
+    timeoutId = setTimeout(() => {
       if (!resolved) {
         resolved = true
+        console.warn('[GoogleAuth] Authentication timed out after 5 minutes')
         cleanup()
-        console.warn('[GoogleAuth] Authentication timed out')
+        window.electronAPI?.auth?.stopOAuthServer()
         resolve({ success: false, error: 'Authentication timed out' })
       }
     }, 5 * 60 * 1000)

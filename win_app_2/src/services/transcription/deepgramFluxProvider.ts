@@ -9,6 +9,7 @@ export class DeepgramFluxProvider implements TranscriptionProvider {
   private ws: WebSocket | null = null
   private keepaliveInterval: ReturnType<typeof setInterval> | null = null
   private token: string | null = null
+  private tokenType: 'bearer' | 'token' = 'token'
 
   onTranscript: ((text: string) => void) | null = null
   onInterimTranscript: ((text: string) => void) | null = null
@@ -21,8 +22,10 @@ export class DeepgramFluxProvider implements TranscriptionProvider {
   async connect(): Promise<void> {
     const tokenResponse = await getTranscriptionToken('deepgram')
     this.token = tokenResponse.token
+    this.tokenType = tokenResponse.tokenType || 'token'
+    log.info(`Token received - type: ${this.tokenType}`)
 
-    const url =
+    let url =
       'wss://api.deepgram.com/v2/listen?' +
       'model=flux-general-en&' +
       'smart_format=true&' +
@@ -32,7 +35,14 @@ export class DeepgramFluxProvider implements TranscriptionProvider {
       'channels=1'
 
     return new Promise<void>((resolve, reject) => {
-      this.ws = new WebSocket(url, ['token', this.token!])
+      let ws: WebSocket
+      if (this.tokenType === 'bearer') {
+        url += `&token=${this.token}`
+        ws = new WebSocket(url)
+      } else {
+        ws = new WebSocket(url, ['token', this.token!])
+      }
+      this.ws = ws
 
       this.ws.onopen = () => {
         log.info('Connected')

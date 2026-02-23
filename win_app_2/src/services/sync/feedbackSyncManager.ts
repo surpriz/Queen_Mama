@@ -1,5 +1,8 @@
-import { proxyApiClient } from '@/services/proxy/proxyApiClient'
-import { authTokenStore } from '@/services/auth/authTokenStore'
+import { getAccessToken } from '@/services/auth/authenticationManager'
+import { getApiBaseUrl } from '@/services/config/appEnvironment'
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('FeedbackSync')
 
 interface FeedbackItem {
   id: string
@@ -41,8 +44,15 @@ export const feedbackSyncManager = {
       const queue = getQueue()
       if (queue.length === 0) return
 
-      const token = await authTokenStore.getAccessToken()
-      if (!token) return
+      let token: string
+      try {
+        token = await getAccessToken()
+      } catch {
+        log.warn('Not authenticated, skipping sync')
+        return
+      }
+
+      const baseUrl = getApiBaseUrl()
 
       // Send in batches of 10
       const batchSize = 10
@@ -55,13 +65,22 @@ export const feedbackSyncManager = {
 
       for (const batch of batches) {
         try {
-          await proxyApiClient.fetchWithAuth('/api/sync/feedback', {
+          const response = await fetch(`${baseUrl}/api/sync/feedback`, {
             method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${token}`,
+            },
             body: JSON.stringify({ feedback: batch }),
           })
-          succeeded.push(...batch.map((f) => f.id))
+          if (response.ok) {
+            succeeded.push(...batch.map((f) => f.id))
+          } else {
+            log.error(`Batch failed: ${response.status}`)
+            break
+          }
         } catch (error) {
-          console.error('[FeedbackSync] Batch failed:', error)
+          log.error('Batch failed:', error)
           break
         }
       }
@@ -70,6 +89,7 @@ export const feedbackSyncManager = {
       if (succeeded.length > 0) {
         const remaining = queue.filter((f) => !succeeded.includes(f.id))
         saveQueue(remaining)
+        log.info(`Synced ${succeeded.length} feedback items`)
       }
     } finally {
       isSyncing = false

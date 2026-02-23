@@ -6,7 +6,6 @@ import { OverlayPage } from './pages/OverlayPage'
 import { OnboardingPage } from './pages/OnboardingPage'
 import { ErrorBoundary } from './components/common/ErrorBoundary'
 import { LoadingSpinner } from './components/common/LoadingSpinner'
-import { FeatureTourModal, KeyboardShortcutsModal } from './components/tour'
 import { initializeApp } from './services/appInitializer'
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts'
 import { useOnboardingStore } from './stores/onboardingStore'
@@ -60,20 +59,14 @@ function AppContent() {
   const shouldShowOnboarding = !hasCompletedOnboarding && !isAuthenticated
 
   return (
-    <>
-      <Routes>
-        <Route
-          path="/"
-          element={shouldShowOnboarding ? <Navigate to="/onboarding" replace /> : <DashboardPage />}
-        />
-        <Route path="/onboarding" element={<OnboardingPage />} />
-        <Route path="/overlay" element={<OverlayPage />} />
-      </Routes>
-
-      {/* Global modals */}
-      <FeatureTourModal />
-      <KeyboardShortcutsModal />
-    </>
+    <Routes>
+      <Route
+        path="/"
+        element={shouldShowOnboarding ? <Navigate to="/onboarding" replace /> : <DashboardPage />}
+      />
+      <Route path="/onboarding" element={<OnboardingPage />} />
+      <Route path="/overlay" element={<OverlayPage />} />
+    </Routes>
   )
 }
 

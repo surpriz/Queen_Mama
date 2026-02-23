@@ -1877,6 +1877,19 @@ struct TranscriptionConnectionBanner: View {
                     .frame(width: 14, height: 14)
                 Text("Reconnecting (\(attempt)/\(maxAttempts))...")
                     .font(QMDesign.Typography.captionSmall)
+
+                Button(action: onRetry) {
+                    Text("Retry now")
+                        .font(QMDesign.Typography.captionSmall)
+                        .fontWeight(.semibold)
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 2)
+                        .background(
+                            Capsule()
+                                .fill(QMDesign.Colors.warning.opacity(0.3))
+                        )
+                }
+                .buttonStyle(.plain)
             }
             .foregroundColor(QMDesign.Colors.warning)
             .padding(.horizontal, QMDesign.Spacing.sm)

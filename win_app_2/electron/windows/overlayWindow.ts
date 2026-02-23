@@ -1,5 +1,8 @@
 import { BrowserWindow, screen } from 'electron'
 import { join } from 'path'
+import Store from 'electron-store'
+
+const store = new Store()
 
 let overlayWindow: BrowserWindow | null = null
 
@@ -13,6 +16,8 @@ export type OverlayPosition =
 
 const OVERLAY_COLLAPSED = { width: 380, height: 52 }
 const OVERLAY_EXPANDED = { width: 420, height: 480 }
+const OVERLAY_MIN = { width: 320, height: 300 }
+const OVERLAY_MAX = { width: 800, height: 900 }
 const MARGIN = 20
 
 export function createOverlayWindow(): BrowserWindow {
@@ -24,7 +29,7 @@ export function createOverlayWindow(): BrowserWindow {
     alwaysOnTop: true,
     skipTaskbar: true,
     resizable: false,
-    hasShadow: true,
+    hasShadow: false,
     focusable: true,
     backgroundColor: '#00000000',
     webPreferences: {
@@ -33,10 +38,26 @@ export function createOverlayWindow(): BrowserWindow {
       contextIsolation: true,
       nodeIntegration: false,
     },
-    show: false,
+    show: true,
   })
 
   overlayWindow.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true })
+
+  // Save size when user resizes (only when expanded)
+  overlayWindow.on('resize', () => {
+    if (!overlayWindow || overlayWindow.isDestroyed()) return
+    const [w, h] = overlayWindow.getSize()
+    // Only save if larger than collapsed (i.e. expanded state)
+    if (h > OVERLAY_COLLAPSED.height + 10) {
+      store.set('overlay.width', w)
+      store.set('overlay.height', h)
+    }
+  })
+
+  // Clean up reference when window is closed
+  overlayWindow.on('closed', () => {
+    overlayWindow = null
+  })
 
   if (process.env['ELECTRON_RENDERER_URL']) {
     overlayWindow.loadURL(`${process.env['ELECTRON_RENDERER_URL']}#/overlay`)
@@ -49,28 +70,31 @@ export function createOverlayWindow(): BrowserWindow {
   // Position at bottom right by default
   setOverlayPosition('bottomRight')
 
-  // Show overlay by default once loaded
-  overlayWindow.once('ready-to-show', () => {
-    overlayWindow?.show()
-  })
-
   return overlayWindow
 }
 
 export function getOverlayWindow(): BrowserWindow | null {
+  if (overlayWindow && overlayWindow.isDestroyed()) {
+    overlayWindow = null
+  }
   return overlayWindow
 }
 
 export function showOverlay(): void {
-  overlayWindow?.show()
+  if (overlayWindow && !overlayWindow.isDestroyed()) {
+    overlayWindow.show()
+  }
 }
 
 export function hideOverlay(): void {
-  overlayWindow?.hide()
+  if (overlayWindow && !overlayWindow.isDestroyed()) {
+    overlayWindow.hide()
+  }
 }
 
 export function toggleOverlay(): void {
-  if (overlayWindow?.isVisible()) {
+  if (!overlayWindow || overlayWindow.isDestroyed()) return
+  if (overlayWindow.isVisible()) {
     hideOverlay()
   } else {
     showOverlay()
@@ -78,11 +102,30 @@ export function toggleOverlay(): void {
 }
 
 export function setOverlayExpanded(expanded: boolean): void {
-  if (!overlayWindow) return
-  const size = expanded ? OVERLAY_EXPANDED : OVERLAY_COLLAPSED
-  const currentBounds = overlayWindow.getBounds()
+  if (!overlayWindow || overlayWindow.isDestroyed()) return
 
-  // Animate by adjusting from bottom-right anchor point
+  const currentBounds = overlayWindow.getBounds()
+  let size: { width: number; height: number }
+
+  if (expanded) {
+    // Restore saved size or use default expanded size
+    const savedW = store.get('overlay.width') as number | undefined
+    const savedH = store.get('overlay.height') as number | undefined
+    size = {
+      width: savedW && savedW >= OVERLAY_MIN.width ? savedW : OVERLAY_EXPANDED.width,
+      height: savedH && savedH >= OVERLAY_MIN.height ? savedH : OVERLAY_EXPANDED.height,
+    }
+    // Enable resizing when expanded
+    overlayWindow.setResizable(true)
+    overlayWindow.setMinimumSize(OVERLAY_MIN.width, OVERLAY_MIN.height)
+    overlayWindow.setMaximumSize(OVERLAY_MAX.width, OVERLAY_MAX.height)
+  } else {
+    size = OVERLAY_COLLAPSED
+    // Disable resizing when collapsed
+    overlayWindow.setResizable(false)
+  }
+
+  // Anchor from bottom-right
   const newX = currentBounds.x + currentBounds.width - size.width
   const newY = currentBounds.y + currentBounds.height - size.height
 
@@ -94,8 +137,18 @@ export function setOverlayExpanded(expanded: boolean): void {
   })
 }
 
+export function setOverlaySize(width: number, height: number): void {
+  if (!overlayWindow || overlayWindow.isDestroyed()) return
+  const w = Math.max(OVERLAY_MIN.width, Math.min(OVERLAY_MAX.width, width))
+  const h = Math.max(OVERLAY_MIN.height, Math.min(OVERLAY_MAX.height, height))
+  overlayWindow.setSize(w, h)
+  // Persist
+  store.set('overlay.width', w)
+  store.set('overlay.height', h)
+}
+
 export function setOverlayPosition(position: OverlayPosition): void {
-  if (!overlayWindow) return
+  if (!overlayWindow || overlayWindow.isDestroyed()) return
 
   const display = screen.getPrimaryDisplay()
   const { width: screenW, height: screenH } = display.workAreaSize

@@ -9,7 +9,7 @@ interface AccountStepProps {
 }
 
 export function AccountStep({ onContinue, onBack, allowSkip = true }: AccountStepProps) {
-  const { authState, isAuthenticated } = useAuthStore()
+  const { isAuthenticated } = useAuthStore()
 
   // Auto-advance when authenticated
   useEffect(() => {

@@ -1,7 +1,6 @@
-import { Search, Trash2, Download, Cloud, HardDrive } from 'lucide-react'
+import { Search, Trash2, Cloud, HardDrive } from 'lucide-react'
 import { useSession } from '@/hooks/useSession'
 import { formatDate, formatDuration, truncate } from '@/lib/utils'
-import { cn } from '@/lib/utils'
 
 interface SessionListProps {
   onSelectSession: (id: string) => void
@@ -72,9 +71,9 @@ export function SessionList({ onSelectSession }: SessionListProps) {
                 </div>
 
                 <button
-                  onClick={(e) => {
+                  onClick={async (e) => {
                     e.stopPropagation()
-                    deleteSession(session.id)
+                    await deleteSession(session.id)
                   }}
                   className="opacity-0 group-hover:opacity-100 p-2 rounded-qm-md hover:bg-qm-error-light text-qm-text-tertiary hover:text-qm-error transition-all"
                 >

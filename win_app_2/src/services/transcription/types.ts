@@ -1,6 +1,7 @@
 export interface TranscriptionProvider {
   readonly name: string
   readonly isConfigured: boolean
+  language?: string
   connect(): Promise<void>
   disconnect(): void
   sendAudio(data: ArrayBuffer): void

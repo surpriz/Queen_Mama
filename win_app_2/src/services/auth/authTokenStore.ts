@@ -43,7 +43,7 @@ export const authTokenStore = {
     const accessToken = await this.getAccessToken()
     const refreshToken = await this.getRefreshToken()
     if (!accessToken || !refreshToken) return null
-    return { accessToken, refreshToken }
+    return { accessToken, refreshToken, expiresIn: 3600 }
   },
 
   async setTokens(tokens: AuthTokens): Promise<void> {
@@ -60,7 +60,7 @@ export const authTokenStore = {
     try {
       const json = await window.electronAPI?.store.get(KEYS.user)
       if (!json) return null
-      return typeof json === 'string' ? JSON.parse(json) : json
+      return (typeof json === 'string' ? JSON.parse(json) : json) as AuthUser
     } catch {
       return null
     }

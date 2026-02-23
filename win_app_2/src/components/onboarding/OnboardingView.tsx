@@ -1,6 +1,6 @@
 import { useCallback } from 'react'
 import { X } from 'lucide-react'
-import { useOnboardingStore, OnboardingStep } from '@/stores/onboardingStore'
+import { useOnboardingStore } from '@/stores/onboardingStore'
 import { OnboardingStepIndicator } from './OnboardingStepIndicator'
 import { WelcomeStep } from './WelcomeStep'
 import { PermissionsStep } from './PermissionsStep'

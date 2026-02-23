@@ -3,7 +3,6 @@ import { useAuth } from '@/hooks/useAuth'
 import { GradientText } from '@/components/common/GradientText'
 import { LoadingSpinner } from '@/components/common/LoadingSpinner'
 import { createLogger } from '@/lib/logger'
-import { getWebBaseUrl } from '@/services/config/appEnvironment'
 
 const log = createLogger('SignInChoice')
 
@@ -15,8 +14,8 @@ interface SignInChoiceProps {
 export function SignInChoice({ onEmailSignIn, onRegister }: SignInChoiceProps) {
   const { authState, loginWithGoogle, startDeviceCodeFlow, cancelDeviceCodeFlow } = useAuth()
   const [isLoading, setIsLoading] = useState(false)
-  const [showEmailForm, setShowEmailForm] = useState(false)
-  const [showRegisterForm, setShowRegisterForm] = useState(false)
+  const [, setShowEmailForm] = useState(false)
+  const [, setShowRegisterForm] = useState(false)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
 
   const handleEmailSignIn = () => {
@@ -73,16 +72,12 @@ export function SignInChoice({ onEmailSignIn, onRegister }: SignInChoiceProps) {
     setIsLoading(false)
   }
 
-  const handleOpenDevicePage = () => {
-    window.electronAPI?.openExternal(`${getWebBaseUrl()}/auth/device`)
-  }
-
   // Show device code UI when authState is deviceCodePending
   if (authState.type === 'deviceCodePending') {
     return (
       <div className="flex flex-col items-center gap-6 p-8">
         <GradientText as="h2" className="text-title-sm font-semibold">
-          Enter this code on the web
+          Enter this code on queenmama.ai
         </GradientText>
         <div className="px-8 py-4 rounded-qm-lg bg-qm-surface-medium border border-qm-border-medium">
           <span className="text-title-lg font-mono font-bold text-qm-text-primary tracking-widest">
@@ -90,14 +85,8 @@ export function SignInChoice({ onEmailSignIn, onRegister }: SignInChoiceProps) {
           </span>
         </div>
         <p className="text-body-sm text-qm-text-secondary text-center">
-          Enter this code at {getWebBaseUrl().replace(/^https?:\/\//, '')}/auth/device
+          Go to <a href="https://queenmama.ai/device" target="_blank" rel="noopener noreferrer" className="text-qm-accent hover:underline">queenmama.ai/device</a> and enter this code to sign in
         </p>
-        <button
-          onClick={handleOpenDevicePage}
-          className="px-4 py-2 rounded-qm-lg bg-qm-accent text-white font-medium hover:bg-qm-accent/90 transition-colors"
-        >
-          Open in Browser
-        </button>
         <LoadingSpinner />
         <button
           onClick={handleCancelDeviceCode}

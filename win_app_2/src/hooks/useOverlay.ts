@@ -1,5 +1,6 @@
 import { useCallback } from 'react'
-import { useOverlayStore, type OverlayPosition } from '@/stores/overlayStore'
+import { useOverlayStore } from '@/stores/overlayStore'
+import type { OverlayPosition } from '@/types/electron.d'
 
 export function useOverlay() {
   const isExpanded = useOverlayStore((s) => s.isExpanded)

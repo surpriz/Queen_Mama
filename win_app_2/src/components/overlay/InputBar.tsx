@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { ArrowUp, Sparkles, Lock, Command, CornerDownLeft } from 'lucide-react'
+import { useState, useEffect, useRef } from 'react'
+import { Send, Brain } from 'lucide-react'
 import { useAppStore } from '@/stores/appStore'
 import { useConfigStore } from '@/stores/configStore'
 import * as aiService from '@/services/ai/aiService'
@@ -23,35 +23,58 @@ export function InputBar() {
   }
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+    if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault()
       handleSubmit()
     }
   }
 
-  const handleToggleSmartMode = () => {
-    updateConfig({ smartModeEnabled: !smartModeEnabled })
+  const [showSmartToast, setShowSmartToast] = useState(false)
+  const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  const handleToggleSmart = () => {
+    const willEnable = !smartModeEnabled
+    updateConfig({ smartModeEnabled: willEnable })
+
+    if (willEnable) {
+      setShowSmartToast(true)
+      if (toastTimerRef.current) clearTimeout(toastTimerRef.current)
+      toastTimerRef.current = setTimeout(() => setShowSmartToast(false), 2000)
+    }
   }
 
+  useEffect(() => {
+    return () => {
+      if (toastTimerRef.current) clearTimeout(toastTimerRef.current)
+    }
+  }, [])
+
   return (
-    <div className="flex items-center gap-2 px-3 border-t border-qm-border-subtle" style={{ height: 52 }}>
-      {/* Smart Mode Toggle with lock icon (like macOS) */}
+    <div className="relative flex items-center gap-2 px-3 border-t border-qm-border-subtle" style={{ height: 48 }}>
+      {/* Smart Mode activated toast */}
+      {showSmartToast && (
+        <div className="absolute -top-8 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full bg-purple-500/20 text-purple-300 text-caption-sm font-medium whitespace-nowrap animate-qm-fade-in transition-opacity duration-500"
+          style={{ pointerEvents: 'none' }}
+        >
+          Smart Mode activated
+        </div>
+      )}
+
+      {/* Smart Mode toggle */}
       <button
-        onClick={handleToggleSmartMode}
+        onClick={handleToggleSmart}
         className={cn(
-          'flex items-center gap-1 px-2.5 py-1.5 rounded-full text-[11px] font-medium transition-colors border shrink-0',
+          'flex items-center gap-1 px-2 py-1 rounded-full text-caption-sm font-medium transition-colors flex-shrink-0',
           smartModeEnabled
-            ? 'bg-qm-accent/10 text-qm-text-secondary border-qm-accent/30'
-            : 'bg-qm-surface-light/50 text-qm-text-tertiary border-qm-border-subtle hover:bg-qm-surface-hover',
+            ? 'bg-purple-500/15 text-purple-400'
+            : 'bg-qm-surface-medium text-qm-text-tertiary hover:bg-qm-surface-hover',
         )}
-        title="Smart Mode - Context-aware responses"
+        title={smartModeEnabled ? 'Smart Mode ON' : 'Smart Mode OFF'}
       >
-        <Sparkles size={12} className={smartModeEnabled ? 'text-qm-accent' : ''} />
-        Smart
-        <Lock size={8} className="text-qm-text-disabled ml-0.5" />
+        <Brain size={12} />
+        <span>Smart</span>
       </button>
 
-      {/* Input field */}
       <input
         type="text"
         value={input}
@@ -61,29 +84,12 @@ export function InputBar() {
         disabled={isProcessing}
         className="flex-1 bg-transparent text-body-sm text-qm-text-primary placeholder:text-qm-text-disabled focus:outline-none disabled:opacity-50"
       />
-
-      {/* Keyboard shortcut badges (like macOS: ⌘ ↵) */}
-      <div className="hidden sm:flex items-center gap-1 shrink-0">
-        <kbd className="flex items-center justify-center w-5 h-5 rounded bg-qm-surface-light text-qm-text-disabled text-[10px]">
-          <Command size={10} />
-        </kbd>
-        <kbd className="flex items-center justify-center w-5 h-5 rounded bg-qm-surface-light text-qm-text-disabled text-[10px]">
-          <CornerDownLeft size={10} />
-        </kbd>
-      </div>
-
-      {/* Send button - ArrowUp in circle (like macOS) */}
       <button
         onClick={handleSubmit}
         disabled={!input.trim() || isProcessing}
-        className={cn(
-          'flex items-center justify-center w-8 h-8 rounded-full transition-all shrink-0',
-          input.trim() && !isProcessing
-            ? 'bg-gradient-to-br from-qm-gradient-start to-qm-gradient-end hover:scale-110 active:scale-95 shadow-qm-glow'
-            : 'bg-qm-surface-light opacity-30',
-        )}
+        className="p-1.5 rounded-full bg-qm-accent/20 text-qm-accent hover:bg-qm-accent/30 disabled:opacity-30 disabled:hover:bg-transparent transition-colors"
       >
-        <ArrowUp size={16} className="text-white" strokeWidth={2.5} />
+        <Send size={14} />
       </button>
     </div>
   )
