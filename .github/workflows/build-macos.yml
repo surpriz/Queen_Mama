@@ -70,17 +70,14 @@ jobs:
       - name: Calculate next build number
         id: build_number
         run: |
-          # Fetch the current highest build number from appcast.xml
-          CURRENT_BUILD=$(curl -sL "https://www.queenmama.co/appcast.xml" | grep -o 'sparkle:version>[0-9]*<' | grep -o '[0-9]*' | sort -n | tail -1)
-
-          if [ -z "$CURRENT_BUILD" ]; then
-            CURRENT_BUILD=15  # Fallback to current known build
-          fi
-
-          NEXT_BUILD=$((CURRENT_BUILD + 1))
-          echo "current_build=$CURRENT_BUILD" >> $GITHUB_OUTPUT
+          # Use GitHub run_number as the build number.
+          # It auto-increments per workflow, is always unique, and avoids
+          # the race condition of reading from the live appcast.xml
+          # (two concurrent builds could read the same value).
+          # Offset by 50 to stay above the legacy appcast-derived numbers (last was 37).
+          NEXT_BUILD=$(( ${{ github.run_number }} + 50 ))
           echo "next_build=$NEXT_BUILD" >> $GITHUB_OUTPUT
-          echo "📊 Current build: $CURRENT_BUILD, Next build: $NEXT_BUILD"
+          echo "📊 Build number: $NEXT_BUILD (from run_number ${{ github.run_number }})"
 
       - name: Update Info.plist with new build number
         run: |
