@@ -426,6 +426,9 @@ jobs:
         if: steps.sparkle_sign.outputs.signature != '' && steps.release_type.outputs.is_prerelease == 'false'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID_PROD }}
         run: |
           VERSION="${{ steps.version_info.outputs.version }}"
           BUILD_NUMBER="${{ steps.version_info.outputs.build_number }}"
@@ -523,10 +526,12 @@ jobs:
           git push origin main
 
           # GITHUB_TOKEN pushes don't trigger push-based workflows (anti-loop protection)
-          # but workflow_dispatch events ARE triggered, so we explicitly invoke deploy-gate
-          echo "🔄 Triggering Vercel deployment for appcast update..."
-          gh workflow run deploy-gate.yml --ref main
-          echo "✅ appcast.xml updated, pushed, and Vercel deployment triggered"
+          # and GITHUB_TOKEN also can't trigger workflow_dispatch (403 error).
+          # Instead, deploy directly to Vercel from this step.
+          echo "🔄 Deploying appcast update to Vercel..."
+          npm i -g vercel
+          vercel deploy --prod --token=$VERCEL_TOKEN --cwd landing
+          echo "✅ appcast.xml updated, pushed, and Vercel deployment completed"
 
       - name: Cleanup
         if: always()
