@@ -42,6 +42,7 @@ protocol TranscriptionProvider: AnyObject {
     var providerType: TranscriptionProviderType { get }
     var isConfigured: Bool { get }
     var isConnected: Bool { get set }
+    var isTokenRefreshing: Bool { get }
 
     var onTranscript: ((String) -> Void)? { get set }
     var onInterimTranscript: ((String) -> Void)? { get set }
@@ -70,8 +71,9 @@ final class DeepgramProvider: TranscriptionProvider {
     private var currentToken: TranscriptionToken?
     private var tokenRefreshTask: Task<Void, Never>?
     private var isRefreshingToken = false
+    var isTokenRefreshing: Bool { isRefreshingToken }
     private var consecutiveKeepaliveFailures = 0
-    private let maxConsecutiveKeepaliveFailures = 3
+    private let maxConsecutiveKeepaliveFailures = 2
     private var urlSession: URLSession?
 
     // Deepgram configuration
@@ -153,11 +155,30 @@ final class DeepgramProvider: TranscriptionProvider {
         webSocketTask = session.webSocketTask(with: request)
         webSocketTask?.resume()
 
+        // Confirm connection with a ping before marking as connected
+        // This prevents isConnected = true when the handshake fails mid-way
+        do {
+            try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
+                webSocketTask?.sendPing { error in
+                    if let error {
+                        continuation.resume(throwing: error)
+                    } else {
+                        continuation.resume()
+                    }
+                }
+            }
+        } catch {
+            print("[Deepgram] WebSocket ping failed, connection not established: \(error)")
+            webSocketTask?.cancel(with: .abnormalClosure, reason: nil)
+            webSocketTask = nil
+            throw TranscriptionError.connectionFailed(error)
+        }
+
         isConnected = true
         audioBytesSent = 0
         consecutiveKeepaliveFailures = 0
 
-        print("[Deepgram] WebSocket connected successfully!")
+        print("[Deepgram] WebSocket connected successfully (ping confirmed)!")
 
         // Start receiving messages
         receiveMessages()
@@ -241,7 +262,7 @@ final class DeepgramProvider: TranscriptionProvider {
 
     private func startKeepalive() {
         stopKeepalive()
-        keepaliveTimer = Timer.scheduledTimer(withTimeInterval: 8.0, repeats: true) { [weak self] _ in
+        keepaliveTimer = Timer.scheduledTimer(withTimeInterval: 5.0, repeats: true) { [weak self] _ in
             guard let self else { return }
             Task { @MainActor [weak self] in
                 self?.sendKeepalive()
@@ -256,6 +277,13 @@ final class DeepgramProvider: TranscriptionProvider {
 
     private func sendKeepalive() {
         guard isConnected, let task = webSocketTask else { return }
+
+        // Fast-detect dead connection: if task is already closing/closed, trigger error immediately
+        if task.state == .canceling || task.state == .completed {
+            print("[Deepgram] WebSocket task in terminal state (\(task.state.rawValue)), triggering reconnection")
+            handleError(NSError(domain: NSPOSIXErrorDomain, code: 57, userInfo: [NSLocalizedDescriptionKey: "Socket is not connected"]))
+            return
+        }
 
         let keepaliveMessage = "{\"type\": \"KeepAlive\"}"
         let message = URLSessionWebSocketTask.Message.string(keepaliveMessage)
@@ -391,6 +419,7 @@ final class AssemblyAIProvider: TranscriptionProvider {
     private var currentToken: TranscriptionToken?
     private var tokenRefreshTask: Task<Void, Never>?
     private var isRefreshingToken = false
+    var isTokenRefreshing: Bool { isRefreshingToken }
     private var urlSession: URLSession?
 
     // AssemblyAI configuration
@@ -688,6 +717,7 @@ final class DeepgramFluxProvider: TranscriptionProvider {
     private var currentToken: TranscriptionToken?
     private var tokenRefreshTask: Task<Void, Never>?
     private var isRefreshingToken = false
+    var isTokenRefreshing: Bool { isRefreshingToken }
     private var urlSession: URLSession?
 
     // Deepgram Flux configuration - uses v2 endpoint
@@ -765,10 +795,28 @@ final class DeepgramFluxProvider: TranscriptionProvider {
         webSocketTask = session.webSocketTask(with: request)
         webSocketTask?.resume()
 
+        // Confirm connection with a ping before marking as connected
+        do {
+            try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
+                webSocketTask?.sendPing { error in
+                    if let error {
+                        continuation.resume(throwing: error)
+                    } else {
+                        continuation.resume()
+                    }
+                }
+            }
+        } catch {
+            print("[Deepgram Flux] WebSocket ping failed, connection not established: \(error)")
+            webSocketTask?.cancel(with: .abnormalClosure, reason: nil)
+            webSocketTask = nil
+            throw TranscriptionError.connectionFailed(error)
+        }
+
         isConnected = true
         audioBytesSent = 0
 
-        print("[Deepgram Flux] WebSocket connected successfully!")
+        print("[Deepgram Flux] WebSocket connected successfully (ping confirmed)!")
 
         // Start receiving messages
         receiveMessages()
