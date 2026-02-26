@@ -246,8 +246,13 @@ final class AudioCaptureService: ObservableObject {
             // === Dispatch results to main thread ===
             DispatchQueue.main.async { [weak self] in
                 guard let self = self else { return }
-                self.microphoneLevel = meterLevel
                 self.audioBufferCount += 1
+                // Update microphoneLevel only every 5 buffers (~500ms) to reduce
+                // main thread property updates by 80%. The audio data callback
+                // still fires every buffer for transcription accuracy.
+                if self.audioBufferCount % 5 == 0 {
+                    self.microphoneLevel = meterLevel
+                }
                 if self.audioBufferCount % 100 == 0 {
                     print("[AudioCapture] Processed \(self.audioBufferCount) buffers, sending \(data.count) bytes")
                 }

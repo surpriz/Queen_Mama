@@ -294,15 +294,26 @@ final class HealthCheckService: ObservableObject {
     private func reportAnomaly(type: AnomalyType, message: String, severity: Severity, extras: [String: Any]) {
         print("[HealthCheck] ANOMALY: \(type.rawValue) - \(message)")
 
-        // Report to Sentry
-        CrashReporter.shared.captureMessage(message, level: severity.sentryLevel)
+        // Only report highMemory as a full Sentry event.
+        // connectionUnstable, aiResponseSlow, lowTranscription are already reported
+        // by their respective services (TranscriptionService, AIService) — sending
+        // duplicate captureMessage here floods Sentry with noise.
+        switch type {
+        case .highMemory:
+            CrashReporter.shared.captureMessage(message, level: severity.sentryLevel)
+        case .connectionUnstable, .aiResponseSlow, .lowTranscription:
+            // Breadcrumb only — avoids duplicate Sentry events
+            break
+        }
+
+        // Always add breadcrumb for debugging context
         CrashReporter.shared.addBreadcrumb(
             category: "health_check",
             message: "\(type.rawValue): \(message)",
             level: severity.sentryLevel
         )
 
-        // Report to PostHog
+        // Report to PostHog (keep analytics for all anomaly types)
         var properties: [String: Any] = [
             "anomaly_type": type.rawValue,
             "message": message,

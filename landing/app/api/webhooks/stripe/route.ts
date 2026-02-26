@@ -1,5 +1,6 @@
 import { getStripe } from "@/lib/stripe";
 import { prisma } from "@/lib/prisma";
+import { Prisma } from "@prisma/client";
 import { headers } from "next/headers";
 import { NextResponse } from "next/server";
 import Stripe from "stripe";
@@ -43,6 +44,12 @@ export async function POST(request: Request) {
             session.subscription as string
           );
 
+          // Safe access to subscription items (fixes LANDING-D: 74 events)
+          const priceId = subscription.items?.data?.[0]?.price?.id ?? null;
+          if (!priceId) {
+            console.warn(`[Webhook] Subscription ${subscription.id} has no items/price — skipping priceId`);
+          }
+
           // Check for existing subscription and cancel it
           const existingSubscription = await prisma.subscription.findUnique({
             where: { userId },
@@ -64,34 +71,43 @@ export async function POST(request: Request) {
             data: { stripeCustomerId: session.customer as string },
           });
 
-          await prisma.subscription.upsert({
-            where: { userId },
-            create: {
-              userId,
-              plan,
-              status: subscription.status === "trialing" ? "TRIALING" : "ACTIVE",
-              stripeSubscriptionId: subscription.id,
-              stripePriceId: subscription.items.data[0].price.id,
-              currentPeriodStart: subscription.current_period_start
-                ? new Date(subscription.current_period_start * 1000)
-                : null,
-              currentPeriodEnd: subscription.current_period_end
-                ? new Date(subscription.current_period_end * 1000)
-                : null,
-            },
-            update: {
-              plan,
-              status: subscription.status === "trialing" ? "TRIALING" : "ACTIVE",
-              stripeSubscriptionId: subscription.id,
-              stripePriceId: subscription.items.data[0].price.id,
-              currentPeriodStart: subscription.current_period_start
-                ? new Date(subscription.current_period_start * 1000)
-                : null,
-              currentPeriodEnd: subscription.current_period_end
-                ? new Date(subscription.current_period_end * 1000)
-                : null,
-            },
-          });
+          try {
+            await prisma.subscription.upsert({
+              where: { userId },
+              create: {
+                userId,
+                plan,
+                status: subscription.status === "trialing" ? "TRIALING" : "ACTIVE",
+                stripeSubscriptionId: subscription.id,
+                stripePriceId: priceId,
+                currentPeriodStart: subscription.current_period_start
+                  ? new Date(subscription.current_period_start * 1000)
+                  : null,
+                currentPeriodEnd: subscription.current_period_end
+                  ? new Date(subscription.current_period_end * 1000)
+                  : null,
+              },
+              update: {
+                plan,
+                status: subscription.status === "trialing" ? "TRIALING" : "ACTIVE",
+                stripeSubscriptionId: subscription.id,
+                stripePriceId: priceId,
+                currentPeriodStart: subscription.current_period_start
+                  ? new Date(subscription.current_period_start * 1000)
+                  : null,
+                currentPeriodEnd: subscription.current_period_end
+                  ? new Date(subscription.current_period_end * 1000)
+                  : null,
+              },
+            });
+          } catch (upsertError) {
+            // Handle unique constraint violations gracefully (fixes LANDING-A, LANDING-6)
+            if (upsertError instanceof Prisma.PrismaClientKnownRequestError && upsertError.code === "P2002") {
+              console.warn(`[Webhook] Unique constraint conflict for user ${userId} — likely concurrent webhook. Skipping.`);
+            } else {
+              throw upsertError;
+            }
+          }
         }
         break;
       }

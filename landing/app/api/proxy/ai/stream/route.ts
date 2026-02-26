@@ -197,6 +197,10 @@ export async function POST(request: Request) {
     const encoder = new TextEncoder();
     const userId = user.id;
 
+    // AbortController to handle client disconnections gracefully (fixes LANDING-E)
+    const abortController = new AbortController();
+    let streamClosed = false;
+
     const stream = new ReadableStream({
       async start(controller) {
         let successProvider: string | null = null;
@@ -205,6 +209,8 @@ export async function POST(request: Request) {
 
         // Try each model in the cascade until one succeeds
         for (const cascadeItem of cascade) {
+          if (abortController.signal.aborted) break;
+
           const { provider, model } = cascadeItem;
 
           try {
@@ -253,11 +259,18 @@ export async function POST(request: Request) {
             const decoder = new TextDecoder();
 
             while (true) {
+              if (abortController.signal.aborted) {
+                reader.cancel();
+                break;
+              }
+
               const { done, value } = await reader.read();
               if (done) break;
 
               const chunk = decoder.decode(value, { stream: true });
-              controller.enqueue(encoder.encode(chunk));
+              if (!streamClosed) {
+                controller.enqueue(encoder.encode(chunk));
+              }
             }
 
             successProvider = provider;
@@ -266,6 +279,11 @@ export async function POST(request: Request) {
             break; // Exit cascade loop on success
 
           } catch (error) {
+            // Handle abort errors silently (client disconnected)
+            if (error instanceof Error && (error.name === "AbortError" || error.message.includes("aborted"))) {
+              console.log(`[AI Cascade] Stream aborted by client during ${provider}/${model}`);
+              break;
+            }
             const errorMsg = error instanceof Error ? error.message : String(error);
             console.error(`[AI Cascade] ${provider}/${model} failed:`, errorMsg);
             errors.push(`${provider}/${model}: ${errorMsg}`);
@@ -273,9 +291,12 @@ export async function POST(request: Request) {
           }
         }
 
+        if (streamClosed) return;
+
         if (successProvider && successModel) {
           // Send completion marker with provider info
           controller.enqueue(encoder.encode(`data: [DONE]\n\n`));
+          streamClosed = true;
           controller.close();
 
           // Record usage (async, don't block stream)
@@ -308,15 +329,23 @@ export async function POST(request: Request) {
         } else {
           // All providers failed
           console.error("[AI Cascade] All providers failed:", errors);
-          controller.enqueue(
-            encoder.encode(`data: ${JSON.stringify({
-              error: "all_providers_failed",
-              message: "All AI providers failed. Please try again.",
-              details: errors
-            })}\n\n`)
-          );
-          controller.close();
+          if (!streamClosed) {
+            controller.enqueue(
+              encoder.encode(`data: ${JSON.stringify({
+                error: "all_providers_failed",
+                message: "All AI providers failed. Please try again.",
+                details: errors
+              })}\n\n`)
+            );
+            streamClosed = true;
+            controller.close();
+          }
         }
+      },
+      cancel() {
+        // Client disconnected — abort upstream requests gracefully
+        abortController.abort();
+        streamClosed = true;
       },
     });
 
@@ -332,8 +361,9 @@ export async function POST(request: Request) {
     });
   } catch (error) {
     console.error("AI stream proxy error:", error);
+    const errorMessage = error instanceof Error ? error.message : "AI streaming request failed";
     return NextResponse.json(
-      { error: "server_error", message: "AI streaming request failed" },
+      { error: "server_error", message: errorMessage },
       { status: 500, headers: corsHeaders }
     );
   }
@@ -423,15 +453,19 @@ async function streamOpenAICompatible(
   const encoder = new TextEncoder();
   const decoder = new TextDecoder();
 
+  const MAX_CHUNKS = 50_000; // Safety guard against infinite loops
   return new ReadableStream({
     async start(controller) {
       try {
+        let chunkCount = 0;
         while (true) {
-          const { done, value } = await reader.read();
-          if (done) {
-            controller.close();
-            return;
+          if (++chunkCount > MAX_CHUNKS) {
+            console.warn(`[${provider}] Stream exceeded ${MAX_CHUNKS} chunks, closing`);
+            break;
           }
+
+          const { done, value } = await reader.read();
+          if (done) break;
 
           const chunk = decoder.decode(value, { stream: true });
           const lines = chunk.split("\n").filter((line) => line.startsWith("data: "));
@@ -451,6 +485,7 @@ async function streamOpenAICompatible(
             }
           }
         }
+        controller.close();
       } catch (error) {
         controller.error(error);
       }
@@ -544,15 +579,19 @@ async function streamAnthropic(
   const encoder = new TextEncoder();
   const decoder = new TextDecoder();
 
+  const MAX_CHUNKS = 50_000; // Safety guard against infinite loops
   return new ReadableStream({
     async start(controller) {
       try {
+        let chunkCount = 0;
         while (true) {
-          const { done, value } = await reader.read();
-          if (done) {
-            controller.close();
-            return;
+          if (++chunkCount > MAX_CHUNKS) {
+            console.warn("[Anthropic] Stream exceeded max chunks, closing");
+            break;
           }
+
+          const { done, value } = await reader.read();
+          if (done) break;
 
           const chunk = decoder.decode(value, { stream: true });
           const lines = chunk.split("\n").filter((line) => line.startsWith("data: "));
@@ -574,6 +613,7 @@ async function streamAnthropic(
             }
           }
         }
+        controller.close();
       } catch (error) {
         controller.error(error);
       }
