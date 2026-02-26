@@ -1,16 +1,13 @@
 import { useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
 import { useAuth } from '@/hooks/useAuth'
 import { LoadingSpinner } from '@/components/common/LoadingSpinner'
 import { GradientText } from '@/components/common/GradientText'
 
 interface AuthGateProps {
   children: React.ReactNode
-  onNeedAuth?: () => void
 }
 
-export function AuthGate({ children, onNeedAuth }: AuthGateProps) {
-  const navigate = useNavigate()
+export function AuthGate({ children }: AuthGateProps) {
   const { authState, checkExistingAuth } = useAuth()
   const [isChecking, setIsChecking] = useState(true)
 
@@ -21,16 +18,6 @@ export function AuthGate({ children, onNeedAuth }: AuthGateProps) {
     }
     check()
   }, [])
-
-  useEffect(() => {
-    if (!isChecking && authState.type === 'unauthenticated') {
-      if (onNeedAuth) {
-        onNeedAuth()
-      } else {
-        navigate('/onboarding')
-      }
-    }
-  }, [isChecking, authState.type, onNeedAuth, navigate])
 
   if (isChecking || authState.type === 'unknown') {
     return (
@@ -50,5 +37,6 @@ export function AuthGate({ children, onNeedAuth }: AuthGateProps) {
     return <>{children}</>
   }
 
+  // App.tsx routing handles unauthenticated state
   return null
 }

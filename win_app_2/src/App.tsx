@@ -1,15 +1,18 @@
-import { useEffect, useState } from 'react'
-import { HashRouter, Routes, Route, Navigate } from 'react-router-dom'
+import { useEffect, useState, useMemo } from 'react'
+import { HashRouter, Routes, Route } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { DashboardPage } from './pages/DashboardPage'
 import { OverlayPage } from './pages/OverlayPage'
 import { OnboardingPage } from './pages/OnboardingPage'
+import { ReauthenticationView } from './components/auth/ReauthenticationView'
 import { ErrorBoundary } from './components/common/ErrorBoundary'
 import { LoadingSpinner } from './components/common/LoadingSpinner'
 import { initializeApp } from './services/appInitializer'
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts'
 import { useOnboardingStore } from './stores/onboardingStore'
 import { useAuthStore } from './stores/authStore'
+
+type LaunchState = 'checking' | 'dashboard' | 'login' | 'onboarding'
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -23,7 +26,7 @@ const queryClient = new QueryClient({
 function AppContent() {
   const [isInitialized, setIsInitialized] = useState(false)
   const { hasCompletedOnboarding, loadOnboardingState } = useOnboardingStore()
-  const { isAuthenticated } = useAuthStore()
+  const { authState, isAuthenticated, sessionExpired } = useAuthStore()
 
   // Register global keyboard shortcut handlers
   useKeyboardShortcuts()
@@ -44,27 +47,43 @@ function AppContent() {
     initialize()
   }, [loadOnboardingState])
 
-  if (!isInitialized) {
-    return (
-      <div className="flex h-screen items-center justify-center bg-qm-bg-primary">
-        <LoadingSpinner size="lg" label="Initializing..." />
-      </div>
-    )
-  }
+  // Reactive launch state — mirrors macOS checkAuthAndSetLaunchState()
+  const launchState: LaunchState = useMemo(() => {
+    const state = (() => {
+      if (!isInitialized || authState.type === 'unknown') return 'checking'
+      if (isAuthenticated && hasCompletedOnboarding) return 'dashboard'
+      if (isAuthenticated && !hasCompletedOnboarding) return 'onboarding'
+      // Not authenticated
+      if (hasCompletedOnboarding || sessionExpired) return 'login'
+      return 'onboarding'
+    })()
+    console.log('[App] launchState:', state, { isInitialized, authType: authState.type, isAuthenticated, hasCompletedOnboarding, sessionExpired })
+    return state
+  }, [isInitialized, authState.type, isAuthenticated, hasCompletedOnboarding, sessionExpired])
 
-  // Determine if we should show onboarding
-  // Show onboarding if:
-  // 1. User hasn't completed onboarding AND
-  // 2. User is not authenticated (or hasn't been through onboarding flow)
-  const shouldShowOnboarding = !hasCompletedOnboarding && !isAuthenticated
+  const handleReauthenticated = () => {
+    // State is reactive — setAuthenticated() in authStore will
+    // recalculate launchState to 'dashboard' automatically
+  }
 
   return (
     <Routes>
       <Route
         path="/"
-        element={shouldShowOnboarding ? <Navigate to="/onboarding" replace /> : <DashboardPage />}
+        element={
+          launchState === 'checking' ? (
+            <div className="flex h-screen items-center justify-center bg-qm-bg-primary">
+              <LoadingSpinner size="lg" label="Initializing..." />
+            </div>
+          ) : launchState === 'dashboard' ? (
+            <DashboardPage />
+          ) : launchState === 'login' ? (
+            <ReauthenticationView onAuthenticated={handleReauthenticated} />
+          ) : (
+            <OnboardingPage />
+          )
+        }
       />
-      <Route path="/onboarding" element={<OnboardingPage />} />
       <Route path="/overlay" element={<OverlayPage />} />
     </Routes>
   )
