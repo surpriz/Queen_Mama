@@ -280,7 +280,11 @@ struct AIContext: @unchecked Sendable {
         } else {
             // For built-in modes, use the traditional combination
             prompt = mode?.systemPrompt ?? Mode.defaultMode.systemPrompt
-            prompt += "\n\n" + responseType.systemPromptAddition
+            // Developer Exam has its own complete prompt — skip responseType addition
+            // to avoid conflicting instructions (e.g. .assist adding "1-2 sentences max")
+            if mode?.name != "Developer Exam" {
+                prompt += "\n\n" + responseType.systemPromptAddition
+            }
             print("[AIContext] Using BUILT-IN mode logic with responseType: \(responseType.rawValue)")
         }
 

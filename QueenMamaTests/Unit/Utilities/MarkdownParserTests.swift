@@ -9,6 +9,9 @@
 //  - Mixed content (headers + paragraphs)
 //  - Empty input
 //  - Multi-line paragraph merging
+//  - Code blocks (fenced, with language, unclosed)
+//  - Bullet lists (- and *)
+//  - Ordered lists (1. 2. 3.)
 //
 
 import XCTest
@@ -254,5 +257,209 @@ final class MarkdownParserTests: XCTestCase {
         if case .header1 = blocks[0] {} else { XCTFail("Expected header1") }
         if case .header2 = blocks[1] {} else { XCTFail("Expected header2") }
         if case .header3 = blocks[2] {} else { XCTFail("Expected header3") }
+    }
+
+    // MARK: - Code Blocks
+
+    func test_parse_codeBlock_basic() {
+        let input = "```\nprint(\"hello\")\n```"
+        let blocks = MarkdownParser.parse(input)
+
+        XCTAssertEqual(blocks.count, 1)
+        if case .codeBlock(let code, let language) = blocks[0] {
+            XCTAssertEqual(code, "print(\"hello\")")
+            XCTAssertNil(language, "No language specified")
+        } else {
+            XCTFail("Expected codeBlock, got \(blocks[0])")
+        }
+    }
+
+    func test_parse_codeBlock_withLanguage() {
+        let input = "```python\ndef hello():\n    print(\"hi\")\n```"
+        let blocks = MarkdownParser.parse(input)
+
+        XCTAssertEqual(blocks.count, 1)
+        if case .codeBlock(let code, let language) = blocks[0] {
+            XCTAssertEqual(language, "python")
+            XCTAssertTrue(code.contains("def hello():"))
+            XCTAssertTrue(code.contains("    print(\"hi\")"))
+        } else {
+            XCTFail("Expected codeBlock, got \(blocks[0])")
+        }
+    }
+
+    func test_parse_codeBlock_preservesIndentation() {
+        let input = "```\nif true {\n    let x = 1\n        let y = 2\n}\n```"
+        let blocks = MarkdownParser.parse(input)
+
+        XCTAssertEqual(blocks.count, 1)
+        if case .codeBlock(let code, _) = blocks[0] {
+            let lines = code.components(separatedBy: "\n")
+            XCTAssertEqual(lines[0], "if true {")
+            XCTAssertEqual(lines[1], "    let x = 1")
+            XCTAssertEqual(lines[2], "        let y = 2")
+            XCTAssertEqual(lines[3], "}")
+        } else {
+            XCTFail("Expected codeBlock")
+        }
+    }
+
+    func test_parse_codeBlock_unclosed_streamingScenario() {
+        // Simulates streaming where the closing fence hasn't arrived yet
+        let input = "```swift\nfunc test() {\n    return 42"
+        let blocks = MarkdownParser.parse(input)
+
+        XCTAssertEqual(blocks.count, 1)
+        if case .codeBlock(let code, let language) = blocks[0] {
+            XCTAssertEqual(language, "swift")
+            XCTAssertTrue(code.contains("func test()"))
+            XCTAssertTrue(code.contains("return 42"))
+        } else {
+            XCTFail("Expected codeBlock for unclosed fence")
+        }
+    }
+
+    func test_parse_textThenCodeBlock_producesTwoBlocks() {
+        let input = "Here is the solution:\n\n```\nreturn n * 2\n```"
+        let blocks = MarkdownParser.parse(input)
+
+        XCTAssertEqual(blocks.count, 2)
+        if case .paragraph(let text) = blocks[0] {
+            XCTAssertEqual(text, "Here is the solution:")
+        } else {
+            XCTFail("First block should be paragraph")
+        }
+        if case .codeBlock(let code, _) = blocks[1] {
+            XCTAssertEqual(code, "return n * 2")
+        } else {
+            XCTFail("Second block should be codeBlock")
+        }
+    }
+
+    // MARK: - Bullet Lists
+
+    func test_parse_bulletItems_dash() {
+        let input = "- First item\n- Second item\n- Third item"
+        let blocks = MarkdownParser.parse(input)
+
+        XCTAssertEqual(blocks.count, 3)
+        if case .bulletItem(let text, let indent) = blocks[0] {
+            XCTAssertEqual(text, "First item")
+            XCTAssertEqual(indent, 0)
+        } else {
+            XCTFail("Expected bulletItem, got \(blocks[0])")
+        }
+        if case .bulletItem(let text, _) = blocks[1] {
+            XCTAssertEqual(text, "Second item")
+        } else {
+            XCTFail("Expected bulletItem")
+        }
+    }
+
+    func test_parse_bulletItems_asterisk() {
+        let input = "* Alpha\n* Beta"
+        let blocks = MarkdownParser.parse(input)
+
+        XCTAssertEqual(blocks.count, 2)
+        if case .bulletItem(let text, _) = blocks[0] {
+            XCTAssertEqual(text, "Alpha")
+        } else {
+            XCTFail("Expected bulletItem with asterisk")
+        }
+    }
+
+    func test_parse_bulletItems_indented() {
+        let input = "- Parent\n  - Child\n    - Grandchild"
+        let blocks = MarkdownParser.parse(input)
+
+        XCTAssertEqual(blocks.count, 3)
+        if case .bulletItem(_, let indent) = blocks[0] {
+            XCTAssertEqual(indent, 0)
+        } else {
+            XCTFail("Expected bulletItem at indent 0")
+        }
+        if case .bulletItem(_, let indent) = blocks[1] {
+            XCTAssertEqual(indent, 1)
+        } else {
+            XCTFail("Expected bulletItem at indent 1")
+        }
+        if case .bulletItem(_, let indent) = blocks[2] {
+            XCTAssertEqual(indent, 2)
+        } else {
+            XCTFail("Expected bulletItem at indent 2")
+        }
+    }
+
+    // MARK: - Ordered Lists
+
+    func test_parse_orderedItems_simple() {
+        let input = "1. First\n2. Second\n3. Third"
+        let blocks = MarkdownParser.parse(input)
+
+        XCTAssertEqual(blocks.count, 3)
+        if case .orderedItem(let text, let number) = blocks[0] {
+            XCTAssertEqual(text, "First")
+            XCTAssertEqual(number, 1)
+        } else {
+            XCTFail("Expected orderedItem, got \(blocks[0])")
+        }
+        if case .orderedItem(let text, let number) = blocks[2] {
+            XCTAssertEqual(text, "Third")
+            XCTAssertEqual(number, 3)
+        } else {
+            XCTFail("Expected orderedItem")
+        }
+    }
+
+    func test_parse_orderedItems_multipleDigits() {
+        let input = "10. Tenth item\n11. Eleventh item"
+        let blocks = MarkdownParser.parse(input)
+
+        XCTAssertEqual(blocks.count, 2)
+        if case .orderedItem(let text, let number) = blocks[0] {
+            XCTAssertEqual(text, "Tenth item")
+            XCTAssertEqual(number, 10)
+        } else {
+            XCTFail("Expected orderedItem with number 10")
+        }
+    }
+
+    // MARK: - Developer Exam Prompt Guard
+
+    func test_developerExam_noAssistAddition() {
+        let devMode = Mode.developerExamMode
+        let context = AIContext(
+            transcript: "test",
+            mode: devMode,
+            responseType: .assist
+        )
+        let prompt = context.systemPrompt
+
+        // Developer Exam should NOT contain the .assist responseType addition
+        XCTAssertFalse(
+            prompt.contains("PRIORITY ORDER for providing help"),
+            "Developer Exam mode should not include .assist systemPromptAddition"
+        )
+        // But it should still contain its own prompt content
+        XCTAssertTrue(
+            prompt.contains("COMPLETE, WORKING code solutions"),
+            "Developer Exam mode should contain its own prompt"
+        )
+    }
+
+    func test_defaultMode_getsAssistAddition() {
+        let defaultMode = Mode.defaultMode
+        let context = AIContext(
+            transcript: "test",
+            mode: defaultMode,
+            responseType: .assist
+        )
+        let prompt = context.systemPrompt
+
+        // Default mode SHOULD still get the .assist addition
+        XCTAssertTrue(
+            prompt.contains("PRIORITY ORDER for providing help"),
+            "Default mode should include .assist systemPromptAddition"
+        )
     }
 }
