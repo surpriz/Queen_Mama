@@ -62,6 +62,11 @@ export const changelogData: ChangelogRelease[] = [
             id: "customModesOverlay",
             title: "Custom Modes in Overlay",
             description: "Switch between custom AI modes directly from the overlay widget popup menu"
+          },
+          {
+            id: "overlayMarkdownParsing",
+            title: "Advanced Markdown Rendering",
+            description: "Full Markdown support in overlay responses including code blocks, bullet lists, and ordered lists"
           }
         ]
       },
@@ -102,6 +107,21 @@ export const changelogData: ChangelogRelease[] = [
             id: "energyOptimization",
             title: "Energy Optimization",
             description: "Reduced energy consumption by optimizing animations to only run when needed"
+          },
+          {
+            id: "aiStreamEnhancement",
+            title: "Enhanced AI Streaming",
+            description: "Improved AI response streaming with better Markdown table support via remark-gfm"
+          },
+          {
+            id: "authFlowRefactor",
+            title: "Refined Authentication Flow",
+            description: "Streamlined sign-in experience with improved session management and smoother transitions"
+          },
+          {
+            id: "dashboardAnimations",
+            title: "Polished Dashboard Animations",
+            description: "Smoother transitions and refined visual feedback throughout the dashboard interface"
           }
         ]
       },
