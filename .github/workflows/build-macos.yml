@@ -527,7 +527,7 @@ jobs:
           # Instead, deploy directly to Vercel from this step.
           echo "🔄 Deploying appcast update to Vercel..."
           npm i -g vercel
-          vercel deploy --prod --token=$VERCEL_TOKEN --cwd landing
+          cd landing && vercel deploy --prod --token=$VERCEL_TOKEN
           echo "✅ appcast.xml updated, pushed, and Vercel deployment completed"
 
       - name: Cleanup
