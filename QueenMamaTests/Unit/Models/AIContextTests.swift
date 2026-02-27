@@ -58,15 +58,22 @@ final class AIContextTests: XCTestCase {
 
     func testBuiltInModeNames() {
         // Verify the 5 built-in names are correctly classified
-        let builtInNames = ["Default", "Professional", "Interview", "Sales", "Developer Exam"]
+        // Developer Exam intentionally skips responseType addition to avoid conflicting instructions
+        let builtInWithResponseType = ["Default", "Professional", "Interview", "Sales"]
 
-        for name in builtInNames {
+        for name in builtInWithResponseType {
             let mode = Mode(name: name, systemPrompt: "test")
             let context = AIContext(transcript: "test", mode: mode, responseType: .assist)
             // Built-in modes should include the responseType addition
             XCTAssertTrue(context.systemPrompt.contains("productivity assistant"),
                 "\(name) should be treated as built-in mode")
         }
+
+        // Developer Exam is built-in but skips responseType addition
+        let examMode = Mode(name: "Developer Exam", systemPrompt: "test")
+        let examContext = AIContext(transcript: "test", mode: examMode, responseType: .assist)
+        XCTAssertFalse(examContext.systemPrompt.contains("CRITICAL RULES"),
+            "Developer Exam should not be treated as custom mode")
     }
 
     // MARK: - Transcript Truncation
