@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { GlassCard } from "@/components/ui";
 import Link from "next/link";
 import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -95,6 +96,7 @@ export default async function SessionDetailPage({ params }: PageProps) {
           </h2>
           <div className="prose prose-invert prose-sm max-w-none text-[var(--qm-text-secondary)]">
             <ReactMarkdown
+              remarkPlugins={[remarkGfm]}
               components={{
                 h1: ({ children }) => <h1 className="text-xl font-bold text-white mb-3">{children}</h1>,
                 h2: ({ children }) => <h2 className="text-lg font-semibold text-white mb-2 mt-4">{children}</h2>,
@@ -179,6 +181,7 @@ export default async function SessionDetailPage({ params }: PageProps) {
                 </div>
                 <div className="prose prose-invert prose-sm max-w-none">
                   <ReactMarkdown
+                    remarkPlugins={[remarkGfm]}
                     components={{
                       p: ({ children }) => <p className="text-[var(--qm-text-secondary)] text-sm mb-2">{children}</p>,
                       ul: ({ children }) => <ul className="list-disc list-inside text-sm text-[var(--qm-text-secondary)]">{children}</ul>,

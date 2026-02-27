@@ -247,6 +247,42 @@ final class ScreenCaptureService: NSObject, ObservableObject {
 
     // MARK: - Screenshot Capture
 
+    /// Processes a CGImage into resized + compressed JPEG data off the main thread.
+    /// This avoids blocking the main thread with lockFocus/draw/unlockFocus + JPEG compression
+    /// which can take 35-150ms per capture.
+    nonisolated private static func processScreenshot(image: CGImage) throws -> Data {
+        let maxWidth: CGFloat = 1024
+        let maxHeight: CGFloat = 576
+        let scaleFactor = min(
+            maxWidth / CGFloat(image.width),
+            maxHeight / CGFloat(image.height),
+            1.0  // Don't upscale
+        )
+
+        let newWidth = Int(CGFloat(image.width) * scaleFactor)
+        let newHeight = Int(CGFloat(image.height) * scaleFactor)
+
+        let nsImage = NSImage(cgImage: image, size: NSSize(width: image.width, height: image.height))
+
+        let resizedImage = NSImage(size: NSSize(width: newWidth, height: newHeight))
+        resizedImage.lockFocus()
+        nsImage.draw(
+            in: NSRect(x: 0, y: 0, width: newWidth, height: newHeight),
+            from: NSRect(origin: .zero, size: nsImage.size),
+            operation: .copy,
+            fraction: 1.0
+        )
+        resizedImage.unlockFocus()
+
+        guard let tiffData = resizedImage.tiffRepresentation,
+              let bitmap = NSBitmapImageRep(data: tiffData),
+              let jpegData = bitmap.representation(using: .jpeg, properties: [.compressionFactor: 0.5]) else {
+            throw ScreenCaptureError.screenshotFailed
+        }
+
+        return jpegData
+    }
+
     func captureScreenshot() async throws -> Data {
         guard await checkPermission() else {
             throw ScreenCaptureError.permissionDenied
@@ -275,46 +311,22 @@ final class ScreenCaptureService: NSObject, ObservableObject {
         screenshotConfig.pixelFormat = kCVPixelFormatType_32BGRA
         screenshotConfig.showsCursor = false
 
-        // Capture screenshot
-        let image = try await SCScreenshotManager.captureImage(
-            contentFilter: filter,
-            configuration: screenshotConfig
-        )
+        // Capture screenshot off main thread to avoid 100-200ms main thread blocking
+        let image = try await Task.detached(priority: .userInitiated) {
+            try await SCScreenshotManager.captureImage(
+                contentFilter: filter,
+                configuration: screenshotConfig
+            )
+        }.value
 
-        // Convert to NSImage
+        // Convert to NSImage for latestScreenshot (UI display)
         let nsImage = NSImage(cgImage: image, size: NSSize(width: image.width, height: image.height))
         latestScreenshot = nsImage
 
-        // COST OPTIMIZATION: Resize to max 1024x576 for AI (sufficient for text/UI analysis)
-        // Reduced from 1280x720 to improve response latency (smaller upload = faster)
-        let maxWidth: CGFloat = 1024
-        let maxHeight: CGFloat = 576
-        let scaleFactor = min(
-            maxWidth / CGFloat(image.width),
-            maxHeight / CGFloat(image.height),
-            1.0  // Don't upscale
-        )
-
-        let newWidth = Int(CGFloat(image.width) * scaleFactor)
-        let newHeight = Int(CGFloat(image.height) * scaleFactor)
-
-        let resizedImage = NSImage(size: NSSize(width: newWidth, height: newHeight))
-        resizedImage.lockFocus()
-        nsImage.draw(
-            in: NSRect(x: 0, y: 0, width: newWidth, height: newHeight),
-            from: NSRect(origin: .zero, size: nsImage.size),
-            operation: .copy,
-            fraction: 1.0
-        )
-        resizedImage.unlockFocus()
-
-        // COST OPTIMIZATION: Compress to 50% for faster uploads (reduced from 60%)
-        // GPT-5-mini can still read text/UI clearly at this quality
-        guard let tiffData = resizedImage.tiffRepresentation,
-              let bitmap = NSBitmapImageRep(data: tiffData),
-              let jpegData = bitmap.representation(using: .jpeg, properties: [.compressionFactor: 0.5]) else {
-            throw ScreenCaptureError.screenshotFailed
-        }
+        // Process resize + JPEG compression off main thread (35-150ms saved)
+        let jpegData = try await Task.detached(priority: .userInitiated) {
+            try ScreenCaptureService.processScreenshot(image: image)
+        }.value
 
         return jpegData
     }

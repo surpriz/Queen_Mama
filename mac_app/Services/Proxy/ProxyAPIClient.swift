@@ -318,7 +318,15 @@ final class ProxyAPIClient: @unchecked Sendable {
 
                     continuation.finish()
                 } catch {
-                    continuation.finish(throwing: error)
+                    // Handle stream cancellation gracefully (fixes MACOS-7)
+                    // NSURLErrorCancelled (-999) occurs when the user navigates away
+                    // or the stream is intentionally aborted — not a real error
+                    let nsError = error as NSError
+                    if nsError.domain == NSURLErrorDomain && nsError.code == -999 {
+                        continuation.finish()
+                    } else {
+                        continuation.finish(throwing: error)
+                    }
                 }
             }
         }
@@ -358,11 +366,45 @@ final class ProxyAPIClient: @unchecked Sendable {
         return try await perform(request)
     }
 
+    /// Returns true for transient network errors that are worth retrying
+    private func isTransientNetworkError(_ error: Error) -> Bool {
+        let nsError = error as NSError
+        guard nsError.domain == NSURLErrorDomain else { return false }
+        switch nsError.code {
+        case -1001, // NSURLErrorTimedOut
+             -1005, // NSURLErrorNetworkConnectionLost
+             -1009, // NSURLErrorNotConnectedToInternet
+             -1004: // NSURLErrorCannotConnectToHost
+            return true
+        default:
+            return false
+        }
+    }
+
     private func perform<T: Decodable>(_ request: URLRequest, retryCount: Int = 0) async throws -> T {
         let maxRetries = 3
         let retryDelay: [TimeInterval] = [1.0, 2.0, 4.0] // Exponential backoff: 1s, 2s, 4s
 
-        let (data, response) = try await session.data(for: request)
+        let data: Data
+        let response: URLResponse
+        do {
+            (data, response) = try await session.data(for: request)
+        } catch {
+            // Retry transient network errors with backoff (fixes MACOS-4)
+            if isTransientNetworkError(error) && retryCount < maxRetries {
+                let delay = retryDelay[retryCount]
+                print("[ProxyAPI] Network error: \(error.localizedDescription). Retrying in \(delay)s... (attempt \(retryCount + 1)/\(maxRetries))")
+                await MainActor.run {
+                    CrashReporter.shared.addBreadcrumb(
+                        category: "proxy_api",
+                        message: "Network error retry \(retryCount + 1)/\(maxRetries): \(error.localizedDescription)"
+                    )
+                }
+                try await Task.sleep(nanoseconds: UInt64(delay * 1_000_000_000))
+                return try await perform(request, retryCount: retryCount + 1)
+            }
+            throw error
+        }
 
         guard let httpResponse = response as? HTTPURLResponse else {
             throw ProxyError.invalidResponse
@@ -465,6 +507,14 @@ final class ProxyAPIClient: @unchecked Sendable {
             return response.accessToken
         } catch {
             print("[ProxyAPI] Token refresh failed: \(error)")
+            // Add breadcrumb to help diagnose auth-related Sentry issues (MACOS-D, MACOS-M)
+            await MainActor.run {
+                CrashReporter.shared.addBreadcrumb(
+                    category: "proxy_auth",
+                    message: "Token refresh failed: \(error.localizedDescription)",
+                    level: .warning
+                )
+            }
             return nil
         }
     }

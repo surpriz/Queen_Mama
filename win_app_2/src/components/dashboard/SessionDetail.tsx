@@ -97,85 +97,90 @@ export function SessionDetail({ sessionId, onBack }: SessionDetailProps) {
   }
 
   return (
-    <div className="flex flex-col h-full p-6 overflow-y-auto">
-      {/* Header */}
-      <div className="flex items-center gap-3 mb-6">
-        <button
-          onClick={onBack}
-          className="p-2 rounded-qm-md hover:bg-qm-surface-hover text-qm-text-secondary hover:text-qm-text-primary transition-colors"
-        >
-          <ArrowLeft size={18} />
-        </button>
-        <div className="flex-1">
-          <div className="flex items-center gap-2">
-            <h2 className="text-title-sm font-semibold text-qm-text-primary">{session.title}</h2>
-            {syncBadge()}
-          </div>
-          <p className="text-caption text-qm-text-tertiary">
-            {formatDate(session.startTime)}
-            {duration && ` · ${formatDuration(duration)}`}
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
+    <div className="flex flex-col h-full overflow-y-auto">
+      {/* Gradient hero header */}
+      <div className="p-6 bg-gradient-to-r from-qm-gradient-start/10 to-qm-gradient-end/10 border-b border-qm-border-subtle">
+        <div className="flex items-center gap-3">
           <button
-            onClick={handleCopy}
-            className="p-2 rounded-qm-md hover:bg-qm-surface-hover text-qm-text-secondary transition-colors"
+            onClick={onBack}
+            className="p-2 rounded-qm-md hover:bg-qm-surface-hover text-qm-text-secondary hover:text-qm-text-primary transition-colors"
           >
-            {copied ? <Check size={16} className="text-qm-success" /> : <Copy size={16} />}
+            <ArrowLeft size={18} />
           </button>
-          <div className="relative" ref={exportMenuRef}>
+          <div className="flex-1">
+            <div className="flex items-center gap-2">
+              <h2 className="text-title-sm font-semibold text-qm-text-primary">{session.title}</h2>
+              {syncBadge()}
+            </div>
+            <p className="text-caption text-qm-text-tertiary">
+              {formatDate(session.startTime)}
+              {duration && ` · ${formatDuration(duration)}`}
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
             <button
-              onClick={() => setShowExportMenu(!showExportMenu)}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-qm-md bg-qm-surface-medium hover:bg-qm-surface-hover text-body-sm text-qm-text-secondary transition-colors"
+              onClick={handleCopy}
+              className="p-2 rounded-qm-md hover:bg-qm-surface-hover text-qm-text-secondary transition-colors"
             >
-              <Download size={14} /> Export <ChevronDown size={12} />
+              {copied ? <Check size={16} className="text-qm-success" /> : <Copy size={16} />}
             </button>
-            {showExportMenu && (
-              <div className="absolute right-0 top-full mt-1 w-40 rounded-qm-md bg-qm-surface-medium border border-qm-border-subtle shadow-lg z-50 py-1">
-                <button
-                  onClick={() => handleExport('markdown')}
-                  className="w-full text-left px-3 py-1.5 text-body-sm text-qm-text-secondary hover:bg-qm-surface-hover transition-colors"
-                >
-                  Markdown
-                </button>
-                <button
-                  onClick={() => handleExport('plaintext')}
-                  className="w-full text-left px-3 py-1.5 text-body-sm text-qm-text-secondary hover:bg-qm-surface-hover transition-colors"
-                >
-                  Plain Text
-                </button>
-                <button
-                  onClick={() => handleExport('json')}
-                  className="w-full text-left px-3 py-1.5 text-body-sm text-qm-text-secondary hover:bg-qm-surface-hover transition-colors"
-                >
-                  JSON
-                </button>
-                <button
-                  onClick={() => handleExport('csv')}
-                  className="w-full text-left px-3 py-1.5 text-body-sm text-qm-text-secondary hover:bg-qm-surface-hover transition-colors"
-                >
-                  CSV
-                </button>
-              </div>
-            )}
+            <div className="relative" ref={exportMenuRef}>
+              <button
+                onClick={() => setShowExportMenu(!showExportMenu)}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-qm-md bg-qm-surface-medium hover:bg-qm-surface-hover text-body-sm text-qm-text-secondary transition-colors"
+              >
+                <Download size={14} /> Export <ChevronDown size={12} />
+              </button>
+              {showExportMenu && (
+                <div className="absolute right-0 top-full mt-1 w-40 rounded-qm-md bg-qm-surface-medium border border-qm-border-subtle shadow-lg z-50 py-1">
+                  <button
+                    onClick={() => handleExport('markdown')}
+                    className="w-full text-left px-3 py-1.5 text-body-sm text-qm-text-secondary hover:bg-qm-surface-hover transition-colors"
+                  >
+                    Markdown
+                  </button>
+                  <button
+                    onClick={() => handleExport('plaintext')}
+                    className="w-full text-left px-3 py-1.5 text-body-sm text-qm-text-secondary hover:bg-qm-surface-hover transition-colors"
+                  >
+                    Plain Text
+                  </button>
+                  <button
+                    onClick={() => handleExport('json')}
+                    className="w-full text-left px-3 py-1.5 text-body-sm text-qm-text-secondary hover:bg-qm-surface-hover transition-colors"
+                  >
+                    JSON
+                  </button>
+                  <button
+                    onClick={() => handleExport('csv')}
+                    className="w-full text-left px-3 py-1.5 text-body-sm text-qm-text-secondary hover:bg-qm-surface-hover transition-colors"
+                  >
+                    CSV
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </div>
 
-      {/* Summary */}
-      {session.summary && (
-        <div className="mb-6 p-4 rounded-qm-lg bg-qm-surface-light border border-qm-border-subtle">
-          <h3 className="text-label-md text-qm-text-secondary mb-2">Summary</h3>
-          <p className="text-body-md text-qm-text-primary leading-relaxed">{session.summary}</p>
-        </div>
-      )}
+      {/* Content */}
+      <div className="p-6 space-y-6">
+        {/* Summary */}
+        {session.summary && (
+          <div className="p-4 rounded-qm-lg bg-qm-surface-light border border-qm-border-subtle">
+            <h3 className="text-label-md text-qm-text-secondary mb-2">Summary</h3>
+            <p className="text-body-md text-qm-text-primary leading-relaxed">{session.summary}</p>
+          </div>
+        )}
 
-      {/* Transcript */}
-      <div className="p-4 rounded-qm-lg bg-qm-surface-light border border-qm-border-subtle">
-        <h3 className="text-label-md text-qm-text-secondary mb-2">Transcript</h3>
-        <p className="text-body-md text-qm-text-primary leading-relaxed whitespace-pre-wrap">
-          {session.transcript || 'No transcript available'}
-        </p>
+        {/* Transcript */}
+        <div className="p-4 rounded-qm-lg bg-qm-surface-light border border-qm-border-subtle">
+          <h3 className="text-label-md text-qm-text-secondary mb-2">Transcript</h3>
+          <p className="text-body-md text-qm-text-primary leading-relaxed whitespace-pre-wrap">
+            {session.transcript || 'No transcript available'}
+          </p>
+        </div>
       </div>
     </div>
   )

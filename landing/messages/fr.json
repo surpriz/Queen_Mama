@@ -606,6 +606,22 @@
       "deploymentPipeline": {
         "title": "Pipeline de déploiement",
         "description": "Environnements de staging et production séparés avec déploiements conditionnés par les tests"
+      },
+      "overlayMarkdownParsing": {
+        "title": "Rendu Markdown avancé",
+        "description": "Support complet du Markdown dans les réponses de l'overlay incluant blocs de code, listes à puces et listes numérotées"
+      },
+      "aiStreamEnhancement": {
+        "title": "Streaming IA amélioré",
+        "description": "Streaming des réponses IA amélioré avec un meilleur support des tableaux Markdown via remark-gfm"
+      },
+      "authFlowRefactor": {
+        "title": "Flux d'authentification affiné",
+        "description": "Expérience de connexion simplifiée avec une gestion de session améliorée et des transitions plus fluides"
+      },
+      "dashboardAnimations": {
+        "title": "Animations du tableau de bord raffinées",
+        "description": "Transitions plus fluides et retours visuels améliorés dans l'interface du tableau de bord"
       }
     }
   },

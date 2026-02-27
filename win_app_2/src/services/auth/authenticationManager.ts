@@ -1,11 +1,15 @@
 import { createLogger } from '@/lib/logger'
 import { useAuthStore } from '@/stores/authStore'
 import * as authApi from './authApiClient'
+import { setOnSessionExpired } from './authApiClient'
 import { startGoogleAuth } from './googleAuthService'
 import * as licenseManager from '@/services/license/licenseManager'
 import type { AuthUser, DeviceInfo } from '@/types/auth'
 
 const log = createLogger('Auth')
+
+// Wire mid-session expiration detection at module level
+setOnSessionExpired(() => useAuthStore.getState().setSessionExpired())
 
 let pollingInterval: ReturnType<typeof setInterval> | null = null
 
@@ -91,9 +95,9 @@ export async function checkExistingAuth(): Promise<void> {
       errorStr.includes('403')
 
     if (isAuthRejection) {
-      log.warn('Server rejected credentials, clearing')
+      log.warn('Server rejected credentials, session expired')
       await clearCredentials()
-      store.setUnauthenticated()
+      store.setSessionExpired()
     } else {
       // Network error - keep credentials (offline mode)
       log.warn('Network error during auth check, keeping credentials')

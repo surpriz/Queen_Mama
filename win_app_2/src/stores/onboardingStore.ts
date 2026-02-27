@@ -42,9 +42,13 @@ export const useOnboardingStore = create<OnboardingState>((set, get) => ({
     }
   },
 
-  skipOnboarding: () => {
-    // Skip without marking as complete (will show again next launch)
-    set({ currentStep: 'ready', hasCompletedOnboarding: false })
+  skipOnboarding: async () => {
+    try {
+      await window.electronAPI?.store.set(STORAGE_KEY, true)
+    } catch (e) {
+      console.error('[Onboarding] Failed to persist skip state:', e)
+    }
+    set({ currentStep: 'ready', hasCompletedOnboarding: true })
   },
 
   completeOnboarding: async () => {

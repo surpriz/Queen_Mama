@@ -3,8 +3,7 @@ import { Loader2, CheckCircle2 } from 'lucide-react'
 import { useAppStore } from '@/stores/appStore'
 import { Sidebar } from './Sidebar'
 import { LiveSessionView } from './LiveSessionView'
-import { SessionList } from './SessionList'
-import { SessionDetail } from './SessionDetail'
+import { SessionsView } from './SessionsView'
 import { ModesListView } from './ModesListView'
 import { KnowledgeBaseView } from './KnowledgeBaseView'
 import { ContactsView } from './ContactsView'
@@ -14,7 +13,6 @@ export type NavItem = 'sessions' | 'live' | 'modes' | 'knowledgeBase' | 'contact
 
 export function DashboardLayout() {
   const [activeNav, setActiveNav] = useState<NavItem>('live')
-  const [selectedSessionId, setSelectedSessionId] = useState<string | null>(null)
   const isFinalizingSession = useAppStore((s) => s.isFinalizingSession)
   const sessionJustFinalized = useAppStore((s) => s.sessionJustFinalized)
 
@@ -29,15 +27,7 @@ export function DashboardLayout() {
       {/* Main content */}
       <div className="flex-1 overflow-y-auto overflow-x-hidden pt-9 relative">
         {activeNav === 'live' && <LiveSessionView />}
-        {activeNav === 'sessions' && !selectedSessionId && (
-          <SessionList onSelectSession={setSelectedSessionId} />
-        )}
-        {activeNav === 'sessions' && selectedSessionId && (
-          <SessionDetail
-            sessionId={selectedSessionId}
-            onBack={() => setSelectedSessionId(null)}
-          />
-        )}
+        {activeNav === 'sessions' && <SessionsView />}
         {activeNav === 'modes' && <ModesListView />}
         {activeNav === 'knowledgeBase' && <KnowledgeBaseView />}
         {activeNav === 'contacts' && <ContactsView />}
@@ -58,7 +48,6 @@ export function DashboardLayout() {
             onClick={() => {
               useAppStore.getState().setSessionJustFinalized(false)
               setActiveNav('sessions')
-              setSelectedSessionId(null)
             }}
           >
             <CheckCircle2 size={18} />

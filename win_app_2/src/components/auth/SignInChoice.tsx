@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useAuth } from '@/hooks/useAuth'
 import { GradientText } from '@/components/common/GradientText'
 import { LoadingSpinner } from '@/components/common/LoadingSpinner'
@@ -9,14 +9,22 @@ const log = createLogger('SignInChoice')
 interface SignInChoiceProps {
   onEmailSignIn?: () => void
   onRegister?: () => void
+  allowSkip?: boolean
+  onAuthenticated?: () => void
 }
 
-export function SignInChoice({ onEmailSignIn, onRegister }: SignInChoiceProps) {
-  const { authState, loginWithGoogle, startDeviceCodeFlow, cancelDeviceCodeFlow } = useAuth()
+export function SignInChoice({ onEmailSignIn, onRegister, allowSkip = true, onAuthenticated }: SignInChoiceProps) {
+  const { authState, isAuthenticated, loginWithGoogle, startDeviceCodeFlow, cancelDeviceCodeFlow } = useAuth()
   const [isLoading, setIsLoading] = useState(false)
   const [, setShowEmailForm] = useState(false)
   const [, setShowRegisterForm] = useState(false)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (isAuthenticated && onAuthenticated) {
+      onAuthenticated()
+    }
+  }, [isAuthenticated, onAuthenticated])
 
   const handleEmailSignIn = () => {
     if (onEmailSignIn) {
@@ -157,12 +165,14 @@ export function SignInChoice({ onEmailSignIn, onRegister }: SignInChoiceProps) {
             Use Device Code
           </button>
 
-          <p className="text-caption text-qm-text-tertiary mt-4">
-            Don't have an account?{' '}
-            <button onClick={handleRegister} className="text-qm-accent hover:underline">
-              Sign up
-            </button>
-          </p>
+          {allowSkip && (
+            <p className="text-caption text-qm-text-tertiary mt-4">
+              Don't have an account?{' '}
+              <button onClick={handleRegister} className="text-qm-accent hover:underline">
+                Sign up
+              </button>
+            </p>
+          )}
         </>
       )}
     </div>

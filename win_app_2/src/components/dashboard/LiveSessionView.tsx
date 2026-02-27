@@ -98,7 +98,7 @@ export function LiveSessionView() {
               'flex items-center gap-2 px-4 py-2 rounded-qm-pill font-medium text-body-sm transition-all',
               isSessionActive
                 ? 'bg-qm-error text-white hover:bg-red-600'
-                : 'bg-gradient-to-r from-qm-gradient-start to-qm-gradient-end text-white hover:shadow-qm-glow',
+                : 'bg-gradient-to-r from-qm-gradient-start to-qm-gradient-end text-white hover:shadow-qm-glow hover-scale',
             )}
           >
             {isSessionActive ? (

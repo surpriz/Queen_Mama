@@ -32,6 +32,13 @@ export const AUTH_ERRORS = {
   deviceLimitReached: new AuthError('Device limit reached', 'device_limit'),
 }
 
+// Session expiration callback (avoids circular imports with stores)
+let onSessionExpiredCallback: (() => void) | null = null
+
+export function setOnSessionExpired(callback: () => void): void {
+  onSessionExpiredCallback = callback
+}
+
 // In-memory token state
 let accessToken: string | null = null
 let accessTokenExpiry: number | null = null
@@ -63,7 +70,22 @@ async function getValidAccessToken(): Promise<string | null> {
     await window.electronAPI?.secureStore.set('refresh_token', response.refreshToken)
     return response.accessToken
   } catch (error) {
-    log.error('Token refresh failed', error)
+    const errorStr = String(error).toLowerCase()
+    const isAuthRejection =
+      errorStr.includes('invalid_token') ||
+      errorStr.includes('token_revoked') ||
+      errorStr.includes('401') ||
+      errorStr.includes('403')
+
+    if (isAuthRejection) {
+      log.warn('Token refresh rejected by server, session expired')
+      clearTokens()
+      await window.electronAPI?.secureStore.delete('refresh_token')
+      onSessionExpiredCallback?.()
+    } else {
+      log.error('Token refresh failed (network error)', error)
+    }
+
     return null
   }
 }

@@ -28,7 +28,7 @@ export function SessionsView() {
   return (
     <div className="flex h-full">
       {/* Left panel - Session list */}
-      <div className="w-[400px] flex flex-col border-r border-qm-border-subtle">
+      <div className="w-[320px] flex flex-col border-r border-qm-border-subtle">
         {/* Search */}
         <div className="p-4">
           <div className="relative">

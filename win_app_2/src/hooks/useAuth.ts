@@ -2,12 +2,13 @@ import { useAuthStore } from '@/stores/authStore'
 import * as authManager from '@/services/auth/authenticationManager'
 
 export function useAuth() {
-  const { authState, isAuthenticated, currentUser } = useAuthStore()
+  const { authState, isAuthenticated, currentUser, sessionExpired } = useAuthStore()
 
   return {
     authState,
     isAuthenticated,
     currentUser,
+    sessionExpired,
     checkExistingAuth: authManager.checkExistingAuth,
     loginWithCredentials: authManager.loginWithCredentials,
     registerWithCredentials: authManager.registerWithCredentials,

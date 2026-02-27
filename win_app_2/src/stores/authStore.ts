@@ -5,11 +5,13 @@ interface AuthStoreState {
   authState: AuthState
   isAuthenticated: boolean
   currentUser: AuthUser | null
+  sessionExpired: boolean
 
   // Actions
   setAuthState: (state: AuthState) => void
   setAuthenticated: (user: AuthUser) => void
   setUnauthenticated: () => void
+  setSessionExpired: () => void
   setAuthenticating: () => void
   setError: (message: string) => void
   setDeviceCodePending: (userCode: string, deviceCode: string, expiresAt: string) => void
@@ -20,6 +22,7 @@ export const useAuthStore = create<AuthStoreState>((set) => ({
   authState: { type: 'unknown' },
   isAuthenticated: false,
   currentUser: null,
+  sessionExpired: false,
 
   setAuthState: (authState) => set({ authState }),
 
@@ -28,6 +31,7 @@ export const useAuthStore = create<AuthStoreState>((set) => ({
       authState: { type: 'authenticated', user },
       isAuthenticated: true,
       currentUser: user,
+      sessionExpired: false,
     }),
 
   setUnauthenticated: () =>
@@ -35,6 +39,14 @@ export const useAuthStore = create<AuthStoreState>((set) => ({
       authState: { type: 'unauthenticated' },
       isAuthenticated: false,
       currentUser: null,
+    }),
+
+  setSessionExpired: () =>
+    set({
+      authState: { type: 'unauthenticated' },
+      isAuthenticated: false,
+      sessionExpired: true,
+      // Keep currentUser for "Welcome back" display
     }),
 
   setAuthenticating: () =>
@@ -57,5 +69,6 @@ export const useAuthStore = create<AuthStoreState>((set) => ({
       authState: { type: 'unauthenticated' },
       isAuthenticated: false,
       currentUser: null,
+      sessionExpired: false,
     }),
 }))

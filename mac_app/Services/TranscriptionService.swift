@@ -105,6 +105,12 @@ final class TranscriptionService: ObservableObject {
     private let maxAutoRecoveryAttempts = 5
     private var connectionStabilityTask: Task<Void, Never>?
 
+    // MARK: - Sentry Throttling
+    // Prevents duplicate reports for recurring issues
+    private var lastReconnectLimitReportTime: Date?
+    private var lastAutoRecoveryExhaustedReportTime: Date?
+    private let sentryThrottleInterval: TimeInterval = 600 // Report at most once per 10 minutes
+
     // MARK: - Audio Batching Configuration
     // Accumulates audio buffers to reduce WebSocket message frequency by ~50%
 
@@ -255,6 +261,58 @@ final class TranscriptionService: ObservableObject {
         audioBatchBuffer.removeAll()
     }
 
+    // MARK: - Network Error Classification
+
+    private enum NetworkErrorClass {
+        case transient   // Temporary network issue — breadcrumb only, reconnect
+        case cancelled   // Intentional cancellation — ignore completely
+        case permanent   // Persistent/unknown error — full Sentry event
+    }
+
+    /// Classifies a network error to determine Sentry reporting level.
+    /// Transient errors (socket disconnects, timeouts) are downgraded to breadcrumbs
+    /// to avoid flooding Sentry with noise from normal network conditions.
+    private func classifyNetworkError(_ error: Error) -> NetworkErrorClass {
+        let nsError = error as NSError
+
+        // NSPOSIXErrorDomain errors
+        if nsError.domain == NSPOSIXErrorDomain {
+            switch nsError.code {
+            case 57:  // Socket is not connected
+                return .transient
+            case 60:  // Operation timed out
+                return .transient
+            default:
+                return .permanent
+            }
+        }
+
+        // NSURLErrorDomain errors
+        if nsError.domain == NSURLErrorDomain {
+            switch nsError.code {
+            case -999:   // NSURLErrorCancelled
+                return .cancelled
+            case -1001:  // NSURLErrorTimedOut
+                return .transient
+            case -1005:  // NSURLErrorNetworkConnectionLost
+                return .transient
+            case -1009:  // NSURLErrorNotConnectedToInternet
+                return .transient
+            case -1004:  // NSURLErrorCannotConnectToHost
+                return .transient
+            default:
+                return .permanent
+            }
+        }
+
+        // WebSocket close codes (4xxx are custom, 1001 is going away)
+        if nsError.domain == "WebSocket" || nsError.domain == "NWError" {
+            return .transient
+        }
+
+        return .permanent
+    }
+
     // MARK: - Private Methods
 
     private func setupProviderCallbacks() {
@@ -300,22 +358,44 @@ final class TranscriptionService: ObservableObject {
             return
         }
 
+        let errorClass = classifyNetworkError(error)
+
+        // Cancelled errors: log and return — no reconnection, no Sentry event
+        if errorClass == .cancelled {
+            print("[Transcription] Request cancelled — ignoring")
+            return
+        }
+
         errorMessage = error.localizedDescription
         isConnected = false
         onError?(error)
 
-        // TRACKING: Report transcription errors to Sentry and PostHog
-        CrashReporter.shared.captureError(error, extras: [
-            "provider": currentProvider?.rawValue ?? "unknown",
-            "connection_state": connectionState.displayStatus,
-            "reconnect_attempts": reconnectAttempts,
-            "reconnects_in_window": reconnectTimestamps.count,
-            "intentional_disconnect": intentionalDisconnect
-        ])
+        // TRACKING: Report based on error classification
+        switch errorClass {
+        case .transient:
+            // Breadcrumb only — avoids flooding Sentry with transient network errors
+            CrashReporter.shared.addBreadcrumb(
+                category: "transcription",
+                message: "Transient error: \(error.localizedDescription) [provider: \(currentProvider?.rawValue ?? "unknown")]"
+            )
+        case .permanent:
+            // Full Sentry event for persistent/unknown errors
+            CrashReporter.shared.captureError(error, extras: [
+                "provider": currentProvider?.rawValue ?? "unknown",
+                "connection_state": connectionState.displayStatus,
+                "reconnect_attempts": reconnectAttempts,
+                "reconnects_in_window": reconnectTimestamps.count,
+                "intentional_disconnect": intentionalDisconnect
+            ])
+        case .cancelled:
+            break // Already handled above
+        }
+
         AnalyticsService.shared.capture("transcription_error", properties: [
             "error": error.localizedDescription,
             "provider": currentProvider?.rawValue ?? "unknown",
-            "will_reconnect": !intentionalDisconnect
+            "will_reconnect": !intentionalDisconnect,
+            "error_class": "\(errorClass)"
         ])
 
         // Try to reconnect if not intentionally disconnected
@@ -355,10 +435,20 @@ final class TranscriptionService: ObservableObject {
             print("[Transcription] Session reconnect limit reached (\(reconnectTimestamps.count) reconnections in \(Int(reconnectWindowDuration))s window)")
             connectionState = .failed(reason: "Connection unstable - too many reconnections")
 
-            CrashReporter.shared.captureMessage(
-                "Transcription session reconnect limit reached (\(reconnectTimestamps.count) reconnections in \(Int(reconnectWindowDuration))s)",
-                level: .error
-            )
+            // Throttle: report to Sentry at most once per 10 minutes
+            let now = Date()
+            if lastReconnectLimitReportTime == nil || now.timeIntervalSince(lastReconnectLimitReportTime!) > sentryThrottleInterval {
+                lastReconnectLimitReportTime = now
+                CrashReporter.shared.captureMessage(
+                    "Transcription session reconnect limit reached (\(reconnectTimestamps.count) reconnections in \(Int(reconnectWindowDuration))s)",
+                    level: .error
+                )
+            } else {
+                CrashReporter.shared.addBreadcrumb(
+                    category: "transcription",
+                    message: "Reconnect limit reached (throttled) — \(reconnectTimestamps.count) reconnections"
+                )
+            }
             AnalyticsService.shared.capture("transcription_session_reconnect_limit", properties: [
                 "total_reconnects": reconnectTimestamps.count,
                 "provider": currentProvider?.rawValue ?? "unknown"
@@ -371,11 +461,20 @@ final class TranscriptionService: ObservableObject {
             print("[Transcription] Max reconnection attempts reached (\(maxReconnectAttempts))")
             connectionState = .failed(reason: "Max reconnection attempts reached")
 
-            // TRACKING: Critical - user's transcription is completely broken
-            CrashReporter.shared.captureMessage(
-                "Transcription max reconnection attempts reached",
-                level: .error
-            )
+            // Throttle: report to Sentry at most once per 10 minutes
+            let now = Date()
+            if lastReconnectLimitReportTime == nil || now.timeIntervalSince(lastReconnectLimitReportTime!) > sentryThrottleInterval {
+                lastReconnectLimitReportTime = now
+                CrashReporter.shared.captureMessage(
+                    "Transcription max reconnection attempts reached",
+                    level: .error
+                )
+            } else {
+                CrashReporter.shared.addBreadcrumb(
+                    category: "transcription",
+                    message: "Max reconnect attempts reached (throttled)"
+                )
+            }
             AnalyticsService.shared.capture("transcription_reconnect_exhausted", properties: [
                 "max_attempts": maxReconnectAttempts,
                 "provider": currentProvider?.rawValue ?? "unknown"
@@ -455,10 +554,20 @@ final class TranscriptionService: ObservableObject {
                         self.connectionState = .failed(reason: "Connection could not be restored. Please retry manually.")
                         self.stopAutoRecovery()
 
-                        CrashReporter.shared.captureMessage(
-                            "Transcription auto-recovery exhausted after \(self.maxAutoRecoveryAttempts) attempts",
-                            level: .error
-                        )
+                        // Throttle: report to Sentry at most once per 10 minutes
+                        let now = Date()
+                        if self.lastAutoRecoveryExhaustedReportTime == nil || now.timeIntervalSince(self.lastAutoRecoveryExhaustedReportTime!) > self.sentryThrottleInterval {
+                            self.lastAutoRecoveryExhaustedReportTime = now
+                            CrashReporter.shared.captureMessage(
+                                "Transcription auto-recovery exhausted after \(self.maxAutoRecoveryAttempts) attempts",
+                                level: .error
+                            )
+                        } else {
+                            CrashReporter.shared.addBreadcrumb(
+                                category: "transcription",
+                                message: "Auto-recovery exhausted (throttled)"
+                            )
+                        }
                         AnalyticsService.shared.capture("transcription_auto_recovery_exhausted", properties: [
                             "max_attempts": self.maxAutoRecoveryAttempts,
                             "provider": self.currentProvider?.rawValue ?? "unknown"

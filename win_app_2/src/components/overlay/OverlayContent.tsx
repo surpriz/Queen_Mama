@@ -10,12 +10,13 @@ export function OverlayContent() {
       {/* Collapsed: Pill header */}
       <PillHeader />
 
-      {/* Expanded: Full content with smooth transition */}
+      {/* Expanded: Full content with spring easing */}
       <div
-        className="transition-[max-height,opacity] duration-300 ease-in-out overflow-hidden"
+        className="transition-[max-height,opacity] duration-300 overflow-hidden"
         style={{
           maxHeight: isExpanded ? 480 : 0,
           opacity: isExpanded ? 1 : 0,
+          transitionTimingFunction: 'cubic-bezier(0.34, 1.56, 0.64, 1)',
         }}
       >
         <ExpandedContent />
