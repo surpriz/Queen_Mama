@@ -646,6 +646,26 @@
       "recapScreenshotRefusal": {
         "title": "Recap Reliability Fix",
         "description": "Recaps no longer send screenshots, preventing safety filter false positives during video calls"
+      },
+      "authMethodDisplay": {
+        "title": "Sign-in Method Badge",
+        "description": "Account settings now display whether you signed in with Google or Email"
+      },
+      "robustStartupAuth": {
+        "title": "Reliable App Startup",
+        "description": "The app now waits up to 10 seconds for authentication instead of 2, preventing false 'Session Expired' on slow networks"
+      },
+      "keychainTokenStorage": {
+        "title": "Secure Token Persistence",
+        "description": "Token storage uses a safer update-or-add pattern, preventing accidental token loss after app restarts"
+      },
+      "magicLinkSession": {
+        "title": "Magic Link Session Fix",
+        "description": "Opening the web dashboard from the app now correctly signs into the right account, even if another user was previously logged in"
+      },
+      "onboardingVisibility": {
+        "title": "Onboarding Button Visibility",
+        "description": "Navigation buttons are now always visible during the onboarding flow without needing to scroll"
       }
     }
   },
