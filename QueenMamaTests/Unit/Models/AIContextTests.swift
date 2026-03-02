@@ -135,22 +135,22 @@ final class AIContextTests: XCTestCase {
 
     func testUserMessageAssist() {
         let context = AIContext(transcript: "test", responseType: .assist)
-        XCTAssertTrue(context.userMessage.contains("Help me"), "Assist should ask for help")
+        XCTAssertTrue(context.userMessage.contains("Assist") || context.userMessage.contains("Aide"), "Assist should contain bilingual prompt")
     }
 
     func testUserMessageWhatToSay() {
         let context = AIContext(transcript: "test", responseType: .whatToSay)
-        XCTAssertTrue(context.userMessage.contains("What should I say"), "WhatToSay should ask what to say")
+        XCTAssertTrue(context.userMessage.contains("Suggest what to say") || context.userMessage.contains("Suggère quoi dire"), "WhatToSay should contain bilingual prompt")
     }
 
     func testUserMessageFollowUp() {
         let context = AIContext(transcript: "test", responseType: .followUp)
-        XCTAssertTrue(context.userMessage.contains("questions"), "FollowUp should ask about questions")
+        XCTAssertTrue(context.userMessage.contains("questions") || context.userMessage.contains("suivi"), "FollowUp should contain bilingual prompt about questions")
     }
 
     func testUserMessageRecap() {
         let context = AIContext(transcript: "test", responseType: .recap)
-        XCTAssertTrue(context.userMessage.contains("Summarize"), "Recap should ask for summary")
+        XCTAssertTrue(context.userMessage.contains("summary") || context.userMessage.contains("résumé"), "Recap should contain bilingual summary prompt")
     }
 
     func testUserMessageCustomPrompt() {
