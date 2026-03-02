@@ -48,13 +48,18 @@ final class ProxyAIProvider: AIProvider {
 
         let startTime = Date()
 
+        // Recap needs more tokens for comprehensive meeting summaries
+        let effectiveMaxTokens = context.responseType == .recap
+            ? max(configManager.maxTokens, 3000)
+            : configManager.maxTokens
+
         let response = try await proxyClient.generateAIResponse(
             provider: providerName,
             smartMode: context.smartMode,
             systemPrompt: context.systemPrompt,
             userMessage: context.userMessage,
             screenshot: context.screenshot,
-            maxTokens: configManager.maxTokens
+            maxTokens: effectiveMaxTokens
         )
 
         let latencyMs = Int(Date().timeIntervalSince(startTime) * 1000)
@@ -85,7 +90,11 @@ final class ProxyAIProvider: AIProvider {
 
                 // Get values needed for streaming (on main actor)
                 let providerName = await MainActor.run { self.providerName }
-                let maxTokens = await MainActor.run { self.configManager.maxTokens }
+                let baseMaxTokens = await MainActor.run { self.configManager.maxTokens }
+                // Recap needs more tokens for comprehensive meeting summaries
+                let maxTokens = context.responseType == .recap
+                    ? max(baseMaxTokens, 3000)
+                    : baseMaxTokens
 
                 do {
                     // Debug logging for system prompt
