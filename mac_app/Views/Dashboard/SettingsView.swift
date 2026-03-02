@@ -1315,9 +1315,22 @@ struct ModernAccountSettingsView: View {
                                 Text(user.displayName)
                                     .font(QMDesign.Typography.bodyMedium)
                                     .foregroundColor(QMDesign.Colors.textPrimary)
-                                Text(user.email)
-                                    .font(QMDesign.Typography.caption)
-                                    .foregroundColor(QMDesign.Colors.textSecondary)
+                                HStack(spacing: QMDesign.Spacing.xs) {
+                                    Text(user.email)
+                                        .font(QMDesign.Typography.caption)
+                                        .foregroundColor(QMDesign.Colors.textSecondary)
+                                    if let method = user.authMethodLabel {
+                                        Text("via \(method)")
+                                            .font(QMDesign.Typography.captionSmall)
+                                            .foregroundColor(QMDesign.Colors.textTertiary)
+                                            .padding(.horizontal, 6)
+                                            .padding(.vertical, 2)
+                                            .background(
+                                                Capsule()
+                                                    .fill(QMDesign.Colors.surfaceLight)
+                                            )
+                                    }
+                                }
                             }
 
                             Spacer()
@@ -1783,7 +1796,17 @@ struct ModernSyncSettingsView: View {
     }
 
     private func openDashboard() {
-        NSWorkspace.shared.open(URLConfigManager.shared.dashboardSessionsURL)
+        Task {
+            do {
+                let response = try await AuthAPIClient.shared.generateMagicLink(redirect: "/dashboard/sessions")
+                if let url = URL(string: response.url) {
+                    NSWorkspace.shared.open(url)
+                }
+            } catch {
+                // Fallback to plain URL if magic link generation fails
+                NSWorkspace.shared.open(URLConfigManager.shared.dashboardSessionsURL)
+            }
+        }
     }
 }
 

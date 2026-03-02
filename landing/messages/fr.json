@@ -646,6 +646,26 @@
       "recapScreenshotRefusal": {
         "title": "Fiabilité des récaps améliorée",
         "description": "Les récaps n'envoient plus de captures d'écran, évitant les faux positifs des filtres de sécurité lors des visioconférences"
+      },
+      "authMethodDisplay": {
+        "title": "Badge méthode de connexion",
+        "description": "Les paramètres du compte affichent maintenant si vous êtes connecté via Google ou Email"
+      },
+      "robustStartupAuth": {
+        "title": "Démarrage fiable de l'app",
+        "description": "L'app attend maintenant jusqu'à 10 secondes pour l'authentification au lieu de 2, évitant les faux « Session Expirée » sur réseau lent"
+      },
+      "keychainTokenStorage": {
+        "title": "Persistance sécurisée des tokens",
+        "description": "Le stockage des tokens utilise un pattern update-or-add plus sûr, empêchant la perte accidentelle de tokens après redémarrage"
+      },
+      "magicLinkSession": {
+        "title": "Correction session Magic Link",
+        "description": "L'ouverture du dashboard web depuis l'app connecte maintenant au bon compte, même si un autre utilisateur était connecté"
+      },
+      "onboardingVisibility": {
+        "title": "Visibilité des boutons d'onboarding",
+        "description": "Les boutons de navigation sont maintenant toujours visibles pendant le parcours d'onboarding sans avoir à scroller"
       }
     }
   },

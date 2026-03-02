@@ -73,6 +73,11 @@ async function handlePoll(deviceCode: string | null) {
       email: true,
       name: true,
       role: true,
+      password: true,
+      accounts: {
+        select: { provider: true },
+        take: 1,
+      },
     },
   });
 
@@ -149,6 +154,13 @@ async function handlePoll(deviceCode: string | null) {
     where: { id: authCode.id },
   });
 
+  // Determine auth method: has password → credentials, has google account → google
+  const authMethod = user.password
+    ? "credentials"
+    : user.accounts.some((a: { provider: string }) => a.provider === "google")
+      ? "google"
+      : "credentials";
+
   return NextResponse.json(
     {
       accessToken,
@@ -158,6 +170,7 @@ async function handlePoll(deviceCode: string | null) {
         id: user.id,
         email: user.email,
         name: user.name,
+        authMethod,
       },
     },
     { headers: corsHeaders }

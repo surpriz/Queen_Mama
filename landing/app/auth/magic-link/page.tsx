@@ -1,12 +1,11 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { Suspense } from "react";
 import Link from "next/link";
 
 function MagicLinkContent() {
-  const router = useRouter();
   const searchParams = useSearchParams();
   const [status, setStatus] = useState<"verifying" | "success" | "error">("verifying");
   const [errorMessage, setErrorMessage] = useState("");
@@ -40,16 +39,17 @@ function MagicLinkContent() {
     verifyToken().then((result) => {
       if (result.success) {
         setStatus("success");
+        // Use hard navigation to ensure the new session cookie is read fresh
+        // (avoids stale session data from a previously logged-in user)
         setTimeout(() => {
-          router.push(result.redirect || "/dashboard");
-          router.refresh();
+          window.location.href = result.redirect || "/dashboard";
         }, 1000);
       } else {
         setStatus("error");
         setErrorMessage(result.message || "Unknown error");
       }
     });
-  }, [searchParams, router]);
+  }, [searchParams]);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-purple-900/20 to-gray-900 flex items-center justify-center p-4">

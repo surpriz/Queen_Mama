@@ -17,9 +17,18 @@ struct AuthUser: Codable, Equatable {
     let id: String
     let email: String
     let name: String?
+    let authMethod: String?
 
     var displayName: String {
         name ?? email.components(separatedBy: "@").first ?? email
+    }
+
+    var authMethodLabel: String? {
+        switch authMethod {
+        case "google": return "Google"
+        case "credentials": return "Email"
+        default: return nil
+        }
     }
 }
 
