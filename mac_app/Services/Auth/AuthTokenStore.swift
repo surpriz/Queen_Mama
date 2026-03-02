@@ -71,7 +71,11 @@ final class AuthTokenStore {
         }
         set {
             if let token = newValue {
-                try? saveString(token, account: refreshTokenAccount, service: service)
+                do {
+                    try saveString(token, account: refreshTokenAccount, service: service)
+                } catch {
+                    print("[TokenStore] ⚠️ CRITICAL: Failed to save refresh token to Keychain: \(error)")
+                }
             } else {
                 try? delete(account: refreshTokenAccount, service: service)
                 try? delete(account: refreshTokenAccount, service: legacyService)
@@ -100,7 +104,11 @@ final class AuthTokenStore {
         set {
             if let user = newValue,
                let data = try? JSONEncoder().encode(user) {
-                try? saveData(data, account: userInfoAccount, service: service)
+                do {
+                    try saveData(data, account: userInfoAccount, service: service)
+                } catch {
+                    print("[TokenStore] ⚠️ CRITICAL: Failed to save user info to Keychain: \(error)")
+                }
             } else {
                 try? delete(account: userInfoAccount, service: service)
                 try? delete(account: userInfoAccount, service: legacyService)
@@ -125,7 +133,11 @@ final class AuthTokenStore {
         set {
             if let expiry = newValue {
                 let string = ISO8601DateFormatter().string(from: expiry)
-                try? saveString(string, account: tokenExpiryAccount, service: service)
+                do {
+                    try saveString(string, account: tokenExpiryAccount, service: service)
+                } catch {
+                    print("[TokenStore] ⚠️ Failed to save token expiry to Keychain: \(error)")
+                }
             } else {
                 try? delete(account: tokenExpiryAccount, service: service)
                 try? delete(account: tokenExpiryAccount, service: legacyService)
@@ -192,22 +204,42 @@ final class AuthTokenStore {
 
     private func saveData(_ data: Data, account: String, service svc: String? = nil) throws {
         let serviceToUse = svc ?? service
-        let query: [String: Any] = [
+
+        // Use update-or-add pattern to avoid losing data if add fails after delete
+        let searchQuery: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrService as String: serviceToUse,
             kSecAttrAccount as String: account,
+        ]
+
+        let updateAttributes: [String: Any] = [
             kSecValueData as String: data
         ]
 
-        // Delete existing item first
-        SecItemDelete(query as CFDictionary)
+        let updateStatus = SecItemUpdate(searchQuery as CFDictionary, updateAttributes as CFDictionary)
 
-        let status = SecItemAdd(query as CFDictionary, nil)
-        guard status == errSecSuccess else {
-            print("[TokenStore] Keychain save FAILED for \(account) in \(serviceToUse): OSStatus \(status)")
-            throw KeychainError.unexpectedStatus(status)
+        if updateStatus == errSecSuccess {
+            print("[TokenStore] Keychain update SUCCESS for \(account) in \(serviceToUse)")
+            return
         }
-        print("[TokenStore] Keychain save SUCCESS for \(account) in \(serviceToUse)")
+
+        if updateStatus == errSecItemNotFound {
+            // Item doesn't exist yet, add it
+            var addQuery = searchQuery
+            addQuery[kSecValueData as String] = data
+
+            let addStatus = SecItemAdd(addQuery as CFDictionary, nil)
+            guard addStatus == errSecSuccess else {
+                print("[TokenStore] Keychain add FAILED for \(account) in \(serviceToUse): OSStatus \(addStatus)")
+                throw KeychainError.unexpectedStatus(addStatus)
+            }
+            print("[TokenStore] Keychain add SUCCESS for \(account) in \(serviceToUse)")
+            return
+        }
+
+        // Update failed for unexpected reason
+        print("[TokenStore] Keychain update FAILED for \(account) in \(serviceToUse): OSStatus \(updateStatus)")
+        throw KeychainError.unexpectedStatus(updateStatus)
     }
 
     private func getData(account: String, service svc: String? = nil) throws -> Data {

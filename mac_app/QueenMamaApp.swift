@@ -191,6 +191,16 @@ struct QueenMamaApp: App {
                         }
                 }
             }
+            // Recovery: if auth succeeds after timeout showed "Session Expired",
+            // automatically transition to dashboard without requiring manual re-login
+            .onChange(of: authManager.authState) { _, newState in
+                if launchState == .login, case .authenticated = newState {
+                    if ConfigurationManager.shared.hasCompletedOnboarding {
+                        print("[App] Auth recovered after timeout - switching to dashboard")
+                        launchState = .dashboard
+                    }
+                }
+            }
         }
         .modelContainer(sharedModelContainer)
         .windowStyle(.hiddenTitleBar)
@@ -224,7 +234,7 @@ struct QueenMamaApp: App {
             // Wait for auth state to be determined (not .unknown)
             // The auth check is started in AppDelegate.applicationDidFinishLaunching
             var attempts = 0
-            let maxAttempts = 20 // Max 2 seconds wait
+            let maxAttempts = 100 // Max 10 seconds wait (handles slow networks and Vercel cold starts)
 
             while attempts < maxAttempts {
                 switch authManager.authState {
@@ -257,10 +267,10 @@ struct QueenMamaApp: App {
 
             // Timeout - check onboarding completion before defaulting
             if ConfigurationManager.shared.hasCompletedOnboarding {
-                print("[App] Auth check timeout but onboarding completed, showing login")
+                print("[App] Auth check timeout (10s) but onboarding completed, showing login")
                 launchState = .login
             } else {
-                print("[App] Auth check timeout, showing onboarding")
+                print("[App] Auth check timeout (10s), showing onboarding")
                 launchState = .onboarding
             }
         }
