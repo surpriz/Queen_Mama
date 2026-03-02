@@ -206,7 +206,7 @@ struct QueenMamaApp: App {
         .windowStyle(.hiddenTitleBar)
         .defaultSize(
             width: launchState == .onboarding ? 800 : launchState == .login ? 500 : 900,
-            height: launchState == .onboarding ? 600 : launchState == .login ? 600 : 700
+            height: launchState == .onboarding ? 750 : launchState == .login ? 600 : 700
         )
 
         // Menu Bar Extra

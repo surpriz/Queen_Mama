@@ -107,9 +107,20 @@ export async function POST(request: Request) {
         },
       });
 
-      // Create device
-      const device = await tx.device.create({
-        data: {
+      // Create or reuse device (deviceId is a hardware identifier that may already exist
+      // from a previous account or login attempt on this machine)
+      const device = await tx.device.upsert({
+        where: { deviceId },
+        update: {
+          userId: user.id,
+          name: deviceName,
+          platform,
+          osVersion,
+          appVersion,
+          lastSeenAt: new Date(),
+          isActive: true,
+        },
+        create: {
           userId: user.id,
           deviceId,
           name: deviceName,
@@ -164,6 +175,7 @@ export async function POST(request: Request) {
           id: result.user.id,
           email: result.user.email,
           name: result.user.name,
+          authMethod: "credentials",
         },
         message: "Account created successfully",
         emailVerificationRequired: true,

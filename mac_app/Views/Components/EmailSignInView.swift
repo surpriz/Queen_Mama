@@ -389,8 +389,9 @@ struct EmailSignInView: View {
     }
 
     private func forgotPassword() {
-        // Open password reset page
-        if let url = URL(string: "https://www.queenmama.co/forgot-password?email=\(email.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? "")") {
+        let baseURL = AppEnvironment.current.apiBaseURL
+        let encodedEmail = email.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? ""
+        if let url = URL(string: "\(baseURL)/forgot-password?email=\(encodedEmail)") {
             NSWorkspace.shared.open(url)
         }
     }

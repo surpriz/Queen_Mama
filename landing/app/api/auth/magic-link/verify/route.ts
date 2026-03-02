@@ -108,8 +108,10 @@ export async function POST(request: Request) {
       maxAge: 30 * 24 * 60 * 60, // 30 days
     });
 
-    // Set the session cookie
+    // Clear any existing session cookie before setting the new one
+    // This ensures a previous user's session doesn't persist
     const cookieStore = await cookies();
+    cookieStore.delete(cookieName);
 
     cookieStore.set(cookieName, jwtToken, {
       httpOnly: true,
