@@ -296,9 +296,11 @@ struct OverlayContentView: View {
                         )
                         appState.aiService.currentResponse = response.content
                     case .recap:
+                        // Recap uses transcript only — no screenshot needed for meeting summaries
+                        // Also avoids AI safety filter refusals triggered by faces in video calls
                         let response = try await appState.aiService.recap(
                             transcript: transcriptForRequest,
-                            screenshot: screenshot,
+                            screenshot: nil,
                             mode: appState.selectedMode
                         )
                         appState.aiService.currentResponse = response.content

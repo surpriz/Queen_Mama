@@ -68,10 +68,13 @@ final class AIResponse: Identifiable {
             // Language instruction added to ALL response types for consistency
             let languageInstruction = """
 
-                CRITICAL LANGUAGE RULE: Your ENTIRE response MUST be in the SAME language as the transcript or screen content.
-                - French content → respond entirely in French
-                - English content → respond entirely in English
-                - NEVER mix languages. NEVER refuse to help. NEVER say "I can't help with that."
+                CRITICAL LANGUAGE RULE:
+                - Detect the language of the transcript/screen content.
+                - Your ENTIRE response — including the very FIRST word, headers, intros, and all text — MUST be in that SAME language.
+                - French content → 100% French response from start to finish. NO English preamble, NO English intro sentence.
+                - English content → 100% English response from start to finish.
+                - NEVER mix languages. NEVER start in one language and switch to another.
+                - NEVER refuse to help. NEVER say "I can't help with that."
                 """
 
             switch self {
@@ -345,8 +348,16 @@ SMART MODE ENABLED: Please provide enhanced, thorough analysis:
         }
 
         if !transcript.isEmpty {
-            // Limit transcript to ~8000 chars (~2000 tokens) for cost optimization
-            let maxTranscriptLength = 8000
+            // Recap and session summaries need much more context for comprehensive coverage
+            // Other tabs (Assist, WhatToSay, FollowUp) use a smaller window for speed
+            let maxTranscriptLength: Int
+            switch responseType {
+            case .recap:
+                maxTranscriptLength = 32000  // ~8000 tokens - full meeting coverage
+            default:
+                maxTranscriptLength = 8000   // ~2000 tokens - fast real-time responses
+            }
+
             let truncatedTranscript: String
 
             if transcript.count > maxTranscriptLength {
@@ -373,17 +384,18 @@ SMART MODE ENABLED: Please provide enhanced, thorough analysis:
             message += "Help me with this."
         } else {
             // Keep it simple - the system prompt already has instructions
+            // Use language-neutral or bilingual prompts to avoid priming the AI in English
             switch responseType {
             case .assist:
-                message += "Help me."
+                message += "[Assist / Aide]"
             case .whatToSay:
-                message += "What should I say?"
+                message += "[Suggest what to say / Suggère quoi dire]"
             case .followUp:
-                message += "What questions should I ask?"
+                message += "[Suggest follow-up questions / Suggère des questions de suivi]"
             case .recap:
-                message += "Summarize this."
+                message += "[Generate meeting summary / Génère un résumé de réunion]"
             case .custom:
-                message += "Help me."
+                message += "[Help / Aide]"
             }
         }
 

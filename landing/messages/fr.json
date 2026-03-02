@@ -622,6 +622,30 @@
       "dashboardAnimations": {
         "title": "Animations du tableau de bord raffinées",
         "description": "Transitions plus fluides et retours visuels améliorés dans l'interface du tableau de bord"
+      },
+      "sonnet46Upgrade": {
+        "title": "Mise à jour vers Claude Sonnet 4.6",
+        "description": "Tous les modes IA utilisent désormais le dernier modèle Sonnet 4.6 d'Anthropic pour des réponses plus rapides et de meilleure qualité"
+      },
+      "adaptiveThinking": {
+        "title": "Mode Smart adaptatif",
+        "description": "Le Mode Smart utilise désormais la réflexion adaptative — l'IA décide quand un raisonnement approfondi est nécessaire, améliorant la vitesse sur les requêtes simples"
+      },
+      "recapContextExpansion": {
+        "title": "Récapitulatifs de réunion complets",
+        "description": "Les récaps capturent désormais jusqu'à 4x plus de contexte de conversation pour des résumés de réunion plus complets et détaillés"
+      },
+      "languageConsistency": {
+        "title": "Détection de langue cohérente",
+        "description": "Les réponses IA correspondent désormais à la langue du transcript dès le premier mot, éliminant les mélanges de langues"
+      },
+      "privacyProtectionUx": {
+        "title": "Messages de protection de la vie privée",
+        "description": "Explications claires et compréhensibles lorsque les filtres de sécurité IA s'activent, au lieu de messages de refus génériques"
+      },
+      "recapScreenshotRefusal": {
+        "title": "Fiabilité des récaps améliorée",
+        "description": "Les récaps n'envoient plus de captures d'écran, évitant les faux positifs des filtres de sécurité lors des visioconférences"
       }
     }
   },

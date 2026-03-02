@@ -135,7 +135,7 @@ describe("ai-providers", () => {
   describe("buildAnthropicRequestBody", () => {
     it("should build standard body without thinking", () => {
       const body = buildAnthropicRequestBody({
-        model: "claude-sonnet-4-5-20250929",
+        model: "claude-sonnet-4-6",
         systemPrompt: "Be helpful",
         messages: [{ role: "user", content: "Hello" }],
         maxTokens: 4000,
@@ -143,16 +143,16 @@ describe("ai-providers", () => {
         smartMode: false,
       }) as Record<string, unknown>;
 
-      expect(body.model).toBe("claude-sonnet-4-5-20250929");
+      expect(body.model).toBe("claude-sonnet-4-6");
       expect(body.system).toBe("Be helpful");
       expect(body.max_tokens).toBe(4000);
       expect(body.stream).toBe(true);
       expect(body.thinking).toBeUndefined();
     });
 
-    it("should enable thinking in smart mode", () => {
+    it("should enable adaptive thinking in smart mode", () => {
       const body = buildAnthropicRequestBody({
-        model: "claude-sonnet-4-5-20250929",
+        model: "claude-sonnet-4-6",
         systemPrompt: "Be helpful",
         messages: [{ role: "user", content: "Think deeply" }],
         maxTokens: 4000,
@@ -161,30 +161,13 @@ describe("ai-providers", () => {
       }) as Record<string, unknown>;
 
       expect(body.thinking).toEqual({
-        type: "enabled",
-        budget_tokens: 4000,
-      });
-    });
-
-    it("should cap thinking budget to 6000 in smart mode", () => {
-      const body = buildAnthropicRequestBody({
-        model: "claude-sonnet-4-5-20250929",
-        systemPrompt: "Be helpful",
-        messages: [{ role: "user", content: "Think" }],
-        maxTokens: 16000,
-        stream: false,
-        smartMode: true,
-      }) as Record<string, unknown>;
-
-      expect(body.thinking).toEqual({
-        type: "enabled",
-        budget_tokens: 6000,
+        type: "adaptive",
       });
     });
 
     it("should use 16000 budget_tokens in recap mode", () => {
       const body = buildAnthropicRequestBody({
-        model: "claude-sonnet-4-5-20250929",
+        model: "claude-sonnet-4-6",
         systemPrompt: "Summarize",
         messages: [{ role: "user", content: "Recap" }],
         maxTokens: 4000,
@@ -199,9 +182,9 @@ describe("ai-providers", () => {
       });
     });
 
-    it("should enable thinking when mode is 'smart' even if smartMode is false", () => {
+    it("should enable adaptive thinking when mode is 'smart' even if smartMode is false", () => {
       const body = buildAnthropicRequestBody({
-        model: "claude-sonnet-4-5-20250929",
+        model: "claude-sonnet-4-6",
         systemPrompt: "Be helpful",
         messages: [{ role: "user", content: "Analyze" }],
         maxTokens: 4000,
@@ -210,13 +193,14 @@ describe("ai-providers", () => {
         mode: "smart",
       }) as Record<string, unknown>;
 
-      expect(body.thinking).toBeDefined();
-      expect((body.thinking as Record<string, unknown>).type).toBe("enabled");
+      expect(body.thinking).toEqual({
+        type: "adaptive",
+      });
     });
 
     it("should prioritize recap mode over smart mode", () => {
       const body = buildAnthropicRequestBody({
-        model: "claude-sonnet-4-5-20250929",
+        model: "claude-sonnet-4-6",
         systemPrompt: "Summarize",
         messages: [{ role: "user", content: "Recap" }],
         maxTokens: 4000,
@@ -320,13 +304,13 @@ describe("ai-providers", () => {
   describe("getModelForProvider", () => {
     it("should return standard model when smartMode is false", () => {
       expect(getModelForProvider("openai", false)).toBe("gpt-4o");
-      expect(getModelForProvider("anthropic", false)).toBe("claude-sonnet-4-5-20250929");
+      expect(getModelForProvider("anthropic", false)).toBe("claude-sonnet-4-6");
       expect(getModelForProvider("gemini", false)).toBe("gemini-2.0-flash");
     });
 
     it("should return smart model when smartMode is true", () => {
       expect(getModelForProvider("openai", true)).toBe("o4-mini");
-      expect(getModelForProvider("anthropic", true)).toBe("claude-sonnet-4-5-20250929");
+      expect(getModelForProvider("anthropic", true)).toBe("claude-sonnet-4-6");
       expect(getModelForProvider("gemini", true)).toBe("gemini-2.0-flash-thinking-exp");
     });
   });

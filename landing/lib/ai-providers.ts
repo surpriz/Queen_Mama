@@ -26,27 +26,27 @@ export interface CascadeModel {
 }
 
 export const MODEL_CASCADE = {
-  // Standard Mode (PRO): Real-time suggestions with Sonnet 4.5 (no thinking)
+  // Standard Mode (PRO): Real-time suggestions with Sonnet 4.6 (no thinking)
   // Optimized for speed + exceptional quality
   standard: [
-    { provider: "anthropic", model: "claude-sonnet-4-5-20250929" },    // Primary: ⭐⭐⭐⭐⭐ Sonnet 4.5, exceptional quality, NO thinking = fast
+    { provider: "anthropic", model: "claude-sonnet-4-6" },             // Primary: ⭐⭐⭐⭐⭐ Sonnet 4.6, best speed/quality, NO thinking = fast
     { provider: "openai", model: "gpt-4o" },                           // Fallback 1: ⭐⭐⭐⭐ quality, 599ms TTFB, proven reliable
-    { provider: "anthropic", model: "claude-sonnet-4-20250514" },      // Fallback 2: ⭐⭐⭐⭐⭐ quality, fast backup
+    { provider: "anthropic", model: "claude-sonnet-4-5-20250929" },    // Fallback 2: ⭐⭐⭐⭐⭐ quality, previous gen backup
   ] as CascadeModel[],
 
-  // Smart Mode (Enterprise): Deep analysis with Sonnet 4.5 + extended thinking
+  // Smart Mode (Enterprise): Deep analysis with Sonnet 4.6 + extended thinking
   // Optimized for maximum intelligence with reasoning
   smart: [
-    { provider: "anthropic", model: "claude-sonnet-4-5-20250929" },    // Primary: ⭐⭐⭐⭐⭐ Sonnet 4.5 + thinking = exceptional reasoning
+    { provider: "anthropic", model: "claude-sonnet-4-6" },             // Primary: ⭐⭐⭐⭐⭐ Sonnet 4.6 + thinking = exceptional reasoning
     { provider: "openai", model: "o4-mini" },                          // Fallback 1: Reasoning model, fast backup
-    { provider: "anthropic", model: "claude-sonnet-4-20250514" },      // Fallback 2: ⭐⭐⭐⭐⭐ quality, faster Anthropic backup
+    { provider: "anthropic", model: "claude-sonnet-4-5-20250929" },    // Fallback 2: ⭐⭐⭐⭐⭐ quality, previous gen backup
   ] as CascadeModel[],
 
   // Recap Mode: Meeting summaries (text-only, large context preferred)
   // Optimized for intelligence + readability
   recap: [
-    { provider: "anthropic", model: "claude-sonnet-4-5-20250929" },    // Primary: ⭐⭐⭐⭐⭐ UX (emojis, statuses), highly readable
-    { provider: "anthropic", model: "claude-sonnet-4-20250514" },      // Fallback 1: ⭐⭐⭐⭐⭐ quality backup
+    { provider: "anthropic", model: "claude-sonnet-4-6" },             // Primary: ⭐⭐⭐⭐⭐ UX (emojis, statuses), highly readable
+    { provider: "anthropic", model: "claude-sonnet-4-5-20250929" },    // Fallback 1: ⭐⭐⭐⭐⭐ quality backup
     { provider: "openai", model: "gpt-4o" },                           // Fallback 2: ⭐⭐⭐⭐ structured, complete
   ] as CascadeModel[],
 } as const;
@@ -58,8 +58,8 @@ export const AI_MODELS = {
     smart: "o4-mini",        // Fallback: reasoning model
   },
   anthropic: {
-    standard: "claude-sonnet-4-5-20250929",  // PRO: Sonnet 4.5 sans thinking (rapide)
-    smart: "claude-sonnet-4-5-20250929",     // Enterprise: Sonnet 4.5 avec thinking (intelligent)
+    standard: "claude-sonnet-4-6",  // PRO: Sonnet 4.6 sans thinking (rapide)
+    smart: "claude-sonnet-4-6",     // Enterprise: Sonnet 4.6 avec thinking (intelligent)
   },
   gemini: {
     standard: "gemini-2.0-flash",
@@ -275,9 +275,9 @@ export function buildAnthropicRequestBody(params: {
   };
 
   // Extended thinking configuration by mode:
-  // - Standard (PRO): NO thinking → fast responses
-  // - Smart (Enterprise): thinking with 6000 tokens → balanced reasoning
-  // - Recap: thinking with 16000 tokens → full power for comprehensive summaries
+  // - Standard (PRO): NO thinking → fastest responses
+  // - Smart (Enterprise): adaptive thinking → model decides when to reason deeply
+  // - Recap: forced thinking with 16000 tokens → full power for comprehensive summaries
   const isRecapMode = params.mode === "recap";
   const isSmartMode = params.smartMode || params.mode === "smart";
 
@@ -288,10 +288,10 @@ export function buildAnthropicRequestBody(params: {
       budget_tokens: 16000,
     };
   } else if (isSmartMode) {
-    // Smart mode: optimized thinking (good reasoning without excessive latency)
+    // Smart mode: adaptive thinking — model decides when reasoning is needed
+    // Skips thinking on simple requests for speed, activates on complex ones
     body.thinking = {
-      type: "enabled",
-      budget_tokens: Math.min(params.maxTokens, 6000),
+      type: "adaptive",
     };
   }
   // Standard mode: no thinking (fastest responses)

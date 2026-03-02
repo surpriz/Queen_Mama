@@ -401,78 +401,87 @@ final class AIService: ObservableObject {
                     print("[AIService] Response length: \(accumulatedResponse.count) chars")
                     print("[AIService] Response preview: \(accumulatedResponse.prefix(200))...")
 
-                    // REFUSAL DETECTION: If AI refused and we had a screenshot, retry without it
-                    // Screenshot content often triggers AI safety filters unnecessarily
-                    if Self.isRefusalResponse(accumulatedResponse) && screenshot != nil {
-                        print("[AIService] ⚠️ AI refusal detected, retrying WITHOUT screenshot...")
+                    // REFUSAL DETECTION: If AI refused, handle gracefully
+                    if Self.isRefusalResponse(accumulatedResponse) {
+                        print("[AIService] ⚠️ AI refusal detected")
 
                         // TRACKING: Log AI refusal event for monitoring
                         await MainActor.run {
                             AnalyticsService.shared.capture("ai_refusal_detected", properties: [
                                 "response_type": type.rawValue,
                                 "refusal_text": String(accumulatedResponse.prefix(100)),
-                                "will_retry": true
+                                "has_screenshot": screenshot != nil,
+                                "will_retry": screenshot != nil
                             ])
                             CrashReporter.shared.addBreadcrumb(
                                 category: "ai",
-                                message: "AI refusal detected for \(type.rawValue), retrying without screenshot"
+                                message: "AI refusal detected for \(type.rawValue), screenshot: \(screenshot != nil)"
                             )
                         }
 
-                        // Clear the refusal response from UI
-                        await MainActor.run {
-                            self.currentResponse = ""
-                        }
-
-                        // Create new context WITHOUT screenshot
-                        let retryContext = AIContext(
-                            transcript: transcript,
-                            screenshot: nil,  // Remove screenshot for retry
-                            mode: mode,
-                            responseType: type,
-                            customPrompt: customPrompt,
-                            smartMode: isSmartMode
-                        )
-
-                        // Reset for retry
-                        accumulatedResponse = ""
-                        chunkBuffer = ""
-                        lastUIUpdate = Date()
-
-                        // Retry streaming without screenshot
-                        for try await chunk in self.proxyProvider.generateStreamingResponse(context: retryContext) {
-                            accumulatedResponse += chunk
-                            chunkBuffer += chunk
-                            continuation.yield(chunk)
-
-                            let now = Date()
-                            if now.timeIntervalSince(lastUIUpdate) >= uiUpdateInterval {
-                                let bufferedContent = chunkBuffer
-                                await MainActor.run {
-                                    self.currentResponse += bufferedContent
-                                }
-                                chunkBuffer = ""
-                                lastUIUpdate = now
-                            }
-                        }
-
-                        // Flush remaining buffer from retry
-                        if !chunkBuffer.isEmpty {
+                        if screenshot != nil {
+                            // Screenshot likely triggered the safety filter — retry without it
+                            // Show a brief explanation while retrying
+                            print("[AIService] ⚠️ Retrying WITHOUT screenshot...")
                             await MainActor.run {
-                                self.currentResponse += chunkBuffer
+                                self.currentResponse = "🔒 *Privacy protection activated* — Your screen capture contains protected content (faces, sensitive data). Retrying analysis without the screenshot...\n\n"
                             }
-                        }
 
-                        print("[AIService] ✅ Retry without screenshot completed: \(accumulatedResponse.count) chars")
+                            // Create new context WITHOUT screenshot
+                            let retryContext = AIContext(
+                                transcript: transcript,
+                                screenshot: nil,
+                                mode: mode,
+                                responseType: type,
+                                customPrompt: customPrompt,
+                                smartMode: isSmartMode
+                            )
 
-                        // TRACKING: Log successful retry
-                        let retrySucceeded = !Self.isRefusalResponse(accumulatedResponse)
-                        await MainActor.run {
-                            AnalyticsService.shared.capture("ai_retry_without_screenshot", properties: [
-                                "response_type": type.rawValue,
-                                "retry_succeeded": retrySucceeded,
-                                "response_length": accumulatedResponse.count
-                            ])
+                            // Reset for retry (keep the explanation prefix in currentResponse)
+                            accumulatedResponse = ""
+                            chunkBuffer = ""
+                            lastUIUpdate = Date()
+
+                            // Retry streaming without screenshot
+                            for try await chunk in self.proxyProvider.generateStreamingResponse(context: retryContext) {
+                                accumulatedResponse += chunk
+                                chunkBuffer += chunk
+                                continuation.yield(chunk)
+
+                                let now = Date()
+                                if now.timeIntervalSince(lastUIUpdate) >= uiUpdateInterval {
+                                    let bufferedContent = chunkBuffer
+                                    await MainActor.run {
+                                        self.currentResponse += bufferedContent
+                                    }
+                                    chunkBuffer = ""
+                                    lastUIUpdate = now
+                                }
+                            }
+
+                            // Flush remaining buffer from retry
+                            if !chunkBuffer.isEmpty {
+                                await MainActor.run {
+                                    self.currentResponse += chunkBuffer
+                                }
+                            }
+
+                            print("[AIService] ✅ Retry without screenshot completed: \(accumulatedResponse.count) chars")
+
+                            // TRACKING: Log retry result
+                            let retrySucceeded = !Self.isRefusalResponse(accumulatedResponse)
+                            await MainActor.run {
+                                AnalyticsService.shared.capture("ai_retry_without_screenshot", properties: [
+                                    "response_type": type.rawValue,
+                                    "retry_succeeded": retrySucceeded,
+                                    "response_length": accumulatedResponse.count
+                                ])
+                            }
+                        } else {
+                            // No screenshot to remove — show user-friendly explanation instead of raw refusal
+                            await MainActor.run {
+                                self.currentResponse = "🔒 **Privacy protection activated**\n\nThe conversation content triggered an AI safety protection. This can happen when:\n\n- The transcript contains sensitive information (medical, financial data)\n- The context is interpreted as potentially confidential\n\nThese protections exist to **safeguard your privacy**.\n\n💡 **Try again** — results may vary."
+                            }
                         }
                     }
 
