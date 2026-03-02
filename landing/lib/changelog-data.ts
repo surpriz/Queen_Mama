@@ -17,8 +17,53 @@ export interface ChangelogRelease {
 
 export const changelogData: ChangelogRelease[] = [
   {
-    date: "February 2026",
+    date: "March 2026",
     isNew: true,
+    sections: [
+      {
+        category: "improvements",
+        changes: [
+          {
+            id: "sonnet46Upgrade",
+            title: "Upgraded to Claude Sonnet 4.6",
+            description: "All AI modes now use Anthropic's latest Sonnet 4.6 model for faster, higher-quality responses"
+          },
+          {
+            id: "adaptiveThinking",
+            title: "Adaptive Smart Mode",
+            description: "Smart Mode now uses adaptive thinking — the AI decides when deep reasoning is needed, improving speed on simple requests"
+          },
+          {
+            id: "recapContextExpansion",
+            title: "Comprehensive Meeting Recaps",
+            description: "Recaps now capture up to 4x more conversation context for more complete and detailed meeting summaries"
+          },
+          {
+            id: "languageConsistency",
+            title: "Consistent Language Detection",
+            description: "AI responses now match the transcript language from the very first word, eliminating mixed-language outputs"
+          }
+        ]
+      },
+      {
+        category: "fixes",
+        changes: [
+          {
+            id: "privacyProtectionUx",
+            title: "Privacy Protection Messaging",
+            description: "Clear, user-friendly explanations when AI safety filters activate instead of generic refusal messages"
+          },
+          {
+            id: "recapScreenshotRefusal",
+            title: "Recap Reliability Fix",
+            description: "Recaps no longer send screenshots, preventing safety filter false positives during video calls"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    date: "February 2026",
     sections: [
       {
         category: "features",
