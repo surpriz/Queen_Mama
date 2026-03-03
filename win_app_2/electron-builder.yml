@@ -1,6 +1,6 @@
 appId: com.queenmama.windows
 productName: Queen Mama
-copyright: Copyright © 2024 Queen Mama
+copyright: Copyright © 2026 Queen Mama
 directories:
   output: release
   buildResources: resources
@@ -29,4 +29,4 @@ mac:
   category: public.app-category.productivity
 publish:
   provider: generic
-  url: https://updates.queenmama.ai
+  url: https://www.queenmama.co/api/updates/windows

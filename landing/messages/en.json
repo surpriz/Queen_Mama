@@ -325,6 +325,8 @@
     "preReleaseSub": "This build is from the staging branch and may contain bugs.",
     "downloadBeta": "Download Beta",
     "downloadForMac": "Download for macOS",
+    "downloadForWindows": "Download for Windows",
+    "alsoAvailableFor": "Also available for {platform}",
     "version": "Version {version}",
     "versionBeta": "Version {version} (Beta)",
     "comingSoon": "Coming Soon",
@@ -335,6 +337,12 @@
     "sysReqChipSub": "M1, M2, M3 & Intel supported",
     "sysReqSigned": "Signed & Notarized",
     "sysReqSignedSub": "Verified by Apple",
+    "sysReqWindows": "Windows 10+",
+    "sysReqWindowsSub": "64-bit required",
+    "sysReqWindowsArch": "x64 Architecture",
+    "sysReqWindowsArchSub": "Intel and AMD processors",
+    "sysReqWindowsInstaller": "NSIS Installer",
+    "sysReqWindowsInstallerSub": "Setup wizard with auto-updates",
     "installation": "Installation",
     "installStep1": "Download the DMG",
     "installStep1Sub": "Click the download button above",
@@ -344,6 +352,14 @@
     "installStep3Sub": "Drag Queen Mama to your Applications folder",
     "installStep4": "Grant permissions",
     "installStep4Sub": "Allow microphone and screen recording when prompted",
+    "installStepWin1": "Download the installer",
+    "installStepWin1Sub": "Click the download button above to get the .exe file",
+    "installStepWin2": "Run the installer",
+    "installStepWin2Sub": "Double-click the downloaded file and follow the setup wizard",
+    "installStepWin3": "Grant permissions",
+    "installStepWin3Sub": "Allow microphone access when prompted by Windows",
+    "installStepWin4": "Launch Queen Mama",
+    "installStepWin4Sub": "Find Queen Mama in your Start Menu or Desktop shortcut",
     "whatsIncluded": "What's Included",
     "feature1": "Real-time transcription with Deepgram Nova-3",
     "feature2": "AI coaching from GPT-4, Claude, or Gemini",
@@ -674,6 +690,18 @@
       "regressionTestSuite": {
         "title": "Regression Test Suite",
         "description": "Added comprehensive tests for authentication error handling, session lifecycle, and service availability checks"
+      },
+      "windowsApp": {
+        "title": "Windows App Available",
+        "description": "Queen Mama is now available for Windows 10+ with automatic updates and full feature parity"
+      },
+      "windowsDownload": {
+        "title": "Cross-Platform Downloads",
+        "description": "The download page now auto-detects your OS and offers the right installer for macOS or Windows"
+      },
+      "windowsCiCd": {
+        "title": "Windows CI/CD Pipeline",
+        "description": "Automated build, test, and release pipeline for the Windows app with platform-specific versioning"
       }
     }
   },

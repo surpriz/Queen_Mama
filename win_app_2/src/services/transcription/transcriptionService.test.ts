@@ -1,44 +1,44 @@
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest'
 import * as transcriptionService from './transcriptionService'
 
-// Mock the providers
+// Mock the providers with classes so they work with `new`
 vi.mock('./deepgramProvider', () => ({
-  DeepgramProvider: vi.fn().mockImplementation(() => ({
-    name: 'Deepgram',
-    isConfigured: true,
-    connect: vi.fn().mockResolvedValue(undefined),
-    disconnect: vi.fn(),
-    sendAudio: vi.fn(),
-    onTranscript: null,
-    onInterimTranscript: null,
-    onError: null,
-  })),
+  DeepgramProvider: class {
+    name = 'Deepgram'
+    isConfigured = true
+    connect = vi.fn().mockResolvedValue(undefined)
+    disconnect = vi.fn()
+    sendAudio = vi.fn()
+    onTranscript = null
+    onInterimTranscript = null
+    onError = null
+  },
 }))
 
 vi.mock('./assemblyAIProvider', () => ({
-  AssemblyAIProvider: vi.fn().mockImplementation(() => ({
-    name: 'AssemblyAI',
-    isConfigured: true,
-    connect: vi.fn().mockResolvedValue(undefined),
-    disconnect: vi.fn(),
-    sendAudio: vi.fn(),
-    onTranscript: null,
-    onInterimTranscript: null,
-    onError: null,
-  })),
+  AssemblyAIProvider: class {
+    name = 'AssemblyAI'
+    isConfigured = true
+    connect = vi.fn().mockResolvedValue(undefined)
+    disconnect = vi.fn()
+    sendAudio = vi.fn()
+    onTranscript = null
+    onInterimTranscript = null
+    onError = null
+  },
 }))
 
 vi.mock('./deepgramFluxProvider', () => ({
-  DeepgramFluxProvider: vi.fn().mockImplementation(() => ({
-    name: 'DeepgramFlux',
-    isConfigured: false,
-    connect: vi.fn().mockResolvedValue(undefined),
-    disconnect: vi.fn(),
-    sendAudio: vi.fn(),
-    onTranscript: null,
-    onInterimTranscript: null,
-    onError: null,
-  })),
+  DeepgramFluxProvider: class {
+    name = 'DeepgramFlux'
+    isConfigured = false
+    connect = vi.fn().mockResolvedValue(undefined)
+    disconnect = vi.fn()
+    sendAudio = vi.fn()
+    onTranscript = null
+    onInterimTranscript = null
+    onError = null
+  },
 }))
 
 describe('transcriptionService', () => {
