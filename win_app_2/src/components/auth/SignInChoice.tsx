@@ -2,22 +2,23 @@ import { useState, useEffect } from 'react'
 import { useAuth } from '@/hooks/useAuth'
 import { GradientText } from '@/components/common/GradientText'
 import { LoadingSpinner } from '@/components/common/LoadingSpinner'
+import { EmailSignIn } from './EmailSignIn'
+import { RegistrationForm } from './RegistrationForm'
 import { createLogger } from '@/lib/logger'
 
 const log = createLogger('SignInChoice')
 
+type SignInView = 'choice' | 'email' | 'register'
+
 interface SignInChoiceProps {
-  onEmailSignIn?: () => void
-  onRegister?: () => void
   allowSkip?: boolean
   onAuthenticated?: () => void
 }
 
-export function SignInChoice({ onEmailSignIn, onRegister, allowSkip = true, onAuthenticated }: SignInChoiceProps) {
+export function SignInChoice({ allowSkip = true, onAuthenticated }: SignInChoiceProps) {
   const { authState, isAuthenticated, loginWithGoogle, startDeviceCodeFlow, cancelDeviceCodeFlow } = useAuth()
+  const [currentView, setCurrentView] = useState<SignInView>('choice')
   const [isLoading, setIsLoading] = useState(false)
-  const [, setShowEmailForm] = useState(false)
-  const [, setShowRegisterForm] = useState(false)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
 
   useEffect(() => {
@@ -26,31 +27,13 @@ export function SignInChoice({ onEmailSignIn, onRegister, allowSkip = true, onAu
     }
   }, [isAuthenticated, onAuthenticated])
 
-  const handleEmailSignIn = () => {
-    if (onEmailSignIn) {
-      onEmailSignIn()
-    } else {
-      setShowEmailForm(true)
-    }
-  }
-
-  const handleRegister = () => {
-    if (onRegister) {
-      onRegister()
-    } else {
-      setShowRegisterForm(true)
-    }
-  }
-
   const handleGoogle = async () => {
-    // On Windows, Google sign-in opens browser for OAuth
     log.info('Starting Google sign-in via OAuth')
     setIsLoading(true)
     setErrorMessage(null)
     try {
       await loginWithGoogle()
       log.info('Google sign-in completed')
-      // State is now managed by authStore
     } catch (error) {
       log.error('Google sign-in failed:', error)
       setErrorMessage(error instanceof Error ? error.message : 'Sign-in failed. Please try again.')
@@ -66,7 +49,6 @@ export function SignInChoice({ onEmailSignIn, onRegister, allowSkip = true, onAu
     try {
       const result = await startDeviceCodeFlow()
       log.info('Device code received:', result.userCode)
-      // State is now managed by authStore
     } catch (error) {
       log.error('Device code flow failed:', error)
       setErrorMessage(error instanceof Error ? error.message : 'Failed to start device code flow.')
@@ -106,10 +88,24 @@ export function SignInChoice({ onEmailSignIn, onRegister, allowSkip = true, onAu
     )
   }
 
-  // Get display error - either from local state or auth store
-  const displayError = errorMessage || (authState.type === 'error' ? authState.message : null)
+  // Show EmailSignIn sub-view
+  if (currentView === 'email') {
+    return (
+      <EmailSignIn
+        onBack={() => setCurrentView('choice')}
+        onSwitchToGoogle={handleGoogle}
+        onSwitchToRegister={() => setCurrentView('register')}
+      />
+    )
+  }
 
-  // Show loading when authenticating
+  // Show RegistrationForm sub-view
+  if (currentView === 'register') {
+    return <RegistrationForm onBack={() => setCurrentView('choice')} />
+  }
+
+  // Main choice view
+  const displayError = errorMessage || (authState.type === 'error' ? authState.message : null)
   const showLoading = isLoading || authState.type === 'authenticating'
 
   return (
@@ -152,7 +148,7 @@ export function SignInChoice({ onEmailSignIn, onRegister, allowSkip = true, onAu
           </div>
 
           <button
-            onClick={handleEmailSignIn}
+            onClick={() => setCurrentView('email')}
             className="w-full px-4 py-3 rounded-qm-lg bg-qm-surface-medium text-qm-text-primary font-medium hover:bg-qm-surface-hover transition-colors"
           >
             Sign in with Email
@@ -168,7 +164,7 @@ export function SignInChoice({ onEmailSignIn, onRegister, allowSkip = true, onAu
           {allowSkip && (
             <p className="text-caption text-qm-text-tertiary mt-4">
               Don't have an account?{' '}
-              <button onClick={handleRegister} className="text-qm-accent hover:underline">
+              <button onClick={() => setCurrentView('register')} className="text-qm-accent hover:underline">
                 Sign up
               </button>
             </p>

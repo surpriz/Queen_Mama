@@ -19,6 +19,15 @@ export interface AuthUser {
   name: string | null
   image: string | null
   role: string
+  authMethod?: string | null
+}
+
+export function getAuthMethodLabel(authMethod: string | null | undefined): string | null {
+  switch (authMethod) {
+    case 'google': return 'Google'
+    case 'credentials': return 'Email'
+    default: return null
+  }
 }
 
 export interface AuthTokens {
