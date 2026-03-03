@@ -26,7 +26,7 @@ interface GitHubRelease {
   assets: GitHubAsset[];
 }
 
-async function getRelease(version: string, includePrerelease: boolean): Promise<GitHubRelease | null> {
+async function getRelease(version: string, includePrerelease: boolean, platform: "windows" | "macos"): Promise<GitHubRelease | null> {
   const headers: HeadersInit = {
     Accept: "application/vnd.github.v3+json",
     "User-Agent": "QueenMama-Download-Proxy",
@@ -38,33 +38,41 @@ async function getRelease(version: string, includePrerelease: boolean): Promise<
 
   try {
     if (version === "latest") {
-      if (includePrerelease) {
-        // Get all releases and find the most recent (including prereleases)
-        const res = await fetch(
-          `https://api.github.com/repos/${GITHUB_REPO}/releases?per_page=10`,
-          { headers, next: { revalidate: 60 } }
-        );
-        if (!res.ok) return null;
-        const releases: GitHubRelease[] = await res.json();
-        return releases[0] || null;
-      } else {
-        // Get the latest stable release
-        const res = await fetch(
-          `https://api.github.com/repos/${GITHUB_REPO}/releases/latest`,
-          { headers, next: { revalidate: 300 } }
-        );
-        if (!res.ok) return null;
-        return res.json();
-      }
-    } else {
-      // Get a specific version
-      const tag = version.startsWith("v") ? version : `v${version}`;
+      // Fetch all releases and find the right one by platform
       const res = await fetch(
-        `https://api.github.com/repos/${GITHUB_REPO}/releases/tags/${tag}`,
-        { headers, next: { revalidate: 3600 } }
+        `https://api.github.com/repos/${GITHUB_REPO}/releases?per_page=30`,
+        { headers, next: { revalidate: includePrerelease ? 60 : 300 } }
       );
       if (!res.ok) return null;
-      return res.json();
+      const releases: GitHubRelease[] = await res.json();
+      const ext = platform === "windows" ? ".exe" : ".dmg";
+
+      const filtered = releases.filter((r) => {
+        if (includePrerelease ? false : r.prerelease) return false;
+        return r.assets.some((a) => a.name.endsWith(ext));
+      });
+
+      if (includePrerelease) {
+        return filtered.find((r) => r.prerelease) || filtered[0] || null;
+      }
+      return filtered[0] || null;
+    } else {
+      // Try platform-prefixed tag first (mac/v1.3.17 or win/v1.0.0), then legacy (v1.3.17)
+      const prefix = platform === "windows" ? "win" : "mac";
+      const cleanVersion = version.startsWith("v") ? version.slice(1) : version;
+      const tagsToTry = [
+        `${prefix}/v${cleanVersion}`,
+        `v${cleanVersion}`,
+      ];
+
+      for (const tag of tagsToTry) {
+        const res = await fetch(
+          `https://api.github.com/repos/${GITHUB_REPO}/releases/tags/${encodeURIComponent(tag)}`,
+          { headers, next: { revalidate: 3600 } }
+        );
+        if (res.ok) return res.json();
+      }
+      return null;
     }
   } catch {
     return null;
@@ -112,7 +120,7 @@ export async function GET(
   const platform = detectPlatform(request);
 
   // Get the release
-  const release = await getRelease(version, includePrerelease);
+  const release = await getRelease(version, includePrerelease, platform);
   if (!release) {
     return NextResponse.json(
       { error: "Release not found" },

@@ -36,7 +36,7 @@ async function isStaging(): Promise<boolean> {
   }
 }
 
-async function getRelease(includePrerelease: boolean): Promise<GitHubRelease | null> {
+async function getWindowsRelease(includePrerelease: boolean): Promise<GitHubRelease | null> {
   const reqHeaders: HeadersInit = {
     Accept: "application/vnd.github.v3+json",
     "User-Agent": "QueenMama-Update-Proxy",
@@ -47,21 +47,24 @@ async function getRelease(includePrerelease: boolean): Promise<GitHubRelease | n
   }
 
   try {
+    const res = await fetch(
+      `https://api.github.com/repos/${GITHUB_REPO}/releases?per_page=30`,
+      { headers: reqHeaders, next: { revalidate: includePrerelease ? 60 : 300 } }
+    );
+    if (!res.ok) return null;
+    const releases: GitHubRelease[] = await res.json();
+
+    // Find the latest Windows release (win/v* tag with latest.yml asset)
+    const windowsReleases = releases.filter((r) => {
+      const isWinTag = r.tag_name.startsWith("win/v");
+      const hasLatestYml = r.assets.some((a) => a.name === "latest.yml");
+      return isWinTag && hasLatestYml;
+    });
+
     if (includePrerelease) {
-      const res = await fetch(
-        `https://api.github.com/repos/${GITHUB_REPO}/releases?per_page=10`,
-        { headers: reqHeaders, next: { revalidate: 60 } }
-      );
-      if (!res.ok) return null;
-      const releases: GitHubRelease[] = await res.json();
-      return releases[0] || null;
+      return windowsReleases.find((r) => r.prerelease) || windowsReleases[0] || null;
     } else {
-      const res = await fetch(
-        `https://api.github.com/repos/${GITHUB_REPO}/releases/latest`,
-        { headers: reqHeaders, next: { revalidate: 300 } }
-      );
-      if (!res.ok) return null;
-      return res.json();
+      return windowsReleases.find((r) => !r.prerelease) || null;
     }
   } catch {
     return null;
@@ -70,7 +73,7 @@ async function getRelease(includePrerelease: boolean): Promise<GitHubRelease | n
 
 export async function GET() {
   const staging = await isStaging();
-  const release = await getRelease(staging);
+  const release = await getWindowsRelease(staging);
 
   if (!release) {
     return new NextResponse("Release not found", { status: 404 });
@@ -103,7 +106,7 @@ export async function GET() {
   // electron-builder latest.yml contains lines like:
   //   url: QueenMama-Setup-1.0.0.exe
   // We need to rewrite to use our proxy URL
-  const version = release.tag_name.replace("v", "");
+  const version = release.tag_name.replace(/^(win\/)?v/, "");
   const baseUrl = staging
     ? "https://staging.queenmama.co"
     : "https://www.queenmama.co";

@@ -3,7 +3,7 @@ name: Build Windows App
 on:
   push:
     tags:
-      - 'v*'
+      - 'win/v*'
   workflow_dispatch:
     inputs:
       version:
@@ -61,7 +61,9 @@ jobs:
         id: release_type
         shell: bash
         run: |
-          TAG_NAME="${GITHUB_REF_NAME:-${{ github.event.inputs.version }}}"
+          RAW_TAG="${GITHUB_REF_NAME:-${{ github.event.inputs.version }}}"
+          # Strip platform prefix (win/v1.0.0 → v1.0.0)
+          TAG_NAME="${RAW_TAG#win/}"
           echo "tag_name=$TAG_NAME" >> $GITHUB_OUTPUT
 
           # Check if it's a pre-release (contains -beta, -rc, -alpha, etc.)
@@ -84,7 +86,7 @@ jobs:
       - name: Update package.json version
         shell: bash
         run: |
-          TAG_NAME="${GITHUB_REF_NAME:-${{ github.event.inputs.version }}}"
+          TAG_NAME="${{ steps.release_type.outputs.tag_name }}"
           VERSION="${TAG_NAME#v}"
           npm version "$VERSION" --no-git-tag-version
           echo "Updated package.json to version $VERSION"
@@ -99,7 +101,7 @@ jobs:
         id: installer
         shell: bash
         run: |
-          TAG_NAME="${GITHUB_REF_NAME:-${{ github.event.inputs.version }}}"
+          TAG_NAME="${{ steps.release_type.outputs.tag_name }}"
           VERSION="${TAG_NAME#v}"
 
           # Find the generated installer
@@ -154,14 +156,14 @@ jobs:
             win_app_2/release/${{ steps.installer.outputs.installer_name }}
             win_app_2/release/latest.yml
           prerelease: ${{ steps.release_type.outputs.is_prerelease }}
+          tag_name: ${{ github.ref_name }}
+          name: "Queen Mama Windows ${{ steps.release_type.outputs.tag_name }}"
           body: |
-            ## Queen Mama ${{ steps.release_type.outputs.tag_name }}
+            ## Queen Mama Windows ${{ steps.release_type.outputs.tag_name }}
 
             ${{ steps.release_type.outputs.is_prerelease == 'true' && '**PRE-RELEASE** - Pour tests uniquement (staging.queenmama.co)' || '**PRODUCTION RELEASE** - Version stable (queenmama.co)' }}
 
-            **Windows Installation:** Lancer l'installateur, suivre l'assistant.
+            **Installation:** Lancer l'installateur, suivre l'assistant.
             **Requis:** Windows 10+ (64-bit)
-
-            **macOS:** Le DMG est disponible dans le meme release si la CI macOS a ete executee.
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

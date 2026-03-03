@@ -47,7 +47,8 @@ async function detectOS(): Promise<"macos" | "windows"> {
   }
 }
 
-async function getRelease(isStaging: boolean): Promise<GitHubRelease | null> {
+// Fetch all releases once (used to find platform-specific releases by tag prefix)
+async function getAllReleases(isStaging: boolean): Promise<GitHubRelease[]> {
   const GITHUB_TOKEN = process.env.GITHUB_TOKEN;
   const headers: HeadersInit = {
     Accept: "application/vnd.github.v3+json",
@@ -58,35 +59,44 @@ async function getRelease(isStaging: boolean): Promise<GitHubRelease | null> {
   }
 
   try {
-    if (isStaging) {
-      // For staging: get the latest pre-release
-      const res = await fetch(
-        "https://api.github.com/repos/surpriz/Queen_Mama/releases",
-        {
-          next: { revalidate: 60 }, // Revalidate every 1 minute for staging
-          headers,
-        }
-      );
-      if (!res.ok) return null;
-      const releases: GitHubRelease[] = await res.json();
-      // Find the latest pre-release
-      const prerelease = releases.find((r) => r.prerelease);
-      // Fallback to latest release if no pre-release exists
-      return prerelease || releases[0] || null;
-    } else {
-      // For production: get the latest stable release
-      const res = await fetch(
-        "https://api.github.com/repos/surpriz/Queen_Mama/releases/latest",
-        {
-          next: { revalidate: 300 }, // Revalidate every 5 minutes
-          headers,
-        }
-      );
-      if (!res.ok) return null;
-      return res.json();
-    }
+    const res = await fetch(
+      "https://api.github.com/repos/surpriz/Queen_Mama/releases?per_page=30",
+      {
+        next: { revalidate: isStaging ? 60 : 300 },
+        headers,
+      }
+    );
+    if (!res.ok) return [];
+    return res.json();
   } catch {
-    return null;
+    return [];
+  }
+}
+
+// Find the latest release for a specific platform (mac/v*, win/v*, or legacy v*)
+function findPlatformRelease(
+  releases: GitHubRelease[],
+  platform: "macos" | "windows",
+  isStaging: boolean
+): GitHubRelease | null {
+  const prefix = platform === "macos" ? "mac/v" : "win/v";
+
+  const platformReleases = releases.filter((r) => {
+    const matchesPrefix = r.tag_name.startsWith(prefix);
+    // Also match legacy v* tags that contain the right asset type
+    const isLegacy = !r.tag_name.startsWith("mac/") && !r.tag_name.startsWith("win/") && r.tag_name.startsWith("v");
+    const hasAsset = platform === "macos"
+      ? r.assets.some((a) => a.name.endsWith(".dmg"))
+      : r.assets.some((a) => a.name.endsWith(".exe"));
+    return matchesPrefix || (isLegacy && hasAsset);
+  });
+
+  if (isStaging) {
+    // Prefer pre-release, fallback to latest
+    return platformReleases.find((r) => r.prerelease) || platformReleases[0] || null;
+  } else {
+    // Only stable releases
+    return platformReleases.find((r) => !r.prerelease) || null;
   }
 }
 
@@ -114,23 +124,34 @@ export default async function DownloadPage({ params }: Props) {
   const t = await getTranslations("Download");
   const staging = await isStaging();
   const userOS = await detectOS();
-  const release = await getRelease(staging);
-  const dmgAsset = release?.assets?.find((a) => a.name.endsWith(".dmg"));
-  const exeAsset = release?.assets?.find((a) => a.name.endsWith(".exe"));
-  const version = release?.tag_name?.replace("v", "") || "1.0.0";
+  const allReleases = await getAllReleases(staging);
 
+  const macRelease = findPlatformRelease(allReleases, "macos", staging);
+  const winRelease = findPlatformRelease(allReleases, "windows", staging);
+
+  const dmgAsset = macRelease?.assets?.find((a) => a.name.endsWith(".dmg"));
+  const exeAsset = winRelease?.assets?.find((a) => a.name.endsWith(".exe"));
+
+  // Use the release matching the user's OS for version display
+  const release = userOS === "windows" ? (winRelease || macRelease) : (macRelease || winRelease);
   const primaryAsset = userOS === "windows" ? exeAsset : dmgAsset;
   const secondaryAsset = userOS === "windows" ? dmgAsset : exeAsset;
 
+  // Extract clean version from tag (strip mac/v or win/v or just v prefix)
+  const primaryVersion = (userOS === "windows" ? winRelease : macRelease)
+    ?.tag_name?.replace(/^(mac|win)\/v/, "").replace(/^v/, "") || "1.0.0";
+  const secondaryVersion = (userOS === "windows" ? macRelease : winRelease)
+    ?.tag_name?.replace(/^(mac|win)\/v/, "").replace(/^v/, "") || "1.0.0";
+
   // Use proxy URL for downloads (works with private repo)
   const primaryDownloadUrl = staging
-    ? `/api/download/${version}?platform=${userOS}&prerelease=true`
-    : `/api/download/${version}?platform=${userOS}`;
+    ? `/api/download/${primaryVersion}?platform=${userOS}&prerelease=true`
+    : `/api/download/${primaryVersion}?platform=${userOS}`;
 
   const secondaryOS = userOS === "windows" ? "macos" : "windows";
   const secondaryDownloadUrl = staging
-    ? `/api/download/${version}?platform=${secondaryOS}&prerelease=true`
-    : `/api/download/${version}?platform=${secondaryOS}`;
+    ? `/api/download/${secondaryVersion}?platform=${secondaryOS}&prerelease=true`
+    : `/api/download/${secondaryVersion}?platform=${secondaryOS}`;
 
   // OS-specific content
   const isMac = userOS === "macos";
@@ -221,7 +242,7 @@ export default async function DownloadPage({ params }: Props) {
               </a>
               <div className="mt-4 flex items-center justify-center gap-4 text-sm text-gray-500">
                 <span className={release?.prerelease ? "text-yellow-500" : ""}>
-                  Version {version}
+                  Version {primaryVersion}
                   {release?.prerelease && " (Beta)"}
                 </span>
                 <span>&bull;</span>
