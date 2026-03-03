@@ -119,7 +119,8 @@ jobs:
           echo "Installer: QueenMama-Setup-${VERSION}.exe"
 
       - name: Upload Sentry release
-        if: ${{ vars.SENTRY_ORG != '' }}
+        if: ${{ vars.SENTRY_ORG != '' && vars.SENTRY_PROJECT_WINDOWS != '' }}
+        continue-on-error: true
         shell: bash
         env:
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
