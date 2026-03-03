@@ -35,6 +35,18 @@ async function isStaging(): Promise<boolean> {
   }
 }
 
+// Detect user OS from User-Agent
+async function detectOS(): Promise<"macos" | "windows"> {
+  try {
+    const headersList = await headers();
+    const ua = headersList.get("user-agent") || "";
+    if (ua.includes("Windows")) return "windows";
+    return "macos";
+  } catch {
+    return "macos";
+  }
+}
+
 async function getRelease(isStaging: boolean): Promise<GitHubRelease | null> {
   const GITHUB_TOKEN = process.env.GITHUB_TOKEN;
   const headers: HeadersInit = {
@@ -101,14 +113,27 @@ export default async function DownloadPage({ params }: Props) {
   setRequestLocale(locale);
   const t = await getTranslations("Download");
   const staging = await isStaging();
+  const userOS = await detectOS();
   const release = await getRelease(staging);
   const dmgAsset = release?.assets?.find((a) => a.name.endsWith(".dmg"));
+  const exeAsset = release?.assets?.find((a) => a.name.endsWith(".exe"));
   const version = release?.tag_name?.replace("v", "") || "1.0.0";
 
+  const primaryAsset = userOS === "windows" ? exeAsset : dmgAsset;
+  const secondaryAsset = userOS === "windows" ? dmgAsset : exeAsset;
+
   // Use proxy URL for downloads (works with private repo)
-  const downloadUrl = staging
-    ? `/api/download/${version}?prerelease=true`
-    : `/api/download/${version}`;
+  const primaryDownloadUrl = staging
+    ? `/api/download/${version}?platform=${userOS}&prerelease=true`
+    : `/api/download/${version}?platform=${userOS}`;
+
+  const secondaryOS = userOS === "windows" ? "macos" : "windows";
+  const secondaryDownloadUrl = staging
+    ? `/api/download/${version}?platform=${secondaryOS}&prerelease=true`
+    : `/api/download/${version}?platform=${secondaryOS}`;
+
+  // OS-specific content
+  const isMac = userOS === "macos";
 
   return (
     <main className="min-h-screen bg-gradient-to-b from-gray-900 via-purple-900/20 to-gray-900">
@@ -128,7 +153,7 @@ export default async function DownloadPage({ params }: Props) {
               href="/"
               className="text-gray-400 hover:text-white transition-colors"
             >
-              ← Back to Home
+              &larr; Back to Home
             </Link>
           </div>
         </div>
@@ -141,7 +166,6 @@ export default async function DownloadPage({ params }: Props) {
           {staging && release?.prerelease && (
             <div className="mb-8 p-4 bg-yellow-500/10 border border-yellow-500/30 rounded-xl">
               <div className="flex items-center justify-center gap-2 text-yellow-400 font-medium">
-                <span>⚠️</span>
                 <span>Pre-release version - For testing only</span>
               </div>
               <p className="text-yellow-400/70 text-sm mt-1">
@@ -153,7 +177,7 @@ export default async function DownloadPage({ params }: Props) {
           {/* Icon */}
           <div className="mb-8 flex justify-center">
             <div className="w-32 h-32 bg-gradient-to-br from-purple-500 to-pink-500 rounded-3xl shadow-2xl shadow-purple-500/25 flex items-center justify-center">
-              <span className="text-6xl">👑</span>
+              <span className="text-6xl">{isMac ? "\uD83D\uDC51" : "\uD83D\uDC51"}</span>
             </div>
           </div>
 
@@ -165,11 +189,11 @@ export default async function DownloadPage({ params }: Props) {
             {t("subtitle")}
           </p>
 
-          {/* Download Button */}
-          {dmgAsset ? (
-            <div className="mb-12">
+          {/* Primary Download Button */}
+          {primaryAsset ? (
+            <div className="mb-6">
               <a
-                href={downloadUrl}
+                href={primaryDownloadUrl}
                 className={`inline-flex items-center gap-3 ${
                   release?.prerelease
                     ? "bg-gradient-to-r from-yellow-600 to-orange-600 hover:from-yellow-500 hover:to-orange-500 shadow-yellow-500/25 hover:shadow-yellow-500/40"
@@ -189,25 +213,29 @@ export default async function DownloadPage({ params }: Props) {
                     d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
                   />
                 </svg>
-                {release?.prerelease ? t("downloadBeta") : t("downloadForMac")}
+                {release?.prerelease
+                  ? t("downloadBeta")
+                  : isMac
+                    ? t("downloadForMac")
+                    : t("downloadForWindows")}
               </a>
               <div className="mt-4 flex items-center justify-center gap-4 text-sm text-gray-500">
                 <span className={release?.prerelease ? "text-yellow-500" : ""}>
                   Version {version}
                   {release?.prerelease && " (Beta)"}
                 </span>
-                <span>•</span>
-                <span>{formatFileSize(dmgAsset.size)}</span>
+                <span>&bull;</span>
+                <span>{formatFileSize(primaryAsset.size)}</span>
                 {release?.published_at && (
                   <>
-                    <span>•</span>
+                    <span>&bull;</span>
                     <span>{formatDate(release.published_at)}</span>
                   </>
                 )}
               </div>
             </div>
           ) : (
-            <div className="mb-12 p-8 bg-white/5 rounded-2xl border border-white/10">
+            <div className="mb-6 p-8 bg-white/5 rounded-2xl border border-white/10">
               <div className="text-gray-400 mb-2">{t("comingSoon")}</div>
               <p className="text-gray-500 text-sm">
                 {t("comingSoonSub")}
@@ -215,75 +243,89 @@ export default async function DownloadPage({ params }: Props) {
             </div>
           )}
 
+          {/* Secondary Download Link */}
+          {secondaryAsset && (
+            <div className="mb-12">
+              <a
+                href={secondaryDownloadUrl}
+                className="text-gray-400 hover:text-white transition-colors text-sm underline underline-offset-4"
+              >
+                {t("alsoAvailableFor", {
+                  platform: isMac ? "Windows" : "macOS",
+                })}
+              </a>
+            </div>
+          )}
+
+          {!secondaryAsset && <div className="mb-12" />}
+
           {/* System Requirements */}
-          <div className="grid md:grid-cols-3 gap-6 mb-16">
-            <div className="p-6 bg-white/5 rounded-xl border border-white/10">
-              <div className="text-2xl mb-2">🖥️</div>
-              <h3 className="text-white font-semibold mb-1">{t("sysReqMacOS")}</h3>
-              <p className="text-gray-500 text-sm">{t("sysReqMacOSSub")}</p>
+          {isMac ? (
+            <div className="grid md:grid-cols-3 gap-6 mb-16">
+              <div className="p-6 bg-white/5 rounded-xl border border-white/10">
+                <div className="text-2xl mb-2">{"\uD83D\uDDA5\uFE0F"}</div>
+                <h3 className="text-white font-semibold mb-1">{t("sysReqMacOS")}</h3>
+                <p className="text-gray-500 text-sm">{t("sysReqMacOSSub")}</p>
+              </div>
+              <div className="p-6 bg-white/5 rounded-xl border border-white/10">
+                <div className="text-2xl mb-2">{"\u26A1"}</div>
+                <h3 className="text-white font-semibold mb-1">{t("sysReqChip")}</h3>
+                <p className="text-gray-500 text-sm">{t("sysReqChipSub")}</p>
+              </div>
+              <div className="p-6 bg-white/5 rounded-xl border border-white/10">
+                <div className="text-2xl mb-2">{"\uD83D\uDD12"}</div>
+                <h3 className="text-white font-semibold mb-1">{t("sysReqSigned")}</h3>
+                <p className="text-gray-500 text-sm">{t("sysReqSignedSub")}</p>
+              </div>
             </div>
-            <div className="p-6 bg-white/5 rounded-xl border border-white/10">
-              <div className="text-2xl mb-2">⚡</div>
-              <h3 className="text-white font-semibold mb-1">{t("sysReqChip")}</h3>
-              <p className="text-gray-500 text-sm">{t("sysReqChipSub")}</p>
+          ) : (
+            <div className="grid md:grid-cols-3 gap-6 mb-16">
+              <div className="p-6 bg-white/5 rounded-xl border border-white/10">
+                <div className="text-2xl mb-2">{"\uD83D\uDDA5\uFE0F"}</div>
+                <h3 className="text-white font-semibold mb-1">{t("sysReqWindows")}</h3>
+                <p className="text-gray-500 text-sm">{t("sysReqWindowsSub")}</p>
+              </div>
+              <div className="p-6 bg-white/5 rounded-xl border border-white/10">
+                <div className="text-2xl mb-2">{"\u26A1"}</div>
+                <h3 className="text-white font-semibold mb-1">{t("sysReqWindowsArch")}</h3>
+                <p className="text-gray-500 text-sm">{t("sysReqWindowsArchSub")}</p>
+              </div>
+              <div className="p-6 bg-white/5 rounded-xl border border-white/10">
+                <div className="text-2xl mb-2">{"\uD83D\uDCE6"}</div>
+                <h3 className="text-white font-semibold mb-1">{t("sysReqWindowsInstaller")}</h3>
+                <p className="text-gray-500 text-sm">{t("sysReqWindowsInstallerSub")}</p>
+              </div>
             </div>
-            <div className="p-6 bg-white/5 rounded-xl border border-white/10">
-              <div className="text-2xl mb-2">🔒</div>
-              <h3 className="text-white font-semibold mb-1">{t("sysReqSigned")}</h3>
-              <p className="text-gray-500 text-sm">{t("sysReqSignedSub")}</p>
-            </div>
-          </div>
+          )}
 
           {/* Installation Instructions */}
           <div className="text-left max-w-2xl mx-auto mb-16">
             <h2 className="text-2xl font-bold text-white mb-6">{t("installation")}</h2>
             <ol className="space-y-4">
-              <li className="flex gap-4">
-                <span className="flex-shrink-0 w-8 h-8 bg-purple-600 rounded-full flex items-center justify-center text-white font-bold">
-                  1
-                </span>
-                <div>
-                  <h3 className="text-white font-medium">{t("installStep1")}</h3>
-                  <p className="text-gray-500 text-sm">
-                    {t("installStep1Sub")}
-                  </p>
-                </div>
-              </li>
-              <li className="flex gap-4">
-                <span className="flex-shrink-0 w-8 h-8 bg-purple-600 rounded-full flex items-center justify-center text-white font-bold">
-                  2
-                </span>
-                <div>
-                  <h3 className="text-white font-medium">{t("installStep2")}</h3>
-                  <p className="text-gray-500 text-sm">
-                    {t("installStep2Sub")}
-                  </p>
-                </div>
-              </li>
-              <li className="flex gap-4">
-                <span className="flex-shrink-0 w-8 h-8 bg-purple-600 rounded-full flex items-center justify-center text-white font-bold">
-                  3
-                </span>
-                <div>
-                  <h3 className="text-white font-medium">
-                    {t("installStep3")}
-                  </h3>
-                  <p className="text-gray-500 text-sm">
-                    {t("installStep3Sub")}
-                  </p>
-                </div>
-              </li>
-              <li className="flex gap-4">
-                <span className="flex-shrink-0 w-8 h-8 bg-purple-600 rounded-full flex items-center justify-center text-white font-bold">
-                  4
-                </span>
-                <div>
-                  <h3 className="text-white font-medium">{t("installStep4")}</h3>
-                  <p className="text-gray-500 text-sm">
-                    {t("installStep4Sub")}
-                  </p>
-                </div>
-              </li>
+              {(isMac
+                ? [
+                    { title: t("installStep1"), sub: t("installStep1Sub") },
+                    { title: t("installStep2"), sub: t("installStep2Sub") },
+                    { title: t("installStep3"), sub: t("installStep3Sub") },
+                    { title: t("installStep4"), sub: t("installStep4Sub") },
+                  ]
+                : [
+                    { title: t("installStepWin1"), sub: t("installStepWin1Sub") },
+                    { title: t("installStepWin2"), sub: t("installStepWin2Sub") },
+                    { title: t("installStepWin3"), sub: t("installStepWin3Sub") },
+                    { title: t("installStepWin4"), sub: t("installStepWin4Sub") },
+                  ]
+              ).map((step, i) => (
+                <li key={i} className="flex gap-4">
+                  <span className="flex-shrink-0 w-8 h-8 bg-purple-600 rounded-full flex items-center justify-center text-white font-bold">
+                    {i + 1}
+                  </span>
+                  <div>
+                    <h3 className="text-white font-medium">{step.title}</h3>
+                    <p className="text-gray-500 text-sm">{step.sub}</p>
+                  </div>
+                </li>
+              ))}
             </ol>
           </div>
 
@@ -324,7 +366,7 @@ export default async function DownloadPage({ params }: Props) {
       {/* Footer */}
       <footer className="border-t border-white/10 py-8 px-6">
         <div className="max-w-6xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4 text-gray-500 text-sm">
-          <p>© 2026 Queen Mama. All rights reserved.</p>
+          <p>&copy; 2026 Queen Mama. All rights reserved.</p>
           <div className="flex gap-6">
             <Link href="/privacy" className="hover:text-white transition-colors">
               {t("privacyPolicy")}

@@ -1,0 +1,171 @@
+name: Build Windows App
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version (e.g., 1.0.0 or 1.0.0-beta.1)'
+        required: true
+        default: '1.0.0'
+      prerelease:
+        description: 'Pre-release (for staging)'
+        type: boolean
+        default: false
+
+defaults:
+  run:
+    working-directory: win_app_2
+
+jobs:
+  test:
+    runs-on: windows-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+          cache-dependency-path: win_app_2/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Type check
+        run: npm run typecheck
+
+      - name: Run tests
+        run: npm test
+
+  build:
+    needs: [test]
+    runs-on: windows-latest
+    timeout-minutes: 30
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+          cache-dependency-path: win_app_2/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Determine release type
+        id: release_type
+        shell: bash
+        run: |
+          TAG_NAME="${GITHUB_REF_NAME:-${{ github.event.inputs.version }}}"
+          echo "tag_name=$TAG_NAME" >> $GITHUB_OUTPUT
+
+          # Check if it's a pre-release (contains -beta, -rc, -alpha, etc.)
+          if [[ "$TAG_NAME" =~ -(beta|rc|alpha|dev) ]] || [[ "${{ github.event.inputs.prerelease }}" == "true" ]]; then
+            echo "is_prerelease=true" >> $GITHUB_OUTPUT
+            echo "Building PRE-RELEASE: $TAG_NAME"
+          else
+            echo "is_prerelease=false" >> $GITHUB_OUTPUT
+            echo "Building PRODUCTION RELEASE: $TAG_NAME"
+          fi
+
+      - name: Calculate build number
+        id: build_number
+        shell: bash
+        run: |
+          NEXT_BUILD=$(( ${{ github.run_number }} + 50 ))
+          echo "next_build=$NEXT_BUILD" >> $GITHUB_OUTPUT
+          echo "Build number: $NEXT_BUILD (from run_number ${{ github.run_number }})"
+
+      - name: Update package.json version
+        shell: bash
+        run: |
+          TAG_NAME="${GITHUB_REF_NAME:-${{ github.event.inputs.version }}}"
+          VERSION="${TAG_NAME#v}"
+          npm version "$VERSION" --no-git-tag-version
+          echo "Updated package.json to version $VERSION"
+
+      - name: Build app
+        run: npm run build
+
+      - name: Package with electron-builder
+        run: npx electron-builder --win --publish never
+
+      - name: Rename installer
+        id: installer
+        shell: bash
+        run: |
+          TAG_NAME="${GITHUB_REF_NAME:-${{ github.event.inputs.version }}}"
+          VERSION="${TAG_NAME#v}"
+
+          # Find the generated installer
+          INSTALLER=$(find release -name "*.exe" -type f | head -1)
+          if [ -z "$INSTALLER" ]; then
+            echo "ERROR: No .exe installer found in release/"
+            ls -la release/
+            exit 1
+          fi
+
+          # Rename to standard format
+          mv "$INSTALLER" "release/QueenMama-Setup-${VERSION}.exe"
+          echo "installer_name=QueenMama-Setup-${VERSION}.exe" >> $GITHUB_OUTPUT
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "Installer: QueenMama-Setup-${VERSION}.exe"
+
+      - name: Upload Sentry release
+        if: ${{ vars.SENTRY_ORG != '' }}
+        shell: bash
+        env:
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+          SENTRY_ORG: ${{ vars.SENTRY_ORG }}
+          SENTRY_PROJECT: ${{ vars.SENTRY_PROJECT_WINDOWS }}
+        run: |
+          VERSION="${{ steps.installer.outputs.version }}"
+          BUILD_NUMBER="${{ steps.build_number.outputs.next_build }}"
+
+          npm install -g @sentry/cli
+
+          echo "Creating Sentry release ${VERSION}+${BUILD_NUMBER}..."
+          sentry-cli releases new "${VERSION}+${BUILD_NUMBER}"
+
+          echo "Associating commits..."
+          sentry-cli releases set-commits "${VERSION}+${BUILD_NUMBER}" --auto --ignore-missing
+
+          echo "Uploading source maps..."
+          sentry-cli sourcemaps upload --release "${VERSION}+${BUILD_NUMBER}" out/ || true
+
+          echo "Finalizing release..."
+          sentry-cli releases finalize "${VERSION}+${BUILD_NUMBER}"
+
+          if [[ "${{ steps.release_type.outputs.is_prerelease }}" == "true" ]]; then
+            sentry-cli releases deploys "${VERSION}+${BUILD_NUMBER}" new -e staging
+          else
+            sentry-cli releases deploys "${VERSION}+${BUILD_NUMBER}" new -e production
+          fi
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            win_app_2/release/${{ steps.installer.outputs.installer_name }}
+            win_app_2/release/latest.yml
+          prerelease: ${{ steps.release_type.outputs.is_prerelease }}
+          body: |
+            ## Queen Mama ${{ steps.release_type.outputs.tag_name }}
+
+            ${{ steps.release_type.outputs.is_prerelease == 'true' && '**PRE-RELEASE** - Pour tests uniquement (staging.queenmama.co)' || '**PRODUCTION RELEASE** - Version stable (queenmama.co)' }}
+
+            **Windows Installation:** Lancer l'installateur, suivre l'assistant.
+            **Requis:** Windows 10+ (64-bit)
+
+            **macOS:** Le DMG est disponible dans le meme release si la CI macOS a ete executee.
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

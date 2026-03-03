@@ -91,6 +91,17 @@ async function downloadAsset(asset: GitHubAsset): Promise<Response | null> {
   }
 }
 
+function detectPlatform(request: NextRequest): "windows" | "macos" {
+  const platformParam = request.nextUrl.searchParams.get("platform");
+  if (platformParam === "windows") return "windows";
+  if (platformParam === "macos") return "macos";
+
+  // Auto-detect from User-Agent
+  const ua = request.headers.get("user-agent") || "";
+  if (ua.includes("Windows") || ua.includes("electron-updater")) return "windows";
+  return "macos";
+}
+
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ version: string }> }
@@ -98,6 +109,7 @@ export async function GET(
   const { version } = await params;
   const searchParams = request.nextUrl.searchParams;
   const includePrerelease = searchParams.get("prerelease") === "true";
+  const platform = detectPlatform(request);
 
   // Get the release
   const release = await getRelease(version, includePrerelease);
@@ -108,17 +120,18 @@ export async function GET(
     );
   }
 
-  // Find the DMG asset
-  const dmgAsset = release.assets.find((a) => a.name.endsWith(".dmg"));
-  if (!dmgAsset) {
+  // Find the appropriate asset based on platform
+  const extension = platform === "windows" ? ".exe" : ".dmg";
+  const asset = release.assets.find((a) => a.name.endsWith(extension));
+  if (!asset) {
     return NextResponse.json(
-      { error: "DMG not found in release" },
+      { error: `${extension.toUpperCase().slice(1)} not found in release` },
       { status: 404 }
     );
   }
 
   // Download and stream the asset
-  const assetResponse = await downloadAsset(dmgAsset);
+  const assetResponse = await downloadAsset(asset);
   if (!assetResponse) {
     return NextResponse.json(
       { error: "Failed to download asset" },
@@ -131,8 +144,8 @@ export async function GET(
     status: 200,
     headers: {
       "Content-Type": "application/octet-stream",
-      "Content-Disposition": `attachment; filename="${dmgAsset.name}"`,
-      "Content-Length": dmgAsset.size.toString(),
+      "Content-Disposition": `attachment; filename="${asset.name}"`,
+      "Content-Length": asset.size.toString(),
       "Cache-Control": "public, max-age=3600",
     },
   });

@@ -7,6 +7,14 @@ let mainWindow: BrowserWindow | null = null
 export function initAutoUpdater(window: BrowserWindow) {
   mainWindow = window
 
+  // Use staging update feed for staging builds
+  if (process.env.VITE_APP_ENV === 'staging') {
+    autoUpdater.setFeedURL({
+      provider: 'generic',
+      url: 'https://staging.queenmama.co/api/updates/windows',
+    })
+  }
+
   autoUpdater.autoDownload = true
   autoUpdater.autoInstallOnAppQuit = true
 

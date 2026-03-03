@@ -29,4 +29,4 @@ mac:
   category: public.app-category.productivity
 publish:
   provider: generic
-  url: https://updates.queenmama.ai
+  url: https://www.queenmama.co/api/updates/windows
