@@ -58,7 +58,7 @@ function LicenseBadge() {
     return (
       <div className="flex items-center gap-1.5 px-3 py-2 rounded-qm-md bg-qm-accent/10">
         <Crown size={12} className="text-qm-accent" />
-        <span className="text-caption font-medium text-qm-accent capitalize">{plan}</span>
+        <span className="text-caption font-medium text-qm-accent">{plan.charAt(0) + plan.slice(1).toLowerCase()}</span>
       </div>
     )
   }

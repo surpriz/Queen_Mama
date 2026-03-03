@@ -22,7 +22,7 @@ export function OnboardingStepIndicator({ steps, currentStep }: OnboardingStepIn
               className={cn(
                 'w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium transition-all duration-300',
                 isCompleted && 'bg-qm-accent text-white',
-                isCurrent && 'bg-gradient-to-r from-qm-primary to-qm-secondary text-white',
+                isCurrent && 'bg-gradient-to-r from-qm-gradient-start to-qm-gradient-end text-white',
                 !isCompleted && !isCurrent && 'bg-qm-surface-medium text-qm-text-tertiary'
               )}
             >

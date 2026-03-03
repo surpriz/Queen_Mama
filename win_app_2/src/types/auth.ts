@@ -93,17 +93,17 @@ export interface License {
 }
 
 export enum SubscriptionPlan {
-  Free = 'free',
-  Pro = 'pro',
-  Enterprise = 'enterprise',
+  Free = 'FREE',
+  Pro = 'PRO',
+  Enterprise = 'ENTERPRISE',
 }
 
 export enum SubscriptionStatus {
-  Active = 'active',
-  Trialing = 'trialing',
-  PastDue = 'past_due',
-  Canceled = 'canceled',
-  Inactive = 'inactive',
+  Active = 'ACTIVE',
+  Trialing = 'TRIALING',
+  PastDue = 'PAST_DUE',
+  Canceled = 'CANCELED',
+  Inactive = 'INACTIVE',
 }
 
 export interface LicenseFeatures {

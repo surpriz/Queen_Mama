@@ -106,7 +106,7 @@ export function TourStep({ onContinue, onBack }: TourStepProps) {
             className={cn(
               'w-2 h-2 rounded-full transition-all duration-300',
               index === currentScreen
-                ? 'w-6 bg-gradient-to-r from-qm-primary to-qm-secondary'
+                ? 'w-6 bg-gradient-to-r from-qm-gradient-start to-qm-gradient-end'
                 : 'bg-qm-surface-medium hover:bg-qm-surface-hover'
             )}
           />
@@ -126,7 +126,7 @@ export function TourStep({ onContinue, onBack }: TourStepProps) {
         {isLastScreen ? (
           <button
             onClick={onContinue}
-            className="px-6 py-2.5 rounded-qm-lg bg-gradient-to-r from-qm-primary to-qm-secondary text-white font-medium hover:scale-105 transition-transform duration-200"
+            className="px-6 py-2.5 rounded-qm-lg bg-gradient-to-r from-qm-gradient-start to-qm-gradient-end text-white font-medium hover:scale-105 transition-transform duration-200"
           >
             Got it!
           </button>
@@ -155,7 +155,7 @@ function WidgetTourContent() {
         <div className="text-center">
           <div className="mb-2 text-caption text-qm-text-tertiary">Collapsed</div>
           <div className="w-48 h-12 rounded-full bg-qm-surface-medium border border-qm-border-subtle flex items-center px-4 gap-3">
-            <div className="w-8 h-8 rounded-full bg-gradient-to-r from-qm-primary to-qm-secondary flex items-center justify-center">
+            <div className="w-8 h-8 rounded-full bg-gradient-to-r from-qm-gradient-start to-qm-gradient-end flex items-center justify-center">
               <Sparkles className="w-4 h-4 text-white" />
             </div>
             <span className="text-body-sm text-qm-text-secondary">Ready to assist</span>
@@ -167,7 +167,7 @@ function WidgetTourContent() {
           <div className="mb-2 text-caption text-qm-text-tertiary">Expanded</div>
           <div className="w-56 rounded-qm-lg bg-qm-surface-medium border border-qm-border-subtle p-4">
             <div className="flex items-center gap-3 mb-3">
-              <div className="w-8 h-8 rounded-full bg-gradient-to-r from-qm-primary to-qm-secondary flex items-center justify-center">
+              <div className="w-8 h-8 rounded-full bg-gradient-to-r from-qm-gradient-start to-qm-gradient-end flex items-center justify-center">
                 <Sparkles className="w-4 h-4 text-white" />
               </div>
               <span className="text-body-sm text-qm-text-primary">Queen Mama</span>

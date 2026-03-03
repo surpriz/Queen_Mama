@@ -103,6 +103,9 @@
 		10000000000000000000006A /* ExtensionsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 100000000000000000000069 /* ExtensionsTests.swift */; };
 		10000000000000000000006C /* HealthCheckServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 10000000000000000000006B /* HealthCheckServiceTests.swift */; };
 		10000000000000000000006E /* SessionLifecycleTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 10000000000000000000006D /* SessionLifecycleTests.swift */; };
+		100000000000000000000072 /* AuthErrorClassificationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 100000000000000000000071 /* AuthErrorClassificationTests.swift */; };
+		100000000000000000000074 /* SessionManagerPersistenceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 100000000000000000000073 /* SessionManagerPersistenceTests.swift */; };
+		100000000000000000000076 /* ProxyConfigAvailabilityTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 100000000000000000000075 /* ProxyConfigAvailabilityTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -212,6 +215,9 @@
 		100000000000000000000069 /* ExtensionsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExtensionsTests.swift; sourceTree = "<group>"; };
 		10000000000000000000006B /* HealthCheckServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthCheckServiceTests.swift; sourceTree = "<group>"; };
 		10000000000000000000006D /* SessionLifecycleTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionLifecycleTests.swift; sourceTree = "<group>"; };
+		100000000000000000000071 /* AuthErrorClassificationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthErrorClassificationTests.swift; sourceTree = "<group>"; };
+		100000000000000000000073 /* SessionManagerPersistenceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionManagerPersistenceTests.swift; sourceTree = "<group>"; };
+		100000000000000000000075 /* ProxyConfigAvailabilityTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProxyConfigAvailabilityTests.swift; sourceTree = "<group>"; };
 		200000000000000000000002 /* QueenMamaTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = QueenMamaTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
@@ -310,6 +316,9 @@
 				10000000000000000000005F /* AIServiceLogicTests.swift */,
 				100000000000000000000067 /* TranscriptionConnectionStateTests.swift */,
 				10000000000000000000006B /* HealthCheckServiceTests.swift */,
+				100000000000000000000071 /* AuthErrorClassificationTests.swift */,
+				100000000000000000000073 /* SessionManagerPersistenceTests.swift */,
+				100000000000000000000075 /* ProxyConfigAvailabilityTests.swift */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -739,6 +748,9 @@
 				10000000000000000000006A /* ExtensionsTests.swift in Sources */,
 				10000000000000000000006C /* HealthCheckServiceTests.swift in Sources */,
 				10000000000000000000006E /* SessionLifecycleTests.swift in Sources */,
+				100000000000000000000072 /* AuthErrorClassificationTests.swift in Sources */,
+				100000000000000000000074 /* SessionManagerPersistenceTests.swift in Sources */,
+				100000000000000000000076 /* ProxyConfigAvailabilityTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

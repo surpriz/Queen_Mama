@@ -1,5 +1,4 @@
 import { useCallback } from 'react'
-import { X } from 'lucide-react'
 import { useOnboardingStore } from '@/stores/onboardingStore'
 import { OnboardingStepIndicator } from './OnboardingStepIndicator'
 import { WelcomeStep } from './WelcomeStep'
@@ -21,18 +20,13 @@ const STEPS = [
 ]
 
 export function OnboardingView({ onComplete }: OnboardingViewProps) {
-  const { currentStep, nextStep, previousStep, skipOnboarding, completeOnboarding } =
+  const { currentStep, nextStep, previousStep, completeOnboarding } =
     useOnboardingStore()
 
   const handleComplete = useCallback(async () => {
     await completeOnboarding()
     onComplete()
   }, [completeOnboarding, onComplete])
-
-  const handleSkip = useCallback(() => {
-    skipOnboarding()
-    onComplete()
-  }, [skipOnboarding, onComplete])
 
   const renderStep = () => {
     switch (currentStep) {
@@ -41,7 +35,7 @@ export function OnboardingView({ onComplete }: OnboardingViewProps) {
       case 'permissions':
         return <PermissionsStep onContinue={nextStep} onBack={previousStep} />
       case 'account':
-        return <AccountStep onContinue={nextStep} onBack={previousStep} allowSkip={true} />
+        return <AccountStep onContinue={nextStep} onBack={previousStep} allowSkip={false} />
       case 'tour':
         return <TourStep onContinue={nextStep} onBack={previousStep} />
       case 'ready':
@@ -56,25 +50,14 @@ export function OnboardingView({ onComplete }: OnboardingViewProps) {
 
   return (
     <div className="h-screen flex flex-col bg-qm-bg-primary">
-      {/* Header with step indicator and skip button */}
-      <div className="flex items-center justify-between px-6 py-4 border-b border-qm-border-subtle">
-        {/* Step Indicator */}
-        <div className="flex-1">
-          {showStepIndicator && <OnboardingStepIndicator steps={STEPS} currentStep={currentStep} />}
+      {/* Header with step indicator */}
+      {showStepIndicator && (
+        <div className="flex items-center px-6 py-4 border-b border-qm-border-subtle">
+          <div className="flex-1">
+            <OnboardingStepIndicator steps={STEPS} currentStep={currentStep} />
+          </div>
         </div>
-
-        {/* Skip Button */}
-        {currentStep !== 'ready' && (
-          <button
-            onClick={handleSkip}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-qm-md text-qm-text-tertiary hover:text-qm-text-secondary hover:bg-qm-surface-light transition-colors"
-            title="Skip onboarding"
-          >
-            <span className="text-body-sm">Skip</span>
-            <X className="w-4 h-4" />
-          </button>
-        )}
-      </div>
+      )}
 
       {/* Main Content Area */}
       <div className="flex-1 overflow-hidden">{renderStep()}</div>

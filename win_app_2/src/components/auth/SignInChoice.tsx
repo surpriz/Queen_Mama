@@ -15,8 +15,8 @@ interface SignInChoiceProps {
   onAuthenticated?: () => void
 }
 
-export function SignInChoice({ allowSkip = true, onAuthenticated }: SignInChoiceProps) {
-  const { authState, isAuthenticated, loginWithGoogle, startDeviceCodeFlow, cancelDeviceCodeFlow } = useAuth()
+export function SignInChoice({ onAuthenticated }: SignInChoiceProps) {
+  const { authState, isAuthenticated, loginWithGoogle } = useAuth()
   const [currentView, setCurrentView] = useState<SignInView>('choice')
   const [isLoading, setIsLoading] = useState(false)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
@@ -40,52 +40,6 @@ export function SignInChoice({ allowSkip = true, onAuthenticated }: SignInChoice
     } finally {
       setIsLoading(false)
     }
-  }
-
-  const handleDeviceCode = async () => {
-    log.info('Starting Device Code flow')
-    setIsLoading(true)
-    setErrorMessage(null)
-    try {
-      const result = await startDeviceCodeFlow()
-      log.info('Device code received:', result.userCode)
-    } catch (error) {
-      log.error('Device code flow failed:', error)
-      setErrorMessage(error instanceof Error ? error.message : 'Failed to start device code flow.')
-      setIsLoading(false)
-    }
-  }
-
-  const handleCancelDeviceCode = () => {
-    log.info('Cancelling device code flow')
-    cancelDeviceCodeFlow()
-    setIsLoading(false)
-  }
-
-  // Show device code UI when authState is deviceCodePending
-  if (authState.type === 'deviceCodePending') {
-    return (
-      <div className="flex flex-col items-center gap-6 p-8">
-        <GradientText as="h2" className="text-title-sm font-semibold">
-          Enter this code on queenmama.ai
-        </GradientText>
-        <div className="px-8 py-4 rounded-qm-lg bg-qm-surface-medium border border-qm-border-medium">
-          <span className="text-title-lg font-mono font-bold text-qm-text-primary tracking-widest">
-            {authState.userCode}
-          </span>
-        </div>
-        <p className="text-body-sm text-qm-text-secondary text-center">
-          Go to <a href="https://queenmama.ai/device" target="_blank" rel="noopener noreferrer" className="text-qm-accent hover:underline">queenmama.ai/device</a> and enter this code to sign in
-        </p>
-        <LoadingSpinner />
-        <button
-          onClick={handleCancelDeviceCode}
-          className="text-body-sm text-qm-text-tertiary hover:text-qm-text-secondary transition-colors"
-        >
-          Cancel
-        </button>
-      </div>
-    )
   }
 
   // Show EmailSignIn sub-view
@@ -155,20 +109,11 @@ export function SignInChoice({ allowSkip = true, onAuthenticated }: SignInChoice
           </button>
 
           <button
-            onClick={handleDeviceCode}
+            onClick={() => setCurrentView('register')}
             className="w-full px-4 py-3 rounded-qm-lg border border-qm-border-medium text-qm-text-secondary font-medium hover:bg-qm-surface-light transition-colors"
           >
-            Use Device Code
+            Create Account
           </button>
-
-          {allowSkip && (
-            <p className="text-caption text-qm-text-tertiary mt-4">
-              Don't have an account?{' '}
-              <button onClick={() => setCurrentView('register')} className="text-qm-accent hover:underline">
-                Sign up
-              </button>
-            </p>
-          )}
         </>
       )}
     </div>

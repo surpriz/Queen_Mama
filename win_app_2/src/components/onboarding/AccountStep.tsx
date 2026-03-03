@@ -8,7 +8,7 @@ interface AccountStepProps {
   allowSkip?: boolean
 }
 
-export function AccountStep({ onContinue, onBack, allowSkip = true }: AccountStepProps) {
+export function AccountStep({ onContinue, onBack }: AccountStepProps) {
   const { isAuthenticated } = useAuthStore()
 
   // Auto-advance when authenticated
@@ -40,19 +40,10 @@ export function AccountStep({ onContinue, onBack, allowSkip = true }: AccountSte
       <div className="flex justify-between items-center max-w-md mx-auto w-full mt-6">
         <button
           onClick={onBack}
-          className="px-6 py-2.5 rounded-qm-lg text-qm-text-secondary hover:text-qm-text-primary hover:bg-qm-surface-light transition-colors"
+          className="px-6 py-2.5 rounded-qm-lg border border-qm-border-medium text-qm-text-primary hover:bg-qm-surface-light transition-colors font-medium"
         >
           Back
         </button>
-
-        {allowSkip && (
-          <button
-            onClick={onContinue}
-            className="px-6 py-2.5 rounded-qm-lg text-qm-text-tertiary hover:text-qm-text-secondary transition-colors"
-          >
-            Skip for now
-          </button>
-        )}
       </div>
     </div>
   )
