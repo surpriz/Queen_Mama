@@ -21,6 +21,21 @@ export const changelogData: ChangelogRelease[] = [
     isNew: true,
     sections: [
       {
+        category: "features",
+        changes: [
+          {
+            id: "windowsApp",
+            title: "Windows App Available",
+            description: "Queen Mama is now available for Windows 10+ with automatic updates and full feature parity"
+          },
+          {
+            id: "windowsDownload",
+            title: "Cross-Platform Downloads",
+            description: "The download page now auto-detects your OS and offers the right installer for macOS or Windows"
+          }
+        ]
+      },
+      {
         category: "improvements",
         changes: [
           {
@@ -97,6 +112,11 @@ export const changelogData: ChangelogRelease[] = [
             id: "regressionTestSuite",
             title: "Regression Test Suite",
             description: "Added comprehensive tests for authentication error handling, session lifecycle, and service availability checks"
+          },
+          {
+            id: "windowsCiCd",
+            title: "Windows CI/CD Pipeline",
+            description: "Automated build, test, and release pipeline for the Windows app with platform-specific versioning"
           }
         ]
       }

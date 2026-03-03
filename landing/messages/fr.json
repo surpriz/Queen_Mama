@@ -690,6 +690,18 @@
       "regressionTestSuite": {
         "title": "Suite de tests de régression",
         "description": "Tests complets ajoutés pour la gestion des erreurs d'authentification, le cycle de vie des sessions et les vérifications de disponibilité des services"
+      },
+      "windowsApp": {
+        "title": "Application Windows disponible",
+        "description": "Queen Mama est maintenant disponible pour Windows 10+ avec mises à jour automatiques et parité fonctionnelle complète"
+      },
+      "windowsDownload": {
+        "title": "Téléchargements multi-plateforme",
+        "description": "La page de téléchargement détecte automatiquement votre OS et propose le bon installateur pour macOS ou Windows"
+      },
+      "windowsCiCd": {
+        "title": "Pipeline CI/CD Windows",
+        "description": "Pipeline automatisé de build, test et release pour l'application Windows avec versioning par plateforme"
       }
     }
   },
