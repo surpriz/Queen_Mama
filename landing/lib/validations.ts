@@ -74,7 +74,7 @@ export type AdminUserQueryInput = z.infer<typeof adminUserQuerySchema>;
 export const deviceInfoSchema = z.object({
   deviceId: z.string().uuid("Invalid device ID"),
   name: z.string().min(1, "Device name is required").max(100),
-  platform: z.enum(["macOS", "iOS", "iPadOS"]),
+  platform: z.enum(["macOS", "iOS", "iPadOS", "windows"]),
   osVersion: z.string().optional(),
   appVersion: z.string().optional(),
 });
@@ -100,7 +100,7 @@ export const macosLoginSchema = z.object({
   password: z.string().min(1, "Password is required"),
   deviceId: z.string().uuid("Invalid device ID"),
   deviceName: z.string().min(1).max(100),
-  platform: z.enum(["macOS", "iOS", "iPadOS"]).default("macOS"),
+  platform: z.enum(["macOS", "iOS", "iPadOS", "windows"]).default("macOS"),
   osVersion: z.string().optional(),
   appVersion: z.string().optional(),
 });
@@ -116,7 +116,7 @@ export const macosRegisterSchema = z.object({
     .regex(/[0-9]/, "Password must contain at least one number"),
   deviceId: z.string().uuid("Invalid device ID"),
   deviceName: z.string().min(1).max(100),
-  platform: z.enum(["macOS", "iOS", "iPadOS"]).default("macOS"),
+  platform: z.enum(["macOS", "iOS", "iPadOS", "windows"]).default("macOS"),
   osVersion: z.string().optional(),
   appVersion: z.string().optional(),
 });

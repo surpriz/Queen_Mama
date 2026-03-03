@@ -27,7 +27,7 @@ export function ReadyStep({ onComplete }: ReadyStepProps) {
             showAnimation ? 'scale-150 opacity-0' : 'scale-100 opacity-30'
           )}
         >
-          <div className="w-40 h-40 rounded-full bg-gradient-to-r from-qm-primary/30 to-qm-secondary/30" />
+          <div className="w-40 h-40 rounded-full bg-gradient-to-r from-qm-gradient-start/30 to-qm-gradient-end/30" />
         </div>
         <div
           className={cn(
@@ -35,7 +35,7 @@ export function ReadyStep({ onComplete }: ReadyStepProps) {
             showAnimation ? 'scale-125 opacity-0' : 'scale-100 opacity-40'
           )}
         >
-          <div className="w-32 h-32 rounded-full bg-gradient-to-r from-qm-primary/40 to-qm-secondary/40" />
+          <div className="w-32 h-32 rounded-full bg-gradient-to-r from-qm-gradient-start/40 to-qm-gradient-end/40" />
         </div>
 
         {/* Particle effects */}
@@ -50,7 +50,7 @@ export function ReadyStep({ onComplete }: ReadyStepProps) {
         {/* Success checkmark */}
         <div
           className={cn(
-            'relative z-10 w-24 h-24 rounded-full bg-gradient-to-r from-qm-primary to-qm-secondary flex items-center justify-center transition-all duration-500',
+            'relative z-10 w-24 h-24 rounded-full bg-gradient-to-r from-qm-gradient-start to-qm-gradient-end flex items-center justify-center transition-all duration-500',
             showAnimation ? 'scale-100' : 'scale-75 opacity-0'
           )}
         >
@@ -114,7 +114,7 @@ export function ReadyStep({ onComplete }: ReadyStepProps) {
       <button
         onClick={onComplete}
         className={cn(
-          'px-8 py-3 rounded-qm-lg bg-gradient-to-r from-qm-primary to-qm-secondary text-white font-medium text-body-md hover:scale-105 transition-all duration-200 shadow-lg',
+          'px-8 py-3 rounded-qm-lg bg-gradient-to-r from-qm-gradient-start to-qm-gradient-end text-white font-medium text-body-md hover:scale-105 transition-all duration-200 shadow-lg',
           showAnimation ? 'opacity-100 translate-y-0 delay-1000' : 'opacity-0 translate-y-4'
         )}
       >

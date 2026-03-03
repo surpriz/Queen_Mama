@@ -195,7 +195,14 @@ export function SettingsView() {
                 <div className="p-4 rounded-qm-lg bg-qm-surface-light border border-qm-border-subtle space-y-3">
                   <div className="flex justify-between items-center">
                     <span className="text-body-sm text-qm-text-secondary">Email</span>
-                    <span className="text-body-sm text-qm-text-primary">{currentUser?.email}</span>
+                    <div className="flex items-center gap-2">
+                      <span className="text-body-sm text-qm-text-primary">{currentUser?.email}</span>
+                      {currentUser?.authMethod && (
+                        <span className="text-caption text-qm-text-tertiary px-2 py-0.5 rounded-full bg-qm-surface-medium">
+                          via {currentUser.authMethod === 'google' ? 'Google' : 'Email'}
+                        </span>
+                      )}
+                    </div>
                   </div>
                   <div className="flex justify-between items-center">
                     <span className="text-body-sm text-qm-text-secondary">Plan</span>

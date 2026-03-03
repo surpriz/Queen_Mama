@@ -54,7 +54,8 @@ export function clearTokens(): void {
 }
 
 function isAccessTokenValid(): boolean {
-  return !!(accessToken && accessTokenExpiry && Date.now() < accessTokenExpiry)
+  // 60-second buffer to avoid edge cases (matches macOS pattern)
+  return !!(accessToken && accessTokenExpiry && Date.now() < accessTokenExpiry - 60_000)
 }
 
 async function getValidAccessToken(): Promise<string | null> {

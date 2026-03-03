@@ -84,6 +84,21 @@ export const changelogData: ChangelogRelease[] = [
             description: "Navigation buttons are now always visible during the onboarding flow without needing to scroll"
           }
         ]
+      },
+      {
+        category: "technical",
+        changes: [
+          {
+            id: "authFlowSimplification",
+            title: "Streamlined Sign-In Flow",
+            description: "Simplified the email authentication UI with clearer navigation between sign-in and sign-up"
+          },
+          {
+            id: "regressionTestSuite",
+            title: "Regression Test Suite",
+            description: "Added comprehensive tests for authentication error handling, session lifecycle, and service availability checks"
+          }
+        ]
       }
     ]
   },

@@ -87,7 +87,24 @@ export async function checkExistingAuth(): Promise<void> {
       log.warn('License revalidation failed:', err)
     })
   } catch (error) {
+    const errorCode = error instanceof Error && 'code' in error ? (error as { code?: string }).code : ''
     const errorStr = String(error).toLowerCase()
+
+    // Permanent errors: force full logout (matches macOS isPermanentAuthError)
+    const isPermanent =
+      errorCode === 'account_blocked' ||
+      errorCode === 'device_limit' ||
+      errorStr.includes('account_blocked') ||
+      errorStr.includes('device_limit')
+
+    if (isPermanent) {
+      log.warn('Permanent auth error, forcing logout:', errorStr)
+      await clearCredentials()
+      store.setUnauthenticated()
+      return
+    }
+
+    // Auth rejection: session expired
     const isAuthRejection =
       errorStr.includes('invalid_token') ||
       errorStr.includes('token_revoked') ||
@@ -99,8 +116,9 @@ export async function checkExistingAuth(): Promise<void> {
       await clearCredentials()
       store.setSessionExpired()
     } else {
-      // Network error - keep credentials (offline mode)
-      log.warn('Network error during auth check, keeping credentials')
+      // Network/transient error - degraded mode: keep user authenticated with cached data
+      // (matches macOS pattern: transparent retry on next action)
+      log.warn('Transient error during auth check, entering degraded mode:', errorStr)
       store.setAuthenticated(user)
     }
   }

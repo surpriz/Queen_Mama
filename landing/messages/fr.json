@@ -666,6 +666,14 @@
       "onboardingVisibility": {
         "title": "Visibilité des boutons d'onboarding",
         "description": "Les boutons de navigation sont maintenant toujours visibles pendant le parcours d'onboarding sans avoir à scroller"
+      },
+      "authFlowSimplification": {
+        "title": "Flux de connexion simplifié",
+        "description": "Interface d'authentification par email simplifiée avec une navigation plus claire entre connexion et inscription"
+      },
+      "regressionTestSuite": {
+        "title": "Suite de tests de régression",
+        "description": "Tests complets ajoutés pour la gestion des erreurs d'authentification, le cycle de vie des sessions et les vérifications de disponibilité des services"
       }
     }
   },

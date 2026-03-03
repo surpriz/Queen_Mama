@@ -1,7 +1,6 @@
 // Google OAuth client ID - Desktop type for Windows/Electron (supports loopback redirects)
-const GOOGLE_CLIENT_ID =
-  import.meta.env.VITE_GOOGLE_CLIENT_ID ||
-  '499912921957-791r0pvvs9j3ptem6gcdvf2qhbha381v.apps.googleusercontent.com'
+// Must be configured in .env as VITE_GOOGLE_CLIENT_ID (no hardcoded fallback)
+const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || ''
 
 export interface GoogleAuthResult {
   success: boolean

@@ -2,22 +2,23 @@ import { useState, useEffect } from 'react'
 import { useAuth } from '@/hooks/useAuth'
 import { GradientText } from '@/components/common/GradientText'
 import { LoadingSpinner } from '@/components/common/LoadingSpinner'
+import { EmailSignIn } from './EmailSignIn'
+import { RegistrationForm } from './RegistrationForm'
 import { createLogger } from '@/lib/logger'
 
 const log = createLogger('SignInChoice')
 
+type SignInView = 'choice' | 'email' | 'register'
+
 interface SignInChoiceProps {
-  onEmailSignIn?: () => void
-  onRegister?: () => void
   allowSkip?: boolean
   onAuthenticated?: () => void
 }
 
-export function SignInChoice({ onEmailSignIn, onRegister, allowSkip = true, onAuthenticated }: SignInChoiceProps) {
-  const { authState, isAuthenticated, loginWithGoogle, startDeviceCodeFlow, cancelDeviceCodeFlow } = useAuth()
+export function SignInChoice({ onAuthenticated }: SignInChoiceProps) {
+  const { authState, isAuthenticated, loginWithGoogle } = useAuth()
+  const [currentView, setCurrentView] = useState<SignInView>('choice')
   const [isLoading, setIsLoading] = useState(false)
-  const [, setShowEmailForm] = useState(false)
-  const [, setShowRegisterForm] = useState(false)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
 
   useEffect(() => {
@@ -26,31 +27,13 @@ export function SignInChoice({ onEmailSignIn, onRegister, allowSkip = true, onAu
     }
   }, [isAuthenticated, onAuthenticated])
 
-  const handleEmailSignIn = () => {
-    if (onEmailSignIn) {
-      onEmailSignIn()
-    } else {
-      setShowEmailForm(true)
-    }
-  }
-
-  const handleRegister = () => {
-    if (onRegister) {
-      onRegister()
-    } else {
-      setShowRegisterForm(true)
-    }
-  }
-
   const handleGoogle = async () => {
-    // On Windows, Google sign-in opens browser for OAuth
     log.info('Starting Google sign-in via OAuth')
     setIsLoading(true)
     setErrorMessage(null)
     try {
       await loginWithGoogle()
       log.info('Google sign-in completed')
-      // State is now managed by authStore
     } catch (error) {
       log.error('Google sign-in failed:', error)
       setErrorMessage(error instanceof Error ? error.message : 'Sign-in failed. Please try again.')
@@ -59,57 +42,24 @@ export function SignInChoice({ onEmailSignIn, onRegister, allowSkip = true, onAu
     }
   }
 
-  const handleDeviceCode = async () => {
-    log.info('Starting Device Code flow')
-    setIsLoading(true)
-    setErrorMessage(null)
-    try {
-      const result = await startDeviceCodeFlow()
-      log.info('Device code received:', result.userCode)
-      // State is now managed by authStore
-    } catch (error) {
-      log.error('Device code flow failed:', error)
-      setErrorMessage(error instanceof Error ? error.message : 'Failed to start device code flow.')
-      setIsLoading(false)
-    }
-  }
-
-  const handleCancelDeviceCode = () => {
-    log.info('Cancelling device code flow')
-    cancelDeviceCodeFlow()
-    setIsLoading(false)
-  }
-
-  // Show device code UI when authState is deviceCodePending
-  if (authState.type === 'deviceCodePending') {
+  // Show EmailSignIn sub-view
+  if (currentView === 'email') {
     return (
-      <div className="flex flex-col items-center gap-6 p-8">
-        <GradientText as="h2" className="text-title-sm font-semibold">
-          Enter this code on queenmama.ai
-        </GradientText>
-        <div className="px-8 py-4 rounded-qm-lg bg-qm-surface-medium border border-qm-border-medium">
-          <span className="text-title-lg font-mono font-bold text-qm-text-primary tracking-widest">
-            {authState.userCode}
-          </span>
-        </div>
-        <p className="text-body-sm text-qm-text-secondary text-center">
-          Go to <a href="https://queenmama.ai/device" target="_blank" rel="noopener noreferrer" className="text-qm-accent hover:underline">queenmama.ai/device</a> and enter this code to sign in
-        </p>
-        <LoadingSpinner />
-        <button
-          onClick={handleCancelDeviceCode}
-          className="text-body-sm text-qm-text-tertiary hover:text-qm-text-secondary transition-colors"
-        >
-          Cancel
-        </button>
-      </div>
+      <EmailSignIn
+        onBack={() => setCurrentView('choice')}
+        onSwitchToGoogle={handleGoogle}
+        onSwitchToRegister={() => setCurrentView('register')}
+      />
     )
   }
 
-  // Get display error - either from local state or auth store
-  const displayError = errorMessage || (authState.type === 'error' ? authState.message : null)
+  // Show RegistrationForm sub-view
+  if (currentView === 'register') {
+    return <RegistrationForm onBack={() => setCurrentView('choice')} />
+  }
 
-  // Show loading when authenticating
+  // Main choice view
+  const displayError = errorMessage || (authState.type === 'error' ? authState.message : null)
   const showLoading = isLoading || authState.type === 'authenticating'
 
   return (
@@ -152,27 +102,18 @@ export function SignInChoice({ onEmailSignIn, onRegister, allowSkip = true, onAu
           </div>
 
           <button
-            onClick={handleEmailSignIn}
+            onClick={() => setCurrentView('email')}
             className="w-full px-4 py-3 rounded-qm-lg bg-qm-surface-medium text-qm-text-primary font-medium hover:bg-qm-surface-hover transition-colors"
           >
             Sign in with Email
           </button>
 
           <button
-            onClick={handleDeviceCode}
+            onClick={() => setCurrentView('register')}
             className="w-full px-4 py-3 rounded-qm-lg border border-qm-border-medium text-qm-text-secondary font-medium hover:bg-qm-surface-light transition-colors"
           >
-            Use Device Code
+            Create Account
           </button>
-
-          {allowSkip && (
-            <p className="text-caption text-qm-text-tertiary mt-4">
-              Don't have an account?{' '}
-              <button onClick={handleRegister} className="text-qm-accent hover:underline">
-                Sign up
-              </button>
-            </p>
-          )}
         </>
       )}
     </div>

@@ -1,31 +1,54 @@
-import { useState } from 'react'
-import { Mic, Monitor, Keyboard, Check, AlertCircle, Info } from 'lucide-react'
+import { useState, useEffect, useCallback } from 'react'
+import { Mic, Monitor, Keyboard, Check, Loader2, Info } from 'lucide-react'
 
 interface PermissionsStepProps {
   onContinue: () => void
   onBack: () => void
 }
 
-interface Permission {
+type PermissionStatus = 'checking' | 'granted' | 'not_granted'
+
+interface PermissionState {
   id: string
   name: string
   description: string
   icon: React.ReactNode
   required: boolean
-  status: 'granted' | 'pending' | 'denied'
+  status: PermissionStatus
+}
+
+async function checkMicrophonePermission(): Promise<boolean> {
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+    // Stop all tracks immediately — we just needed to check
+    stream.getTracks().forEach((t) => t.stop())
+    return true
+  } catch {
+    return false
+  }
+}
+
+async function checkScreenPermission(): Promise<boolean> {
+  try {
+    // On Electron, desktopCapturer is always available (no explicit permission needed)
+    // Try to get sources — if this works, screen capture is available
+    const sources = await window.electronAPI?.getScreenSources?.()
+    return Array.isArray(sources) && sources.length > 0
+  } catch {
+    // Fallback: on Electron, screen recording is generally always available
+    return true
+  }
 }
 
 export function PermissionsStep({ onContinue, onBack }: PermissionsStepProps) {
-  // On Windows, these permissions are typically granted at the OS level
-  // We'll show the user what permissions are needed and let them proceed
-  const [permissions] = useState<Permission[]>([
+  const [permissions, setPermissions] = useState<PermissionState[]>([
     {
       id: 'microphone',
       name: 'Microphone Access',
       description: 'Required to capture and transcribe your voice during conversations',
       icon: <Mic className="w-5 h-5" />,
       required: true,
-      status: 'pending', // Windows handles this at app-level
+      status: 'checking',
     },
     {
       id: 'screen',
@@ -33,7 +56,7 @@ export function PermissionsStep({ onContinue, onBack }: PermissionsStepProps) {
       description: 'Needed to capture screen content for context-aware AI assistance',
       icon: <Monitor className="w-5 h-5" />,
       required: true,
-      status: 'pending',
+      status: 'checking',
     },
     {
       id: 'keyboard',
@@ -41,52 +64,81 @@ export function PermissionsStep({ onContinue, onBack }: PermissionsStepProps) {
       description: 'For quick access to features with global shortcuts (Ctrl+Shift+S, etc.)',
       icon: <Keyboard className="w-5 h-5" />,
       required: false,
-      status: 'granted', // Global shortcuts work by default on Windows
+      status: 'granted',
     },
   ])
 
+  const updatePermission = useCallback((id: string, status: PermissionStatus) => {
+    setPermissions((prev) => prev.map((p) => (p.id === id ? { ...p, status } : p)))
+  }, [])
+
+  // Check permissions on mount
+  useEffect(() => {
+    const checkAll = async () => {
+      const micOk = await checkMicrophonePermission()
+      updatePermission('microphone', micOk ? 'granted' : 'not_granted')
+
+      const screenOk = await checkScreenPermission()
+      updatePermission('screen', screenOk ? 'granted' : 'not_granted')
+    }
+    checkAll()
+  }, [updatePermission])
+
+  const handleGrantMicrophone = async () => {
+    updatePermission('microphone', 'checking')
+    const ok = await checkMicrophonePermission()
+    updatePermission('microphone', ok ? 'granted' : 'not_granted')
+  }
+
+  const allGranted = permissions.every((p) => p.status === 'granted')
+
   return (
-    <div className="flex flex-col h-full px-8 py-12">
+    <div className="flex flex-col h-full px-8 py-8">
       {/* Header */}
-      <div className="text-center mb-8">
+      <div className="text-center mb-6">
         <h2 className="text-title-md font-semibold text-qm-text-primary mb-2">
           App Permissions
         </h2>
         <p className="text-body-md text-qm-text-secondary max-w-md mx-auto">
-          Queen Mama needs a few permissions to work its magic. These can be changed later in
-          Windows Settings.
+          Queen Mama needs a few permissions to work its magic.
         </p>
       </div>
 
       {/* Permission Cards */}
-      <div className="flex-1 max-w-lg mx-auto w-full space-y-4 mb-8">
+      <div className="flex-1 max-w-lg mx-auto w-full space-y-3 mb-6">
         {permissions.map((permission) => (
-          <PermissionCard key={permission.id} permission={permission} />
+          <PermissionCard
+            key={permission.id}
+            permission={permission}
+            onGrant={permission.id === 'microphone' ? handleGrantMicrophone : undefined}
+          />
         ))}
       </div>
 
       {/* Info Box */}
-      <div className="max-w-lg mx-auto w-full mb-8">
-        <div className="flex items-start gap-3 p-4 rounded-qm-lg bg-qm-info/10 border border-qm-info/20">
-          <Info className="w-5 h-5 text-qm-info flex-shrink-0 mt-0.5" />
-          <p className="text-body-sm text-qm-text-secondary">
-            When prompted by Windows, please allow access to ensure Queen Mama can assist you
-            during your conversations.
-          </p>
+      {!allGranted && (
+        <div className="max-w-lg mx-auto w-full mb-6">
+          <div className="flex items-start gap-3 p-4 rounded-qm-lg bg-qm-info/10 border border-qm-info/20">
+            <Info className="w-5 h-5 text-qm-info flex-shrink-0 mt-0.5" />
+            <p className="text-body-sm text-qm-text-secondary">
+              Click "Allow" on any system prompt to grant access. You can also change these later
+              in your system settings.
+            </p>
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Navigation Buttons */}
       <div className="flex justify-between max-w-lg mx-auto w-full">
         <button
           onClick={onBack}
-          className="px-6 py-2.5 rounded-qm-lg text-qm-text-secondary hover:text-qm-text-primary hover:bg-qm-surface-light transition-colors"
+          className="px-6 py-2.5 rounded-qm-lg border border-qm-border-medium text-qm-text-primary hover:bg-qm-surface-light transition-colors font-medium"
         >
           Back
         </button>
         <button
           onClick={onContinue}
-          className="px-6 py-2.5 rounded-qm-lg bg-gradient-to-r from-qm-primary to-qm-secondary text-white font-medium hover:scale-105 transition-transform duration-200"
+          className="px-8 py-2.5 rounded-qm-lg bg-gradient-to-r from-qm-gradient-start to-qm-gradient-end text-white font-medium hover:scale-105 transition-transform duration-200"
         >
           Continue
         </button>
@@ -96,32 +148,43 @@ export function PermissionsStep({ onContinue, onBack }: PermissionsStepProps) {
 }
 
 interface PermissionCardProps {
-  permission: Permission
+  permission: PermissionState
+  onGrant?: () => void
 }
 
-function PermissionCard({ permission }: PermissionCardProps) {
-  const statusConfig = {
-    granted: {
-      icon: <Check className="w-4 h-4" />,
-      color: 'text-qm-success',
-      bgColor: 'bg-qm-success/10',
-      label: 'Granted',
-    },
-    pending: {
-      icon: <AlertCircle className="w-4 h-4" />,
-      color: 'text-qm-warning',
-      bgColor: 'bg-qm-warning/10',
-      label: 'Will prompt',
-    },
-    denied: {
-      icon: <AlertCircle className="w-4 h-4" />,
-      color: 'text-qm-error',
-      bgColor: 'bg-qm-error/10',
-      label: 'Denied',
-    },
-  }
-
-  const status = statusConfig[permission.status]
+function PermissionCard({ permission, onGrant }: PermissionCardProps) {
+  const statusContent = (() => {
+    switch (permission.status) {
+      case 'checking':
+        return (
+          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-qm-sm bg-qm-surface-medium text-qm-text-tertiary">
+            <Loader2 className="w-4 h-4 animate-spin" />
+            <span className="text-caption font-medium">Checking</span>
+          </div>
+        )
+      case 'granted':
+        return (
+          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-qm-sm bg-emerald-500/10 text-emerald-400">
+            <Check className="w-4 h-4" />
+            <span className="text-caption font-medium">Granted</span>
+          </div>
+        )
+      case 'not_granted':
+        return onGrant ? (
+          <button
+            onClick={onGrant}
+            className="flex items-center gap-1.5 px-3 py-1 rounded-qm-sm bg-qm-gradient-start/15 text-qm-accent hover:bg-qm-gradient-start/25 transition-colors"
+          >
+            <span className="text-caption font-medium">Grant</span>
+          </button>
+        ) : (
+          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-qm-sm bg-emerald-500/10 text-emerald-400">
+            <Check className="w-4 h-4" />
+            <span className="text-caption font-medium">Ready</span>
+          </div>
+        )
+    }
+  })()
 
   return (
     <div className="flex items-start gap-4 p-4 rounded-qm-lg bg-qm-surface-light border border-qm-border-subtle">
@@ -144,12 +207,7 @@ function PermissionCard({ permission }: PermissionCardProps) {
       </div>
 
       {/* Status Badge */}
-      <div
-        className={`flex items-center gap-1.5 px-2.5 py-1 rounded-qm-sm ${status.bgColor} ${status.color}`}
-      >
-        {status.icon}
-        <span className="text-caption font-medium">{status.label}</span>
-      </div>
+      {statusContent}
     </div>
   )
 }

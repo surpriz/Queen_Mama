@@ -13,6 +13,7 @@ on:
       - 'mac_app/**'
       - 'QueenMamaTests/**'
       - 'QueenMama.xcodeproj/**'
+  workflow_dispatch:
 
 env:
   SCHEME: QueenMama
@@ -57,3 +58,22 @@ jobs:
           echo '```' >> $GITHUB_STEP_SUMMARY
           grep "Test case\|Test suite\|TEST " test-output.log >> $GITHUB_STEP_SUMMARY || true
           echo '```' >> $GITHUB_STEP_SUMMARY
+
+      - name: Code Coverage
+        if: always()
+        run: |
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "## Code Coverage" >> $GITHUB_STEP_SUMMARY
+          if [ -d "TestResults.xcresult" ]; then
+            # Extract coverage percentage from xcresult
+            COVERAGE=$(xcrun xccov view --report --only-targets TestResults.xcresult 2>/dev/null | head -5 || echo "")
+            if [ -n "$COVERAGE" ]; then
+              echo '```' >> $GITHUB_STEP_SUMMARY
+              echo "$COVERAGE" >> $GITHUB_STEP_SUMMARY
+              echo '```' >> $GITHUB_STEP_SUMMARY
+            else
+              echo "Coverage data not available (code coverage may not be enabled in scheme)" >> $GITHUB_STEP_SUMMARY
+            fi
+          else
+            echo "No xcresult bundle found" >> $GITHUB_STEP_SUMMARY
+          fi

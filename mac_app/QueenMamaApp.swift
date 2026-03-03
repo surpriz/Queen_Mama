@@ -376,7 +376,21 @@ class AppState: ObservableObject {
             return
         }
 
-        isSessionActive = true
+        // Pre-flight: ensure proxy config is loaded and transcription is available
+        guard ProxyConfigManager.shared.isTranscriptionEnabled else {
+            // Proxy config not loaded or transcription not available
+            // This happens when auth is in degraded mode (invalid token)
+            if !AuthenticationManager.shared.isAuthenticated {
+                errorMessage = "Please sign in to start a session."
+            } else {
+                errorMessage = "Transcription service unavailable. Please check your connection and try again."
+                // Attempt to reload config for next try
+                Task { try? await ProxyConfigManager.shared.refreshConfig() }
+            }
+            print("[AppState] Pre-flight failed: transcription not available (proxy config loaded: \(ProxyConfigManager.shared.config != nil))")
+            return
+        }
+
         errorMessage = nil
         currentSessionContact = contact
 
@@ -392,43 +406,9 @@ class AppState: ObservableObject {
             modeName: selectedMode?.name
         )
 
-        // Create session in SessionManager (with contact)
-        let defaultTitle = "Session - \(Date().formatted(date: .abbreviated, time: .shortened))"
-        _ = sessionManager?.startSession(title: defaultTitle, modeId: selectedMode?.id, contact: contact)
-
-        // Update contact lastSeenAt
-        if let contact = contact {
-            contact.lastSeenAt = Date()
-        }
-
         do {
-            // NOTE: Speaker separation (Moi vs Interlocuteur) is DISABLED
-            // It doesn't work reliably without headphones because the microphone
-            // picks up speaker audio, making all transcripts appear as "Moi".
-            // The infrastructure remains for future use with proper audio isolation.
-            // To re-enable, uncomment the system audio pipeline below.
-
-            /*
-            // SYSTEM AUDIO PIPELINE (DISABLED - requires headphones to work)
-            let systemAudioConfig = ConfigurationManager.shared
-            if systemAudioConfig.captureSystemAudio {
-                try await transcriptionService.connectSystemAudio()
-                systemAudioBatchingService.start()
-                systemAudioService.onAudioBuffer = { [weak self] buffer in
-                    self?.systemAudioBatchingService.append(buffer)
-                }
-                systemAudioBatchingService.onBatchReady = { [weak self] batch in
-                    self?.transcriptionService.sendSystemAudio(batch)
-                }
-                screenService.systemAudioService = systemAudioService
-                transcriptionService.onSystemTranscript = { [weak self] text in
-                    guard let self = self else { return }
-                    self.sessionManager?.addTranscriptEntry(speaker: "Interlocuteur", text: text, isFinal: true)
-                    self.currentTranscript += "\(text)\n"
-                }
-                print("[AppState] System audio pipeline configured")
-            }
-            */
+            // Start all services BEFORE creating the session in SwiftData.
+            // This prevents ghost sessions (0:00 duration) when a service fails to start.
 
             // Parallel startup of all services for faster session start
             // Saves 200-400ms compared to sequential startup
@@ -445,6 +425,16 @@ class AppState: ObservableObject {
 
             let startupTime = (CFAbsoluteTimeGetCurrent() - startTime) * 1000
             print("[AppState] All services started in \(Int(startupTime))ms (parallel)")
+
+            // Services are ready — now create the session record
+            isSessionActive = true
+            let defaultTitle = "Session - \(Date().formatted(date: .abbreviated, time: .shortened))"
+            _ = sessionManager?.startSession(title: defaultTitle, modeId: selectedMode?.id, contact: contact)
+
+            // Update contact lastSeenAt
+            if let contact = contact {
+                contact.lastSeenAt = Date()
+            }
 
             // Start audio batching service
             audioBatchingService.start()
@@ -517,8 +507,15 @@ class AppState: ObservableObject {
             autoAnswerService.proactiveCooldown = TimeInterval(config.proactiveCooldown)
             autoAnswerService.proactiveSensitivity = Float(config.proactiveSensitivity)
         } catch {
+            // Service startup failed — clean up without creating a ghost session
+            print("[AppState] Session start failed: \(error.localizedDescription)")
             errorMessage = error.localizedDescription
-            await stopSession()
+            HealthCheckService.shared.stopMonitoring()
+            audioService.stopCapture()
+            screenService.stopCapture()
+            transcriptionService.disconnect()
+            isSessionActive = false
+            currentSessionContact = nil
         }
     }
 
