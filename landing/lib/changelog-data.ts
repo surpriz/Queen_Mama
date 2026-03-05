@@ -117,6 +117,11 @@ export const changelogData: ChangelogRelease[] = [
             id: "windowsCiCd",
             title: "Windows CI/CD Pipeline",
             description: "Automated build, test, and release pipeline for the Windows app with platform-specific versioning"
+          },
+          {
+            id: "windowsBuildEnv",
+            title: "Windows Build Environment Fix",
+            description: "Google Sign-In and environment detection now work correctly in production Windows builds"
           }
         ]
       }

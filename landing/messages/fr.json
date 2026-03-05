@@ -702,6 +702,10 @@
       "windowsCiCd": {
         "title": "Pipeline CI/CD Windows",
         "description": "Pipeline automatisé de build, test et release pour l'application Windows avec versioning par plateforme"
+      },
+      "windowsBuildEnv": {
+        "title": "Correction Build Windows",
+        "description": "La connexion Google et la détection d'environnement fonctionnent désormais correctement dans les builds Windows de production"
       }
     }
   },
