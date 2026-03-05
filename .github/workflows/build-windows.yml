@@ -93,6 +93,8 @@ jobs:
 
       - name: Build app
         run: npm run build
+        env:
+          VITE_APP_ENV: ${{ steps.release_type.outputs.is_prerelease == 'true' && 'staging' || 'production' }}
 
       - name: Package with electron-builder
         run: npx electron-builder --win --publish never
