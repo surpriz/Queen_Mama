@@ -3,6 +3,7 @@ import { Search, Trash2, Users, ArrowLeft, Save, Plus } from 'lucide-react'
 import { v4 as uuidv4 } from 'uuid'
 import { useContactStore } from '@/stores/contactStore'
 import * as contactDb from '@/services/contacts/contactDb'
+import * as contactSyncService from '@/services/contacts/contactSyncService'
 import type { Contact } from '@/types/models'
 
 const AVATAR_COLORS = [
@@ -62,6 +63,7 @@ function ContactDetail({
     }
     await contactDb.upsertContact(updated)
     onSave(updated)
+    contactSyncService.pushContacts().catch(() => {})
     setIsSaving(false)
   }, [contact, name, email, role, company, notes, onSave])
 
@@ -195,6 +197,7 @@ function CreateContactForm({
     }
     await contactDb.upsertContact(newContact)
     onCreated(newContact)
+    contactSyncService.pushContacts().catch(() => {})
     setIsSaving(false)
   }, [name, email, role, company, onCreated])
 

@@ -19,7 +19,8 @@ export class DeepgramProvider implements TranscriptionProvider {
   onError: ((error: Error) => void) | null = null
 
   get isConfigured(): boolean {
-    return true // Uses proxy
+    // Only configured if the WS proxy port is explicitly set
+    return !!import.meta.env.VITE_TRANSCRIPTION_PROXY_PORT
   }
 
   async connect(): Promise<void> {

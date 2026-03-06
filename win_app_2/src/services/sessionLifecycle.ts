@@ -20,8 +20,11 @@ import { configurationManager } from '@/services/config/configurationManager'
 import { useConfigStore } from '@/stores/configStore'
 import { ResponseType, type Mode } from '@/types/models'
 import { extractContactsFromTranscript } from '@/services/contacts/contactExtractor'
+import * as contactSyncService from '@/services/contacts/contactSyncService'
+import * as contactDb from '@/services/contacts/contactDb'
 import { useContactStore } from '@/stores/contactStore'
 import { transcriptBuffer } from '@/services/transcription/transcriptBuffer'
+import type { Contact } from '@/types/models'
 
 const MAX_TRANSCRIPT_MEMORY = 50000 // 50KB - max in-memory transcript size for display
 
@@ -30,7 +33,7 @@ let currentSessionId: string | null = null
 let unsubscribeMoments: (() => void) | null = null
 let fullTranscript = '' // Always grows, persisted to DB via sessionMgr.updateTranscript()
 
-export async function startSession(mode?: Mode | null): Promise<void> {
+export async function startSession(mode?: Mode | null, contact?: Contact | null): Promise<void> {
   const store = useAppStore.getState()
   if (store.isSessionActive) return
 
@@ -51,6 +54,16 @@ export async function startSession(mode?: Mode | null): Promise<void> {
     const session = sessionMgr.startSession('New Session', mode?.id ?? null)
     currentSessionId = session.id
     setOverlaySessionId(session.id)
+
+    // Link contact to session if provided
+    if (contact && currentSessionId) {
+      await contactDb.linkContactToSession(contact.id, currentSessionId)
+      // Update contact lastSeen and sessionCount
+      const now = new Date().toISOString()
+      const updated = { ...contact, lastSeen: now, sessionCount: contact.sessionCount + 1, updatedAt: now }
+      await contactDb.upsertContact(updated)
+      useContactStore.getState().addContact(updated)
+    }
 
     // Start audio capture
     await audioCapture.startCapture()
@@ -142,6 +155,7 @@ export async function startSession(mode?: Mode | null): Promise<void> {
     })
 
     // Connect transcription
+    transcription.resetDisconnectFlag()
     await transcription.connect()
 
     // Start screen capture if enabled
@@ -306,6 +320,8 @@ export async function stopSession(): Promise<void> {
             contactStore.addContact(contact)
           }
           console.log(`[SessionLifecycle] Extracted ${extractedContacts.length} contacts`)
+          // Push newly created/updated contacts to server
+          contactSyncService.pushContacts().catch(() => {})
         }
       } catch (err) {
         console.error('[SessionLifecycle] Contact extraction failed:', err)
