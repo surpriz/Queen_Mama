@@ -20,6 +20,7 @@ import { useAuthStore } from '@/stores/authStore'
 import { initializeDatabase } from '@/db/client'
 import { loadSessions } from '@/services/session/sessionManager'
 import * as contactDb from '@/services/contacts/contactDb'
+import * as contactSyncService from '@/services/contacts/contactSyncService'
 import { useContactStore } from '@/stores/contactStore'
 
 let initialized = false
@@ -117,6 +118,18 @@ export async function initializeApp(): Promise<void> {
       console.error('[AppInit] Sync queue load failed:', error)
     }
     syncManager.startPeriodicSync()
+
+    // 8. Pull contacts from server and merge with local DB
+    try {
+      const imported = await contactSyncService.pullContacts()
+      if (imported.length > 0) {
+        const allContacts = await contactDb.getAllContacts()
+        useContactStore.getState().setContacts(allContacts)
+        console.log(`[AppInit] Pulled ${imported.length} contacts from server`)
+      }
+    } catch (error) {
+      console.error('[AppInit] Contact pull failed:', error)
+    }
   }
 
   console.log('[AppInit] Initialization complete')

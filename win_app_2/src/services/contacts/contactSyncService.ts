@@ -7,6 +7,8 @@
  */
 
 import { createLogger } from '@/lib/logger'
+import { getApiBaseUrl } from '@/services/config/appEnvironment'
+import { getAccessToken } from '@/services/auth/authenticationManager'
 import * as contactDb from './contactDb'
 import type { Contact } from '@/types/models'
 
@@ -16,7 +18,8 @@ const BATCH_SIZE = 10
 interface SyncableContact {
   deviceId: string
   originalId: string
-  name: string
+  firstName: string
+  lastName?: string
   email?: string
   company?: string
   role?: string
@@ -61,8 +64,7 @@ export function getSyncState(): SyncState {
 
 async function getAuthHeaders(): Promise<Record<string, string> | null> {
   try {
-    const token = await window.electronAPI?.secureStore?.get('auth_token')
-    if (!token) return null
+    const token = await getAccessToken()
     return { Authorization: `Bearer ${token}` }
   } catch {
     return null
@@ -73,9 +75,8 @@ async function getDeviceId(): Promise<string> {
   return window.electronAPI?.getDeviceId?.() ?? 'unknown'
 }
 
-async function getApiBaseUrl(): Promise<string> {
-  const stored = await window.electronAPI?.store?.get('apiBaseUrl')
-  return (stored as string) || 'https://api.queenmama.app'
+function getBaseUrl(): string {
+  return getApiBaseUrl()
 }
 
 /**
@@ -102,24 +103,30 @@ export async function pushContacts(): Promise<void> {
     }
 
     const deviceId = await getDeviceId()
-    const baseUrl = await getApiBaseUrl()
+    const baseUrl = getBaseUrl()
 
     // Process in batches of 10
     for (let i = 0; i < unsyncedContacts.length; i += BATCH_SIZE) {
       const batch = unsyncedContacts.slice(i, i + BATCH_SIZE)
-      const payload: SyncableContact[] = batch.map((c) => ({
-        deviceId,
-        originalId: c.id,
-        name: c.name,
-        email: c.email,
-        company: c.company,
-        role: c.role,
-        lastSeenAt: c.lastSeen || c.createdAt,
-        version: 1,
-        notes: c.notes || undefined,
-      }))
+      const payload: SyncableContact[] = batch.map((c) => {
+        const nameParts = c.name.trim().split(/\s+/)
+        const firstName = nameParts[0] || c.name
+        const lastName = nameParts.length > 1 ? nameParts.slice(1).join(' ') : undefined
+        return {
+          deviceId,
+          originalId: c.id,
+          firstName,
+          lastName,
+          email: c.email,
+          company: c.company,
+          role: c.role,
+          lastSeenAt: c.lastSeen || c.createdAt,
+          version: 1,
+          notes: c.notes || undefined,
+        }
+      })
 
-      const response = await fetch(`${baseUrl}/api/contacts/sync`, {
+      const response = await fetch(`${baseUrl}/api/sync/contacts`, {
         method: 'POST',
         headers: { ...headers, 'Content-Type': 'application/json' },
         body: JSON.stringify({ contacts: payload }),
@@ -138,10 +145,10 @@ export async function pushContacts(): Promise<void> {
       const result = await response.json()
 
       // Mark contacts as synced with remote IDs
-      if (result.synced && Array.isArray(result.synced)) {
-        for (const synced of result.synced) {
-          if (synced.originalId && synced.remoteId) {
-            await contactDb.markContactSynced(synced.originalId, synced.remoteId)
+      if (result.results && Array.isArray(result.results)) {
+        for (const synced of result.results) {
+          if (synced.originalId && synced.syncedId) {
+            await contactDb.markContactSynced(synced.originalId, synced.syncedId)
           }
         }
       }
@@ -179,7 +186,7 @@ export async function pullContacts(): Promise<Contact[]> {
       return []
     }
 
-    const baseUrl = await getApiBaseUrl()
+    const baseUrl = getBaseUrl()
 
     const response = await fetch(`${baseUrl}/api/contacts`, {
       method: 'GET',
@@ -197,7 +204,7 @@ export async function pullContacts(): Promise<Contact[]> {
     }
 
     const result = await response.json()
-    const remoteContacts: SyncableContact[] = result.contacts || []
+    const remoteContacts = result.contacts || []
 
     // Get existing contacts for deduplication
     const existingContacts = await contactDb.getAllContacts()
@@ -209,22 +216,25 @@ export async function pullContacts(): Promise<Contact[]> {
 
     for (const remote of remoteContacts) {
       // Skip if already imported by remoteId
-      if (existingRemoteIds.has(remote.originalId)) continue
+      if (existingRemoteIds.has(remote.id)) continue
       // Skip if email matches an existing contact
       if (remote.email && existingEmails.has(remote.email.toLowerCase())) continue
 
+      const fullName = [remote.firstName, remote.lastName].filter(Boolean).join(' ') || 'Unknown'
+      const sessionCount = remote._count?.sessions ?? 0
+
       const newContact: Contact = {
         id: crypto.randomUUID(),
-        name: remote.name,
-        email: remote.email,
-        role: remote.role,
-        company: remote.company,
-        notes: remote.notes || '',
+        name: fullName,
+        email: remote.email ?? undefined,
+        role: remote.role ?? undefined,
+        company: remote.company ?? undefined,
+        notes: '',
         lastSeen: remote.lastSeenAt,
-        sessionCount: 0,
+        sessionCount,
         isSynced: true,
-        remoteId: remote.originalId,
-        createdAt: now,
+        remoteId: remote.id,
+        createdAt: remote.createdAt || now,
         updatedAt: now,
       }
 
