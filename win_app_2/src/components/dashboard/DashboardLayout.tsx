@@ -5,11 +5,10 @@ import { Sidebar } from './Sidebar'
 import { LiveSessionView } from './LiveSessionView'
 import { SessionsView } from './SessionsView'
 import { ModesListView } from './ModesListView'
-import { KnowledgeBaseView } from './KnowledgeBaseView'
 import { ContactsView } from './ContactsView'
 import { SettingsView } from './SettingsView'
 
-export type NavItem = 'sessions' | 'live' | 'modes' | 'knowledgeBase' | 'contacts' | 'settings'
+export type NavItem = 'sessions' | 'live' | 'modes' | 'contacts' | 'settings'
 
 export function DashboardLayout() {
   const [activeNav, setActiveNav] = useState<NavItem>('live')
@@ -29,7 +28,6 @@ export function DashboardLayout() {
         {activeNav === 'live' && <LiveSessionView />}
         {activeNav === 'sessions' && <SessionsView />}
         {activeNav === 'modes' && <ModesListView />}
-        {activeNav === 'knowledgeBase' && <KnowledgeBaseView />}
         {activeNav === 'contacts' && <ContactsView />}
         {activeNav === 'settings' && <SettingsView />}
 

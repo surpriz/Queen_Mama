@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Activity, List, Users, Settings, Mic, Brain, BookUser, ChevronRight, Globe, Crown, MessageSquareText } from 'lucide-react'
+import { Activity, List, Users, Settings, Mic, BookUser, ChevronRight, Globe, Crown, MessageSquareText } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { GradientText } from '@/components/common/GradientText'
 import { StatusIndicator, type StatusType } from '@/components/common/StatusIndicator'
@@ -17,7 +17,6 @@ const NAV_ITEMS: { id: NavItem; label: string; subtitle: string; icon: typeof Ac
   { id: 'sessions', label: 'Sessions', subtitle: 'Past recordings', icon: List },
   { id: 'live', label: 'Live Session', subtitle: 'Active session', icon: Activity },
   { id: 'modes', label: 'Modes', subtitle: 'AI personalities', icon: Users },
-  { id: 'knowledgeBase', label: 'Knowledge', subtitle: 'AI memory', icon: Brain },
   { id: 'contacts', label: 'Contacts', subtitle: 'People', icon: BookUser },
   { id: 'settings', label: 'Settings', subtitle: 'Configuration', icon: Settings },
 ]
