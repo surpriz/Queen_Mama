@@ -21,6 +21,7 @@ export function createMainWindow(): BrowserWindow {
       sandbox: false,
       contextIsolation: true,
       nodeIntegration: false,
+      webSecurity: false,
     },
     show: false,
   })

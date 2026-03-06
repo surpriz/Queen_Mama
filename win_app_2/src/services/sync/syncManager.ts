@@ -171,8 +171,12 @@ export async function uploadPendingSessions(): Promise<{ uploaded: number; faile
           }
         } else {
           const result = await response.json()
-          uploaded += result.uploaded || batch.length
-          log.info(`Uploaded ${result.uploaded || batch.length} sessions`)
+          const syncedCount = result.synced ?? result.uploaded ?? batch.length
+          uploaded += syncedCount
+          log.info(`Uploaded ${syncedCount}/${batch.length} sessions`, result)
+          if (result.errors?.length) {
+            log.error('Sync errors:', result.errors)
+          }
         }
       } catch (error) {
         syncQueue.sessions.unshift(...batch)
@@ -334,8 +338,41 @@ export async function deleteRemoteSession(sessionId: string): Promise<void> {
   }
 }
 
+/**
+ * Re-queue all local sessions that aren't already in the sync queue.
+ * Useful for initial sync or manual "Sync Now" to catch sessions that were
+ * never queued (e.g., created before sync was working).
+ */
+export function requeueAllLocalSessions(): number {
+  const sessions = useSessionStore.getState().sessions
+  const alreadyQueued = new Set(syncQueue.sessions.map((s) => s.originalId))
+  let queued = 0
+
+  // Temporarily prevent auto-upload while re-queuing to avoid race conditions
+  const wasSyncing = isSyncing
+  isSyncing = true
+
+  for (const session of sessions) {
+    if (!alreadyQueued.has(session.id) && session.endTime) {
+      queueSession(session)
+      queued++
+    }
+  }
+
+  // Restore syncing state
+  isSyncing = wasSyncing
+
+  if (queued > 0) {
+    log.info(`Re-queued ${queued} local sessions for sync`)
+  }
+  return queued
+}
+
 export async function performFullSync(): Promise<void> {
   log.info('Performing full sync...')
+
+  // Re-queue any local sessions that haven't been synced yet
+  requeueAllLocalSessions()
 
   await uploadPendingSessions()
   await reconcileRemoteSessions()

@@ -109,10 +109,14 @@ export async function initializeApp(): Promise<void> {
       console.error('[AppInit] License validation failed:', error)
     }
 
-    // 7. Initial sync (non-blocking)
-    syncManager.performInitialSync().catch((error) => {
-      console.error('[AppInit] Initial sync failed:', error)
-    })
+    // 7. Load sync queue from previous runs, then start periodic sync
+    try {
+      await syncManager.loadQueue()
+      console.log('[AppInit] Sync queue loaded')
+    } catch (error) {
+      console.error('[AppInit] Sync queue load failed:', error)
+    }
+    syncManager.startPeriodicSync()
   }
 
   console.log('[AppInit] Initialization complete')

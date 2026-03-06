@@ -3,13 +3,25 @@ import { prisma, withRetry } from "@/lib/prisma";
 import { verifyAccessToken } from "@/lib/device-auth";
 import { sessionSyncSchema, sessionSyncBatchSchema } from "@/lib/validations";
 import { queueExtractionForSession } from "@/lib/knowledge-extraction";
+import { handleCors, addCorsHeaders } from "@/lib/cors";
+
+/**
+ * OPTIONS /api/sync/sessions
+ * CORS preflight
+ */
+export async function OPTIONS(request: Request) {
+  const corsResponse = handleCors(request);
+  if (corsResponse) return corsResponse;
+  return new NextResponse(null, { status: 204 });
+}
 
 /**
  * POST /api/sync/sessions
- * Upload session(s) from macOS app
- * Requires PRO subscription for sync
+ * Upload session(s) from desktop app
+ * Requires authenticated user
  */
 export async function POST(request: Request) {
+  const origin = request.headers.get("origin");
   try {
     // Get access token from Authorization header
     const authHeader = request.headers.get("Authorization");
@@ -187,17 +199,23 @@ export async function POST(request: Request) {
       }
     }
 
-    return NextResponse.json({
-      synced: results.length,
-      failed: errors.length,
-      results,
-      errors: errors.length > 0 ? errors : undefined,
-    });
+    return addCorsHeaders(
+      NextResponse.json({
+        synced: results.length,
+        failed: errors.length,
+        results,
+        errors: errors.length > 0 ? errors : undefined,
+      }),
+      origin
+    );
   } catch (error) {
     console.error("Sync endpoint error:", error);
-    return NextResponse.json(
-      { error: "server_error", message: "Sync failed" },
-      { status: 500 }
+    return addCorsHeaders(
+      NextResponse.json(
+        { error: "server_error", message: "Sync failed" },
+        { status: 500 }
+      ),
+      origin
     );
   }
 }
@@ -211,6 +229,7 @@ export async function POST(request: Request) {
  * - full=true: Return full session data including transcript/summary (for import)
  */
 export async function GET(request: Request) {
+  const origin = request.headers.get("origin");
   try {
     const authHeader = request.headers.get("Authorization");
     if (!authHeader?.startsWith("Bearer ")) {
@@ -287,17 +306,23 @@ export async function GET(request: Request) {
       ])
     );
 
-    return NextResponse.json({
-      sessions,
-      total: count,
-      limit,
-      offset,
-    });
+    return addCorsHeaders(
+      NextResponse.json({
+        sessions,
+        total: count,
+        limit,
+        offset,
+      }),
+      origin
+    );
   } catch (error) {
     console.error("Get synced sessions error:", error);
-    return NextResponse.json(
-      { error: "server_error" },
-      { status: 500 }
+    return addCorsHeaders(
+      NextResponse.json(
+        { error: "server_error" },
+        { status: 500 }
+      ),
+      origin
     );
   }
 }

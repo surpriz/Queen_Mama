@@ -38,6 +38,7 @@ export function createOverlayWindow(): BrowserWindow {
       sandbox: false,
       contextIsolation: true,
       nodeIntegration: false,
+      webSecurity: false,
     },
     show: true,
   })
