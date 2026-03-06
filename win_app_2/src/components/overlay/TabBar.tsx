@@ -29,7 +29,7 @@ export function TabBar({ onTabSelected }: TabBarProps) {
               onTabSelected?.(type)
             }}
             className={cn(
-              'flex items-center gap-1.5 px-3 py-1.5 text-caption font-medium rounded-qm-sm transition-colors',
+              'flex flex-1 items-center justify-center gap-1 py-1.5 text-caption font-medium rounded-qm-sm transition-colors whitespace-nowrap',
               selectedTab === type
                 ? 'text-qm-accent bg-gradient-to-br from-qm-gradient-start/20 to-qm-gradient-end/20 border border-qm-accent/30'
                 : 'text-qm-text-tertiary hover:text-qm-text-secondary hover:bg-qm-surface-hover border border-white/[0.04]',

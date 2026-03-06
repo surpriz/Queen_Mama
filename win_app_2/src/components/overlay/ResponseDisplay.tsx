@@ -152,7 +152,7 @@ export function ResponseDisplay() {
   const hasContent = streamingContent || responseHistory.length > 0
 
   return (
-    <div className="flex-1 relative overflow-hidden">
+    <div className="flex-1 min-h-0 relative overflow-hidden">
       {/* Error toast */}
       {errorMessage && (
         <div className="absolute top-2 left-2 right-2 z-10 flex items-center gap-2 px-3 py-2 rounded-qm-md bg-red-500/15 border border-red-500/30 text-red-300 text-caption animate-in fade-in slide-in-from-top-1 duration-200">

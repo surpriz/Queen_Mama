@@ -92,9 +92,9 @@ export function PopupMenu() {
   }
 
   return (
-    <div ref={menuRef} className="relative">
+    <div ref={menuRef} className="relative" style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}>
       <button
-        onClick={() => setIsOpen(!isOpen)}
+        onClick={(e) => { e.stopPropagation(); setIsOpen(!isOpen) }}
         className="p-1 rounded-qm-sm text-qm-text-tertiary hover:text-qm-text-secondary hover:bg-white/5 transition-colors"
       >
         <MoreVertical size={14} />

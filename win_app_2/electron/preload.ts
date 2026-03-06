@@ -15,6 +15,7 @@ const electronAPI = {
     maximize: () => ipcRenderer.send(IPC_CHANNELS.WINDOW_MAXIMIZE),
     close: () => ipcRenderer.send(IPC_CHANNELS.WINDOW_CLOSE),
     show: () => ipcRenderer.send('window:show'),
+    toggle: () => ipcRenderer.send(IPC_CHANNELS.WINDOW_TOGGLE),
   },
   windowMinimize: () => ipcRenderer.send(IPC_CHANNELS.WINDOW_MINIMIZE),
   windowMaximize: () => ipcRenderer.send(IPC_CHANNELS.WINDOW_MAXIMIZE),

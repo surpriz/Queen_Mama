@@ -6,6 +6,7 @@ export const IPC_CHANNELS = {
   WINDOW_MINIMIZE: 'window:minimize',
   WINDOW_MAXIMIZE: 'window:maximize',
   WINDOW_CLOSE: 'window:close',
+  WINDOW_TOGGLE: 'window:toggle',
   WINDOW_SET_SIZE: 'window:set-size',
   WINDOW_SET_POSITION: 'window:set-position',
 

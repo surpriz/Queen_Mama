@@ -5,6 +5,7 @@ import Store from 'electron-store'
 const store = new Store()
 
 let overlayWindow: BrowserWindow | null = null
+let currentPosition: OverlayPosition = 'topRight'
 
 export type OverlayPosition =
   | 'topLeft'
@@ -67,8 +68,8 @@ export function createOverlayWindow(): BrowserWindow {
     })
   }
 
-  // Position at bottom right by default
-  setOverlayPosition('bottomRight')
+  // Position at top right by default
+  setOverlayPosition('topRight')
 
   return overlayWindow
 }
@@ -125,13 +126,37 @@ export function setOverlayExpanded(expanded: boolean): void {
     overlayWindow.setResizable(false)
   }
 
-  // Anchor from bottom-right
-  const newX = currentBounds.x + currentBounds.width - size.width
-  const newY = currentBounds.y + currentBounds.height - size.height
+  // Anchor based on current position: top positions expand down, bottom positions expand up
+  const isTop = currentPosition.startsWith('top')
+  const isLeft = currentPosition.includes('Left')
+  const isCenter = currentPosition.includes('Center')
+
+  let newX: number
+  let newY: number
+
+  if (isLeft) {
+    newX = currentBounds.x
+  } else if (isCenter) {
+    newX = currentBounds.x + Math.round((currentBounds.width - size.width) / 2)
+  } else {
+    // right: anchor right edge
+    newX = currentBounds.x + currentBounds.width - size.width
+  }
+
+  if (isTop) {
+    // Anchor top edge, expand downward
+    newY = currentBounds.y
+  } else {
+    // Anchor bottom edge, expand upward
+    newY = currentBounds.y + currentBounds.height - size.height
+  }
+
+  const display = screen.getPrimaryDisplay()
+  const { width: screenW, height: screenH } = display.workAreaSize
 
   overlayWindow.setBounds({
-    x: Math.max(0, newX),
-    y: Math.max(0, newY),
+    x: Math.max(0, Math.min(newX, screenW - size.width)),
+    y: Math.max(0, Math.min(newY, screenH - size.height)),
     width: size.width,
     height: size.height,
   })
@@ -149,6 +174,8 @@ export function setOverlaySize(width: number, height: number): void {
 
 export function setOverlayPosition(position: OverlayPosition): void {
   if (!overlayWindow || overlayWindow.isDestroyed()) return
+
+  currentPosition = position
 
   const display = screen.getPrimaryDisplay()
   const { width: screenW, height: screenH } = display.workAreaSize

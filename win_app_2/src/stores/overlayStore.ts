@@ -35,7 +35,7 @@ interface OverlayStoreState {
 export const useOverlayStore = create<OverlayStoreState>((set) => ({
   isExpanded: false,
   selectedTab: ResponseType.Assist,
-  position: 'bottomRight',
+  position: 'topRight',
   isAutoAnswer: false,
   streamingContent: '',
   responseHistory: [],
