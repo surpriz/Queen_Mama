@@ -1,5 +1,6 @@
 import Foundation
 import Combine
+import AppKit
 
 @MainActor
 final class ConfigurationManager: ObservableObject {
@@ -39,6 +40,12 @@ final class ConfigurationManager: ObservableObject {
 
     @Published var primaryLanguage: String {
         didSet { defaults.set(primaryLanguage, forKey: Keys.primaryLanguage) }
+    }
+
+    /// App UI language override: "system", "en", or "fr".
+    /// Applied on next launch via `applicationWillFinishLaunching`.
+    @Published var appLanguage: String {
+        didSet { defaults.set(appLanguage, forKey: Keys.appLanguage) }
     }
 
     @Published var selectedDisplayID: UInt32 {
@@ -141,6 +148,7 @@ final class ConfigurationManager: ObservableObject {
         static let proactiveQuestions = "proactive_questions"
         static let proactiveHesitations = "proactive_hesitations"
         static let proactiveClosing = "proactive_closing"
+        static let appLanguage = "app_language"
         static let selectedDisplayID = "selected_display_id"
         // Meeting Detection
         static let meetingDetection = "meeting_detection_enabled"
@@ -157,6 +165,7 @@ final class ConfigurationManager: ObservableObject {
         self.screenCaptureIntervalSeconds = defaults.object(forKey: Keys.screenCaptureInterval) as? Double ?? 5.0
         self.smartModeEnabled = defaults.object(forKey: Keys.smartMode) as? Bool ?? false
         self.primaryLanguage = defaults.string(forKey: Keys.primaryLanguage) ?? "en"
+        self.appLanguage = defaults.string(forKey: Keys.appLanguage) ?? "system"
         self.selectedDisplayID = defaults.object(forKey: Keys.selectedDisplayID) as? UInt32 ?? 0
 
         if let providerRaw = defaults.string(forKey: Keys.aiProvider),
@@ -219,6 +228,7 @@ final class ConfigurationManager: ObservableObject {
         smartModeEnabled = false
         selectedAIProvider = .openai
         primaryLanguage = "en"
+        appLanguage = "system"
         selectedDisplayID = 0
         shortcutToggleWidget = "cmd+\\"
         shortcutAssist = "cmd+return"
@@ -238,6 +248,33 @@ final class ConfigurationManager: ObservableObject {
         proactiveClosingEnabled = true
         // Meeting Detection
         meetingDetectionEnabled = true
+    }
+
+    // MARK: - Language Override
+
+    /// Apply language override to UserDefaults. Must be called before any UI loads.
+    static func applyLanguageOverride(_ language: String) {
+        if language == "system" {
+            UserDefaults.standard.removeObject(forKey: "AppleLanguages")
+        } else {
+            UserDefaults.standard.set([language], forKey: "AppleLanguages")
+        }
+    }
+
+    /// Relaunch the app to apply language change
+    func relaunchApp() {
+        // Flush UserDefaults to disk before the new process reads it
+        UserDefaults.standard.synchronize()
+
+        let url = Bundle.main.bundleURL
+        let task = Process()
+        task.launchPath = "/usr/bin/open"
+        task.arguments = ["-n", url.path]
+        try? task.run()
+
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+            NSApplication.shared.terminate(nil)
+        }
     }
 
     // MARK: - Proactive Moment Check

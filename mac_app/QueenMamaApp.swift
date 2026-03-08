@@ -9,6 +9,12 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         return false
     }
 
+    func applicationWillFinishLaunching(_ notification: Notification) {
+        // Apply language override before any UI loads
+        let lang = UserDefaults.standard.string(forKey: "app_language") ?? "system"
+        ConfigurationManager.applyLanguageOverride(lang)
+    }
+
     func applicationDidFinishLaunching(_ notification: Notification) {
         // Force dark mode for the entire app (design is dark-only)
         NSApp.appearance = NSAppearance(named: .darkAqua)
