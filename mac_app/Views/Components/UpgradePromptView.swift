@@ -29,12 +29,12 @@ struct UpgradePromptView: View {
                         .foregroundColor(.white)
                 }
 
-                Text("Upgrade to PRO")
+                Text(String(localized: "upgrade.title"))
                     .font(QMDesign.Typography.titleMedium)
                     .foregroundColor(QMDesign.Colors.textPrimary)
 
                 if let feature = feature {
-                    Text("\"\(feature)\" requires a PRO subscription")
+                    Text(String(localized: "upgrade.feature.requiresPro.\(feature)"))
                         .font(QMDesign.Typography.bodySmall)
                         .foregroundColor(QMDesign.Colors.textSecondary)
                         .multilineTextAlignment(.center)
@@ -43,12 +43,12 @@ struct UpgradePromptView: View {
 
             // Benefits
             VStack(alignment: .leading, spacing: QMDesign.Spacing.sm) {
-                ProBenefitRow(icon: "sparkles", text: "Unlimited Smart Mode")
-                ProBenefitRow(icon: "folder.badge.plus", text: "Create custom AI modes")
-                ProBenefitRow(icon: "bolt.fill", text: "Auto-Answer feature")
-                ProBenefitRow(icon: "doc.richtext", text: "Export to Markdown & JSON")
-                ProBenefitRow(icon: "icloud.and.arrow.up", text: "Cloud session sync")
-                ProBenefitRow(icon: "infinity", text: "Unlimited AI requests")
+                ProBenefitRow(icon: "sparkles", text: String(localized: "upgrade.benefit.unlimitedSmartMode"))
+                ProBenefitRow(icon: "folder.badge.plus", text: String(localized: "upgrade.benefit.customModes"))
+                ProBenefitRow(icon: "bolt.fill", text: String(localized: "upgrade.benefit.autoAnswer"))
+                ProBenefitRow(icon: "doc.richtext", text: String(localized: "upgrade.benefit.export"))
+                ProBenefitRow(icon: "icloud.and.arrow.up", text: String(localized: "upgrade.benefit.cloudSync"))
+                ProBenefitRow(icon: "infinity", text: String(localized: "upgrade.benefit.unlimitedRequests"))
             }
             .padding(QMDesign.Spacing.lg)
             .background(
@@ -62,12 +62,12 @@ struct UpgradePromptView: View {
                     Text("$19")
                         .font(.system(size: 36, weight: .bold))
                         .foregroundStyle(QMDesign.Colors.primaryGradient)
-                    Text("/month")
+                    Text(String(localized: "upgrade.price.perMonth"))
                         .font(QMDesign.Typography.bodySmall)
                         .foregroundColor(QMDesign.Colors.textSecondary)
                 }
 
-                Text("14-day free trial included")
+                Text(String(localized: "upgrade.price.trialIncluded"))
                     .font(QMDesign.Typography.caption)
                     .foregroundColor(QMDesign.Colors.textTertiary)
             }
@@ -81,7 +81,7 @@ struct UpgradePromptView: View {
                                 .scaleEffect(0.8)
                                 .progressViewStyle(CircularProgressViewStyle(tint: .white))
                         }
-                        Text(isLoading ? "Opening..." : "Upgrade Now")
+                        Text(isLoading ? String(localized: "upgrade.button.opening") : String(localized: "upgrade.button.upgradeNow"))
                             .font(QMDesign.Typography.labelMedium)
                         if !isLoading {
                             Image(systemName: "arrow.right")
@@ -100,7 +100,7 @@ struct UpgradePromptView: View {
                 .disabled(isLoading)
 
                 Button(action: { dismiss() }) {
-                    Text("Maybe Later")
+                    Text(String(localized: "upgrade.button.maybeLater"))
                         .font(QMDesign.Typography.bodySmall)
                         .foregroundColor(QMDesign.Colors.textSecondary)
                 }

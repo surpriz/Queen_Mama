@@ -22,7 +22,7 @@ struct OverlayContentView: View {
     @State private var showPopupMenu = false
     @State private var showSmartModeToast = false
     @State private var showDisplayToast = false
-    @State private var currentDisplayName = "Primary Display"
+    @State private var currentDisplayName = String(localized: "overlay.display.primary")
     @AppStorage("enableScreenCapture") private var enableScreenCapture = true
     @AppStorage("hasSeenSmartModeHint") private var hasSeenSmartModeHint = false
 
@@ -163,7 +163,7 @@ struct OverlayContentView: View {
         let displays = await screenService.getAvailableDisplays()
 
         if displays.isEmpty {
-            currentDisplayName = "Primary Display"
+            currentDisplayName = String(localized: "overlay.display.primary")
             return
         }
 
@@ -171,7 +171,7 @@ struct OverlayContentView: View {
             if let first = displays.first {
                 currentDisplayName = "\(first.name) • \(first.resolution)"
             } else {
-                currentDisplayName = "Primary Display"
+                currentDisplayName = String(localized: "overlay.display.primary")
             }
         } else if let selected = displays.first(where: { $0.id == config.selectedDisplayID }) {
             currentDisplayName = "\(selected.name) • \(selected.resolution)"
@@ -180,7 +180,7 @@ struct OverlayContentView: View {
             if let first = displays.first {
                 currentDisplayName = "\(first.name) • \(first.resolution)"
             } else {
-                currentDisplayName = "Primary Display"
+                currentDisplayName = String(localized: "overlay.display.primary")
             }
         }
     }
@@ -343,11 +343,11 @@ enum TabItem: String, CaseIterable {
 
     var shortLabel: String {
         switch self {
-        case .assist: return "Assist"
-        case .whatToSay: return "What to say"
-        case .followUp: return "Follow-up"
-        case .recap: return "Recap"
-        case .briefing: return "Briefing"
+        case .assist: return String(localized: "overlay.tab.assist")
+        case .whatToSay: return String(localized: "overlay.tab.whatToSay")
+        case .followUp: return String(localized: "overlay.tab.followUp")
+        case .recap: return String(localized: "overlay.tab.recap")
+        case .briefing: return String(localized: "overlay.tab.briefing")
         }
     }
 
@@ -429,7 +429,7 @@ struct ModernPillHeaderView: View {
                     .foregroundColor(.white)
             }
             .overlay(WindowDragHandle())
-            .help("Drag to move widget")
+            .help(String(localized: "overlay.tooltip.dragToMove"))
 
             // Dashboard Button (explicit action)
             Button(action: toggleDashboard) {
@@ -446,7 +446,7 @@ struct ModernPillHeaderView: View {
             .buttonStyle(.plain)
             .onHover { isHoveringDashboard = $0 }
             .animation(QMDesign.Animation.quick, value: isHoveringDashboard)
-            .help("Open Dashboard (Cmd+D)")
+            .help(String(localized: "overlay.tooltip.openDashboard"))
 
             // Expand/Collapse Button with animated chevron
             Button(action: onToggleExpand) {
@@ -503,7 +503,7 @@ struct ModernPillHeaderView: View {
                     startChevronPulse()
                 }
             }
-            .help(isExpanded ? "Collapse panel" : "Expand AI assistant")
+            .help(isExpanded ? String(localized: "overlay.tooltip.collapsePanel") : String(localized: "overlay.tooltip.expandAssistant"))
             .popover(isPresented: $showExpandPreview, arrowEdge: .bottom) {
                 ExpandPreviewView()
             }
@@ -558,29 +558,29 @@ struct ModernPillHeaderView: View {
                         green: moment.type.color.green,
                         blue: moment.type.color.blue
                     ))
-                    .help("Proactive: \(moment.type.label) detected")
+                    .help(String(localized: "overlay.tooltip.proactiveDetected \(moment.type.label)"))
                 }
 
                 // Undetectability Mode Indicator
                 if config.isUndetectabilityEnabled {
                     StatusBadge(
                         icon: "eye.slash.fill",
-                        label: "Hidden",
+                        label: String(localized: "overlay.status.hidden"),
                         color: QMDesign.Colors.success,
                         isActive: true
                     )
-                    .help("Undetectable Mode: Widget hidden from screen capture")
+                    .help(String(localized: "overlay.tooltip.undetectableMode"))
                 }
 
                 // Smart Mode Indicator
                 if isSmartModeEnabled {
                     StatusBadge(
                         icon: "brain.head.profile",
-                        label: "Smart",
+                        label: String(localized: "overlay.status.smart"),
                         color: QMDesign.Colors.accent,
                         isActive: true
                     )
-                    .help("Smart Mode: Using enhanced AI reasoning")
+                    .help(String(localized: "overlay.tooltip.smartModeActive"))
                 }
             }
 
@@ -594,7 +594,7 @@ struct ModernPillHeaderView: View {
                 HStack(spacing: 4) {
                     Image(systemName: config.isUndetectabilityEnabled ? "eye.slash.fill" : "eye.slash")
                         .font(.system(size: 11))
-                    Text("Hidden")
+                    Text(String(localized: "overlay.status.hidden"))
                         .font(QMDesign.Typography.caption)
                     if !hiddenModeAvailable {
                         Image(systemName: "lock.fill")
@@ -615,8 +615,8 @@ struct ModernPillHeaderView: View {
             .onHover { isHoveringHidden = $0 }
             .animation(QMDesign.Animation.quick, value: isHoveringHidden)
             .help(hiddenModeAvailable
-                ? (config.isUndetectabilityEnabled ? "Hidden Mode: Widget invisible to screen capture" : "Hidden Mode: Click to hide from screen capture")
-                : "Hidden Mode requires Enterprise subscription")
+                ? (config.isUndetectabilityEnabled ? String(localized: "overlay.tooltip.hiddenModeOn") : String(localized: "overlay.tooltip.hiddenModeOff"))
+                : String(localized: "overlay.tooltip.hiddenModeRequiresEnterprise"))
 
             // Auto-Answer Toggle (Enterprise only) with pulsing indicator
             let autoAnswerAvailable = LicenseManager.shared.isFeatureAvailable(.autoAnswer)
@@ -640,7 +640,7 @@ struct ModernPillHeaderView: View {
 
                     Image(systemName: isAutoAnswerEnabled ? QMDesign.Icons.autoAnswer : QMDesign.Icons.autoAnswerOff)
                         .font(.system(size: 11))
-                    Text("Auto")
+                    Text(String(localized: "overlay.status.auto"))
                         .font(QMDesign.Typography.caption)
                     if !autoAnswerAvailable {
                         Image(systemName: "lock.fill")
@@ -658,8 +658,8 @@ struct ModernPillHeaderView: View {
             }
             .buttonStyle(.plain)
             .help(autoAnswerAvailable
-                ? (isAutoAnswerEnabled ? "Auto-Answer enabled" : "Auto-Answer disabled")
-                : "Auto-Answer requires Enterprise subscription")
+                ? (isAutoAnswerEnabled ? String(localized: "overlay.tooltip.autoAnswerOn") : String(localized: "overlay.tooltip.autoAnswerOff"))
+                : String(localized: "overlay.tooltip.autoAnswerRequiresEnterprise"))
 
             // Screen Capture Toggle - Enhanced visibility when disabled
             Button(action: { enableScreenCapture.toggle() }) {
@@ -676,7 +676,7 @@ struct ModernPillHeaderView: View {
                 }
             }
             .buttonStyle(.plain)
-            .help(enableScreenCapture ? "Screen capture ON - Screenshots will be sent to AI" : "Screen capture OFF - No screenshots")
+            .help(enableScreenCapture ? String(localized: "overlay.tooltip.screenCaptureOn") : String(localized: "overlay.tooltip.screenCaptureOff"))
 
             // More Button (Popup Menu) - works in both collapsed and expanded states
             Button(action: { showPopupMenu.toggle() }) {
@@ -693,7 +693,7 @@ struct ModernPillHeaderView: View {
             .buttonStyle(.plain)
             .onHover { isHoveringMore = $0 }
             .animation(QMDesign.Animation.quick, value: isHoveringMore)
-            .help("Settings menu")
+            .help(String(localized: "overlay.tooltip.settingsMenu"))
             .popover(isPresented: $showPopupMenu, arrowEdge: .bottom) {
                 OverlayPopupMenu(
                     isAutoAnswerEnabled: $isAutoAnswerEnabled,
@@ -712,7 +712,7 @@ struct ModernPillHeaderView: View {
                     ProgressView()
                         .scaleEffect(0.7)
                         .frame(width: 14, height: 14)
-                    Text("Résumé...")
+                    Text(String(localized: "overlay.summarizing"))
                         .font(QMDesign.Typography.captionSmall)
                         .foregroundColor(QMDesign.Colors.accent)
                 }
@@ -753,7 +753,7 @@ struct ModernPillHeaderView: View {
                 .onAppear {
                     startPlayPulse()
                 }
-                .help("Start session (Cmd+Shift+S)")
+                .help(String(localized: "overlay.tooltip.startSession"))
             }
 
             // Stop Button (when session active)
@@ -769,7 +769,7 @@ struct ModernPillHeaderView: View {
                         )
                 }
                 .buttonStyle(.plain)
-                .help("Stop session")
+                .help(String(localized: "overlay.tooltip.stopSession"))
             }
         }
         .padding(.horizontal, QMDesign.Spacing.sm)
@@ -1035,7 +1035,7 @@ struct ModernResponseHistoryView: View {
                     Image(systemName: QMDesign.Icons.camera)
                         .font(.system(size: 11, weight: .medium))
                         .foregroundColor(QMDesign.Colors.success)
-                    Text("Screen captured")
+                    Text(String(localized: "overlay.screenCaptured"))
                         .font(QMDesign.Typography.caption)
                         .foregroundColor(QMDesign.Colors.success)
                     Spacer()
@@ -1201,7 +1201,7 @@ struct ProcessingIndicator: View {
                 }
             }
 
-            Text("Analyzing...")
+            Text(String(localized: "overlay.analyzing"))
                 .font(QMDesign.Typography.bodySmall)
                 .foregroundColor(QMDesign.Colors.textSecondary)
         }
@@ -1220,16 +1220,16 @@ struct EmptyResponseState: View {
                 .font(.system(size: 24))
                 .foregroundStyle(QMDesign.Colors.primaryGradient)
 
-            Text("Ready to assist")
+            Text(String(localized: "overlay.readyToAssist"))
                 .font(QMDesign.Typography.bodySmall)
                 .foregroundColor(QMDesign.Colors.textSecondary)
 
             HStack(spacing: 4) {
-                Text("Press")
+                Text(String(localized: "overlay.hint.press"))
                     .font(QMDesign.Typography.caption)
                     .foregroundColor(QMDesign.Colors.textTertiary)
                 KeyboardShortcutBadge(shortcut: "Cmd+Enter", size: .small)
-                Text("or click a tab")
+                Text(String(localized: "overlay.hint.orClickTab"))
                     .font(QMDesign.Typography.caption)
                     .foregroundColor(QMDesign.Colors.textTertiary)
             }
@@ -1276,7 +1276,7 @@ struct ModernResponseItemView: View {
                     HStack(spacing: 4) {
                         Image(systemName: QMDesign.Icons.autoAnswer)
                             .font(.system(size: 10, weight: .semibold))
-                        Text("AUTO")
+                        Text(String(localized: "overlay.response.auto"))
                             .font(QMDesign.Typography.caption)
                     }
                     .foregroundColor(QMDesign.Colors.autoAnswer)
@@ -1314,7 +1314,7 @@ struct ModernResponseItemView: View {
                         .foregroundColor(showCopied ? QMDesign.Colors.success : QMDesign.Colors.textTertiary)
                 }
                 .buttonStyle(.plain)
-                .help("Copy to clipboard")
+                .help(String(localized: "overlay.tooltip.copyToClipboard"))
 
                 // Timestamp
                 Text(formatTimestamp(timestamp))
@@ -1341,7 +1341,7 @@ struct ModernResponseItemView: View {
                             )
                     }
                     .buttonStyle(.plain)
-                    .help("Dismiss suggestion")
+                    .help(String(localized: "overlay.tooltip.dismissSuggestion"))
                 }
             }
 
@@ -1363,7 +1363,7 @@ struct ModernResponseItemView: View {
                             HStack(spacing: 3) {
                                 Image(systemName: "hand.thumbsup")
                                     .font(.system(size: 10))
-                                Text("Helpful")
+                                Text(String(localized: "overlay.feedback.helpful"))
                                     .font(QMDesign.Typography.captionSmall)
                             }
                             .foregroundColor(QMDesign.Colors.textTertiary)
@@ -1398,7 +1398,7 @@ struct ModernResponseItemView: View {
                         HStack(spacing: 4) {
                             Image(systemName: feedbackState == .helpful ? "hand.thumbsup.fill" : "hand.thumbsdown.fill")
                                 .font(.system(size: 10))
-                            Text(feedbackState == .helpful ? "Thanks!" : "Got it")
+                            Text(feedbackState == .helpful ? String(localized: "overlay.feedback.thanks") : String(localized: "overlay.feedback.gotIt"))
                                 .font(QMDesign.Typography.captionSmall)
                         }
                         .foregroundColor(feedbackState == .helpful ? QMDesign.Colors.success : QMDesign.Colors.textTertiary)
@@ -1459,7 +1459,7 @@ struct StatusSection: View {
                 HStack(spacing: 4) {
                     Image(systemName: enableScreenCapture ? "display" : "exclamationmark.triangle")
                         .font(.system(size: 10))
-                    Text(enableScreenCapture ? "Screen only" : "No input")
+                    Text(enableScreenCapture ? String(localized: "overlay.status.screenOnly") : String(localized: "overlay.status.noInput"))
                         .font(QMDesign.Typography.captionSmall)
                 }
                 .foregroundColor(enableScreenCapture ? QMDesign.Colors.warning : QMDesign.Colors.error)
@@ -1485,7 +1485,7 @@ struct StatusSection: View {
                     HStack(spacing: 3) {
                         Image(systemName: exportFeedback ? "checkmark" : QMDesign.Icons.export)
                             .font(.system(size: 9))
-                        Text(exportFeedback ? "Copied!" : "Export")
+                        Text(exportFeedback ? String(localized: "overlay.action.copied") : String(localized: "overlay.action.export"))
                             .font(QMDesign.Typography.captionSmall)
                     }
                 }
@@ -1496,7 +1496,7 @@ struct StatusSection: View {
                     HStack(spacing: 3) {
                         Image(systemName: QMDesign.Icons.delete)
                             .font(.system(size: 9))
-                        Text("Clear")
+                        Text(String(localized: "overlay.action.clear"))
                             .font(QMDesign.Typography.captionSmall)
                     }
                 }
@@ -1540,7 +1540,7 @@ struct ModernInputAreaView: View {
                 HStack(spacing: 4) {
                     Image(systemName: QMDesign.Icons.smart)
                         .font(.system(size: 10))
-                    Text("Smart")
+                    Text(String(localized: "overlay.status.smart"))
                         .font(QMDesign.Typography.caption)
                     if !smartModeAvailable {
                         Image(systemName: "lock.fill")
@@ -1558,8 +1558,8 @@ struct ModernInputAreaView: View {
             }
             .buttonStyle(.plain)
             .help(smartModeAvailable
-                ? (isSmartModeEnabled ? "Smart Mode enabled" : "Smart Mode disabled")
-                : "Smart Mode requires Enterprise subscription")
+                ? (isSmartModeEnabled ? String(localized: "overlay.tooltip.smartModeOn") : String(localized: "overlay.tooltip.smartModeOff"))
+                : String(localized: "overlay.tooltip.smartModeRequiresEnterprise"))
 
             // Dictation Button
             Button(action: {
@@ -1600,7 +1600,7 @@ struct ModernInputAreaView: View {
             }
             .buttonStyle(.plain)
             .onHover { isHoveringMic = $0 }
-            .help(dictationService.isRecording ? "Stop dictation" : "Dictate your message")
+            .help(dictationService.isRecording ? String(localized: "overlay.tooltip.stopDictation") : String(localized: "overlay.tooltip.startDictation"))
             .onChange(of: dictationService.isRecording) { recording in
                 if recording {
                     withAnimation(.easeInOut(duration: 1.0).repeatForever(autoreverses: false)) {
@@ -1615,7 +1615,7 @@ struct ModernInputAreaView: View {
 
             // Text Field
             TextField(
-                dictationService.isRecording ? "Listening..." : "Ask about your screen or conversation...",
+                dictationService.isRecording ? String(localized: "overlay.input.listening") : String(localized: "overlay.input.placeholder"),
                 text: $inputText
             )
             .textFieldStyle(.plain)
@@ -1723,22 +1723,22 @@ struct ExpandPreviewView: View {
                 Image(systemName: QMDesign.Icons.assist)
                     .font(.system(size: 14, weight: .semibold))
                     .foregroundStyle(QMDesign.Colors.primaryGradient)
-                Text("AI Assistant")
+                Text(String(localized: "overlay.preview.aiAssistant"))
                     .font(QMDesign.Typography.labelMedium)
                     .foregroundColor(QMDesign.Colors.textPrimary)
             }
 
             // Features preview
             VStack(alignment: .leading, spacing: QMDesign.Spacing.xs) {
-                FeaturePreviewRow(icon: QMDesign.Icons.assist, text: "Get real-time assistance")
-                FeaturePreviewRow(icon: QMDesign.Icons.whatToSay, text: "Suggestions on what to say")
-                FeaturePreviewRow(icon: QMDesign.Icons.followUp, text: "Smart follow-up questions")
-                FeaturePreviewRow(icon: QMDesign.Icons.recap, text: "Conversation recap")
+                FeaturePreviewRow(icon: QMDesign.Icons.assist, text: String(localized: "overlay.preview.realtimeAssistance"))
+                FeaturePreviewRow(icon: QMDesign.Icons.whatToSay, text: String(localized: "overlay.preview.suggestionsWhatToSay"))
+                FeaturePreviewRow(icon: QMDesign.Icons.followUp, text: String(localized: "overlay.preview.smartFollowUp"))
+                FeaturePreviewRow(icon: QMDesign.Icons.recap, text: String(localized: "overlay.preview.conversationRecap"))
             }
 
             // Hint
             HStack(spacing: 4) {
-                Text("Click to expand")
+                Text(String(localized: "overlay.preview.clickToExpand"))
                     .font(QMDesign.Typography.caption)
                     .foregroundColor(QMDesign.Colors.textTertiary)
                 Image(systemName: "chevron.down")
@@ -1802,11 +1802,11 @@ struct SmartModeToast: View {
                 .foregroundStyle(QMDesign.Colors.primaryGradient)
 
             VStack(alignment: .leading, spacing: 2) {
-                Text("Smart Mode enabled")
+                Text(String(localized: "overlay.toast.smartModeEnabled"))
                     .font(QMDesign.Typography.labelSmall)
                     .foregroundColor(QMDesign.Colors.textPrimary)
 
-                Text("Responses may take longer but will be more thoughtful")
+                Text(String(localized: "overlay.toast.smartModeDescription"))
                     .font(QMDesign.Typography.captionSmall)
                     .foregroundColor(QMDesign.Colors.textSecondary)
             }
@@ -1841,7 +1841,7 @@ struct DisplaySelectionToast: View {
                 .font(.system(size: 14, weight: .medium))
                 .foregroundColor(QMDesign.Colors.success)
 
-            Text("Capturing: \(displayName)")
+            Text(String(localized: "overlay.toast.capturing \(displayName)"))
                 .font(QMDesign.Typography.labelSmall)
                 .foregroundColor(QMDesign.Colors.textPrimary)
         }
@@ -1877,11 +1877,11 @@ struct TranscriptionConnectionBanner: View {
                 ProgressView()
                     .scaleEffect(0.6)
                     .frame(width: 14, height: 14)
-                Text("Reconnecting (\(attempt)/\(maxAttempts))...")
+                Text(String(localized: "overlay.connection.reconnecting \(attempt) \(maxAttempts)"))
                     .font(QMDesign.Typography.captionSmall)
 
                 Button(action: onRetry) {
-                    Text("Retry now")
+                    Text(String(localized: "overlay.connection.retryNow"))
                         .font(QMDesign.Typography.captionSmall)
                         .fontWeight(.semibold)
                         .padding(.horizontal, 6)
@@ -1906,18 +1906,18 @@ struct TranscriptionConnectionBanner: View {
                 HStack(spacing: QMDesign.Spacing.xs) {
                     Image(systemName: "pause.circle.fill")
                         .font(.system(size: 10))
-                    Text("Transcription paused")
+                    Text(String(localized: "overlay.connection.transcriptionPaused"))
                         .font(QMDesign.Typography.captionSmall)
                         .fontWeight(.medium)
 
                     if transcriptionService.autoRecoveryCountdown > 0 {
-                        Text("· Retry in \(transcriptionService.autoRecoveryCountdown)s")
+                        Text(String(localized: "overlay.connection.retryIn \(transcriptionService.autoRecoveryCountdown)"))
                             .font(QMDesign.Typography.captionSmall)
                             .foregroundColor(QMDesign.Colors.textTertiary)
                     }
 
                     Button(action: onRetry) {
-                        Text("Retry now")
+                        Text(String(localized: "overlay.connection.retryNow"))
                             .font(QMDesign.Typography.captionSmall)
                             .fontWeight(.semibold)
                             .padding(.horizontal, 6)
@@ -1935,7 +1935,7 @@ struct TranscriptionConnectionBanner: View {
                     Image(systemName: "checkmark.circle.fill")
                         .font(.system(size: 8))
                         .foregroundColor(QMDesign.Colors.success)
-                    Text("AI Assist still works with existing transcript")
+                    Text(String(localized: "overlay.connection.aiStillWorks"))
                         .font(.system(size: 9))
                         .foregroundColor(QMDesign.Colors.success)
                 }

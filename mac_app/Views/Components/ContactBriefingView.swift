@@ -79,7 +79,7 @@ struct ContactBriefingView: View {
                     .font(QMDesign.Typography.headline)
                     .fontWeight(.bold)
                     .foregroundStyle(QMDesign.Colors.primaryGradient)
-                Text("sessions")
+                Text(String(localized: "contact.briefing.sessions"))
                     .font(QMDesign.Typography.captionSmall)
                     .foregroundColor(QMDesign.Colors.textTertiary)
             }
@@ -99,7 +99,7 @@ struct ContactBriefingView: View {
 
     private var previousSessionsSection: some View {
         VStack(alignment: .leading, spacing: QMDesign.Spacing.sm) {
-            sectionHeader("Sessions précédentes", icon: "clock.arrow.circlepath")
+            sectionHeader(String(localized: "contact.briefing.previousSessions"), icon: "clock.arrow.circlepath")
 
             VStack(spacing: QMDesign.Spacing.xs) {
                 ForEach(recentSessions) { session in
@@ -143,7 +143,7 @@ struct ContactBriefingView: View {
 
     private var notesSection: some View {
         VStack(alignment: .leading, spacing: QMDesign.Spacing.sm) {
-            sectionHeader("Memory Palace", icon: "brain.head.profile")
+            sectionHeader(String(localized: "contact.briefing.memoryPalace"), icon: "brain.head.profile")
 
             VStack(spacing: QMDesign.Spacing.xs) {
                 ForEach(Array(contact.notes.prefix(3))) { note in
@@ -225,12 +225,12 @@ struct EmptyBriefingView: View {
                 .foregroundColor(QMDesign.Colors.textTertiary)
 
             VStack(spacing: QMDesign.Spacing.xs) {
-                Text("Aucun contact associé")
+                Text(String(localized: "contact.briefing.empty.title"))
                     .font(QMDesign.Typography.bodySmall)
                     .fontWeight(.medium)
                     .foregroundColor(QMDesign.Colors.textSecondary)
 
-                Text("Sélectionne un contact au démarrage\npour voir son briefing ici")
+                Text(String(localized: "contact.briefing.empty.subtitle"))
                     .font(QMDesign.Typography.caption)
                     .foregroundColor(QMDesign.Colors.textTertiary)
                     .multilineTextAlignment(.center)

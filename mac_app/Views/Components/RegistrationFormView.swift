@@ -33,11 +33,11 @@ struct RegistrationFormView: View {
                         .foregroundColor(.white)
                 }
 
-                Text("Create Account")
+                Text(String(localized: "auth.register.title"))
                     .font(QMDesign.Typography.titleSmall)
                     .foregroundColor(QMDesign.Colors.textPrimary)
 
-                Text("Sign up to start using Queen Mama")
+                Text(String(localized: "auth.register.subtitle"))
                     .font(QMDesign.Typography.bodySmall)
                     .foregroundColor(QMDesign.Colors.textSecondary)
             }
@@ -46,11 +46,11 @@ struct RegistrationFormView: View {
             VStack(spacing: QMDesign.Spacing.md) {
                 // Name field
                 VStack(alignment: .leading, spacing: QMDesign.Spacing.xs) {
-                    Text("Name")
+                    Text(String(localized: "auth.register.label.name"))
                         .font(QMDesign.Typography.labelSmall)
                         .foregroundColor(QMDesign.Colors.textSecondary)
 
-                    TextField("Your name", text: $name)
+                    TextField(String(localized: "auth.register.placeholder.name"), text: $name)
                         .textFieldStyle(.plain)
                         .font(QMDesign.Typography.bodyMedium)
                         .foregroundColor(QMDesign.Colors.textPrimary)
@@ -59,11 +59,11 @@ struct RegistrationFormView: View {
 
                 // Email field
                 VStack(alignment: .leading, spacing: QMDesign.Spacing.xs) {
-                    Text("Email")
+                    Text(String(localized: "auth.register.label.email"))
                         .font(QMDesign.Typography.labelSmall)
                         .foregroundColor(QMDesign.Colors.textSecondary)
 
-                    TextField("your@email.com", text: $email)
+                    TextField(String(localized: "auth.register.placeholder.email"), text: $email)
                         .textFieldStyle(.plain)
                         .font(QMDesign.Typography.bodyMedium)
                         .foregroundColor(QMDesign.Colors.textPrimary)
@@ -73,16 +73,16 @@ struct RegistrationFormView: View {
 
                 // Password field
                 VStack(alignment: .leading, spacing: QMDesign.Spacing.xs) {
-                    Text("Password")
+                    Text(String(localized: "auth.register.label.password"))
                         .font(QMDesign.Typography.labelSmall)
                         .foregroundColor(QMDesign.Colors.textSecondary)
 
                     HStack {
                         if showPassword {
-                            TextField("Create a password", text: $password)
+                            TextField(String(localized: "auth.register.placeholder.password"), text: $password)
                                 .textFieldStyle(.plain)
                         } else {
-                            SecureField("Create a password", text: $password)
+                            SecureField(String(localized: "auth.register.placeholder.password"), text: $password)
                                 .textFieldStyle(.plain)
                         }
 
@@ -103,16 +103,16 @@ struct RegistrationFormView: View {
 
                 // Confirm Password field
                 VStack(alignment: .leading, spacing: QMDesign.Spacing.xs) {
-                    Text("Confirm Password")
+                    Text(String(localized: "auth.register.label.confirmPassword"))
                         .font(QMDesign.Typography.labelSmall)
                         .foregroundColor(QMDesign.Colors.textSecondary)
 
                     HStack {
                         if showConfirmPassword {
-                            TextField("Confirm your password", text: $confirmPassword)
+                            TextField(String(localized: "auth.register.placeholder.confirmPassword"), text: $confirmPassword)
                                 .textFieldStyle(.plain)
                         } else {
-                            SecureField("Confirm your password", text: $confirmPassword)
+                            SecureField(String(localized: "auth.register.placeholder.confirmPassword"), text: $confirmPassword)
                                 .textFieldStyle(.plain)
                         }
 
@@ -131,7 +131,7 @@ struct RegistrationFormView: View {
                     if !confirmPassword.isEmpty {
                         HStack(spacing: QMDesign.Spacing.xxs) {
                             Image(systemName: passwordsMatch ? "checkmark.circle.fill" : "xmark.circle.fill")
-                            Text(passwordsMatch ? "Passwords match" : "Passwords do not match")
+                            Text(passwordsMatch ? String(localized: "auth.register.passwordsMatch") : String(localized: "auth.register.passwordsDoNotMatch"))
                         }
                         .font(QMDesign.Typography.captionSmall)
                         .foregroundColor(passwordsMatch ? QMDesign.Colors.success : QMDesign.Colors.error)
@@ -164,7 +164,7 @@ struct RegistrationFormView: View {
                         } else {
                             Image(systemName: "person.badge.plus")
                         }
-                        Text(isRegistering ? "Creating account..." : "Create Account")
+                        Text(isRegistering ? String(localized: "auth.register.button.creating") : String(localized: "auth.register.button.createAccount"))
                     }
                     .font(QMDesign.Typography.labelMedium)
                     .foregroundColor(.white)
@@ -187,9 +187,9 @@ struct RegistrationFormView: View {
             // Sign in link
             Button(action: { showRegistrationForm = false }) {
                 HStack(spacing: QMDesign.Spacing.xxs) {
-                    Text("Already have an account?")
+                    Text(String(localized: "auth.register.alreadyHaveAccount"))
                         .foregroundColor(QMDesign.Colors.textSecondary)
-                    Text("Sign in")
+                    Text(String(localized: "auth.register.signIn"))
                         .foregroundStyle(QMDesign.Colors.primaryGradient)
                 }
                 .font(QMDesign.Typography.bodySmall)
@@ -240,7 +240,7 @@ struct RegistrationFormView: View {
             } catch let error as AuthError {
                 registrationError = error.errorDescription
             } catch {
-                registrationError = "Registration failed. Please try again."
+                registrationError = String(localized: "auth.register.error.registrationFailed")
             }
             isRegistering = false
         }
@@ -271,10 +271,10 @@ struct PasswordRequirementsView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: QMDesign.Spacing.xxs) {
-            RequirementRow(met: requirements.hasMinLength, text: "8+ characters")
-            RequirementRow(met: requirements.hasUppercase, text: "1 uppercase letter")
-            RequirementRow(met: requirements.hasLowercase, text: "1 lowercase letter")
-            RequirementRow(met: requirements.hasNumber, text: "1 number")
+            RequirementRow(met: requirements.hasMinLength, text: String(localized: "auth.register.requirement.minLength"))
+            RequirementRow(met: requirements.hasUppercase, text: String(localized: "auth.register.requirement.uppercase"))
+            RequirementRow(met: requirements.hasLowercase, text: String(localized: "auth.register.requirement.lowercase"))
+            RequirementRow(met: requirements.hasNumber, text: String(localized: "auth.register.requirement.number"))
         }
         .padding(.top, QMDesign.Spacing.xxs)
     }

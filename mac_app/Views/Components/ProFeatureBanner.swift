@@ -141,7 +141,7 @@ struct UsageLimitBanner: View {
 
                 Spacer()
 
-                Text("\(remaining) / \(limit) remaining")
+                Text(String(localized: "pro.usage.remaining.\(remaining).\(limit)"))
                     .font(QMDesign.Typography.captionSmall)
                     .foregroundColor(remaining == 0 ? QMDesign.Colors.error : QMDesign.Colors.textTertiary)
             }
@@ -165,7 +165,7 @@ struct UsageLimitBanner: View {
                     HStack(spacing: QMDesign.Spacing.xs) {
                         Image(systemName: "crown.fill")
                             .font(.system(size: 10))
-                        Text("Upgrade for unlimited")
+                        Text(String(localized: "pro.usage.upgradeForUnlimited"))
                             .font(QMDesign.Typography.captionSmall)
                     }
                     .foregroundStyle(QMDesign.Colors.primaryGradient)
@@ -277,17 +277,17 @@ private struct FeatureGatedModifier: ViewModifier {
 
     private var featureName: String {
         switch feature {
-        case .smartMode: return "Smart Mode"
-        case .customModes: return "Custom Modes"
-        case .exportMarkdown: return "Markdown Export"
-        case .exportJson: return "JSON Export"
-        case .autoAnswer: return "Auto-Answer"
-        case .sessionSync: return "Session Sync"
-        case .aiRequest: return "AI Requests"
-        case .undetectable: return "Undetectable Mode"
-        case .screenshot: return "Screenshot"
-        case .sessionStart: return "Session Start"
-        case .knowledgeBase: return "Knowledge Base"
+        case .smartMode: return String(localized: "pro.feature.smartMode")
+        case .customModes: return String(localized: "pro.feature.customModes")
+        case .exportMarkdown: return String(localized: "pro.feature.exportMarkdown")
+        case .exportJson: return String(localized: "pro.feature.exportJson")
+        case .autoAnswer: return String(localized: "pro.feature.autoAnswer")
+        case .sessionSync: return String(localized: "pro.feature.sessionSync")
+        case .aiRequest: return String(localized: "pro.feature.aiRequests")
+        case .undetectable: return String(localized: "pro.feature.undetectableMode")
+        case .screenshot: return String(localized: "pro.feature.screenshot")
+        case .sessionStart: return String(localized: "pro.feature.sessionStart")
+        case .knowledgeBase: return String(localized: "pro.feature.knowledgeBase")
         }
     }
 }

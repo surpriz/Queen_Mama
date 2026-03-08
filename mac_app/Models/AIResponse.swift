@@ -54,6 +54,16 @@ final class AIResponse: Identifiable {
         case recap = "Recap"
         case custom = "Custom"
 
+        var localizedName: String {
+            switch self {
+            case .assist: return String(localized: "response.type.assist")
+            case .whatToSay: return String(localized: "response.type.whatToSay")
+            case .followUp: return String(localized: "response.type.followUp")
+            case .recap: return String(localized: "response.type.recap")
+            case .custom: return String(localized: "response.type.custom")
+            }
+        }
+
         var icon: String {
             switch self {
             case .assist: return "sparkles"

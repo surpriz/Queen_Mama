@@ -21,7 +21,7 @@ struct TalkTimeIndicator: View {
                     .font(.system(size: 10, weight: .medium))
                     .foregroundColor(stats.balanceState.color)
 
-                Text("Temps de parole")
+                Text(String(localized: "talktime.title"))
                     .font(QMDesign.Typography.caption)
                     .foregroundColor(QMDesign.Colors.textSecondary)
 
@@ -94,7 +94,7 @@ struct TalkTimeIndicator: View {
                     Circle()
                         .fill(QMDesign.Colors.gradientStart)
                         .frame(width: 6, height: 6)
-                    Text("Moi")
+                    Text(String(localized: "talktime.label.me"))
                         .font(QMDesign.Typography.captionSmall)
                         .foregroundColor(QMDesign.Colors.textSecondary)
                     Text("\(Int(stats.myPercentage * 100))%")
@@ -109,7 +109,7 @@ struct TalkTimeIndicator: View {
                     Text("\(Int(stats.theirPercentage * 100))%")
                         .font(QMDesign.Typography.monoSmall)
                         .foregroundColor(QMDesign.Colors.textPrimary)
-                    Text("Interlocuteur")
+                    Text(String(localized: "talktime.label.other"))
                         .font(QMDesign.Typography.captionSmall)
                         .foregroundColor(QMDesign.Colors.textSecondary)
                     Circle()
@@ -140,8 +140,8 @@ struct TalkTimeIndicator: View {
             }
         }
         .accessibilityElement(children: .combine)
-        .accessibilityLabel("Temps de parole")
-        .accessibilityValue("\(Int(stats.myPercentage * 100)) pourcent moi, \(Int(stats.theirPercentage * 100)) pourcent interlocuteur. \(stats.balanceState.label)")
+        .accessibilityLabel(String(localized: "talktime.title"))
+        .accessibilityValue(String(localized: "talktime.accessibility.value \(Int(stats.myPercentage * 100)) \(Int(stats.theirPercentage * 100)) \(stats.balanceState.label)"))
     }
 }
 
@@ -164,13 +164,13 @@ extension Session.BalanceState {
     var label: String {
         switch self {
         case .noData:
-            return "En attente"
+            return String(localized: "talktime.state.waiting")
         case .balanced:
-            return "Equilibre"
+            return String(localized: "talktime.state.balanced")
         case .slightImbalance:
-            return "Attention"
+            return String(localized: "talktime.state.warning")
         case .strongImbalance:
-            return "Desequilibre"
+            return String(localized: "talktime.state.imbalanced")
         }
     }
 }
@@ -184,7 +184,7 @@ extension TalkTimeIndicator {
             Image(systemName: "person.2.fill")
                 .font(.system(size: 10))
                 .foregroundColor(QMDesign.Colors.textTertiary)
-            Text("Parlez pour voir le ratio temps de parole")
+            Text(String(localized: "talktime.empty"))
                 .font(QMDesign.Typography.caption)
                 .foregroundColor(QMDesign.Colors.textTertiary)
         }

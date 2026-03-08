@@ -83,6 +83,30 @@ enum SettingsSection: String, CaseIterable {
         case .updates: return "Check for updates"
         }
     }
+
+    var localizedName: String {
+        switch self {
+        case .account: return String(localized: "settings.section.account")
+        case .general: return String(localized: "settings.section.general")
+        case .autoAnswer: return String(localized: "settings.section.autoAnswer")
+        case .audio: return String(localized: "settings.section.audio")
+        case .sync: return String(localized: "settings.section.sync")
+        case .shortcuts: return String(localized: "settings.section.shortcuts")
+        case .updates: return String(localized: "settings.section.updates")
+        }
+    }
+
+    var localizedDescription: String {
+        switch self {
+        case .account: return String(localized: "settings.section.account.description")
+        case .general: return String(localized: "settings.section.general.description")
+        case .autoAnswer: return String(localized: "settings.section.autoAnswer.description")
+        case .audio: return String(localized: "settings.section.audio.description")
+        case .sync: return String(localized: "settings.section.sync.description")
+        case .shortcuts: return String(localized: "settings.section.shortcuts.description")
+        case .updates: return String(localized: "settings.section.updates.description")
+        }
+    }
 }
 
 // MARK: - Modern Settings Sidebar
@@ -103,7 +127,7 @@ struct ModernSettingsSidebar: View {
                         .foregroundColor(.white)
                 }
 
-                Text("Settings")
+                Text(String(localized: "settings.sidebar.title"))
                     .font(QMDesign.Typography.headline)
                     .foregroundColor(QMDesign.Colors.textPrimary)
 
@@ -152,7 +176,7 @@ struct ModernSettingsSidebar: View {
                         .foregroundColor(QMDesign.Colors.textSecondary)
                         .frame(width: 24)
 
-                    Text("Give Feedback")
+                    Text(String(localized: "settings.feedback.giveFeedback"))
                         .font(QMDesign.Typography.bodySmall)
                         .foregroundColor(QMDesign.Colors.textSecondary)
 
@@ -216,12 +240,12 @@ struct SettingsSidebarItem: View {
 
                 // Labels
                 VStack(alignment: .leading, spacing: 1) {
-                    Text(section.rawValue)
+                    Text(section.localizedName)
                         .font(QMDesign.Typography.bodySmall)
                         .fontWeight(isSelected ? .semibold : .regular)
                         .foregroundColor(isSelected ? QMDesign.Colors.textPrimary : QMDesign.Colors.textSecondary)
 
-                    Text(section.description)
+                    Text(section.localizedDescription)
                         .font(QMDesign.Typography.captionSmall)
                         .foregroundColor(QMDesign.Colors.textTertiary)
                 }
@@ -297,17 +321,17 @@ struct ModernGeneralSettingsView: View {
         VStack(spacing: QMDesign.Spacing.lg) {
             // Header
             SettingsSectionHeader(
-                title: "General Settings",
-                subtitle: "Configure app behavior and appearance"
+                title: String(localized: "settings.general.title"),
+                subtitle: String(localized: "settings.general.subtitle")
             )
 
             // Appearance Card
-            SettingsCard(title: "Appearance", icon: "paintbrush.fill") {
+            SettingsCard(title: String(localized: "settings.general.appearance"), icon: "paintbrush.fill") {
                 VStack(spacing: QMDesign.Spacing.md) {
                     // Undetectable Mode (Enterprise only)
                     LicenseGatedToggleRow(
-                        title: "Undetectability Mode",
-                        description: "Hide overlay from screen recordings and shares",
+                        title: String(localized: "settings.general.undetectabilityMode"),
+                        description: String(localized: "settings.general.undetectabilityMode.description"),
                         isOn: $config.isUndetectabilityEnabled,
                         icon: "eye.slash",
                         feature: .undetectable,
@@ -319,8 +343,8 @@ struct ModernGeneralSettingsView: View {
 
                     // Smart Mode (Enterprise only)
                     LicenseGatedToggleRow(
-                        title: "Smart Mode",
-                        description: "Enhanced AI reasoning for complex questions",
+                        title: String(localized: "settings.general.smartMode"),
+                        description: String(localized: "settings.general.smartMode.description"),
                         isOn: $config.smartModeEnabled,
                         icon: "brain",
                         feature: .smartMode,
@@ -330,18 +354,18 @@ struct ModernGeneralSettingsView: View {
             }
 
             // Screen Capture Card
-            SettingsCard(title: "Screen Capture", icon: "camera.fill") {
+            SettingsCard(title: String(localized: "settings.general.screenCapture"), icon: "camera.fill") {
                 VStack(spacing: QMDesign.Spacing.md) {
                     ModernToggleRow(
-                        title: "Auto-capture Screen",
-                        description: "Automatically capture screen for context",
+                        title: String(localized: "settings.general.autoCaptureScreen"),
+                        description: String(localized: "settings.general.autoCaptureScreen.description"),
                         isOn: $config.autoScreenCapture,
                         icon: "rectangle.dashed.badge.record"
                     )
 
                     if config.autoScreenCapture {
                         HStack {
-                            Text("Capture interval")
+                            Text(String(localized: "settings.general.captureInterval"))
                                 .font(QMDesign.Typography.bodySmall)
                                 .foregroundColor(QMDesign.Colors.textSecondary)
 
@@ -386,10 +410,10 @@ struct ModernGeneralSettingsView: View {
             }
 
             // Meeting Detection Card
-            SettingsCard(title: "Meeting Detection", icon: "video.fill") {
+            SettingsCard(title: String(localized: "settings.general.meetingDetection"), icon: "video.fill") {
                 ModernToggleRow(
-                    title: "Meeting Reminders",
-                    description: "Show a reminder to start a session when a meeting app is detected",
+                    title: String(localized: "settings.general.meetingReminders"),
+                    description: String(localized: "settings.general.meetingReminders.description"),
                     isOn: $config.meetingDetectionEnabled,
                     icon: "bell.badge"
                 )
@@ -415,10 +439,10 @@ struct DisplaySelectorRow: View {
                     .frame(width: 24)
 
                 VStack(alignment: .leading, spacing: 2) {
-                    Text("Capture Display")
+                    Text(String(localized: "settings.general.captureDisplay"))
                         .font(QMDesign.Typography.bodySmall)
                         .foregroundColor(QMDesign.Colors.textPrimary)
-                    Text("Select which screen to capture for AI context")
+                    Text(String(localized: "settings.general.captureDisplay.description"))
                         .font(QMDesign.Typography.captionSmall)
                         .foregroundColor(QMDesign.Colors.textTertiary)
                 }
@@ -430,7 +454,7 @@ struct DisplaySelectorRow: View {
                 HStack(spacing: QMDesign.Spacing.xs) {
                     ProgressView()
                         .scaleEffect(0.7)
-                    Text("Detecting displays...")
+                    Text(String(localized: "settings.general.detectingDisplays"))
                         .font(QMDesign.Typography.caption)
                         .foregroundColor(QMDesign.Colors.textTertiary)
                 }
@@ -439,7 +463,7 @@ struct DisplaySelectorRow: View {
                 HStack(spacing: QMDesign.Spacing.xs) {
                     Image(systemName: "exclamationmark.triangle")
                         .foregroundColor(QMDesign.Colors.warning)
-                    Text("No displays available")
+                    Text(String(localized: "settings.general.noDisplaysAvailable"))
                         .font(QMDesign.Typography.caption)
                         .foregroundColor(QMDesign.Colors.warning)
                 }
@@ -548,16 +572,16 @@ struct ModernAutoAnswerSettingsView: View {
         VStack(spacing: QMDesign.Spacing.lg) {
             // Header
             SettingsSectionHeader(
-                title: "Auto-Answer",
-                subtitle: "Configure automatic AI responses"
+                title: String(localized: "settings.autoAnswer.title"),
+                subtitle: String(localized: "settings.autoAnswer.subtitle")
             )
 
             // Enable Card (Enterprise only)
-            SettingsCard(title: "Automatic Responses", icon: "bolt.fill") {
+            SettingsCard(title: String(localized: "settings.autoAnswer.automaticResponses"), icon: "bolt.fill") {
                 VStack(spacing: QMDesign.Spacing.md) {
                     LicenseGatedToggleRow(
-                        title: "Enable Auto-Answer",
-                        description: "Automatically trigger AI responses based on context",
+                        title: String(localized: "settings.autoAnswer.enableAutoAnswer"),
+                        description: String(localized: "settings.autoAnswer.enableAutoAnswer.description"),
                         isOn: $config.autoAnswerEnabled,
                         icon: "bolt.circle",
                         feature: .autoAnswer,
@@ -569,7 +593,7 @@ struct ModernAutoAnswerSettingsView: View {
                         HStack(alignment: .top, spacing: QMDesign.Spacing.sm) {
                             Image(systemName: "info.circle.fill")
                                 .foregroundStyle(QMDesign.Colors.primaryGradient)
-                            Text("Auto-Answer will trigger when silence is detected after speech, or when a question is recognized.")
+                            Text(String(localized: "settings.autoAnswer.infoText"))
                                 .font(QMDesign.Typography.caption)
                                 .foregroundColor(QMDesign.Colors.textSecondary)
                         }
@@ -584,16 +608,16 @@ struct ModernAutoAnswerSettingsView: View {
 
             // Triggers Card
             if config.autoAnswerEnabled {
-                SettingsCard(title: "Trigger Settings", icon: "slider.horizontal.3") {
+                SettingsCard(title: String(localized: "settings.autoAnswer.triggerSettings"), icon: "slider.horizontal.3") {
                     VStack(spacing: QMDesign.Spacing.lg) {
                         // Silence Threshold
                         VStack(alignment: .leading, spacing: QMDesign.Spacing.sm) {
                             HStack {
                                 VStack(alignment: .leading, spacing: 2) {
-                                    Text("Silence Threshold")
+                                    Text(String(localized: "settings.autoAnswer.silenceThreshold"))
                                         .font(QMDesign.Typography.bodySmall)
                                         .foregroundColor(QMDesign.Colors.textPrimary)
-                                    Text("Time to wait after speech stops")
+                                    Text(String(localized: "settings.autoAnswer.silenceThreshold.description"))
                                         .font(QMDesign.Typography.captionSmall)
                                         .foregroundColor(QMDesign.Colors.textTertiary)
                                 }
@@ -618,10 +642,10 @@ struct ModernAutoAnswerSettingsView: View {
                         VStack(alignment: .leading, spacing: QMDesign.Spacing.sm) {
                             HStack {
                                 VStack(alignment: .leading, spacing: 2) {
-                                    Text("Cooldown Period")
+                                    Text(String(localized: "settings.autoAnswer.cooldownPeriod"))
                                         .font(QMDesign.Typography.bodySmall)
                                         .foregroundColor(QMDesign.Colors.textPrimary)
-                                    Text("Minimum time between auto-responses")
+                                    Text(String(localized: "settings.autoAnswer.cooldownPeriod.description"))
                                         .font(QMDesign.Typography.captionSmall)
                                         .foregroundColor(QMDesign.Colors.textTertiary)
                                 }
@@ -642,7 +666,7 @@ struct ModernAutoAnswerSettingsView: View {
                 }
 
                 // Response Type Card
-                SettingsCard(title: "Response Type", icon: "text.bubble") {
+                SettingsCard(title: String(localized: "settings.autoAnswer.responseType"), icon: "text.bubble") {
                     VStack(spacing: QMDesign.Spacing.sm) {
                         ForEach(["assist", "whatToSay", "followUp"], id: \.self) { type in
                             ResponseTypeOption(
@@ -668,18 +692,18 @@ struct ResponseTypeOption: View {
 
     var title: String {
         switch type {
-        case "assist": return "Assist"
-        case "whatToSay": return "What Should I Say"
-        case "followUp": return "Follow-up Questions"
+        case "assist": return String(localized: "settings.autoAnswer.responseType.assist")
+        case "whatToSay": return String(localized: "settings.autoAnswer.responseType.whatToSay")
+        case "followUp": return String(localized: "settings.autoAnswer.responseType.followUp")
         default: return type
         }
     }
 
     var description: String {
         switch type {
-        case "assist": return "General AI assistance based on context"
-        case "whatToSay": return "Suggestions for what to say next"
-        case "followUp": return "Generate follow-up questions"
+        case "assist": return String(localized: "settings.autoAnswer.responseType.assist.description")
+        case "whatToSay": return String(localized: "settings.autoAnswer.responseType.whatToSay.description")
+        case "followUp": return String(localized: "settings.autoAnswer.responseType.followUp.description")
         default: return ""
         }
     }
@@ -743,16 +767,16 @@ struct ModernAudioSettingsView: View {
         VStack(spacing: QMDesign.Spacing.lg) {
             // Header
             SettingsSectionHeader(
-                title: "Audio Settings",
-                subtitle: "Configure audio capture sources"
+                title: String(localized: "settings.audio.title"),
+                subtitle: String(localized: "settings.audio.subtitle")
             )
 
             // Audio Sources Card
-            SettingsCard(title: "Audio Sources", icon: "speaker.wave.2.fill") {
+            SettingsCard(title: String(localized: "settings.audio.audioSources"), icon: "speaker.wave.2.fill") {
                 VStack(spacing: QMDesign.Spacing.md) {
                     ModernToggleRow(
-                        title: "Capture Microphone",
-                        description: "Record your voice from the microphone",
+                        title: String(localized: "settings.audio.captureMicrophone"),
+                        description: String(localized: "settings.audio.captureMicrophone.description"),
                         isOn: $config.captureMicrophone,
                         icon: "mic.fill"
                     )
@@ -760,8 +784,8 @@ struct ModernAudioSettingsView: View {
                     Divider().background(QMDesign.Colors.borderSubtle)
 
                     ModernToggleRow(
-                        title: "Capture System Audio",
-                        description: "Record audio from other applications",
+                        title: String(localized: "settings.audio.captureSystemAudio"),
+                        description: String(localized: "settings.audio.captureSystemAudio.description"),
                         isOn: $config.captureSystemAudio,
                         icon: "speaker.wave.3.fill"
                     )
@@ -769,12 +793,12 @@ struct ModernAudioSettingsView: View {
             }
 
             // Audio Test Card
-            SettingsCard(title: "Audio Test", icon: "waveform.circle.fill") {
+            SettingsCard(title: String(localized: "settings.audio.audioTest"), icon: "waveform.circle.fill") {
                 VStack(spacing: QMDesign.Spacing.md) {
                     // Microphone Test
                     AudioTestRow(
-                        title: "Microphone",
-                        description: "Test your microphone input",
+                        title: String(localized: "settings.audio.microphone"),
+                        description: String(localized: "settings.audio.microphone.testDescription"),
                         icon: "mic.fill",
                         level: audioTestManager.microphoneLevel,
                         isTesting: audioTestManager.isMicrophoneTesting,
@@ -786,8 +810,8 @@ struct ModernAudioSettingsView: View {
 
                     // System Audio Test
                     AudioTestRow(
-                        title: "System Audio",
-                        description: "Test audio from other apps",
+                        title: String(localized: "settings.audio.systemAudio"),
+                        description: String(localized: "settings.audio.systemAudio.testDescription"),
                         icon: "speaker.wave.3.fill",
                         level: audioTestManager.systemAudioLevel,
                         isTesting: audioTestManager.isSystemAudioTesting,
@@ -800,7 +824,7 @@ struct ModernAudioSettingsView: View {
                         Image(systemName: "info.circle.fill")
                             .foregroundStyle(QMDesign.Colors.primaryGradient)
                             .font(.system(size: 14))
-                        Text("Speak into your microphone or play audio to see the level meters respond.")
+                        Text(String(localized: "settings.audio.testInstructions"))
                             .font(QMDesign.Typography.caption)
                             .foregroundColor(QMDesign.Colors.textSecondary)
                     }
@@ -813,11 +837,11 @@ struct ModernAudioSettingsView: View {
             }
 
             // Info Card
-            SettingsCard(title: "Privacy Information", icon: "shield.lefthalf.filled") {
+            SettingsCard(title: String(localized: "settings.audio.privacyInformation"), icon: "shield.lefthalf.filled") {
                 VStack(alignment: .leading, spacing: QMDesign.Spacing.sm) {
-                    InfoRow(icon: "waveform.path", text: "Audio is streamed directly to transcription services")
-                    InfoRow(icon: "externaldrive.badge.xmark", text: "Audio is not stored locally on your device")
-                    InfoRow(icon: "lock.shield", text: "All transmissions are encrypted")
+                    InfoRow(icon: "waveform.path", text: String(localized: "settings.audio.privacy.streamedDirectly"))
+                    InfoRow(icon: "externaldrive.badge.xmark", text: String(localized: "settings.audio.privacy.notStored"))
+                    InfoRow(icon: "lock.shield", text: String(localized: "settings.audio.privacy.encrypted"))
                 }
             }
         }
@@ -865,7 +889,7 @@ struct AudioTestRow: View {
                     Button(action: openSystemPreferences) {
                         HStack(spacing: 4) {
                             Image(systemName: "exclamationmark.triangle.fill")
-                            Text("Grant Access")
+                            Text(String(localized: "settings.audio.grantAccess"))
                         }
                         .font(QMDesign.Typography.captionSmall)
                         .foregroundColor(QMDesign.Colors.warning)
@@ -881,7 +905,7 @@ struct AudioTestRow: View {
                     Button(action: onTest) {
                         HStack(spacing: 4) {
                             Image(systemName: isTesting ? "stop.fill" : "play.fill")
-                            Text(isTesting ? "Stop" : "Test")
+                            Text(isTesting ? String(localized: "settings.audio.stop") : String(localized: "settings.audio.test"))
                         }
                         .font(QMDesign.Typography.captionSmall)
                         .foregroundColor(isTesting ? QMDesign.Colors.error : .white)
@@ -1145,51 +1169,51 @@ struct ModernShortcutsSettingsView: View {
         VStack(spacing: QMDesign.Spacing.lg) {
             // Header
             SettingsSectionHeader(
-                title: "Keyboard Shortcuts",
-                subtitle: "View and customize keyboard shortcuts"
+                title: String(localized: "settings.shortcuts.title"),
+                subtitle: String(localized: "settings.shortcuts.subtitle")
             )
 
             // Global Shortcuts Card
-            SettingsCard(title: "Global Shortcuts", icon: "globe") {
+            SettingsCard(title: String(localized: "settings.shortcuts.globalShortcuts"), icon: "globe") {
                 VStack(spacing: QMDesign.Spacing.md) {
                     ModernShortcutRow(
-                        title: "Toggle Widget",
-                        description: "Show/hide the overlay widget",
+                        title: String(localized: "settings.shortcuts.toggleWidget"),
+                        description: String(localized: "settings.shortcuts.toggleWidget.description"),
                         shortcut: config.shortcutToggleWidget
                     )
 
                     Divider().background(QMDesign.Colors.borderSubtle)
 
                     ModernShortcutRow(
-                        title: "Trigger Assist",
-                        description: "Get AI assistance based on context",
+                        title: String(localized: "settings.shortcuts.triggerAssist"),
+                        description: String(localized: "settings.shortcuts.triggerAssist.description"),
                         shortcut: config.shortcutAssist
                     )
 
                     Divider().background(QMDesign.Colors.borderSubtle)
 
                     ModernShortcutRow(
-                        title: "Clear Context",
-                        description: "Clear transcript and context",
+                        title: String(localized: "settings.shortcuts.clearContext"),
+                        description: String(localized: "settings.shortcuts.clearContext.description"),
                         shortcut: config.shortcutClearContext
                     )
                 }
             }
 
             // Widget Shortcuts Card
-            SettingsCard(title: "Widget Navigation", icon: "rectangle.3.group") {
+            SettingsCard(title: String(localized: "settings.shortcuts.widgetNavigation"), icon: "rectangle.3.group") {
                 VStack(spacing: QMDesign.Spacing.md) {
                     ModernShortcutRow(
-                        title: "Move Widget",
-                        description: "Reposition the overlay widget",
+                        title: String(localized: "settings.shortcuts.moveWidget"),
+                        description: String(localized: "settings.shortcuts.moveWidget.description"),
                         shortcut: "Cmd + Arrow Keys"
                     )
 
                     Divider().background(QMDesign.Colors.borderSubtle)
 
                     ModernShortcutRow(
-                        title: "Scroll Responses",
-                        description: "Scroll through AI responses",
+                        title: String(localized: "settings.shortcuts.scrollResponses"),
+                        description: String(localized: "settings.shortcuts.scrollResponses.description"),
                         shortcut: "Shift + Cmd + Up/Down"
                     )
                 }
@@ -1292,13 +1316,13 @@ struct ModernAccountSettingsView: View {
         VStack(spacing: QMDesign.Spacing.lg) {
             // Header
             SettingsSectionHeader(
-                title: "Account",
-                subtitle: "Manage your Queen Mama account"
+                title: String(localized: "settings.account.title"),
+                subtitle: String(localized: "settings.account.subtitle")
             )
 
             if authManager.isAuthenticated, let user = authManager.currentUser {
                 // Connected Account Card
-                SettingsCard(title: "Connected Account", icon: "person.crop.circle.fill") {
+                SettingsCard(title: String(localized: "settings.account.connectedAccount"), icon: "person.crop.circle.fill") {
                     VStack(spacing: QMDesign.Spacing.md) {
                         HStack(spacing: QMDesign.Spacing.md) {
                             // Avatar
@@ -1320,7 +1344,7 @@ struct ModernAccountSettingsView: View {
                                         .font(QMDesign.Typography.caption)
                                         .foregroundColor(QMDesign.Colors.textSecondary)
                                     if let method = user.authMethodLabel {
-                                        Text("via \(method)")
+                                        Text(String(localized: "settings.account.via \(method)"))
                                             .font(QMDesign.Typography.captionSmall)
                                             .foregroundColor(QMDesign.Colors.textTertiary)
                                             .padding(.horizontal, 6)
@@ -1340,7 +1364,7 @@ struct ModernAccountSettingsView: View {
                                 Circle()
                                     .fill(QMDesign.Colors.success)
                                     .frame(width: 8, height: 8)
-                                Text("Connected")
+                                Text(String(localized: "settings.account.connected"))
                                     .font(QMDesign.Typography.captionSmall)
                                     .foregroundColor(QMDesign.Colors.success)
                             }
@@ -1353,7 +1377,7 @@ struct ModernAccountSettingsView: View {
                         Button(action: { showLogoutConfirmation = true }) {
                             HStack {
                                 Image(systemName: "rectangle.portrait.and.arrow.right")
-                                Text("Sign Out")
+                                Text(String(localized: "settings.account.signOut"))
                             }
                             .font(QMDesign.Typography.bodySmall)
                             .foregroundColor(QMDesign.Colors.error)
@@ -1363,7 +1387,7 @@ struct ModernAccountSettingsView: View {
                 }
 
                 // Subscription Card
-                SettingsCard(title: "Subscription", icon: "crown.fill") {
+                SettingsCard(title: String(localized: "settings.account.subscription"), icon: "crown.fill") {
                     VStack(spacing: QMDesign.Spacing.md) {
                         HStack {
                             VStack(alignment: .leading, spacing: 4) {
@@ -1373,7 +1397,7 @@ struct ModernAccountSettingsView: View {
                                         .foregroundStyle(licenseManager.isPro ? AnyShapeStyle(QMDesign.Colors.primaryGradient) : AnyShapeStyle(QMDesign.Colors.textPrimary))
 
                                     if licenseManager.isTrialing, let days = licenseManager.trialDaysRemaining {
-                                        Text("\(days) days left")
+                                        Text(String(localized: "settings.account.daysLeft \(days)"))
                                             .font(QMDesign.Typography.captionSmall)
                                             .foregroundColor(QMDesign.Colors.warning)
                                             .padding(.horizontal, 6)
@@ -1385,7 +1409,7 @@ struct ModernAccountSettingsView: View {
                                     }
                                 }
 
-                                Text(licenseManager.isPro ? "All features unlocked" : "Upgrade for unlimited access")
+                                Text(licenseManager.isPro ? String(localized: "settings.account.allFeaturesUnlocked") : String(localized: "settings.account.upgradeForAccess"))
                                     .font(QMDesign.Typography.caption)
                                     .foregroundColor(QMDesign.Colors.textSecondary)
                             }
@@ -1394,7 +1418,7 @@ struct ModernAccountSettingsView: View {
 
                             if !licenseManager.isPro {
                                 Button(action: { showUpgradeSheet = true }) {
-                                    Text("Upgrade")
+                                    Text(String(localized: "settings.account.upgrade"))
                                         .font(QMDesign.Typography.labelSmall)
                                         .foregroundColor(.white)
                                         .padding(.horizontal, QMDesign.Spacing.md)
@@ -1416,7 +1440,7 @@ struct ModernAccountSettingsView: View {
                             VStack(spacing: QMDesign.Spacing.sm) {
                                 if let remaining = licenseManager.remainingUses(for: .smartMode) {
                                     UsageLimitBanner(
-                                        feature: "Smart Mode",
+                                        feature: String(localized: "settings.account.smartMode"),
                                         used: licenseManager.smartModeUsedToday,
                                         limit: licenseManager.currentLicense.features.smartModeLimit ?? 5
                                     )
@@ -1427,12 +1451,12 @@ struct ModernAccountSettingsView: View {
                 }
             } else if let response = deviceCodeResponse {
                 // Device Code Display Card
-                SettingsCard(title: "Enter Code", icon: "number.circle.fill") {
+                SettingsCard(title: String(localized: "settings.account.enterCode"), icon: "number.circle.fill") {
                     VStack(spacing: QMDesign.Spacing.md) {
                         HStack(spacing: QMDesign.Spacing.sm) {
                             Image(systemName: "safari")
                                 .foregroundStyle(QMDesign.Colors.primaryGradient)
-                            Text("Browser opened - enter this code:")
+                            Text(String(localized: "settings.account.browserOpenedEnterCode"))
                                 .font(QMDesign.Typography.caption)
                                 .foregroundColor(QMDesign.Colors.textSecondary)
                         }
@@ -1449,7 +1473,7 @@ struct ModernAccountSettingsView: View {
                             Button(action: { copyCode(response.userCode) }) {
                                 HStack(spacing: QMDesign.Spacing.xs) {
                                     Image(systemName: showCopied ? "checkmark" : "doc.on.doc")
-                                    Text(showCopied ? "Copied!" : "Copy code")
+                                    Text(showCopied ? String(localized: "settings.account.copied") : String(localized: "settings.account.copyCode"))
                                 }
                                 .font(QMDesign.Typography.captionSmall)
                                 .foregroundColor(showCopied ? QMDesign.Colors.success : QMDesign.Colors.textSecondary)
@@ -1462,7 +1486,7 @@ struct ModernAccountSettingsView: View {
                             Link(destination: verificationURL) {
                                 HStack(spacing: QMDesign.Spacing.xs) {
                                     Image(systemName: "arrow.up.right.square")
-                                    Text("Open link manually")
+                                    Text(String(localized: "settings.account.openLinkManually"))
                                 }
                                 .font(QMDesign.Typography.captionSmall)
                                 .foregroundStyle(QMDesign.Colors.primaryGradient)
@@ -1472,13 +1496,13 @@ struct ModernAccountSettingsView: View {
                         HStack(spacing: QMDesign.Spacing.sm) {
                             ProgressView()
                                 .scaleEffect(0.7)
-                            Text("Waiting for authorization...")
+                            Text(String(localized: "settings.account.waitingForAuthorization"))
                                 .font(QMDesign.Typography.caption)
                                 .foregroundColor(QMDesign.Colors.textSecondary)
                         }
 
                         Button(action: cancelDeviceCode) {
-                            Text("Cancel")
+                            Text(String(localized: "settings.account.cancel"))
                                 .font(QMDesign.Typography.bodySmall)
                                 .foregroundColor(QMDesign.Colors.textSecondary)
                         }
@@ -1487,9 +1511,9 @@ struct ModernAccountSettingsView: View {
                 }
             } else {
                 // Not Connected Card
-                SettingsCard(title: "Not Connected", icon: "person.crop.circle.badge.xmark") {
+                SettingsCard(title: String(localized: "settings.account.notConnected"), icon: "person.crop.circle.badge.xmark") {
                     VStack(spacing: QMDesign.Spacing.md) {
-                        Text("Sign in to unlock cloud sync, session history, and PRO features.")
+                        Text(String(localized: "settings.account.signInPrompt"))
                             .font(QMDesign.Typography.bodySmall)
                             .foregroundColor(QMDesign.Colors.textSecondary)
 
@@ -1518,7 +1542,7 @@ struct ModernAccountSettingsView: View {
                                 } else {
                                     Image(systemName: "arrow.up.right.square")
                                 }
-                                Text(isConnecting ? "Opening browser..." : "Connect Account")
+                                Text(isConnecting ? String(localized: "settings.account.openingBrowser") : String(localized: "settings.account.connectAccount"))
                             }
                             .font(QMDesign.Typography.labelMedium)
                             .foregroundColor(.white)
@@ -1532,22 +1556,22 @@ struct ModernAccountSettingsView: View {
                         .buttonStyle(.plain)
                         .disabled(isConnecting)
 
-                        Text("Works with email, Google, or GitHub accounts")
+                        Text(String(localized: "settings.account.worksWithProviders"))
                             .font(QMDesign.Typography.captionSmall)
                             .foregroundColor(QMDesign.Colors.textTertiary)
                     }
                 }
             }
         }
-        .alert("Sign Out", isPresented: $showLogoutConfirmation) {
-            Button("Cancel", role: .cancel) { }
-            Button("Sign Out", role: .destructive) {
+        .alert(String(localized: "settings.account.signOut"), isPresented: $showLogoutConfirmation) {
+            Button(String(localized: "settings.account.cancel"), role: .cancel) { }
+            Button(String(localized: "settings.account.signOut"), role: .destructive) {
                 Task {
                     await authManager.logout()
                 }
             }
         } message: {
-            Text("Are you sure you want to sign out?")
+            Text(String(localized: "settings.account.signOutConfirmation"))
         }
         .sheet(isPresented: $showUpgradeSheet) {
             UpgradePromptView()
@@ -1634,22 +1658,22 @@ struct ModernSyncSettingsView: View {
         VStack(spacing: QMDesign.Spacing.lg) {
             // Header
             SettingsSectionHeader(
-                title: "Cloud Sync",
-                subtitle: "Sync sessions to your Queen Mama dashboard"
+                title: String(localized: "settings.sync.title"),
+                subtitle: String(localized: "settings.sync.subtitle")
             )
 
             if !authManager.isAuthenticated {
                 // Not signed in - direct to Account section
-                SettingsCard(title: "Sign In Required", icon: "person.crop.circle.badge.xmark") {
+                SettingsCard(title: String(localized: "settings.sync.signInRequired"), icon: "person.crop.circle.badge.xmark") {
                     VStack(spacing: QMDesign.Spacing.md) {
-                        Text("Connect your account in the Account section to enable session sync.")
+                        Text(String(localized: "settings.sync.connectAccountPrompt"))
                             .font(QMDesign.Typography.bodySmall)
                             .foregroundColor(QMDesign.Colors.textSecondary)
                             .multilineTextAlignment(.center)
 
                         HStack(spacing: QMDesign.Spacing.xs) {
                             Image(systemName: "arrow.left")
-                            Text("Go to Account section")
+                            Text(String(localized: "settings.sync.goToAccount"))
                         }
                         .font(QMDesign.Typography.caption)
                         .foregroundStyle(QMDesign.Colors.primaryGradient)
@@ -1658,12 +1682,12 @@ struct ModernSyncSettingsView: View {
             } else if !licenseManager.isFeatureAvailable(.sessionSync) {
                 // PRO required
                 ProFeatureBanner(
-                    feature: "Session Sync",
-                    description: "Sync sessions to view on your dashboard"
+                    feature: String(localized: "settings.sync.sessionSync"),
+                    description: String(localized: "settings.sync.sessionSync.description")
                 )
             } else {
                 // Sync Status Card
-                SettingsCard(title: "Sync Status", icon: "arrow.triangle.2.circlepath") {
+                SettingsCard(title: String(localized: "settings.sync.syncStatus"), icon: "arrow.triangle.2.circlepath") {
                     VStack(spacing: QMDesign.Spacing.md) {
                         // Status row
                         HStack {
@@ -1679,7 +1703,7 @@ struct ModernSyncSettingsView: View {
                                 }
 
                                 if let lastSync = syncManager.lastSyncAt {
-                                    Text("Last sync: \(lastSync, style: .relative) ago")
+                                    Text(String(localized: "settings.sync.lastSync")) + Text(" ") + Text(lastSync, style: .relative)
                                         .font(QMDesign.Typography.caption)
                                         .foregroundColor(QMDesign.Colors.textTertiary)
                                 }
@@ -1698,7 +1722,7 @@ struct ModernSyncSettingsView: View {
                             HStack {
                                 Image(systemName: "clock.arrow.circlepath")
                                     .foregroundStyle(QMDesign.Colors.primaryGradient)
-                                Text("\(syncManager.pendingCount) session(s) pending sync")
+                                Text(String(localized: "settings.sync.pendingSync \(syncManager.pendingCount)"))
                                     .font(QMDesign.Typography.caption)
                                     .foregroundColor(QMDesign.Colors.textSecondary)
                                 Spacer()
@@ -1733,7 +1757,7 @@ struct ModernSyncSettingsView: View {
                         Button(action: syncNow) {
                             HStack(spacing: QMDesign.Spacing.sm) {
                                 Image(systemName: "arrow.triangle.2.circlepath")
-                                Text("Sync Now")
+                                Text(String(localized: "settings.sync.syncNow"))
                             }
                             .font(QMDesign.Typography.labelSmall)
                             .foregroundColor(.white)
@@ -1750,15 +1774,15 @@ struct ModernSyncSettingsView: View {
                 }
 
                 // Dashboard Link
-                SettingsCard(title: "View on Dashboard", icon: "globe") {
+                SettingsCard(title: String(localized: "settings.sync.viewOnDashboard"), icon: "globe") {
                     VStack(spacing: QMDesign.Spacing.md) {
-                        Text("View and manage all your synced sessions on the web dashboard.")
+                        Text(String(localized: "settings.sync.viewOnDashboard.description"))
                             .font(QMDesign.Typography.bodySmall)
                             .foregroundColor(QMDesign.Colors.textSecondary)
 
                         Button(action: openDashboard) {
                             HStack(spacing: QMDesign.Spacing.sm) {
-                                Text("Open Dashboard")
+                                Text(String(localized: "settings.sync.openDashboard"))
                                 Image(systemName: "arrow.up.right")
                             }
                             .font(QMDesign.Typography.labelSmall)
@@ -1779,13 +1803,13 @@ struct ModernSyncSettingsView: View {
 
     private var statusText: String {
         if syncManager.isSyncing {
-            return "Syncing..."
+            return String(localized: "settings.sync.status.syncing")
         } else if syncManager.isOffline {
-            return "Offline"
+            return String(localized: "settings.sync.status.offline")
         } else if syncManager.pendingCount > 0 {
-            return "Pending"
+            return String(localized: "settings.sync.status.pending")
         } else {
-            return "Up to date"
+            return String(localized: "settings.sync.status.upToDate")
         }
     }
 
@@ -1902,16 +1926,16 @@ struct ModernUpdatesSettingsView: View {
         VStack(spacing: QMDesign.Spacing.lg) {
             // Header
             SettingsSectionHeader(
-                title: "Updates",
-                subtitle: "Keep Queen Mama up to date"
+                title: String(localized: "settings.updates.title"),
+                subtitle: String(localized: "settings.updates.subtitle")
             )
 
             // Version Info Card
-            SettingsCard(title: "Version Information", icon: "info.circle.fill") {
+            SettingsCard(title: String(localized: "settings.updates.versionInformation"), icon: "info.circle.fill") {
                 VStack(spacing: QMDesign.Spacing.md) {
                     HStack {
                         VStack(alignment: .leading, spacing: 4) {
-                            Text("Current Version")
+                            Text(String(localized: "settings.updates.currentVersion"))
                                 .font(QMDesign.Typography.bodySmall)
                                 .foregroundColor(QMDesign.Colors.textSecondary)
                             Text("\(updater.currentVersion) (\(updater.currentBuild))")
@@ -1923,7 +1947,7 @@ struct ModernUpdatesSettingsView: View {
 
                         if let lastCheck = updater.lastUpdateCheckDate {
                             VStack(alignment: .trailing, spacing: 4) {
-                                Text("Last Checked")
+                                Text(String(localized: "settings.updates.lastChecked"))
                                     .font(QMDesign.Typography.bodySmall)
                                     .foregroundColor(QMDesign.Colors.textSecondary)
                                 Text(lastCheck, style: .relative)
@@ -1940,7 +1964,7 @@ struct ModernUpdatesSettingsView: View {
                     Button(action: { updater.checkForUpdates() }) {
                         HStack(spacing: QMDesign.Spacing.sm) {
                             Image(systemName: "arrow.down.circle")
-                            Text("Check for Updates")
+                            Text(String(localized: "settings.updates.checkForUpdates"))
                         }
                         .font(QMDesign.Typography.labelSmall)
                         .foregroundColor(.white)
@@ -1957,11 +1981,11 @@ struct ModernUpdatesSettingsView: View {
             }
 
             // Update Settings Card
-            SettingsCard(title: "Update Preferences", icon: "gearshape.2.fill") {
+            SettingsCard(title: String(localized: "settings.updates.updatePreferences"), icon: "gearshape.2.fill") {
                 VStack(spacing: QMDesign.Spacing.md) {
                     ModernToggleRow(
-                        title: "Check Automatically",
-                        description: "Check for updates daily in the background",
+                        title: String(localized: "settings.updates.checkAutomatically"),
+                        description: String(localized: "settings.updates.checkAutomatically.description"),
                         isOn: $updater.automaticallyChecksForUpdates,
                         icon: "clock.arrow.2.circlepath"
                     )
@@ -1970,8 +1994,8 @@ struct ModernUpdatesSettingsView: View {
                         .background(QMDesign.Colors.borderSubtle)
 
                     ModernToggleRow(
-                        title: "Download Automatically",
-                        description: "Download updates automatically when available",
+                        title: String(localized: "settings.updates.downloadAutomatically"),
+                        description: String(localized: "settings.updates.downloadAutomatically.description"),
                         isOn: $updater.automaticallyDownloadsUpdates,
                         icon: "arrow.down.to.line"
                     )
@@ -1981,15 +2005,15 @@ struct ModernUpdatesSettingsView: View {
             }
 
             // Changelog Card
-            SettingsCard(title: "What's New", icon: "sparkles") {
+            SettingsCard(title: String(localized: "settings.updates.whatsNew"), icon: "sparkles") {
                 VStack(spacing: QMDesign.Spacing.md) {
-                    Text("Stay up to date with the latest features and improvements.")
+                    Text(String(localized: "settings.updates.whatsNew.description"))
                         .font(QMDesign.Typography.bodySmall)
                         .foregroundColor(QMDesign.Colors.textSecondary)
 
                     Button(action: openChangelog) {
                         HStack(spacing: QMDesign.Spacing.sm) {
-                            Text("View Changelog")
+                            Text(String(localized: "settings.updates.viewChangelog"))
                             Image(systemName: "arrow.up.right")
                         }
                         .font(QMDesign.Typography.labelSmall)

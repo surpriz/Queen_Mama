@@ -70,14 +70,14 @@ struct SessionListView: View {
                                     Image(systemName: "arrow.clockwise")
                                         .font(.system(size: 11))
                                 }
-                                Text("Refresh")
+                                Text(String(localized: "sessions.button.refresh"))
                                     .font(QMDesign.Typography.captionSmall)
                             }
                             .foregroundColor(QMDesign.Colors.textSecondary)
                         }
                         .buttonStyle(.plain)
                         .disabled(syncManager.isSyncing)
-                        .help("Pull sessions from web dashboard")
+                        .help(String(localized: "sessions.help.pullSessions"))
 
                         Spacer()
 
@@ -94,14 +94,14 @@ struct SessionListView: View {
                                     Image(systemName: "arrow.triangle.2.circlepath")
                                         .font(.system(size: 11))
                                 }
-                                Text("Sync All")
+                                Text(String(localized: "sessions.button.syncAll"))
                                     .font(QMDesign.Typography.captionSmall)
                             }
                             .foregroundColor(QMDesign.Colors.accent)
                         }
                         .buttonStyle(.plain)
                         .disabled(syncManager.isSyncing)
-                        .help("Upload all sessions to web dashboard")
+                        .help(String(localized: "sessions.help.uploadSessions"))
                     }
                     .padding(.horizontal, QMDesign.Spacing.sm)
                     .padding(.bottom, QMDesign.Spacing.xs)
@@ -118,7 +118,7 @@ struct SessionListView: View {
                                 selectedSessionIds = Set(filteredSessions.map { $0.id })
                             }
                         }) {
-                            Text(selectedSessionIds.count == filteredSessions.count ? "Deselect All" : "Select All")
+                            Text(selectedSessionIds.count == filteredSessions.count ? String(localized: "sessions.button.deselectAll") : String(localized: "sessions.button.selectAll"))
                                 .font(QMDesign.Typography.captionSmall)
                                 .foregroundColor(QMDesign.Colors.accent)
                         }
@@ -134,7 +134,7 @@ struct SessionListView: View {
                                 HStack(spacing: 4) {
                                     Image(systemName: "trash")
                                         .font(.system(size: 11))
-                                    Text("Delete (\(selectedSessionIds.count))")
+                                    Text(String(localized: "sessions.button.deleteCount \(selectedSessionIds.count)"))
                                         .font(QMDesign.Typography.captionSmall)
                                 }
                                 .foregroundColor(QMDesign.Colors.error)
@@ -147,7 +147,7 @@ struct SessionListView: View {
                             isSelectionMode = false
                             selectedSessionIds.removeAll()
                         }) {
-                            Text("Cancel")
+                            Text(String(localized: "sessions.button.cancel"))
                                 .font(QMDesign.Typography.captionSmall)
                                 .foregroundColor(QMDesign.Colors.textSecondary)
                         }
@@ -161,7 +161,7 @@ struct SessionListView: View {
                             HStack(spacing: 4) {
                                 Image(systemName: "checkmark.circle")
                                     .font(.system(size: 11))
-                                Text("Select")
+                                Text(String(localized: "sessions.button.select"))
                                     .font(QMDesign.Typography.captionSmall)
                             }
                             .foregroundColor(QMDesign.Colors.textSecondary)
@@ -177,7 +177,7 @@ struct SessionListView: View {
                             HStack(spacing: 4) {
                                 Image(systemName: "trash")
                                     .font(.system(size: 11))
-                                Text("Delete All")
+                                Text(String(localized: "sessions.button.deleteAll"))
                                     .font(QMDesign.Typography.captionSmall)
                             }
                             .foregroundColor(QMDesign.Colors.error)
@@ -229,13 +229,13 @@ struct SessionListView: View {
                                 Button {
                                     exportSession(session, format: .markdown)
                                 } label: {
-                                    Label("Export as Markdown", systemImage: "doc.text")
+                                    Label(String(localized: "sessions.export.markdown"), systemImage: "doc.text")
                                 }
 
                                 Button {
                                     exportSession(session, format: .plainText)
                                 } label: {
-                                    Label("Export as Text", systemImage: "doc.plaintext")
+                                    Label(String(localized: "sessions.export.text"), systemImage: "doc.plaintext")
                                 }
 
                                 Divider()
@@ -243,7 +243,7 @@ struct SessionListView: View {
                                 Button(role: .destructive) {
                                     deleteSession(session)
                                 } label: {
-                                    Label("Delete", systemImage: "trash")
+                                    Label(String(localized: "sessions.button.delete"), systemImage: "trash")
                                 }
                             }
                             } // HStack
@@ -268,38 +268,38 @@ struct SessionListView: View {
             }
         }
         .confirmationDialog(
-            "Delete Session",
+            String(localized: "sessions.dialog.deleteTitle"),
             isPresented: $showingDeleteConfirmation,
             presenting: sessionToDelete
         ) { session in
-            Button("Delete", role: .destructive) {
+            Button(String(localized: "sessions.button.delete"), role: .destructive) {
                 deleteSession(session)
             }
-            Button("Cancel", role: .cancel) {}
+            Button(String(localized: "sessions.button.cancel"), role: .cancel) {}
         } message: { session in
-            Text("Delete \"\(session.title)\"? This cannot be undone.")
+            Text(String(localized: "sessions.dialog.deleteMessage \(session.title)"))
         }
         .confirmationDialog(
-            "Delete Selected Sessions",
+            String(localized: "sessions.dialog.deleteSelectedTitle"),
             isPresented: $showingBulkDeleteConfirmation
         ) {
-            Button("Delete \(selectedSessionIds.count) session\(selectedSessionIds.count > 1 ? "s" : "")", role: .destructive) {
+            Button(String(localized: "sessions.dialog.deleteSelectedButton \(selectedSessionIds.count)"), role: .destructive) {
                 bulkDeleteSelectedSessions()
             }
-            Button("Cancel", role: .cancel) {}
+            Button(String(localized: "sessions.button.cancel"), role: .cancel) {}
         } message: {
-            Text("Delete \(selectedSessionIds.count) selected session\(selectedSessionIds.count > 1 ? "s" : "")? This cannot be undone.")
+            Text(String(localized: "sessions.dialog.deleteSelectedMessage \(selectedSessionIds.count)"))
         }
         .confirmationDialog(
-            "Delete All Sessions",
+            String(localized: "sessions.dialog.deleteAllTitle"),
             isPresented: $showingDeleteAllConfirmation
         ) {
-            Button("Delete all \(filteredSessions.count) session\(filteredSessions.count > 1 ? "s" : "")", role: .destructive) {
+            Button(String(localized: "sessions.dialog.deleteAllButton \(filteredSessions.count)"), role: .destructive) {
                 bulkDeleteAllSessions()
             }
-            Button("Cancel", role: .cancel) {}
+            Button(String(localized: "sessions.button.cancel"), role: .cancel) {}
         } message: {
-            Text("Delete all \(filteredSessions.count) session\(filteredSessions.count > 1 ? "s" : "")? This cannot be undone.")
+            Text(String(localized: "sessions.dialog.deleteAllMessage \(filteredSessions.count)"))
         }
         .onAppear {
             // Set up callback to insert imported sessions into SwiftData
@@ -404,7 +404,7 @@ struct ModernSearchBar: View {
                 .font(.system(size: 13))
                 .foregroundColor(isFocused ? QMDesign.Colors.accent : QMDesign.Colors.textTertiary)
 
-            TextField("Search sessions...", text: $searchText)
+            TextField(String(localized: "sessions.search.placeholder"), text: $searchText)
                 .textFieldStyle(.plain)
                 .font(QMDesign.Typography.bodySmall)
                 .focused($isFocused)
@@ -465,7 +465,7 @@ struct ModernSessionCard: View {
                             Circle()
                                 .fill(QMDesign.Colors.error)
                                 .frame(width: 6, height: 6)
-                            Text("LIVE")
+                            Text(String(localized: "sessions.badge.live"))
                                 .font(QMDesign.Typography.captionSmall)
                                 .foregroundColor(QMDesign.Colors.error)
                         }
@@ -485,7 +485,7 @@ struct ModernSessionCard: View {
                     }
                     .buttonStyle(.plain)
                     .onHover { isDeleteHovered = $0 }
-                    .help("Delete session")
+                    .help(String(localized: "sessions.help.deleteSession"))
                 }
 
                 // Metadata
@@ -572,7 +572,7 @@ struct ModernSessionDetailView: View {
                         MetadataBadge(icon: "clock", text: session.formattedDuration)
 
                         if session.endTime == nil {
-                            MetadataBadge(icon: "circle.fill", text: "Recording", color: QMDesign.Colors.error)
+                            MetadataBadge(icon: "circle.fill", text: String(localized: "sessions.detail.recording"), color: QMDesign.Colors.error)
                         }
                     }
                 }
@@ -589,14 +589,14 @@ struct ModernSessionDetailView: View {
 
                 // Summary Section
                 if let summary = session.summary {
-                    DetailSection(title: "Summary", icon: "doc.text") {
+                    DetailSection(title: String(localized: "sessions.detail.summary"), icon: "doc.text") {
                         MarkdownText(content: summary)
                     }
                 }
 
                 // Action Items Section
                 if !session.actionItems.isEmpty {
-                    DetailSection(title: "Action Items", icon: "checklist") {
+                    DetailSection(title: String(localized: "sessions.detail.actionItems"), icon: "checklist") {
                         VStack(alignment: .leading, spacing: QMDesign.Spacing.sm) {
                             ForEach(session.actionItems, id: \.self) { item in
                                 HStack(alignment: .top, spacing: QMDesign.Spacing.sm) {
@@ -615,13 +615,13 @@ struct ModernSessionDetailView: View {
 
                 // Transcript Section
                 DetailSection(
-                    title: "Transcript",
+                    title: String(localized: "sessions.detail.transcript"),
                     icon: "text.alignleft",
                     isCollapsible: true,
                     isExpanded: $showingTranscript
                 ) {
                     if showingTranscript {
-                        Text(session.transcript.isEmpty ? "No transcript available" : session.transcript)
+                        Text(session.transcript.isEmpty ? String(localized: "sessions.detail.noTranscript") : session.transcript)
                             .font(QMDesign.Typography.bodySmall)
                             .foregroundColor(session.transcript.isEmpty ? QMDesign.Colors.textTertiary : QMDesign.Colors.textPrimary)
                             .textSelection(.enabled)
@@ -722,11 +722,11 @@ struct EmptySessionsView: View {
                 .font(.system(size: 32))
                 .foregroundStyle(QMDesign.Colors.primaryGradient)
 
-            Text(isFiltered ? "No results found" : "No sessions yet")
+            Text(isFiltered ? String(localized: "sessions.empty.noResults") : String(localized: "sessions.empty.noSessions"))
                 .font(QMDesign.Typography.bodyMedium)
                 .foregroundColor(QMDesign.Colors.textPrimary)
 
-            Text(isFiltered ? "Try a different search term" : "Start a session to begin recording")
+            Text(isFiltered ? String(localized: "sessions.empty.tryDifferentSearch") : String(localized: "sessions.empty.startSession"))
                 .font(QMDesign.Typography.caption)
                 .foregroundColor(QMDesign.Colors.textTertiary)
         }
@@ -742,11 +742,11 @@ struct EmptySessionDetailView: View {
                 .font(.system(size: 40))
                 .foregroundStyle(QMDesign.Colors.primaryGradient.opacity(0.5))
 
-            Text("No Session Selected")
+            Text(String(localized: "sessions.empty.noSessionSelected"))
                 .font(QMDesign.Typography.titleSmall)
                 .foregroundColor(QMDesign.Colors.textPrimary)
 
-            Text("Select a session to view its details")
+            Text(String(localized: "sessions.empty.selectSession"))
                 .font(QMDesign.Typography.bodySmall)
                 .foregroundColor(QMDesign.Colors.textTertiary)
         }
@@ -772,7 +772,7 @@ struct SyncStatusBadge: View {
                 }
                 .buttonStyle(.plain)
                 .onHover { isHovered = $0 }
-                .help(status == .failed ? "Retry sync" : "Sync to dashboard")
+                .help(status == .failed ? String(localized: "sessions.help.retrySync") : String(localized: "sessions.help.syncToDashboard"))
             } else {
                 // Static badge for other states
                 badgeContent

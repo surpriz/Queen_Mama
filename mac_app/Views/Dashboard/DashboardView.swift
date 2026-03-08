@@ -87,7 +87,7 @@ struct DashboardView: View {
                     HStack(spacing: QMDesign.Spacing.xs) {
                         ProgressView()
                             .scaleEffect(0.7)
-                        Text("Generating summary...")
+                        Text(String(localized: "dashboard.toolbar.generatingSummary"))
                             .font(QMDesign.Typography.labelSmall)
                     }
                     .padding(.horizontal, QMDesign.Spacing.sm)
@@ -117,7 +117,7 @@ struct DashboardView: View {
                         HStack(spacing: QMDesign.Spacing.xs) {
                             Image(systemName: appState.isSessionActive ? QMDesign.Icons.stop : QMDesign.Icons.play)
                                 .font(.system(size: 12, weight: .semibold))
-                            Text(appState.isSessionActive ? "Stop" : "Start")
+                            Text(appState.isSessionActive ? String(localized: "dashboard.toolbar.stop") : String(localized: "dashboard.toolbar.start"))
                                 .font(QMDesign.Typography.labelSmall)
                         }
                         .padding(.horizontal, QMDesign.Spacing.sm)
@@ -142,7 +142,7 @@ struct DashboardView: View {
                     .onHover { isHoveringStart = $0 }
                     .animation(QMDesign.Animation.quick, value: isHoveringStart)
                     .keyboardShortcut("s", modifiers: [.command, .shift])
-                    .help(canStart ? "Start/Stop Session (Cmd+Shift+S)" : "Sign in to start a session")
+                    .help(canStart ? String(localized: "dashboard.toolbar.help.startStop") : String(localized: "dashboard.toolbar.help.signInRequired"))
                 }
 
                 // Show/Hide Overlay
@@ -160,7 +160,7 @@ struct DashboardView: View {
                 }
                 .buttonStyle(.plain)
                 .keyboardShortcut("\\", modifiers: .command)
-                .help("Toggle Widget (Cmd+\\)")
+                .help(String(localized: "dashboard.toolbar.help.toggleWidget"))
 
                 // Hide Dashboard (keep only widget)
                 Button(action: {
@@ -178,7 +178,7 @@ struct DashboardView: View {
                 }
                 .buttonStyle(.plain)
                 .keyboardShortcut("w", modifiers: .command)
-                .help("Hide Dashboard (Cmd+W)")
+                .help(String(localized: "dashboard.toolbar.help.hideDashboard"))
             }
         }
         .onAppear {
@@ -269,6 +269,26 @@ enum DashboardSection: String, CaseIterable {
         case .settings: return "Configuration"
         }
     }
+
+    var localizedName: String {
+        switch self {
+        case .sessions: return String(localized: "dashboard.section.sessions")
+        case .liveSession: return String(localized: "dashboard.section.liveSession")
+        case .contacts: return String(localized: "dashboard.section.contacts")
+        case .modes: return String(localized: "dashboard.section.modes")
+        case .settings: return String(localized: "dashboard.section.settings")
+        }
+    }
+
+    var localizedDescription: String {
+        switch self {
+        case .sessions: return String(localized: "dashboard.section.sessions.desc")
+        case .liveSession: return String(localized: "dashboard.section.liveSession.desc")
+        case .contacts: return String(localized: "dashboard.section.contacts.desc")
+        case .modes: return String(localized: "dashboard.section.modes.desc")
+        case .settings: return String(localized: "dashboard.section.settings.desc")
+        }
+    }
 }
 
 // MARK: - Modern Sidebar View
@@ -303,7 +323,7 @@ struct ModernSidebarView: View {
 
             // Status Section
             VStack(alignment: .leading, spacing: QMDesign.Spacing.sm) {
-                Text("STATUS")
+                Text(String(localized: "dashboard.sidebar.status"))
                     .qmSectionHeader()
 
                 // Session Status
@@ -314,7 +334,7 @@ struct ModernSidebarView: View {
                     )
 
                     VStack(alignment: .leading, spacing: 2) {
-                        Text(appState.isSessionActive ? "Recording" : "Idle")
+                        Text(appState.isSessionActive ? String(localized: "dashboard.status.recording") : String(localized: "dashboard.status.idle"))
                             .font(QMDesign.Typography.bodySmall)
                             .foregroundColor(QMDesign.Colors.textPrimary)
 
@@ -340,7 +360,7 @@ struct ModernSidebarView: View {
                             Image(systemName: QMDesign.Icons.microphone)
                                 .font(.system(size: 11))
                                 .foregroundColor(QMDesign.Colors.accent)
-                            Text("Audio Level")
+                            Text(String(localized: "dashboard.status.audioLevel"))
                                 .font(QMDesign.Typography.caption)
                                 .foregroundColor(QMDesign.Colors.textSecondary)
                         }
@@ -383,7 +403,7 @@ struct ModernSidebarView: View {
                         HStack(spacing: 4) {
                             Image(systemName: "bubble.left.and.bubble.right")
                                 .font(.system(size: 10))
-                            Text("Feedback")
+                            Text(String(localized: "dashboard.sidebar.feedback"))
                                 .font(QMDesign.Typography.captionSmall)
                         }
                         .foregroundColor(QMDesign.Colors.textTertiary)
@@ -404,7 +424,7 @@ struct ModernSidebarView: View {
                         HStack(spacing: 4) {
                             Image(systemName: "lightbulb")
                                 .font(.system(size: 10))
-                            Text("Tour")
+                            Text(String(localized: "dashboard.sidebar.tour"))
                                 .font(QMDesign.Typography.captionSmall)
                         }
                         .foregroundColor(QMDesign.Colors.textTertiary)
@@ -417,7 +437,7 @@ struct ModernSidebarView: View {
                             NSCursor.pop()
                         }
                     }
-                    .help("Review the feature tour")
+                    .help(String(localized: "dashboard.sidebar.help.tour"))
 
                     Spacer()
 
@@ -472,7 +492,7 @@ struct SidebarNavigationItem: View {
                 // Labels
                 VStack(alignment: .leading, spacing: 1) {
                     HStack {
-                        Text(section.rawValue)
+                        Text(section.localizedName)
                             .font(QMDesign.Typography.bodySmall)
                             .fontWeight(isSelected ? .semibold : .regular)
                             .foregroundColor(isSelected ? QMDesign.Colors.textPrimary : QMDesign.Colors.textSecondary)
@@ -485,7 +505,7 @@ struct SidebarNavigationItem: View {
                         }
                     }
 
-                    Text(section.description)
+                    Text(section.localizedDescription)
                         .font(QMDesign.Typography.captionSmall)
                         .foregroundColor(QMDesign.Colors.textTertiary)
                 }
@@ -624,10 +644,10 @@ struct LicenseStatusBadge: View {
 
     private var statusTitle: String {
         if !authManager.isAuthenticated {
-            return "Not Connected"
+            return String(localized: "dashboard.license.notConnected")
         } else if licenseManager.isPro {
             if licenseManager.isTrialing, let days = licenseManager.trialDaysRemaining {
-                return "\(licenseManager.currentLicense.plan.rawValue) Trial"
+                return "\(licenseManager.currentLicense.plan.rawValue) \(String(localized: "dashboard.license.trial"))"
             }
             return licenseManager.currentLicense.plan.rawValue
         } else {
@@ -637,14 +657,14 @@ struct LicenseStatusBadge: View {
 
     private var statusSubtitle: String {
         if !authManager.isAuthenticated {
-            return "Tap to sign in"
+            return String(localized: "dashboard.license.tapToSignIn")
         } else if licenseManager.isPro {
             if licenseManager.isTrialing, let days = licenseManager.trialDaysRemaining {
-                return "\(days) days remaining"
+                return String(localized: "dashboard.license.daysRemaining \(days)")
             }
-            return "All features unlocked"
+            return String(localized: "dashboard.license.allFeaturesUnlocked")
         } else {
-            return "Upgrade for more"
+            return String(localized: "dashboard.license.upgradeForMore")
         }
     }
 
@@ -685,12 +705,12 @@ struct AuthWarningBanner: View {
 
             // Message
             VStack(alignment: .leading, spacing: 2) {
-                Text("You're not signed in")
+                Text(String(localized: "dashboard.auth.notSignedIn"))
                     .font(QMDesign.Typography.bodySmall)
                     .fontWeight(.semibold)
                     .foregroundColor(QMDesign.Colors.textPrimary)
 
-                Text("Sign in to start recording sessions and access all features")
+                Text(String(localized: "dashboard.auth.signInPrompt"))
                     .font(QMDesign.Typography.captionSmall)
                     .foregroundColor(QMDesign.Colors.textSecondary)
             }
@@ -702,7 +722,7 @@ struct AuthWarningBanner: View {
                 HStack(spacing: QMDesign.Spacing.xs) {
                     Image(systemName: "arrow.right.circle.fill")
                         .font(.system(size: 12))
-                    Text("Sign In")
+                    Text(String(localized: "dashboard.auth.signIn"))
                         .font(QMDesign.Typography.labelSmall)
                 }
                 .padding(.horizontal, QMDesign.Spacing.md)
@@ -752,7 +772,7 @@ struct WebDashboardButton: View {
                     Image(systemName: "globe")
                         .font(.system(size: 11, weight: .medium))
                 }
-                Text("Web Dashboard")
+                Text(String(localized: "dashboard.button.webDashboard"))
                     .font(QMDesign.Typography.captionSmall)
             }
             .foregroundColor(.white)
@@ -775,7 +795,7 @@ struct WebDashboardButton: View {
             }
         }
         .animation(QMDesign.Animation.quick, value: isHovered)
-        .help("Open web dashboard in browser (auto sign-in)")
+        .help(String(localized: "dashboard.button.help.webDashboard"))
     }
 
     private func openWebDashboard() {

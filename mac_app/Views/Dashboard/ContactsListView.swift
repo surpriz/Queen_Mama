@@ -44,7 +44,7 @@ struct ContactsListView: View {
                 if contactSyncManager.canSync {
                     HStack(spacing: QMDesign.Spacing.md) {
                         if contactSyncManager.pendingCount > 0 {
-                            Text("\(contactSyncManager.pendingCount) pending")
+                            Text(String(localized: "contacts.sync.pendingCount \(contactSyncManager.pendingCount)"))
                                 .font(QMDesign.Typography.captionSmall)
                                 .foregroundColor(QMDesign.Colors.textTertiary)
                         }
@@ -64,14 +64,14 @@ struct ContactsListView: View {
                                     Image(systemName: "arrow.down.circle")
                                         .font(.system(size: 11))
                                 }
-                                Text("Refresh")
+                                Text(String(localized: "contacts.button.refresh"))
                                     .font(QMDesign.Typography.captionSmall)
                             }
                             .foregroundColor(QMDesign.Colors.accent)
                         }
                         .buttonStyle(.plain)
                         .disabled(contactSyncManager.isPulling)
-                        .help("Pull contacts from web dashboard")
+                        .help(String(localized: "contacts.help.pullContacts"))
 
                         // Push to server
                         Button(action: {
@@ -88,14 +88,14 @@ struct ContactsListView: View {
                                     Image(systemName: "arrow.triangle.2.circlepath")
                                         .font(.system(size: 11))
                                 }
-                                Text("Sync")
+                                Text(String(localized: "contacts.button.sync"))
                                     .font(QMDesign.Typography.captionSmall)
                             }
                             .foregroundColor(QMDesign.Colors.accent)
                         }
                         .buttonStyle(.plain)
                         .disabled(contactSyncManager.isSyncing)
-                        .help("Sync contacts to web dashboard")
+                        .help(String(localized: "contacts.help.syncContacts"))
                     }
                     .padding(.horizontal, QMDesign.Spacing.sm)
                     .padding(.bottom, QMDesign.Spacing.xs)
@@ -136,7 +136,7 @@ struct ContactsListView: View {
                     HStack(spacing: QMDesign.Spacing.xs) {
                         Image(systemName: "plus.circle.fill")
                             .font(.system(size: 14))
-                        Text("New Contact")
+                        Text(String(localized: "contacts.button.newContact"))
                             .font(QMDesign.Typography.labelSmall)
                     }
                     .foregroundColor(.white)
@@ -164,16 +164,16 @@ struct ContactsListView: View {
             }
         }
         .confirmationDialog(
-            "Delete Contact",
+            String(localized: "contacts.dialog.deleteTitle"),
             isPresented: $showingDeleteConfirmation,
             presenting: contactToDelete
         ) { contact in
-            Button("Delete", role: .destructive) {
+            Button(String(localized: "contacts.button.delete"), role: .destructive) {
                 deleteContact(contact)
             }
-            Button("Cancel", role: .cancel) {}
+            Button(String(localized: "contacts.button.cancel"), role: .cancel) {}
         } message: { contact in
-            Text("Delete \"\(contact.fullName)\"? This cannot be undone.")
+            Text(String(localized: "contacts.dialog.deleteMessage \(contact.fullName)"))
         }
         .sheet(isPresented: $showingNewContactForm) {
             NewContactSheet { contact in
@@ -243,7 +243,7 @@ private struct ContactSearchBar: View {
                 .font(.system(size: 13))
                 .foregroundColor(isFocused ? QMDesign.Colors.accent : QMDesign.Colors.textTertiary)
 
-            TextField("Search contacts...", text: $searchText)
+            TextField(String(localized: "contacts.search.placeholder"), text: $searchText)
                 .textFieldStyle(.plain)
                 .font(QMDesign.Typography.bodySmall)
                 .focused($isFocused)
@@ -348,7 +348,7 @@ private struct ModernContactCard: View {
                                         .foregroundColor(QMDesign.Colors.textTertiary)
                                 }
                                 .buttonStyle(.plain)
-                                .help("Sync to dashboard")
+                                .help(String(localized: "contacts.help.syncToDashboard"))
                             }
                         }
                     }
@@ -363,7 +363,7 @@ private struct ModernContactCard: View {
                     }
                     .buttonStyle(.plain)
                     .onHover { isDeleteHovered = $0 }
-                    .help("Delete contact")
+                    .help(String(localized: "contacts.help.deleteContact"))
                 }
             }
             .padding(QMDesign.Spacing.sm)
@@ -473,7 +473,7 @@ private struct ContactDetailView: View {
                     HStack(spacing: QMDesign.Spacing.xs) {
                         Image(systemName: isEditing ? "checkmark" : "pencil")
                             .font(.system(size: 12))
-                        Text(isEditing ? "Save" : "Edit")
+                        Text(isEditing ? String(localized: "contacts.button.save") : String(localized: "contacts.button.edit"))
                             .font(QMDesign.Typography.labelSmall)
                     }
                     .foregroundColor(isEditing ? .white : QMDesign.Colors.accent)
@@ -490,8 +490,8 @@ private struct ContactDetailView: View {
             // Metadata badges
             HStack(spacing: QMDesign.Spacing.md) {
                 MetadataBadge(icon: "clock", text: contact.formattedLastSeen)
-                MetadataBadge(icon: "waveform", text: "\(contact.sessionCount) sessions")
-                MetadataBadge(icon: "note.text", text: "\(contact.notes.count) notes")
+                MetadataBadge(icon: "waveform", text: String(localized: "contacts.detail.sessionCount \(contact.sessionCount)"))
+                MetadataBadge(icon: "note.text", text: String(localized: "contacts.detail.noteCount \(contact.notes.count)"))
             }
         }
         .padding(QMDesign.Spacing.lg)
@@ -514,22 +514,22 @@ private struct ContactDetailView: View {
                 Image(systemName: "person.text.rectangle")
                     .font(.system(size: 12, weight: .semibold))
                     .foregroundStyle(QMDesign.Colors.primaryGradient)
-                Text("Contact Info")
+                Text(String(localized: "contacts.detail.contactInfo"))
                     .font(QMDesign.Typography.headline)
                     .foregroundColor(QMDesign.Colors.textPrimary)
             }
 
             VStack(spacing: QMDesign.Spacing.xs) {
                 if let email = contact.email {
-                    infoRow(icon: "envelope", label: "Email", value: email)
+                    infoRow(icon: "envelope", label: String(localized: "contacts.info.email"), value: email)
                 }
                 if let company = contact.company {
-                    infoRow(icon: "building.2", label: "Company", value: company)
+                    infoRow(icon: "building.2", label: String(localized: "contacts.info.company"), value: company)
                 }
                 if let role = contact.role {
-                    infoRow(icon: "briefcase", label: "Role", value: role)
+                    infoRow(icon: "briefcase", label: String(localized: "contacts.info.role"), value: role)
                 }
-                infoRow(icon: "calendar", label: "Created", value: formatDate(contact.createdAt))
+                infoRow(icon: "calendar", label: String(localized: "contacts.info.created"), value: formatDate(contact.createdAt))
             }
             .padding(QMDesign.Spacing.md)
             .background(
@@ -568,13 +568,13 @@ private struct ContactDetailView: View {
                 Image(systemName: "pencil.circle")
                     .font(.system(size: 12, weight: .semibold))
                     .foregroundStyle(QMDesign.Colors.primaryGradient)
-                Text("Edit Contact")
+                Text(String(localized: "contacts.detail.editContact"))
                     .font(QMDesign.Typography.headline)
                     .foregroundColor(QMDesign.Colors.textPrimary)
 
                 Spacer()
 
-                Button("Cancel") {
+                Button(String(localized: "contacts.button.cancel")) {
                     isEditing = false
                 }
                 .font(QMDesign.Typography.labelSmall)
@@ -583,11 +583,11 @@ private struct ContactDetailView: View {
             }
 
             VStack(spacing: QMDesign.Spacing.sm) {
-                editField(title: "First name *", text: $editFirstName, placeholder: "John")
-                editField(title: "Last name", text: $editLastName, placeholder: "Doe")
-                editField(title: "Email", text: $editEmail, placeholder: "john@example.com")
-                editField(title: "Company", text: $editCompany, placeholder: "Acme Inc.")
-                editField(title: "Role", text: $editRole, placeholder: "Sales Director")
+                editField(title: String(localized: "contacts.field.firstName"), text: $editFirstName, placeholder: "John")
+                editField(title: String(localized: "contacts.field.lastName"), text: $editLastName, placeholder: "Doe")
+                editField(title: String(localized: "contacts.field.email"), text: $editEmail, placeholder: "john@example.com")
+                editField(title: String(localized: "contacts.field.company"), text: $editCompany, placeholder: "Acme Inc.")
+                editField(title: String(localized: "contacts.field.role"), text: $editRole, placeholder: "Sales Director")
             }
             .padding(QMDesign.Spacing.md)
             .background(
@@ -627,7 +627,7 @@ private struct ContactDetailView: View {
                 Image(systemName: "note.text")
                     .font(.system(size: 12, weight: .semibold))
                     .foregroundStyle(QMDesign.Colors.primaryGradient)
-                Text("Notes")
+                Text(String(localized: "contacts.detail.notes"))
                     .font(QMDesign.Typography.headline)
                     .foregroundColor(QMDesign.Colors.textPrimary)
 
@@ -644,7 +644,7 @@ private struct ContactDetailView: View {
             if showingNotes {
                 // Add note field
                 HStack(spacing: QMDesign.Spacing.xs) {
-                    TextField("Add a note...", text: $newNoteText)
+                    TextField(String(localized: "contacts.notes.addPlaceholder"), text: $newNoteText)
                         .textFieldStyle(.plain)
                         .font(QMDesign.Typography.bodySmall)
                         .padding(QMDesign.Spacing.sm)
@@ -674,7 +674,7 @@ private struct ContactDetailView: View {
                 if sortedNotes.isEmpty {
                     HStack {
                         Spacer()
-                        Text("No notes yet")
+                        Text(String(localized: "contacts.notes.empty"))
                             .font(QMDesign.Typography.caption)
                             .foregroundColor(QMDesign.Colors.textTertiary)
                         Spacer()
@@ -701,7 +701,7 @@ private struct ContactDetailView: View {
                 Image(systemName: "waveform")
                     .font(.system(size: 12, weight: .semibold))
                     .foregroundStyle(QMDesign.Colors.primaryGradient)
-                Text("Sessions")
+                Text(String(localized: "contacts.detail.sessions"))
                     .font(QMDesign.Typography.headline)
                     .foregroundColor(QMDesign.Colors.textPrimary)
 
@@ -730,7 +730,7 @@ private struct ContactDetailView: View {
                 if sortedSessions.isEmpty {
                     HStack {
                         Spacer()
-                        Text("No sessions yet")
+                        Text(String(localized: "contacts.sessions.empty"))
                             .font(QMDesign.Typography.caption)
                             .foregroundColor(QMDesign.Colors.textTertiary)
                         Spacer()
@@ -742,7 +742,7 @@ private struct ContactDetailView: View {
                             LinkedSessionRow(session: session)
                         }
                         if sortedSessions.count > 10 {
-                            Text("+ \(sortedSessions.count - 10) more sessions")
+                            Text(String(localized: "contacts.sessions.moreCount \(sortedSessions.count - 10)"))
                                 .font(QMDesign.Typography.captionSmall)
                                 .foregroundColor(QMDesign.Colors.textTertiary)
                                 .padding(.top, QMDesign.Spacing.xs)
@@ -764,7 +764,7 @@ private struct ContactDetailView: View {
                 HStack(spacing: QMDesign.Spacing.xs) {
                     Image(systemName: "trash")
                         .font(.system(size: 12))
-                    Text("Delete Contact")
+                    Text(String(localized: "contacts.button.deleteContact"))
                         .font(QMDesign.Typography.labelSmall)
                 }
                 .foregroundColor(QMDesign.Colors.error)
@@ -936,11 +936,11 @@ private struct EmptyContactsView: View {
                 .font(.system(size: 32))
                 .foregroundStyle(QMDesign.Colors.primaryGradient)
 
-            Text(isFiltered ? "No results found" : "No contacts yet")
+            Text(isFiltered ? String(localized: "contacts.empty.noResults") : String(localized: "contacts.empty.noContacts"))
                 .font(QMDesign.Typography.bodyMedium)
                 .foregroundColor(QMDesign.Colors.textPrimary)
 
-            Text(isFiltered ? "Try a different search term" : "Create a contact or start a session to build your Memory Palace")
+            Text(isFiltered ? String(localized: "contacts.empty.tryDifferentSearch") : String(localized: "contacts.empty.createContact"))
                 .font(QMDesign.Typography.caption)
                 .foregroundColor(QMDesign.Colors.textTertiary)
                 .multilineTextAlignment(.center)
@@ -957,11 +957,11 @@ private struct EmptyContactDetailView: View {
                 .font(.system(size: 40))
                 .foregroundStyle(QMDesign.Colors.primaryGradient.opacity(0.5))
 
-            Text("No Contact Selected")
+            Text(String(localized: "contacts.empty.noContactSelected"))
                 .font(QMDesign.Typography.titleSmall)
                 .foregroundColor(QMDesign.Colors.textPrimary)
 
-            Text("Select a contact to view their details")
+            Text(String(localized: "contacts.empty.selectContact"))
                 .font(QMDesign.Typography.bodySmall)
                 .foregroundColor(QMDesign.Colors.textTertiary)
         }
@@ -1002,10 +1002,10 @@ private struct NewContactSheet: View {
                 }
 
                 VStack(alignment: .leading, spacing: 2) {
-                    Text("New Contact")
+                    Text(String(localized: "contacts.sheet.newContact"))
                         .font(QMDesign.Typography.headline)
                         .foregroundColor(QMDesign.Colors.textPrimary)
-                    Text("Memory Palace")
+                    Text(String(localized: "contacts.sheet.memoryPalace"))
                         .font(QMDesign.Typography.caption)
                         .foregroundColor(QMDesign.Colors.textSecondary)
                 }
@@ -1026,11 +1026,11 @@ private struct NewContactSheet: View {
             // Form
             ScrollView {
                 VStack(spacing: QMDesign.Spacing.md) {
-                    formField(title: "First name *", text: $firstName, placeholder: "John")
-                    formField(title: "Last name", text: $lastName, placeholder: "Doe")
-                    formField(title: "Email", text: $email, placeholder: "john@example.com")
-                    formField(title: "Company", text: $company, placeholder: "Acme Inc.")
-                    formField(title: "Role", text: $role, placeholder: "Sales Director")
+                    formField(title: String(localized: "contacts.field.firstName"), text: $firstName, placeholder: "John")
+                    formField(title: String(localized: "contacts.field.lastName"), text: $lastName, placeholder: "Doe")
+                    formField(title: String(localized: "contacts.field.email"), text: $email, placeholder: "john@example.com")
+                    formField(title: String(localized: "contacts.field.company"), text: $company, placeholder: "Acme Inc.")
+                    formField(title: String(localized: "contacts.field.role"), text: $role, placeholder: "Sales Director")
                 }
                 .padding(QMDesign.Spacing.md)
             }
@@ -1039,7 +1039,7 @@ private struct NewContactSheet: View {
 
             // Footer
             HStack {
-                Button("Cancel") {
+                Button(String(localized: "contacts.button.cancel")) {
                     dismiss()
                 }
                 .buttonStyle(.plain)
@@ -1050,7 +1050,7 @@ private struct NewContactSheet: View {
                 Button(action: createContact) {
                     HStack(spacing: QMDesign.Spacing.xs) {
                         Image(systemName: "plus.circle.fill")
-                        Text("Create")
+                        Text(String(localized: "contacts.button.create"))
                     }
                     .font(QMDesign.Typography.labelSmall)
                     .fontWeight(.semibold)

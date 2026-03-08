@@ -149,11 +149,11 @@ struct MeetingReminderView: View {
 
             // Message
             VStack(alignment: .leading, spacing: 2) {
-                Text("\(appName) detected")
+                Text(String(localized: "overlay.reminder.appDetected \(appName)"))
                     .font(QMDesign.Typography.bodySmall)
                     .fontWeight(.semibold)
                     .foregroundColor(QMDesign.Colors.textPrimary)
-                Text("Start a QueenMama session?")
+                Text(String(localized: "overlay.reminder.startSession"))
                     .font(QMDesign.Typography.captionSmall)
                     .foregroundColor(QMDesign.Colors.textSecondary)
             }
@@ -162,7 +162,7 @@ struct MeetingReminderView: View {
 
             // Start Session button
             Button(action: onStartSession) {
-                Text("Start")
+                Text(String(localized: "overlay.reminder.start"))
                     .font(.system(size: 11, weight: .semibold))
                     .foregroundColor(.white)
                     .padding(.horizontal, 12)
