@@ -1,13 +1,15 @@
 import { useState, useEffect, useCallback } from 'react'
 import {
   ChevronDown,
-  Music,
+  AudioLines,
   EyeOff,
   Zap,
   Play,
   Square,
   Camera,
   Home,
+  Brain,
+  Loader2,
 } from 'lucide-react'
 import { useOverlayStore } from '@/stores/overlayStore'
 import { useAppStore } from '@/stores/appStore'
@@ -18,6 +20,7 @@ import {
   type DetectedMoment,
   type MomentType,
 } from '@/services/detection/momentDetectionService'
+import { PopupMenu } from './PopupMenu'
 import { cn } from '@/lib/utils'
 
 const MOMENT_COLORS: Record<MomentType, string> = {
@@ -54,9 +57,11 @@ export function PillHeader() {
   const isSessionActive = useAppStore((s) => s.isSessionActive)
   const selectedMode = useAppStore((s) => s.selectedMode)
   const autoAnswerEnabled = useConfigStore((s) => s.autoAnswerEnabled)
+  const smartModeEnabled = useConfigStore((s) => s.smartModeEnabled)
   const isUndetectable = useConfigStore((s) => s.isUndetectabilityEnabled)
   const autoScreenCapture = useConfigStore((s) => s.autoScreenCapture)
   const updateConfig = useConfigStore((s) => s.updateConfig)
+  const isFinalizingSession = useAppStore((s) => s.isFinalizingSession)
 
   // Moment detection state
   const [currentMoment, setCurrentMoment] = useState<DetectedMoment | null>(null)
@@ -134,8 +139,7 @@ export function PillHeader() {
   const handleOpenDashboard = useCallback(
     (e: React.MouseEvent) => {
       e.stopPropagation()
-      window.electronAPI?.overlay?.hide()
-      window.electronAPI?.window.show()
+      window.electronAPI?.window.toggle()
     },
     [],
   )
@@ -149,9 +153,13 @@ export function PillHeader() {
       style={{ height: 44, WebkitAppRegion: 'drag' } as React.CSSProperties}
       onClick={toggleExpanded}
     >
-      {/* 1. Logo - 28px gradient circle with white icon */}
-      <div className="flex items-center justify-center w-7 h-7 rounded-full bg-gradient-to-br from-qm-gradient-start to-qm-gradient-end flex-shrink-0 shadow-sm">
-        <Music size={13} className="text-white" />
+      {/* 1. Logo - drag handle only, not clickable */}
+      <div
+        className="flex items-center justify-center w-7 h-7 rounded-full bg-gradient-to-br from-qm-gradient-start to-qm-gradient-end flex-shrink-0 shadow-sm cursor-grab active:cursor-grabbing"
+        onClick={(e) => e.stopPropagation()}
+        title="Drag to move"
+      >
+        <AudioLines size={13} className="text-white" />
       </div>
 
       {/* 2. Dashboard button - gradient on hover */}
@@ -236,7 +244,15 @@ export function PillHeader() {
           </span>
         </button>
 
-        {/* 7. Auto-answer badge */}
+        {/* 7. Smart mode badge */}
+        {smartModeEnabled && (
+          <div className="flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-purple-500/20">
+            <Brain size={11} className="text-purple-400" />
+            <span className="text-caption-sm text-purple-400 font-medium">Smart</span>
+          </div>
+        )}
+
+        {/* 8. Auto-answer badge */}
         {autoAnswerEnabled && (
           <div className="flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-qm-auto-answer/20 animate-pulse ring-1 ring-qm-auto-answer/30 transition-opacity duration-250">
             <Zap size={11} className="text-qm-auto-answer" />
@@ -244,21 +260,32 @@ export function PillHeader() {
           </div>
         )}
 
-        {/* 8. Screenshot toggle */}
+        {/* 9. Screenshot toggle */}
         <button
           onClick={handleToggleScreenCapture}
           className={cn(
-            'p-1 rounded-qm-sm transition-colors',
+            'flex items-center justify-center w-[26px] h-[26px] rounded-full transition-colors',
             autoScreenCapture
-              ? 'bg-qm-accent/20 text-qm-accent'
-              : 'text-qm-text-tertiary hover:bg-qm-surface-hover hover:text-qm-text-secondary',
+              ? 'bg-emerald-500/20 text-emerald-400'
+              : 'bg-qm-error/15 text-qm-error hover:bg-qm-error/25',
           )}
           title={autoScreenCapture ? 'Screen capture ON' : 'Screen capture OFF'}
         >
-          <Camera size={13} />
+          <Camera size={12} />
         </button>
 
-        {/* 9. Start/Stop Session - gradient with pulsing glow ring */}
+        {/* 10. Popup menu (more options) */}
+        <PopupMenu />
+
+        {/* 11. Finalization indicator */}
+        {isFinalizingSession && (
+          <div className="flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-qm-accent/15">
+            <Loader2 size={11} className="text-qm-accent animate-spin" />
+            <span className="text-caption-sm text-qm-accent font-medium">Résumé...</span>
+          </div>
+        )}
+
+        {/* 12. Start/Stop Session - gradient with pulsing glow ring */}
         <div className="relative flex-shrink-0">
           {/* Pulsing glow ring for start button */}
           {isStartPulsing && !isSessionActive && (

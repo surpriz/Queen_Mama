@@ -33,7 +33,7 @@ struct EmailSignInView: View {
                 Button(action: onBack) {
                     HStack(spacing: QMDesign.Spacing.xs) {
                         Image(systemName: "chevron.left")
-                        Text("Back")
+                        Text(String(localized: "auth.email.button.back"))
                     }
                     .font(QMDesign.Typography.bodySmall)
                     .foregroundColor(QMDesign.Colors.textSecondary)
@@ -67,22 +67,22 @@ struct EmailSignInView: View {
     private var enterEmailView: some View {
         VStack(spacing: QMDesign.Spacing.lg) {
             VStack(spacing: QMDesign.Spacing.sm) {
-                Text("Sign in with Email")
+                Text(String(localized: "auth.email.title"))
                     .font(QMDesign.Typography.titleSmall)
                     .foregroundColor(QMDesign.Colors.textPrimary)
 
-                Text("Enter your email to continue")
+                Text(String(localized: "auth.email.subtitle"))
                     .font(QMDesign.Typography.bodySmall)
                     .foregroundColor(QMDesign.Colors.textSecondary)
             }
 
             // Email field
             VStack(alignment: .leading, spacing: QMDesign.Spacing.xs) {
-                Text("Email")
+                Text(String(localized: "auth.email.label.email"))
                     .font(QMDesign.Typography.labelSmall)
                     .foregroundColor(QMDesign.Colors.textSecondary)
 
-                TextField("you@example.com", text: $email)
+                TextField(String(localized: "auth.email.placeholder.email"), text: $email)
                     .textFieldStyle(.plain)
                     .font(QMDesign.Typography.bodyMedium)
                     .padding(QMDesign.Spacing.md)
@@ -112,7 +112,7 @@ struct EmailSignInView: View {
                             .scaleEffect(0.8)
                             .progressViewStyle(CircularProgressViewStyle(tint: .white))
                     }
-                    Text(isLoading ? "Checking..." : "Continue")
+                    Text(isLoading ? String(localized: "auth.email.button.checking") : String(localized: "auth.email.button.continue"))
                         .font(QMDesign.Typography.labelMedium)
                 }
                 .frame(maxWidth: .infinity)
@@ -136,7 +136,7 @@ struct EmailSignInView: View {
     private var enterPasswordView: some View {
         VStack(spacing: QMDesign.Spacing.lg) {
             VStack(spacing: QMDesign.Spacing.sm) {
-                Text("Enter Password")
+                Text(String(localized: "auth.email.enterPassword.title"))
                     .font(QMDesign.Typography.titleSmall)
                     .foregroundColor(QMDesign.Colors.textPrimary)
 
@@ -145,7 +145,7 @@ struct EmailSignInView: View {
                     .foregroundColor(QMDesign.Colors.textSecondary)
 
                 Button(action: { viewState = .enterEmail }) {
-                    Text("Change email")
+                    Text(String(localized: "auth.email.changeEmail"))
                         .font(QMDesign.Typography.caption)
                         .foregroundStyle(QMDesign.Colors.primaryGradient)
                 }
@@ -154,11 +154,11 @@ struct EmailSignInView: View {
 
             // Password field
             VStack(alignment: .leading, spacing: QMDesign.Spacing.xs) {
-                Text("Password")
+                Text(String(localized: "auth.email.label.password"))
                     .font(QMDesign.Typography.labelSmall)
                     .foregroundColor(QMDesign.Colors.textSecondary)
 
-                SecureField("Enter your password", text: $password)
+                SecureField(String(localized: "auth.email.placeholder.password"), text: $password)
                     .textFieldStyle(.plain)
                     .font(QMDesign.Typography.bodyMedium)
                     .padding(QMDesign.Spacing.md)
@@ -187,7 +187,7 @@ struct EmailSignInView: View {
                             .scaleEffect(0.8)
                             .progressViewStyle(CircularProgressViewStyle(tint: .white))
                     }
-                    Text(isLoading ? "Signing in..." : "Sign In")
+                    Text(isLoading ? String(localized: "auth.email.button.signingIn") : String(localized: "auth.email.button.signIn"))
                         .font(QMDesign.Typography.labelMedium)
                 }
                 .frame(maxWidth: .infinity)
@@ -203,7 +203,7 @@ struct EmailSignInView: View {
 
             // Forgot password link
             Button(action: forgotPassword) {
-                Text("Forgot password?")
+                Text(String(localized: "auth.email.forgotPassword"))
                     .font(QMDesign.Typography.caption)
                     .foregroundStyle(QMDesign.Colors.primaryGradient)
             }
@@ -229,11 +229,11 @@ struct EmailSignInView: View {
             }
 
             VStack(spacing: QMDesign.Spacing.sm) {
-                Text("Use Google Sign-In")
+                Text(String(localized: "auth.email.useGoogle.title"))
                     .font(QMDesign.Typography.titleSmall)
                     .foregroundColor(QMDesign.Colors.textPrimary)
 
-                Text("The account for **\(email)** uses Google Sign-In.")
+                Text(String(localized: "auth.email.useGoogle.description \(email)"))
                     .font(QMDesign.Typography.bodySmall)
                     .foregroundColor(QMDesign.Colors.textSecondary)
                     .multilineTextAlignment(.center)
@@ -244,7 +244,7 @@ struct EmailSignInView: View {
                 HStack(spacing: QMDesign.Spacing.md) {
                     Image(systemName: "g.circle.fill")
                         .font(.system(size: 20))
-                    Text("Continue with Google")
+                    Text(String(localized: "auth.email.button.continueWithGoogle"))
                         .font(QMDesign.Typography.labelMedium)
                 }
                 .frame(maxWidth: .infinity)
@@ -259,7 +259,7 @@ struct EmailSignInView: View {
 
             // Try different email
             Button(action: { viewState = .enterEmail }) {
-                Text("Use a different email")
+                Text(String(localized: "auth.email.useDifferentEmail"))
                     .font(QMDesign.Typography.caption)
                     .foregroundStyle(QMDesign.Colors.primaryGradient)
             }
@@ -282,11 +282,11 @@ struct EmailSignInView: View {
             }
 
             VStack(spacing: QMDesign.Spacing.sm) {
-                Text("No Account Found")
+                Text(String(localized: "auth.email.noAccount.title"))
                     .font(QMDesign.Typography.titleSmall)
                     .foregroundColor(QMDesign.Colors.textPrimary)
 
-                Text("We couldn't find an account for **\(email)**.")
+                Text(String(localized: "auth.email.noAccount.description \(email)"))
                     .font(QMDesign.Typography.bodySmall)
                     .foregroundColor(QMDesign.Colors.textSecondary)
                     .multilineTextAlignment(.center)
@@ -296,7 +296,7 @@ struct EmailSignInView: View {
             Button(action: { /* Navigate to registration with pre-filled email */ }) {
                 HStack(spacing: QMDesign.Spacing.sm) {
                     Image(systemName: "person.badge.plus")
-                    Text("Create Account")
+                    Text(String(localized: "auth.email.button.createAccount"))
                         .font(QMDesign.Typography.labelMedium)
                 }
                 .frame(maxWidth: .infinity)
@@ -311,7 +311,7 @@ struct EmailSignInView: View {
 
             // Try different email
             Button(action: { viewState = .enterEmail }) {
-                Text("Try a different email")
+                Text(String(localized: "auth.email.tryDifferentEmail"))
                     .font(QMDesign.Typography.caption)
                     .foregroundStyle(QMDesign.Colors.primaryGradient)
             }
@@ -356,7 +356,7 @@ struct EmailSignInView: View {
                     viewState = .enterPassword
                 }
             } catch {
-                errorMessage = "Failed to check email. Please try again."
+                errorMessage = String(localized: "auth.email.error.checkFailed")
             }
             isLoading = false
         }
@@ -377,7 +377,7 @@ struct EmailSignInView: View {
                 case .oauthUserNeedsGoogle, .oauthUserNeedsDeviceCode:
                     viewState = .useGoogle(email: email)
                 case .invalidCredentials:
-                    errorMessage = "Invalid password. Please try again."
+                    errorMessage = String(localized: "auth.email.error.invalidPassword")
                 default:
                     errorMessage = error.localizedDescription
                 }

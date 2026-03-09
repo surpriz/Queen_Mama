@@ -64,10 +64,10 @@ struct ContactPickerSheet: View {
                 }
 
                 VStack(alignment: .leading, spacing: 2) {
-                    Text("Who are you talking to?")
+                    Text(String(localized: "contact.picker.title"))
                         .font(QMDesign.Typography.headline)
                         .foregroundColor(QMDesign.Colors.textPrimary)
-                    Text("Memory Palace")
+                    Text(String(localized: "contact.picker.subtitle"))
                         .font(QMDesign.Typography.caption)
                         .foregroundColor(QMDesign.Colors.textSecondary)
                 }
@@ -87,7 +87,7 @@ struct ContactPickerSheet: View {
                 Image(systemName: "lightbulb.fill")
                     .font(.system(size: 11))
                     .foregroundColor(QMDesign.Colors.accent)
-                Text("Link a contact to get AI briefings, track past conversations, and never forget key details")
+                Text(String(localized: "contact.picker.valueProposition"))
                     .font(QMDesign.Typography.captionSmall)
                     .foregroundColor(QMDesign.Colors.textTertiary)
             }
@@ -109,7 +109,7 @@ struct ContactPickerSheet: View {
             HStack(spacing: QMDesign.Spacing.sm) {
                 Image(systemName: "magnifyingglass")
                     .foregroundColor(QMDesign.Colors.textTertiary)
-                TextField("Search contacts...", text: $searchText)
+                TextField(String(localized: "contact.picker.searchPlaceholder"), text: $searchText)
                     .textFieldStyle(.plain)
                     .font(QMDesign.Typography.bodyMedium)
                 if !searchText.isEmpty {
@@ -133,13 +133,13 @@ struct ContactPickerSheet: View {
                 LazyVStack(spacing: QMDesign.Spacing.xs) {
                     // Recent contacts section
                     if searchText.isEmpty && !recentContacts.isEmpty {
-                        sectionHeader("Recent")
+                        sectionHeader(String(localized: "contact.picker.section.recent"))
                         ForEach(recentContacts) { contact in
                             contactRow(contact)
                         }
 
                         if !otherContacts.isEmpty {
-                            sectionHeader("All contacts")
+                            sectionHeader(String(localized: "contact.picker.section.allContacts"))
                             ForEach(otherContacts) { contact in
                                 contactRow(contact)
                             }
@@ -243,7 +243,7 @@ struct ContactPickerSheet: View {
                 .font(.system(size: 40))
                 .foregroundColor(QMDesign.Colors.textTertiary)
 
-            Text(searchText.isEmpty ? "No contacts yet" : "No results")
+            Text(searchText.isEmpty ? String(localized: "contact.picker.empty.noContacts") : String(localized: "contact.picker.empty.noResults"))
                 .font(QMDesign.Typography.bodySmall)
                 .foregroundColor(QMDesign.Colors.textSecondary)
 
@@ -251,7 +251,7 @@ struct ContactPickerSheet: View {
                 Button(action: { showingNewContactForm = true }) {
                     HStack(spacing: QMDesign.Spacing.xs) {
                         Image(systemName: "plus.circle.fill")
-                        Text("Create a contact")
+                        Text(String(localized: "contact.picker.empty.createContact"))
                     }
                     .font(QMDesign.Typography.labelSmall)
                 }
@@ -275,7 +275,7 @@ struct ContactPickerSheet: View {
                 }) {
                     HStack(spacing: QMDesign.Spacing.xs) {
                         Image(systemName: "chevron.left")
-                        Text("Back")
+                        Text(String(localized: "contact.picker.button.back"))
                     }
                     .font(QMDesign.Typography.labelSmall)
                     .foregroundColor(QMDesign.Colors.accent)
@@ -290,11 +290,11 @@ struct ContactPickerSheet: View {
             ScrollView {
                 VStack(spacing: QMDesign.Spacing.md) {
                     // Form fields
-                    formField(title: "First name *", text: $newFirstName, placeholder: "John")
-                    formField(title: "Last name", text: $newLastName, placeholder: "Doe")
-                    formField(title: "Email", text: $newEmail, placeholder: "john@example.com")
-                    formField(title: "Company", text: $newCompany, placeholder: "Acme Inc.")
-                    formField(title: "Role", text: $newRole, placeholder: "Sales Director")
+                    formField(title: String(localized: "contact.picker.form.firstName"), text: $newFirstName, placeholder: String(localized: "contact.picker.form.firstNamePlaceholder"))
+                    formField(title: String(localized: "contact.picker.form.lastName"), text: $newLastName, placeholder: String(localized: "contact.picker.form.lastNamePlaceholder"))
+                    formField(title: String(localized: "contact.picker.form.email"), text: $newEmail, placeholder: String(localized: "contact.picker.form.emailPlaceholder"))
+                    formField(title: String(localized: "contact.picker.form.company"), text: $newCompany, placeholder: String(localized: "contact.picker.form.companyPlaceholder"))
+                    formField(title: String(localized: "contact.picker.form.role"), text: $newRole, placeholder: String(localized: "contact.picker.form.rolePlaceholder"))
                 }
                 .padding(.horizontal, QMDesign.Spacing.md)
                 .padding(.bottom, QMDesign.Spacing.md)
@@ -333,7 +333,7 @@ struct ContactPickerSheet: View {
                 Button(action: createNewContact) {
                     HStack(spacing: QMDesign.Spacing.xs) {
                         Image(systemName: "plus.circle.fill")
-                        Text("Create & Start")
+                        Text(String(localized: "contact.picker.button.createAndStart"))
                     }
                     .font(QMDesign.Typography.labelSmall)
                     .fontWeight(.semibold)
@@ -352,7 +352,7 @@ struct ContactPickerSheet: View {
                 Button(action: { showingNewContactForm = true }) {
                     HStack(spacing: QMDesign.Spacing.xs) {
                         Image(systemName: "plus")
-                        Text("New")
+                        Text(String(localized: "contact.picker.button.new"))
                     }
                     .font(QMDesign.Typography.labelSmall)
                     .foregroundColor(QMDesign.Colors.accent)
@@ -371,7 +371,7 @@ struct ContactPickerSheet: View {
                 Button(action: { startSession(with: selectedContact) }) {
                     HStack(spacing: QMDesign.Spacing.xs) {
                         Image(systemName: "play.fill")
-                        Text(selectedContact != nil ? "Start" : "Start Solo")
+                        Text(selectedContact != nil ? String(localized: "contact.picker.button.start") : String(localized: "contact.picker.button.startSolo"))
                     }
                     .font(QMDesign.Typography.labelSmall)
                     .fontWeight(.semibold)

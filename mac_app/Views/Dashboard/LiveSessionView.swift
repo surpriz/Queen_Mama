@@ -60,11 +60,11 @@ struct ModernLiveTranscriptPanel: View {
                 }
 
                 VStack(alignment: .leading, spacing: 2) {
-                    Text("Live Transcript")
+                    Text(String(localized: "live.transcript.title"))
                         .font(QMDesign.Typography.headline)
                         .foregroundColor(QMDesign.Colors.textPrimary)
 
-                    Text("\(wordCount) words")
+                    Text(String(localized: "live.transcript.wordCount \(wordCount)"))
                         .font(QMDesign.Typography.captionSmall)
                         .foregroundColor(QMDesign.Colors.textTertiary)
                 }
@@ -73,7 +73,7 @@ struct ModernLiveTranscriptPanel: View {
 
                 // Auto-scroll toggle
                 HStack(spacing: QMDesign.Spacing.xs) {
-                    Text("Auto-scroll")
+                    Text(String(localized: "live.transcript.autoScroll"))
                         .font(QMDesign.Typography.caption)
                         .foregroundColor(QMDesign.Colors.textSecondary)
                     Toggle("", isOn: $autoScroll)
@@ -103,7 +103,7 @@ struct ModernLiveTranscriptPanel: View {
                         )
                 }
                 .buttonStyle(.plain)
-                .help("Copy transcript")
+                .help(String(localized: "live.transcript.copy"))
             }
             .padding(QMDesign.Spacing.md)
             .background(
@@ -128,7 +128,7 @@ struct ModernLiveTranscriptPanel: View {
                                     .font(.system(size: 40))
                                     .foregroundStyle(QMDesign.Colors.primaryGradient.opacity(0.5))
 
-                                Text("Waiting for speech...")
+                                Text(String(localized: "live.transcript.waiting"))
                                     .font(QMDesign.Typography.bodyMedium)
                                     .foregroundColor(QMDesign.Colors.textTertiary)
                             }
@@ -228,13 +228,12 @@ struct TranscriptLineView: View {
         }
     }
 
-    /// Extract speaker name from line (e.g., "Moi: Hello" -> "Moi")
+    /// Extract speaker name from line (e.g., "Moi: Hello" -> localized name)
     private func extractSpeaker(from line: String) -> String? {
-        let patterns = ["Moi:", "Interlocuteur:"]
-        for pattern in patterns {
-            if line.hasPrefix(pattern) {
-                return String(pattern.dropLast()) // Remove the colon
-            }
+        if line.hasPrefix("Moi:") {
+            return String(localized: "live.speaker.me")
+        } else if line.hasPrefix("Interlocuteur:") {
+            return String(localized: "live.speaker.other")
         }
         return nil
     }
@@ -251,14 +250,12 @@ struct TranscriptLineView: View {
 
     /// Get color for speaker label
     private func speakerColor(for speaker: String) -> Color {
-        switch speaker {
-        case "Moi":
+        if speaker == String(localized: "live.speaker.me") {
             return Color.blue
-        case "Interlocuteur":
+        } else if speaker == String(localized: "live.speaker.other") {
             return Color.green
-        default:
-            return QMDesign.Colors.textSecondary
         }
+        return QMDesign.Colors.textSecondary
     }
 }
 
@@ -300,11 +297,11 @@ struct ModernAIResponsePanel: View {
                 }
 
                 VStack(alignment: .leading, spacing: 2) {
-                    Text("AI Assistant")
+                    Text(String(localized: "live.ai.title"))
                         .font(QMDesign.Typography.headline)
                         .foregroundColor(QMDesign.Colors.textPrimary)
 
-                    Text("\(aiService.responses.count) responses")
+                    Text(String(localized: "live.ai.responseCount \(aiService.responses.count)"))
                         .font(QMDesign.Typography.captionSmall)
                         .foregroundColor(QMDesign.Colors.textTertiary)
                 }
@@ -328,7 +325,7 @@ struct ModernAIResponsePanel: View {
                         )
                 }
                 .buttonStyle(.plain)
-                .help("Clear responses")
+                .help(String(localized: "live.ai.clearResponses"))
             }
             .padding(QMDesign.Spacing.md)
             .background(
@@ -372,11 +369,11 @@ struct ModernAIResponsePanel: View {
                                 .font(.system(size: 40))
                                 .foregroundStyle(QMDesign.Colors.primaryGradient.opacity(0.5))
 
-                            Text("No responses yet")
+                            Text(String(localized: "live.ai.noResponses"))
                                 .font(QMDesign.Typography.bodyMedium)
                                 .foregroundColor(QMDesign.Colors.textTertiary)
 
-                            Text("Use the overlay widget to request AI assistance")
+                            Text(String(localized: "live.ai.useOverlay"))
                                 .font(QMDesign.Typography.caption)
                                 .foregroundColor(QMDesign.Colors.textTertiary)
                                 .multilineTextAlignment(.center)
@@ -444,7 +441,7 @@ struct ModernResponseBubble: View {
                     .font(.system(size: 12, weight: .semibold))
                     .foregroundStyle(QMDesign.Colors.primaryGradient)
 
-                Text(type.rawValue)
+                Text(type.localizedName)
                     .font(QMDesign.Typography.labelSmall)
                     .foregroundColor(QMDesign.Colors.textPrimary)
 
@@ -482,7 +479,7 @@ struct ModernResponseBubble: View {
 
             // Content
             if content.isEmpty && isProcessing {
-                Text("Generating response...")
+                Text(String(localized: "live.ai.generating"))
                     .font(QMDesign.Typography.bodySmall)
                     .foregroundColor(QMDesign.Colors.textTertiary)
                     .italic()
@@ -552,11 +549,11 @@ struct ModernNoSessionView: View {
 
             // Text Content
             VStack(spacing: QMDesign.Spacing.sm) {
-                Text("No Active Session")
+                Text(String(localized: "live.empty.title"))
                     .font(QMDesign.Typography.titleMedium)
                     .foregroundColor(QMDesign.Colors.textPrimary)
 
-                Text("Start a session to begin real-time transcription\nand AI-powered assistance")
+                Text(String(localized: "live.empty.subtitle"))
                     .font(QMDesign.Typography.bodyMedium)
                     .foregroundColor(QMDesign.Colors.textSecondary)
                     .multilineTextAlignment(.center)
@@ -567,7 +564,7 @@ struct ModernNoSessionView: View {
                 HStack(spacing: QMDesign.Spacing.sm) {
                     Image(systemName: "play.fill")
                         .font(.system(size: 14, weight: .semibold))
-                    Text("Start Session")
+                    Text(String(localized: "live.button.startSession"))
                         .font(QMDesign.Typography.labelMedium)
                 }
                 .padding(.horizontal, QMDesign.Spacing.xl)

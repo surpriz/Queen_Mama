@@ -1,6 +1,7 @@
 import { useOverlayStore } from '@/stores/overlayStore'
 import { PillHeader } from './PillHeader'
 import { ExpandedContent } from './ExpandedContent'
+import { cn } from '@/lib/utils'
 
 export function OverlayContent() {
   const isExpanded = useOverlayStore((s) => s.isExpanded)
@@ -10,11 +11,14 @@ export function OverlayContent() {
       {/* Collapsed: Pill header */}
       <PillHeader />
 
-      {/* Expanded: Full content with spring easing */}
+      {/* Expanded: Full content - flex-1 fills remaining height */}
       <div
-        className="transition-[max-height,opacity] duration-300 overflow-hidden"
+        className={cn(
+          'transition-[max-height,opacity] duration-300 overflow-hidden',
+          isExpanded && 'flex-1 flex flex-col min-h-0',
+        )}
         style={{
-          maxHeight: isExpanded ? 480 : 0,
+          maxHeight: isExpanded ? 9999 : 0,
           opacity: isExpanded ? 1 : 0,
           transitionTimingFunction: 'cubic-bezier(0.34, 1.56, 0.64, 1)',
         }}

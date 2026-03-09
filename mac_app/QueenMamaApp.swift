@@ -9,6 +9,12 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         return false
     }
 
+    func applicationWillFinishLaunching(_ notification: Notification) {
+        // Apply language override before any UI loads
+        let lang = UserDefaults.standard.string(forKey: "app_language") ?? "system"
+        ConfigurationManager.applyLanguageOverride(lang)
+    }
+
     func applicationDidFinishLaunching(_ notification: Notification) {
         // Force dark mode for the entire app (design is dark-only)
         NSApp.appearance = NSAppearance(named: .darkAqua)
@@ -294,7 +300,7 @@ struct LaunchLoadingView: View {
                     .scaleEffect(1.2)
                     .progressViewStyle(CircularProgressViewStyle(tint: QMDesign.Colors.accent))
 
-                Text("Loading...")
+                Text(String(localized: "app.loading"))
                     .font(QMDesign.Typography.bodyMedium)
                     .foregroundColor(QMDesign.Colors.textSecondary)
             }
@@ -381,9 +387,9 @@ class AppState: ObservableObject {
             // Proxy config not loaded or transcription not available
             // This happens when auth is in degraded mode (invalid token)
             if !AuthenticationManager.shared.isAuthenticated {
-                errorMessage = "Please sign in to start a session."
+                errorMessage = String(localized: "app.error.signInRequired")
             } else {
-                errorMessage = "Transcription service unavailable. Please check your connection and try again."
+                errorMessage = String(localized: "app.error.transcriptionUnavailable")
                 // Attempt to reload config for next try
                 Task { try? await ProxyConfigManager.shared.refreshConfig() }
             }
@@ -775,19 +781,19 @@ struct MenuBarView: View {
     var body: some View {
         Group {
             if appState.isSessionActive {
-                Button("Stop Session") {
+                Button(String(localized: "app.menu.stopSession")) {
                     Task { await appState.stopSession() }
                 }
                 .keyboardShortcut("s", modifiers: [.command, .shift])
 
                 Divider()
 
-                Button(appState.isOverlayVisible ? "Hide Widget" : "Show Widget") {
+                Button(appState.isOverlayVisible ? String(localized: "app.menu.hideWidget") : String(localized: "app.menu.showWidget")) {
                     appState.toggleOverlay()
                 }
                 .keyboardShortcut("\\", modifiers: .command)
             } else {
-                Button("Start Session") {
+                Button(String(localized: "app.menu.startSession")) {
                     // Show contact picker instead of starting directly
                     appState.shouldShowContactPicker = true
                     // Ensure dashboard is visible so user can see the picker
@@ -803,7 +809,7 @@ struct MenuBarView: View {
 
             Divider()
 
-            Button("Open Dashboard") {
+            Button(String(localized: "app.menu.openDashboard")) {
                 // Try to bring existing window to front, or open new one
                 NSApp.activate(ignoringOtherApps: true)
                 if let window = NSApp.windows.first(where: { $0.title.contains("Queen Mama") && !$0.title.contains("Settings") }) {
@@ -814,7 +820,7 @@ struct MenuBarView: View {
             }
             .keyboardShortcut("d", modifiers: [.command, .shift])
 
-            Button("Give Feedback...") {
+            Button(String(localized: "app.menu.giveFeedback")) {
                 if let url = URL(string: "https://queenmama.featurebase.app") {
                     NSWorkspace.shared.open(url)
                 }
@@ -822,7 +828,7 @@ struct MenuBarView: View {
 
             Divider()
 
-            Button("Quit Queen Mama") {
+            Button(String(localized: "app.menu.quitApp")) {
                 NSApplication.shared.terminate(nil)
             }
             .keyboardShortcut("q", modifiers: .command)

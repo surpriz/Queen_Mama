@@ -89,10 +89,10 @@ struct ContactExtractionSheet: View {
             }
 
             VStack(alignment: .leading, spacing: 2) {
-                Text("Contact détecté")
+                Text(String(localized: "contact.extraction.title"))
                     .font(QMDesign.Typography.headline)
                     .foregroundColor(QMDesign.Colors.textPrimary)
-                Text("Vérifie les informations extraites")
+                Text(String(localized: "contact.extraction.subtitle"))
                     .font(QMDesign.Typography.caption)
                     .foregroundColor(QMDesign.Colors.textSecondary)
             }
@@ -117,7 +117,7 @@ struct ContactExtractionSheet: View {
                 .font(.system(size: 14, weight: .semibold))
                 .foregroundColor(confidenceColor)
 
-            Text("Confiance: \(Int(extractedContact.confidence * 100))%")
+            Text(String(localized: "contact.extraction.confidence \(Int(extractedContact.confidence * 100))"))
                 .font(QMDesign.Typography.caption)
                 .foregroundColor(QMDesign.Colors.textSecondary)
 
@@ -169,15 +169,15 @@ struct ContactExtractionSheet: View {
     private var formFields: some View {
         VStack(spacing: QMDesign.Spacing.md) {
             HStack(spacing: QMDesign.Spacing.md) {
-                formField(title: "Prénom *", text: $firstName, placeholder: "Jean", wasExtracted: extractedContact.firstName != nil)
-                formField(title: "Nom", text: $lastName, placeholder: "Dupont", wasExtracted: extractedContact.lastName != nil)
+                formField(title: String(localized: "contact.extraction.firstName"), text: $firstName, placeholder: String(localized: "contact.extraction.placeholder.firstName"), wasExtracted: extractedContact.firstName != nil)
+                formField(title: String(localized: "contact.extraction.lastName"), text: $lastName, placeholder: String(localized: "contact.extraction.placeholder.lastName"), wasExtracted: extractedContact.lastName != nil)
             }
 
-            formField(title: "Email", text: $email, placeholder: "jean@exemple.com", wasExtracted: extractedContact.email != nil)
+            formField(title: String(localized: "contact.extraction.email"), text: $email, placeholder: String(localized: "contact.extraction.placeholder.email"), wasExtracted: extractedContact.email != nil)
 
             HStack(spacing: QMDesign.Spacing.md) {
-                formField(title: "Entreprise", text: $company, placeholder: "Acme Inc.", wasExtracted: extractedContact.company != nil)
-                formField(title: "Rôle", text: $role, placeholder: "Directeur", wasExtracted: extractedContact.role != nil)
+                formField(title: String(localized: "contact.extraction.company"), text: $company, placeholder: String(localized: "contact.extraction.placeholder.company"), wasExtracted: extractedContact.company != nil)
+                formField(title: String(localized: "contact.extraction.role"), text: $role, placeholder: String(localized: "contact.extraction.placeholder.role"), wasExtracted: extractedContact.role != nil)
             }
         }
     }
@@ -220,7 +220,7 @@ struct ContactExtractionSheet: View {
                 Image(systemName: "note.text")
                     .font(.system(size: 12))
                     .foregroundColor(QMDesign.Colors.accent)
-                Text("Notes suggérées")
+                Text(String(localized: "contact.extraction.suggestedNotes"))
                     .font(QMDesign.Typography.caption)
                     .fontWeight(.semibold)
                     .foregroundColor(QMDesign.Colors.textSecondary)
@@ -277,7 +277,7 @@ struct ContactExtractionSheet: View {
         HStack(spacing: QMDesign.Spacing.md) {
             // Ignore button
             Button(action: { dismiss() }) {
-                Text("Ignorer")
+                Text(String(localized: "contact.extraction.dismiss"))
                     .font(QMDesign.Typography.labelSmall)
                     .foregroundColor(QMDesign.Colors.textSecondary)
                     .padding(.horizontal, QMDesign.Spacing.md)
@@ -291,7 +291,7 @@ struct ContactExtractionSheet: View {
             Button(action: saveContact) {
                 HStack(spacing: QMDesign.Spacing.xs) {
                     Image(systemName: "checkmark.circle.fill")
-                    Text("Sauvegarder")
+                    Text(String(localized: "contact.extraction.save"))
                 }
                 .font(QMDesign.Typography.labelSmall)
                 .fontWeight(.semibold)

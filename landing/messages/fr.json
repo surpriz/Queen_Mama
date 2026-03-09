@@ -706,6 +706,30 @@
       "windowsBuildEnv": {
         "title": "Correction Build Windows",
         "description": "La connexion Google et la détection d'environnement fonctionnent désormais correctement dans les builds Windows de production"
+      },
+      "frenchLocalization": {
+        "title": "Interface entièrement en français",
+        "description": "L'application macOS est maintenant entièrement disponible en français avec un catalogue de chaînes couvrant tous les écrans"
+      },
+      "appLanguageSelection": {
+        "title": "Changement de langue dans l'app",
+        "description": "Choisissez votre langue préférée (français, anglais ou défaut système) directement depuis les Réglages"
+      },
+      "refinedCoachingPrompts": {
+        "title": "Prompts de coaching IA affinés",
+        "description": "Prompts système réécrits pour tous les modes IA, offrant des réponses de coaching plus naturelles, concises et exploitables"
+      },
+      "zombieAuthRecovery": {
+        "title": "Récupération auto des sessions expirées",
+        "description": "L'app détecte et efface désormais les états d'authentification expirés au lieu d'échouer silencieusement"
+      },
+      "transcriptionProxy": {
+        "title": "Relais de transcription sécurisé",
+        "description": "Proxy WebSocket qui garde les clés API Deepgram sur le serveur, améliorant la sécurité du streaming audio des apps de bureau"
+      },
+      "desktopCorsSupport": {
+        "title": "Synchronisation des apps de bureau",
+        "description": "Infrastructure CORS et synchronisation de sessions permettant aux applications de bureau de synchroniser les données avec le tableau de bord web"
       }
     }
   },

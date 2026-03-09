@@ -2,10 +2,12 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { Mic, MicOff, Square, Play, Sparkles, Copy, Check, Trash2 } from 'lucide-react'
 import { useAppStore } from '@/stores/appStore'
 import { useOverlayStore } from '@/stores/overlayStore'
-import { toggleSession } from '@/services/sessionLifecycle'
+import { startSession, stopSession } from '@/services/sessionLifecycle'
+import { ContactPicker } from '@/components/overlay/ContactPicker'
 import { StatusIndicator } from '@/components/common/StatusIndicator'
 import { KeyboardShortcutBadge } from '@/components/common/KeyboardShortcutBadge'
 import { cn } from '@/lib/utils'
+import type { Contact } from '@/types/models'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 
@@ -42,6 +44,7 @@ export function LiveSessionView() {
   const transcriptRef = useRef<HTMLDivElement>(null)
   const aiPanelRef = useRef<HTMLDivElement>(null)
   const [transcriptCopied, setTranscriptCopied] = useState(false)
+  const [showContactPicker, setShowContactPicker] = useState(false)
 
   const wordCount = currentTranscript
     ? currentTranscript.split(/\s+/).filter(Boolean).length
@@ -69,8 +72,18 @@ export function LiveSessionView() {
   }, [streamingContent, responseHistory])
 
   const handleToggleSession = useCallback(async () => {
+    if (isSessionActive) {
+      await stopSession()
+    } else {
+      // Show contact picker before starting session
+      setShowContactPicker(true)
+    }
+  }, [isSessionActive])
+
+  const handleContactPickerStart = useCallback(async (contact: Contact | null) => {
+    setShowContactPicker(false)
     const mode = useAppStore.getState().selectedMode
-    await toggleSession(mode)
+    await startSession(mode, contact)
   }, [])
 
   return (
@@ -251,6 +264,14 @@ export function LiveSessionView() {
           </div>
         </div>
       </div>
+
+      {/* Contact picker modal */}
+      {showContactPicker && (
+        <ContactPicker
+          onStart={handleContactPickerStart}
+          onClose={() => setShowContactPicker(false)}
+        />
+      )}
     </div>
   )
 }

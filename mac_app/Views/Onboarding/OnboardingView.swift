@@ -83,11 +83,11 @@ enum OnboardingStep: Int, CaseIterable {
 
     var title: String {
         switch self {
-        case .welcome: return "Welcome"
-        case .permissions: return "Permissions"
-        case .account: return "Account"
-        case .quickTour: return "Tour"
-        case .ready: return "Ready"
+        case .welcome: return String(localized: "onboarding.step.welcome")
+        case .permissions: return String(localized: "onboarding.step.permissions")
+        case .account: return String(localized: "onboarding.step.account")
+        case .quickTour: return String(localized: "onboarding.step.tour")
+        case .ready: return String(localized: "onboarding.step.ready")
         }
     }
 }
@@ -178,7 +178,7 @@ struct WelcomeStepView: View {
 
                 // Title
                 VStack(spacing: QMDesign.Spacing.sm) {
-                    Text("Welcome to")
+                    Text(String(localized: "onboarding.welcome.title"))
                         .font(QMDesign.Typography.titleSmall)
                         .foregroundColor(QMDesign.Colors.textSecondary)
 
@@ -190,9 +190,9 @@ struct WelcomeStepView: View {
 
             // Features List
             VStack(spacing: QMDesign.Spacing.md) {
-                FeatureRow(icon: "waveform", title: "Real-time Transcription", description: "Live speech-to-text during calls and meetings")
-                FeatureRow(icon: "sparkles", title: "AI Assistance", description: "Get contextual suggestions and responses")
-                FeatureRow(icon: "eye.slash", title: "Undetectable", description: "Hidden from screen recordings and shares")
+                FeatureRow(icon: "waveform", title: String(localized: "onboarding.welcome.feature.transcription.title"), description: String(localized: "onboarding.welcome.feature.transcription.description"))
+                FeatureRow(icon: "sparkles", title: String(localized: "onboarding.welcome.feature.ai.title"), description: String(localized: "onboarding.welcome.feature.ai.description"))
+                FeatureRow(icon: "eye.slash", title: String(localized: "onboarding.welcome.feature.undetectable.title"), description: String(localized: "onboarding.welcome.feature.undetectable.description"))
             }
             .padding(.horizontal, QMDesign.Spacing.xl)
 
@@ -201,7 +201,7 @@ struct WelcomeStepView: View {
             // Continue Button
             Button(action: onContinue) {
                 HStack(spacing: QMDesign.Spacing.sm) {
-                    Text("Get Started")
+                    Text(String(localized: "onboarding.welcome.button.getStarted"))
                         .font(QMDesign.Typography.labelMedium)
                     Image(systemName: "arrow.right")
                         .font(.system(size: 14, weight: .semibold))
@@ -288,11 +288,11 @@ struct PermissionsStepView: View {
                             .foregroundStyle(QMDesign.Colors.primaryGradient)
                     }
 
-                    Text("Permissions Required")
+                    Text(String(localized: "onboarding.permissions.title"))
                         .font(QMDesign.Typography.titleMedium)
                         .foregroundColor(QMDesign.Colors.textPrimary)
 
-                    Text("Queen Mama needs access to your microphone and screen to provide real-time assistance.")
+                    Text(String(localized: "onboarding.permissions.subtitle"))
                         .font(QMDesign.Typography.bodySmall)
                         .foregroundColor(QMDesign.Colors.textSecondary)
                         .multilineTextAlignment(.center)
@@ -304,8 +304,8 @@ struct PermissionsStepView: View {
                 VStack(spacing: QMDesign.Spacing.sm) {
                     PermissionCard(
                         icon: "mic.fill",
-                        title: "Microphone Access",
-                        description: "Record your voice during calls and meetings",
+                        title: String(localized: "onboarding.permissions.microphone.title"),
+                        description: String(localized: "onboarding.permissions.microphone.description"),
                         isGranted: hasMicPermission,
                         isOptional: false,
                         onRequest: requestMicrophonePermission
@@ -313,8 +313,8 @@ struct PermissionsStepView: View {
 
                     PermissionCard(
                         icon: "rectangle.dashed.badge.record",
-                        title: "Screen Recording",
-                        description: "Capture screen for visual context analysis",
+                        title: String(localized: "onboarding.permissions.screenRecording.title"),
+                        description: String(localized: "onboarding.permissions.screenRecording.description"),
                         isGranted: hasScreenPermission,
                         isOptional: false,
                         onRequest: requestScreenPermission
@@ -322,8 +322,8 @@ struct PermissionsStepView: View {
 
                     PermissionCard(
                         icon: "keyboard",
-                        title: "Accessibility",
-                        description: "Enable global keyboard shortcuts (optional)",
+                        title: String(localized: "onboarding.permissions.accessibility.title"),
+                        description: String(localized: "onboarding.permissions.accessibility.description"),
                         isGranted: hasAccessibilityPermission,
                         isOptional: true,
                         onRequest: requestAccessibilityPermission
@@ -335,7 +335,7 @@ struct PermissionsStepView: View {
                 HStack(alignment: .top, spacing: QMDesign.Spacing.sm) {
                     Image(systemName: "info.circle.fill")
                         .foregroundStyle(QMDesign.Colors.primaryGradient)
-                    Text("You can modify these permissions later in System Settings.")
+                    Text(String(localized: "onboarding.permissions.info"))
                         .font(QMDesign.Typography.caption)
                         .foregroundColor(QMDesign.Colors.textTertiary)
                 }
@@ -349,7 +349,7 @@ struct PermissionsStepView: View {
                 // Continue Button
                 Button(action: onContinue) {
                     HStack(spacing: QMDesign.Spacing.sm) {
-                        Text("Continue")
+                        Text(String(localized: "onboarding.button.continue"))
                             .font(QMDesign.Typography.labelMedium)
                         Image(systemName: "arrow.right")
                             .font(.system(size: 14, weight: .semibold))
@@ -455,7 +455,7 @@ struct PermissionCard: View {
                     }
 
                     if isOptional && !isGranted {
-                        Text("Optional")
+                        Text(String(localized: "onboarding.permissions.optional"))
                             .font(QMDesign.Typography.captionSmall)
                             .foregroundColor(QMDesign.Colors.textTertiary)
                             .padding(.horizontal, 6)
@@ -476,7 +476,7 @@ struct PermissionCard: View {
             // Request button
             if !isGranted {
                 Button(action: onRequest) {
-                    Text("Grant")
+                    Text(String(localized: "onboarding.permissions.button.grant"))
                         .font(QMDesign.Typography.labelSmall)
                         .foregroundColor(isOptional ? QMDesign.Colors.textPrimary : .white)
                         .padding(.horizontal, QMDesign.Spacing.md)
@@ -540,7 +540,7 @@ struct QuickTourStepView: View {
                             HStack(spacing: QMDesign.Spacing.xs) {
                                 Image(systemName: "arrow.left")
                                     .font(.system(size: 12, weight: .semibold))
-                                Text("Back")
+                                Text(String(localized: "onboarding.button.back"))
                                     .font(QMDesign.Typography.labelMedium)
                             }
                             .padding(.horizontal, QMDesign.Spacing.lg)
@@ -570,7 +570,7 @@ struct QuickTourStepView: View {
                         }
                     }) {
                         HStack(spacing: QMDesign.Spacing.sm) {
-                            Text(currentPage < totalPages - 1 ? "Next" : "Got it!")
+                            Text(currentPage < totalPages - 1 ? String(localized: "onboarding.button.next") : String(localized: "onboarding.button.gotIt"))
                                 .font(QMDesign.Typography.labelMedium)
                             Image(systemName: "arrow.right")
                                 .font(.system(size: 14, weight: .semibold))
@@ -633,15 +633,15 @@ struct WidgetTourScreen: View {
                 // Header
                 TourScreenHeader(
                     icon: "rectangle.on.rectangle",
-                    title: "The Floating Widget",
-                    subtitle: "Your always-visible AI assistant"
+                    title: String(localized: "onboarding.features.widget.title"),
+                    subtitle: String(localized: "onboarding.features.widget.subtitle")
                 )
 
                 // Widget Visual Mockup
                 VStack(spacing: QMDesign.Spacing.md) {
                     // Collapsed Widget Mockup
                     VStack(alignment: .leading, spacing: QMDesign.Spacing.xs) {
-                        Text("Collapsed Mode")
+                        Text(String(localized: "onboarding.features.widget.collapsedMode"))
                             .font(QMDesign.Typography.caption)
                             .foregroundColor(QMDesign.Colors.textTertiary)
 
@@ -654,7 +654,7 @@ struct WidgetTourScreen: View {
 
                     // Expanded Widget Mockup
                     VStack(alignment: .leading, spacing: QMDesign.Spacing.xs) {
-                        Text("Expanded Mode")
+                        Text(String(localized: "onboarding.features.widget.expandedMode"))
                             .font(QMDesign.Typography.caption)
                             .foregroundColor(QMDesign.Colors.textTertiary)
 
@@ -665,15 +665,15 @@ struct WidgetTourScreen: View {
 
                 // Key Points
                 VStack(spacing: QMDesign.Spacing.sm) {
-                    TourBulletPoint(icon: "eye.slash.fill", text: "Invisible to screen sharing & recordings")
-                    TourBulletPoint(icon: "pin.fill", text: "Always stays on top of other windows")
-                    TourBulletPoint(icon: "arrow.up.and.down.and.arrow.left.and.right", text: "Drag to reposition anywhere")
+                    TourBulletPoint(icon: "eye.slash.fill", text: String(localized: "onboarding.features.widget.bullet.invisible"))
+                    TourBulletPoint(icon: "pin.fill", text: String(localized: "onboarding.features.widget.bullet.alwaysOnTop"))
+                    TourBulletPoint(icon: "arrow.up.and.down.and.arrow.left.and.right", text: String(localized: "onboarding.features.widget.bullet.draggable"))
                 }
                 .padding(.horizontal, QMDesign.Spacing.xl)
 
                 // Shortcut
                 HStack {
-                    Text("Toggle with")
+                    Text(String(localized: "onboarding.features.widget.toggleWith"))
                         .font(QMDesign.Typography.bodySmall)
                         .foregroundColor(QMDesign.Colors.textSecondary)
                     KeyboardShortcutBadge(shortcut: "Cmd+\\")
@@ -695,8 +695,8 @@ struct AIFeaturesTourScreen: View {
                 // Header
                 TourScreenHeader(
                     icon: "sparkles",
-                    title: "4 Types of AI Help",
-                    subtitle: "Different responses for different needs"
+                    title: String(localized: "onboarding.features.aiHelp.title"),
+                    subtitle: String(localized: "onboarding.features.aiHelp.subtitle")
                 )
 
                 // Feature Cards
@@ -704,40 +704,40 @@ struct AIFeaturesTourScreen: View {
                     AIFeatureCard(
                         icon: "sparkles",
                         iconColor: QMDesign.Colors.accent,
-                        title: "Assist",
-                        description: "Get contextual suggestions based on the conversation",
-                        example: "\"Based on what was discussed, you could mention...\""
+                        title: String(localized: "onboarding.features.aiHelp.assist.title"),
+                        description: String(localized: "onboarding.features.aiHelp.assist.description"),
+                        example: String(localized: "onboarding.features.aiHelp.assist.example")
                     )
 
                     AIFeatureCard(
                         icon: "text.bubble.fill",
                         iconColor: QMDesign.Colors.success,
-                        title: "What to Say",
-                        description: "Direct response suggestions you can use",
-                        example: "\"You might say: 'That's a great point, and...'\""
+                        title: String(localized: "onboarding.features.aiHelp.whatToSay.title"),
+                        description: String(localized: "onboarding.features.aiHelp.whatToSay.description"),
+                        example: String(localized: "onboarding.features.aiHelp.whatToSay.example")
                     )
 
                     AIFeatureCard(
                         icon: "questionmark.bubble.fill",
                         iconColor: QMDesign.Colors.info,
-                        title: "Follow-up Questions",
-                        description: "Smart questions to keep the conversation going",
-                        example: "\"Ask: 'How does this impact...?'\""
+                        title: String(localized: "onboarding.features.aiHelp.followUp.title"),
+                        description: String(localized: "onboarding.features.aiHelp.followUp.description"),
+                        example: String(localized: "onboarding.features.aiHelp.followUp.example")
                     )
 
                     AIFeatureCard(
                         icon: "arrow.counterclockwise",
                         iconColor: QMDesign.Colors.warning,
-                        title: "Recap",
-                        description: "Summary of key points discussed so far",
-                        example: "\"Key points: 1) Budget is $50k, 2) Timeline is Q2...\""
+                        title: String(localized: "onboarding.features.aiHelp.recap.title"),
+                        description: String(localized: "onboarding.features.aiHelp.recap.description"),
+                        example: String(localized: "onboarding.features.aiHelp.recap.example")
                     )
                 }
                 .padding(.horizontal, QMDesign.Spacing.xl)
 
                 // Shortcut
                 HStack {
-                    Text("Trigger AI with")
+                    Text(String(localized: "onboarding.features.aiHelp.triggerWith"))
                         .font(QMDesign.Typography.bodySmall)
                         .foregroundColor(QMDesign.Colors.textSecondary)
                     KeyboardShortcutBadge(shortcut: "Cmd+Enter")
@@ -759,8 +759,8 @@ struct DashboardTourScreen: View {
                 // Header
                 TourScreenHeader(
                     icon: "rectangle.3.group",
-                    title: "The Dashboard",
-                    subtitle: "Your command center"
+                    title: String(localized: "onboarding.features.dashboard.title"),
+                    subtitle: String(localized: "onboarding.features.dashboard.subtitle")
                 )
 
                 // Dashboard Mockup
@@ -769,11 +769,11 @@ struct DashboardTourScreen: View {
 
                 // Features List
                 VStack(spacing: QMDesign.Spacing.sm) {
-                    TourBulletPoint(icon: "play.circle.fill", text: "Start and stop recording sessions")
-                    TourBulletPoint(icon: "clock.fill", text: "View past sessions and transcripts")
-                    TourBulletPoint(icon: "square.and.arrow.up", text: "Export transcripts (TXT, JSON, SRT)")
-                    TourBulletPoint(icon: "waveform", text: "Monitor live audio levels")
-                    TourBulletPoint(icon: "gearshape.fill", text: "Access all settings")
+                    TourBulletPoint(icon: "play.circle.fill", text: String(localized: "onboarding.features.dashboard.bullet.startStop"))
+                    TourBulletPoint(icon: "clock.fill", text: String(localized: "onboarding.features.dashboard.bullet.viewPast"))
+                    TourBulletPoint(icon: "square.and.arrow.up", text: String(localized: "onboarding.features.dashboard.bullet.export"))
+                    TourBulletPoint(icon: "waveform", text: String(localized: "onboarding.features.dashboard.bullet.monitor"))
+                    TourBulletPoint(icon: "gearshape.fill", text: String(localized: "onboarding.features.dashboard.bullet.settings"))
                 }
                 .padding(.horizontal, QMDesign.Spacing.xl)
             }
@@ -792,31 +792,31 @@ struct ModesTourScreen: View {
                 // Header
                 TourScreenHeader(
                     icon: "person.2.fill",
-                    title: "AI Modes",
-                    subtitle: "Customize AI behavior for different situations"
+                    title: String(localized: "onboarding.features.modes.title"),
+                    subtitle: String(localized: "onboarding.features.modes.subtitle")
                 )
 
                 // Mode Cards
                 VStack(spacing: QMDesign.Spacing.sm) {
                     ModeCard(
-                        name: "Default",
+                        name: String(localized: "onboarding.features.modes.default.name"),
                         icon: "star.fill",
-                        description: "Balanced, helpful assistance for any situation"
+                        description: String(localized: "onboarding.features.modes.default.description")
                     )
                     ModeCard(
-                        name: "Professional",
+                        name: String(localized: "onboarding.features.modes.professional.name"),
                         icon: "briefcase.fill",
-                        description: "Formal tone for business meetings"
+                        description: String(localized: "onboarding.features.modes.professional.description")
                     )
                     ModeCard(
-                        name: "Interview",
+                        name: String(localized: "onboarding.features.modes.interview.name"),
                         icon: "person.badge.clock.fill",
-                        description: "Helps prepare answers during job interviews"
+                        description: String(localized: "onboarding.features.modes.interview.description")
                     )
                     ModeCard(
-                        name: "Sales",
+                        name: String(localized: "onboarding.features.modes.sales.name"),
                         icon: "chart.line.uptrend.xyaxis",
-                        description: "Persuasive suggestions for sales calls"
+                        description: String(localized: "onboarding.features.modes.sales.description")
                     )
                 }
                 .padding(.horizontal, QMDesign.Spacing.xl)
@@ -825,7 +825,7 @@ struct ModesTourScreen: View {
                 HStack(alignment: .top, spacing: QMDesign.Spacing.sm) {
                     Image(systemName: "plus.circle.fill")
                         .foregroundStyle(QMDesign.Colors.primaryGradient)
-                    Text("Create your own custom modes with personalized system prompts in the Dashboard.")
+                    Text(String(localized: "onboarding.features.modes.customInfo"))
                         .font(QMDesign.Typography.caption)
                         .foregroundColor(QMDesign.Colors.textSecondary)
                 }
@@ -851,8 +851,8 @@ struct ShortcutsTourScreen: View {
                 // Header
                 TourScreenHeader(
                     icon: "keyboard",
-                    title: "Keyboard Shortcuts",
-                    subtitle: "Master Queen Mama with these shortcuts"
+                    title: String(localized: "onboarding.features.shortcuts.title"),
+                    subtitle: String(localized: "onboarding.features.shortcuts.subtitle")
                 )
 
                 // Shortcuts Grid
@@ -860,36 +860,36 @@ struct ShortcutsTourScreen: View {
                     TourTipCard(
                         icon: "command",
                         shortcut: "Cmd+Shift+S",
-                        title: "Start/Stop Session",
-                        description: "Begin or end recording and transcription"
+                        title: String(localized: "onboarding.features.shortcuts.startStop.title"),
+                        description: String(localized: "onboarding.features.shortcuts.startStop.description")
                     )
 
                     TourTipCard(
                         icon: "option",
                         shortcut: "Cmd+\\",
-                        title: "Toggle Widget",
-                        description: "Show or hide the overlay widget"
+                        title: String(localized: "onboarding.features.shortcuts.toggleWidget.title"),
+                        description: String(localized: "onboarding.features.shortcuts.toggleWidget.description")
                     )
 
                     TourTipCard(
                         icon: "return",
                         shortcut: "Cmd+Enter",
-                        title: "Ask AI",
-                        description: "Get AI assistance based on current context"
+                        title: String(localized: "onboarding.features.shortcuts.askAI.title"),
+                        description: String(localized: "onboarding.features.shortcuts.askAI.description")
                     )
 
                     TourTipCard(
                         icon: "r.circle",
                         shortcut: "Cmd+R",
-                        title: "Clear Context",
-                        description: "Reset transcript and start fresh"
+                        title: String(localized: "onboarding.features.shortcuts.clearContext.title"),
+                        description: String(localized: "onboarding.features.shortcuts.clearContext.description")
                     )
 
                     TourTipCard(
                         icon: "arrow.up.arrow.down",
                         shortcut: "Cmd+Arrows",
-                        title: "Move Widget",
-                        description: "Reposition the widget on screen"
+                        title: String(localized: "onboarding.features.shortcuts.moveWidget.title"),
+                        description: String(localized: "onboarding.features.shortcuts.moveWidget.description")
                     )
                 }
                 .padding(.horizontal, QMDesign.Spacing.xl)
@@ -1054,7 +1054,7 @@ struct WidgetMockupCollapsed: View {
             Spacer()
 
             // Mode badge
-            Text("Default")
+            Text(String(localized: "onboarding.features.modes.default.name"))
                 .font(QMDesign.Typography.captionSmall)
                 .foregroundColor(QMDesign.Colors.textTertiary)
                 .padding(.horizontal, 6)
@@ -1100,7 +1100,7 @@ struct WidgetMockupExpanded: View {
                     .fill(QMDesign.Colors.success)
                     .frame(width: 8, height: 8)
 
-                Text("Recording...")
+                Text(String(localized: "onboarding.features.widget.mockup.recording"))
                     .font(QMDesign.Typography.captionSmall)
                     .foregroundColor(QMDesign.Colors.textSecondary)
 
@@ -1118,14 +1118,15 @@ struct WidgetMockupExpanded: View {
 
             // Tab Bar
             HStack(spacing: 0) {
-                ForEach(["Assist", "Say", "Follow-up", "Recap"], id: \.self) { tab in
+                let tabLabels = [String(localized: "onboarding.features.widget.mockup.tab.assist"), String(localized: "onboarding.features.widget.mockup.tab.say"), String(localized: "onboarding.features.widget.mockup.tab.followUp"), String(localized: "onboarding.features.widget.mockup.tab.recap")]
+                ForEach(Array(tabLabels.enumerated()), id: \.offset) { index, tab in
                     Text(tab)
                         .font(QMDesign.Typography.captionSmall)
-                        .foregroundColor(tab == "Assist" ? QMDesign.Colors.accent : QMDesign.Colors.textTertiary)
+                        .foregroundColor(index == 0 ? QMDesign.Colors.accent : QMDesign.Colors.textTertiary)
                         .padding(.horizontal, QMDesign.Spacing.sm)
                         .padding(.vertical, QMDesign.Spacing.xs)
                         .background(
-                            tab == "Assist" ?
+                            index == 0 ?
                             RoundedRectangle(cornerRadius: QMDesign.Radius.sm)
                                 .fill(QMDesign.Colors.accent.opacity(0.1)) : nil
                         )
@@ -1139,11 +1140,11 @@ struct WidgetMockupExpanded: View {
 
             // Content Area
             VStack(alignment: .leading, spacing: QMDesign.Spacing.xs) {
-                Text("AI Response")
+                Text(String(localized: "onboarding.features.widget.mockup.aiResponse"))
                     .font(QMDesign.Typography.caption)
                     .foregroundColor(QMDesign.Colors.textSecondary)
 
-                Text("Based on the discussion about project timeline, you might want to mention...")
+                Text(String(localized: "onboarding.features.widget.mockup.aiResponseExample"))
                     .font(QMDesign.Typography.captionSmall)
                     .foregroundColor(QMDesign.Colors.textTertiary)
                     .lineLimit(2)
@@ -1177,14 +1178,15 @@ struct DashboardMockup: View {
             // Sidebar
             VStack(alignment: .leading, spacing: QMDesign.Spacing.sm) {
                 // Sidebar items
-                ForEach(["Sessions", "Modes", "Settings"], id: \.self) { item in
+                let sidebarItems = [String(localized: "onboarding.features.dashboard.mockup.sessions"), String(localized: "onboarding.features.dashboard.mockup.modes"), String(localized: "onboarding.features.dashboard.mockup.settings")]
+                ForEach(Array(sidebarItems.enumerated()), id: \.offset) { index, item in
                     HStack(spacing: QMDesign.Spacing.xs) {
                         Circle()
-                            .fill(item == "Sessions" ? QMDesign.Colors.accent : QMDesign.Colors.surfaceMedium)
+                            .fill(index == 0 ? QMDesign.Colors.accent : QMDesign.Colors.surfaceMedium)
                             .frame(width: 6, height: 6)
                         Text(item)
                             .font(QMDesign.Typography.captionSmall)
-                            .foregroundColor(item == "Sessions" ? QMDesign.Colors.textPrimary : QMDesign.Colors.textTertiary)
+                            .foregroundColor(index == 0 ? QMDesign.Colors.textPrimary : QMDesign.Colors.textTertiary)
                     }
                 }
             }
@@ -1196,7 +1198,7 @@ struct DashboardMockup: View {
             VStack(alignment: .leading, spacing: QMDesign.Spacing.sm) {
                 // Header
                 HStack {
-                    Text("Sessions")
+                    Text(String(localized: "onboarding.features.dashboard.mockup.sessions"))
                         .font(QMDesign.Typography.labelSmall)
                         .foregroundColor(QMDesign.Colors.textPrimary)
                     Spacer()
@@ -1204,7 +1206,7 @@ struct DashboardMockup: View {
                         .fill(QMDesign.Colors.primaryGradient)
                         .frame(width: 50, height: 16)
                         .overlay(
-                            Text("Start")
+                            Text(String(localized: "onboarding.features.dashboard.mockup.start"))
                                 .font(.system(size: 8, weight: .semibold))
                                 .foregroundColor(.white)
                         )
@@ -1312,11 +1314,11 @@ struct ReadyStepView: View {
 
             // Text
             VStack(spacing: QMDesign.Spacing.md) {
-                Text("You're All Set!")
+                Text(String(localized: "onboarding.completion.title"))
                     .font(.system(size: 32, weight: .bold))
                     .foregroundStyle(QMDesign.Colors.primaryGradient)
 
-                Text("Queen Mama is ready to assist you during your calls, meetings, and interviews.")
+                Text(String(localized: "onboarding.completion.subtitle"))
                     .font(QMDesign.Typography.bodyMedium)
                     .foregroundColor(QMDesign.Colors.textSecondary)
                     .multilineTextAlignment(.center)
@@ -1330,7 +1332,7 @@ struct ReadyStepView: View {
                 HStack(spacing: QMDesign.Spacing.sm) {
                     Image(systemName: "play.fill")
                         .font(.system(size: 14, weight: .semibold))
-                    Text("Start First Session")
+                    Text(String(localized: "onboarding.completion.button.startFirstSession"))
                         .font(QMDesign.Typography.labelMedium)
                 }
                 .padding(.horizontal, QMDesign.Spacing.xl)
@@ -1387,10 +1389,10 @@ struct FeatureTourSheet: View {
                 // Header with close button
                 HStack {
                     VStack(alignment: .leading, spacing: 2) {
-                        Text("Feature Tour")
+                        Text(String(localized: "onboarding.features.tour.title"))
                             .font(QMDesign.Typography.titleSmall)
                             .foregroundColor(QMDesign.Colors.textPrimary)
-                        Text("Learn how to use Queen Mama")
+                        Text(String(localized: "onboarding.features.tour.subtitle"))
                             .font(QMDesign.Typography.caption)
                             .foregroundColor(QMDesign.Colors.textTertiary)
                     }
@@ -1445,7 +1447,7 @@ struct FeatureTourSheet: View {
                                 HStack(spacing: QMDesign.Spacing.xs) {
                                     Image(systemName: "arrow.left")
                                         .font(.system(size: 12, weight: .semibold))
-                                    Text("Back")
+                                    Text(String(localized: "onboarding.button.back"))
                                         .font(QMDesign.Typography.labelMedium)
                                 }
                                 .padding(.horizontal, QMDesign.Spacing.lg)
@@ -1474,7 +1476,7 @@ struct FeatureTourSheet: View {
                             }
                         }) {
                             HStack(spacing: QMDesign.Spacing.sm) {
-                                Text(currentPage < totalPages - 1 ? "Next" : "Done")
+                                Text(currentPage < totalPages - 1 ? String(localized: "onboarding.button.next") : String(localized: "onboarding.button.done"))
                                     .font(QMDesign.Typography.labelMedium)
                                 Image(systemName: currentPage < totalPages - 1 ? "arrow.right" : "checkmark")
                                     .font(.system(size: 14, weight: .semibold))

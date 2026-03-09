@@ -33,7 +33,11 @@ enum AppEnvironment: String, CaseIterable {
     var apiBaseURL: String {
         switch self {
         case .development:
-            return "http://localhost:3000"
+            // Support custom port via env var or UserDefaults (e.g. when port 3000 is occupied)
+            let port = ProcessInfo.processInfo.environment["DEV_PORT"]
+                ?? UserDefaults.standard.string(forKey: "devPort")
+                ?? "3000"
+            return "http://localhost:\(port)"
         case .staging:
             return "https://staging.queenmama.co"
         case .production:

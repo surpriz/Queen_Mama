@@ -62,7 +62,7 @@ export function ExpandedContent() {
   )
 
   return (
-    <div className="flex flex-col flex-1 border-t border-white/5 overflow-hidden">
+    <div className="flex flex-col flex-1 min-h-0 border-t border-white/5 overflow-hidden">
       <TabBar onTabSelected={handleTabSelected} />
       <TranscriptPanel />
 

@@ -9,8 +9,8 @@ export class DeepgramFluxProvider implements TranscriptionProvider {
   private ws: WebSocket | null = null
   private keepaliveInterval: ReturnType<typeof setInterval> | null = null
   private token: string | null = null
-  private tokenType: 'bearer' | 'token' = 'token'
 
+  language: string = 'fr'
   onTranscript: ((text: string) => void) | null = null
   onInterimTranscript: ((text: string) => void) | null = null
   onError: ((error: Error) => void) | null = null
@@ -22,26 +22,26 @@ export class DeepgramFluxProvider implements TranscriptionProvider {
   async connect(): Promise<void> {
     const tokenResponse = await getTranscriptionToken('deepgram')
     this.token = tokenResponse.token
-    this.tokenType = tokenResponse.tokenType || 'token'
-    log.info(`Token received - type: ${this.tokenType}`)
+    log.info('Token received')
 
+    const lang = this.language || 'fr'
     let url =
-      'wss://api.deepgram.com/v2/listen?' +
-      'model=flux-general-en&' +
+      'wss://api.deepgram.com/v1/listen?' +
+      `model=nova-3&` +
+      `language=${lang}&` +
       'smart_format=true&' +
       'interim_results=true&' +
       'encoding=linear16&' +
       'sample_rate=16000&' +
       'channels=1'
 
+    log.info(`Connecting to Deepgram (lang: ${lang})...`)
+
     return new Promise<void>((resolve, reject) => {
-      let ws: WebSocket
-      if (this.tokenType === 'bearer') {
-        url += `&token=${this.token}`
-        ws = new WebSocket(url)
-      } else {
-        ws = new WebSocket(url, ['token', this.token!])
-      }
+      // Try URL parameter auth first (works with JWT tokens from grant API)
+      // Fallback to subprotocol if tokenType is 'token' (raw API key)
+      const authUrl = `${url}&token=${encodeURIComponent(this.token!)}`
+      const ws = new WebSocket(authUrl)
       this.ws = ws
 
       this.ws.onopen = () => {
@@ -68,13 +68,17 @@ export class DeepgramFluxProvider implements TranscriptionProvider {
         }
       }
 
-      this.ws.onerror = () => reject(new Error('Deepgram Flux connection failed'))
+      this.ws.onerror = (event) => {
+        const errEvent = event as ErrorEvent
+        log.error(`WebSocket error: ${errEvent.message || 'unknown'}`)
+        reject(new Error(`Deepgram Flux connection failed: ${errEvent.message || 'unknown'}`))
+      }
 
       this.ws.onclose = (event) => {
-        log.info(`Disconnected (code: ${event.code})`)
+        log.info(`Disconnected (code: ${event.code}, reason: "${event.reason}", clean: ${event.wasClean})`)
         this.stopKeepalive()
         if (event.code !== 1000) {
-          this.onError?.(new Error(`Deepgram Flux disconnected: ${event.code}`))
+          this.onError?.(new Error(`Deepgram Flux disconnected: code=${event.code} reason="${event.reason}"`))
         }
       }
     })

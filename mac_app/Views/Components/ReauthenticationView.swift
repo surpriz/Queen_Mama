@@ -26,11 +26,11 @@ struct ReauthenticationView: View {
                             .foregroundStyle(QMDesign.Colors.warning)
                     }
 
-                    Text("Session Expired")
+                    Text(String(localized: "auth.reauth.title"))
                         .font(QMDesign.Typography.titleMedium)
                         .foregroundColor(QMDesign.Colors.textPrimary)
 
-                    Text("Please sign in again to continue using Queen Mama.")
+                    Text(String(localized: "auth.reauth.subtitle"))
                         .font(QMDesign.Typography.bodySmall)
                         .foregroundColor(QMDesign.Colors.textSecondary)
                         .multilineTextAlignment(.center)
@@ -47,7 +47,7 @@ struct ReauthenticationView: View {
                 HStack(alignment: .top, spacing: QMDesign.Spacing.sm) {
                     Image(systemName: "info.circle.fill")
                         .foregroundStyle(QMDesign.Colors.primaryGradient)
-                    Text("Your local sessions and settings are preserved.")
+                    Text(String(localized: "auth.reauth.dataPreserved"))
                         .font(QMDesign.Typography.caption)
                         .foregroundColor(QMDesign.Colors.textTertiary)
                 }

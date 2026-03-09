@@ -45,7 +45,7 @@ struct UnauthenticatedOverlay: View {
                     .font(QMDesign.Typography.titleLarge)
                     .foregroundStyle(QMDesign.Colors.primaryGradient)
 
-                Text("Your AI Interview Coach")
+                Text(String(localized: "auth.gate.tagline"))
                     .font(QMDesign.Typography.bodyMedium)
                     .foregroundColor(QMDesign.Colors.textSecondary)
             }
@@ -59,14 +59,14 @@ struct UnauthenticatedOverlay: View {
 
             // Free tier info at bottom
             VStack(spacing: QMDesign.Spacing.sm) {
-                Text("Free tier includes:")
+                Text(String(localized: "auth.gate.freeTierIncludes"))
                     .font(QMDesign.Typography.caption)
                     .foregroundColor(QMDesign.Colors.textSecondary)
 
                 HStack(spacing: QMDesign.Spacing.lg) {
-                    FeatureBadge(icon: "sparkles", text: "50 AI requests/day")
-                    FeatureBadge(icon: "waveform", text: "Live transcription")
-                    FeatureBadge(icon: "camera", text: "Screen capture")
+                    FeatureBadge(icon: "sparkles", text: String(localized: "auth.gate.feature.aiRequests"))
+                    FeatureBadge(icon: "waveform", text: String(localized: "auth.gate.feature.liveTranscription"))
+                    FeatureBadge(icon: "camera", text: String(localized: "auth.gate.feature.screenCapture"))
                 }
             }
             .padding(.bottom, QMDesign.Spacing.lg)

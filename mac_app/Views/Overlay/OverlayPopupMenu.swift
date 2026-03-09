@@ -29,6 +29,17 @@ enum OverlayPosition: String, CaseIterable {
         case .bottomRight: return "arrow.down.right"
         }
     }
+
+    var localizedName: String {
+        switch self {
+        case .topLeft: return String(localized: "overlay.position.topLeft")
+        case .topCenter: return String(localized: "overlay.position.topCenter")
+        case .topRight: return String(localized: "overlay.position.topRight")
+        case .bottomLeft: return String(localized: "overlay.position.bottomLeft")
+        case .bottomCenter: return String(localized: "overlay.position.bottomCenter")
+        case .bottomRight: return String(localized: "overlay.position.bottomRight")
+        }
+    }
 }
 
 // MARK: - Overlay Popup Menu
@@ -66,29 +77,29 @@ struct OverlayPopupMenu: View {
 
             // Toggle Items
             MenuToggleItem(
-                title: "Auto-Answer",
+                title: String(localized: "overlay.menu.autoAnswer"),
                 icon: QMDesign.Icons.autoAnswer,
                 shortcut: "Cmd+Shift+A",
                 isEnabled: $isAutoAnswerEnabled,
                 accentColor: QMDesign.Colors.autoAnswer,
                 isHovered: hoveredItem == "auto",
-                subtitle: "AI responds to key moments automatically"
+                subtitle: String(localized: "overlay.menu.autoAnswerSubtitle")
             )
             .onHover { if $0 { hoveredItem = "auto" } }
 
             MenuToggleItem(
-                title: "Smart Mode",
+                title: String(localized: "overlay.menu.smartMode"),
                 icon: QMDesign.Icons.smart,
                 shortcut: nil,
                 isEnabled: $isSmartModeEnabled,
                 accentColor: QMDesign.Colors.accent,
                 isHovered: hoveredItem == "smart",
-                subtitle: "Deep thinking \u{2022} Slower responses"
+                subtitle: String(localized: "overlay.menu.smartModeSubtitle")
             )
             .onHover { if $0 { hoveredItem = "smart" } }
 
             MenuToggleItem(
-                title: "Screen Capture",
+                title: String(localized: "overlay.menu.screenCapture"),
                 icon: QMDesign.Icons.camera,
                 shortcut: nil,
                 isEnabled: $enableScreenCapture,
@@ -110,7 +121,7 @@ struct OverlayPopupMenu: View {
 
             // Action Items
             MenuActionItem(
-                title: "Clear Context",
+                title: String(localized: "overlay.menu.clearContext"),
                 icon: QMDesign.Icons.clear,
                 shortcut: "Cmd+R",
                 isHovered: hoveredItem == "clear",
@@ -122,7 +133,7 @@ struct OverlayPopupMenu: View {
             .onHover { if $0 { hoveredItem = "clear" } }
 
             MenuActionItem(
-                title: "Hide Widget",
+                title: String(localized: "overlay.menu.hideWidget"),
                 icon: "eye.slash",
                 shortcut: "Cmd+\\",
                 isHovered: hoveredItem == "hide",
@@ -186,11 +197,11 @@ struct ModeMenuItem: View {
 
                     // Title and current mode
                     VStack(alignment: .leading, spacing: 1) {
-                        Text("Mode")
+                        Text(String(localized: "overlay.menu.mode"))
                             .font(QMDesign.Typography.captionSmall)
                             .foregroundColor(QMDesign.Colors.textTertiary)
                             .lineLimit(1)
-                        Text(selectedMode?.name ?? "Default")
+                        Text(selectedMode?.name ?? String(localized: "overlay.menu.defaultMode"))
                             .font(QMDesign.Typography.bodySmall)
                             .foregroundColor(QMDesign.Colors.textPrimary)
                             .lineLimit(1)
@@ -231,7 +242,7 @@ struct ModeMenuItem: View {
                             Rectangle()
                                 .fill(QMDesign.Colors.borderSubtle)
                                 .frame(height: 1)
-                            Text("CUSTOM")
+                            Text(String(localized: "overlay.menu.custom"))
                                 .font(.system(size: 8, weight: .semibold))
                                 .foregroundColor(QMDesign.Colors.textTertiary)
                             Rectangle()
@@ -455,7 +466,7 @@ struct PositionMenuItem: View {
                         .frame(width: 20)
 
                     // Title
-                    Text("Position")
+                    Text(String(localized: "overlay.menu.position"))
                         .font(QMDesign.Typography.bodySmall)
                         .foregroundColor(QMDesign.Colors.textPrimary)
 
@@ -556,7 +567,7 @@ struct DisplayMenuItem: View {
                         .frame(width: 20)
 
                     VStack(alignment: .leading, spacing: 1) {
-                        Text("Display")
+                        Text(String(localized: "overlay.menu.display"))
                             .font(QMDesign.Typography.captionSmall)
                             .foregroundColor(QMDesign.Colors.textTertiary)
                             .lineLimit(1)
@@ -589,7 +600,7 @@ struct DisplayMenuItem: View {
                             .scaleEffect(0.8)
                             .padding(QMDesign.Spacing.sm)
                     } else if displays.isEmpty {
-                        Text("No displays found")
+                        Text(String(localized: "overlay.menu.noDisplaysFound"))
                             .font(QMDesign.Typography.captionSmall)
                             .foregroundColor(QMDesign.Colors.textTertiary)
                             .padding(QMDesign.Spacing.sm)
@@ -639,21 +650,21 @@ struct DisplayMenuItem: View {
 
     private var currentDisplayName: String {
         if displays.isEmpty {
-            return "Primary"
+            return String(localized: "overlay.menu.primaryDisplay")
         }
 
         if config.selectedDisplayID == 0 {
             if let first = displays.first {
                 return "\(first.name) • \(first.resolution)"
             }
-            return "Primary"
+            return String(localized: "overlay.menu.primaryDisplay")
         }
 
         if let selected = displays.first(where: { $0.id == config.selectedDisplayID }) {
             return "\(selected.name) • \(selected.resolution)"
         }
 
-        return "Primary"
+        return String(localized: "overlay.menu.primaryDisplay")
     }
 
     private func isDisplaySelected(_ display: ScreenCaptureService.DisplayInfo) -> Bool {

@@ -20,6 +20,7 @@ import { useAuthStore } from '@/stores/authStore'
 import { initializeDatabase } from '@/db/client'
 import { loadSessions } from '@/services/session/sessionManager'
 import * as contactDb from '@/services/contacts/contactDb'
+import * as contactSyncService from '@/services/contacts/contactSyncService'
 import { useContactStore } from '@/stores/contactStore'
 
 let initialized = false
@@ -109,10 +110,26 @@ export async function initializeApp(): Promise<void> {
       console.error('[AppInit] License validation failed:', error)
     }
 
-    // 7. Initial sync (non-blocking)
-    syncManager.performInitialSync().catch((error) => {
-      console.error('[AppInit] Initial sync failed:', error)
-    })
+    // 7. Load sync queue from previous runs, then start periodic sync
+    try {
+      await syncManager.loadQueue()
+      console.log('[AppInit] Sync queue loaded')
+    } catch (error) {
+      console.error('[AppInit] Sync queue load failed:', error)
+    }
+    syncManager.startPeriodicSync()
+
+    // 8. Pull contacts from server and merge with local DB
+    try {
+      const imported = await contactSyncService.pullContacts()
+      if (imported.length > 0) {
+        const allContacts = await contactDb.getAllContacts()
+        useContactStore.getState().setContacts(allContacts)
+        console.log(`[AppInit] Pulled ${imported.length} contacts from server`)
+      }
+    } catch (error) {
+      console.error('[AppInit] Contact pull failed:', error)
+    }
   }
 
   console.log('[AppInit] Initialization complete')

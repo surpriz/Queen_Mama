@@ -36,11 +36,11 @@ private struct ConnectAccountView: View {
             }
 
             VStack(spacing: QMDesign.Spacing.sm) {
-                Text("Quick & Secure")
+                Text(String(localized: "account.step.quickSecure.title"))
                     .font(QMDesign.Typography.labelMedium)
                     .foregroundColor(QMDesign.Colors.textPrimary)
 
-                Text("Your browser will open to complete sign in.\nWorks with email, Google, or GitHub accounts.")
+                Text(String(localized: "account.step.quickSecure.description"))
                     .font(QMDesign.Typography.caption)
                     .foregroundColor(QMDesign.Colors.textSecondary)
                     .multilineTextAlignment(.center)
@@ -71,7 +71,7 @@ private struct ConnectAccountView: View {
                     } else {
                         Image(systemName: "arrow.up.right.square")
                     }
-                    Text(isLoading ? "Opening browser..." : "Connect Account")
+                    Text(isLoading ? String(localized: "account.step.button.openingBrowser") : String(localized: "account.step.button.connectAccount"))
                         .font(QMDesign.Typography.labelMedium)
                 }
                 .frame(maxWidth: .infinity)
@@ -122,12 +122,12 @@ private struct DeviceCodeDisplayView: View {
             HStack(spacing: QMDesign.Spacing.sm) {
                 Image(systemName: "safari")
                     .foregroundStyle(QMDesign.Colors.primaryGradient)
-                Text("Browser opened")
+                Text(String(localized: "account.step.browserOpened"))
                     .foregroundColor(QMDesign.Colors.textSecondary)
             }
             .font(QMDesign.Typography.caption)
 
-            Text("Enter this code:")
+            Text(String(localized: "account.step.enterCode"))
                 .font(QMDesign.Typography.bodySmall)
                 .foregroundColor(QMDesign.Colors.textSecondary)
 
@@ -143,7 +143,7 @@ private struct DeviceCodeDisplayView: View {
                 Button(action: copyCode) {
                     HStack(spacing: QMDesign.Spacing.xs) {
                         Image(systemName: showCopied ? "checkmark" : "doc.on.doc")
-                        Text(showCopied ? "Copied!" : "Copy code")
+                        Text(showCopied ? String(localized: "account.step.copied") : String(localized: "account.step.copyCode"))
                     }
                     .font(QMDesign.Typography.caption)
                     .foregroundColor(showCopied ? QMDesign.Colors.success : QMDesign.Colors.textSecondary)
@@ -162,7 +162,7 @@ private struct DeviceCodeDisplayView: View {
                 Link(destination: verificationURL) {
                     HStack(spacing: QMDesign.Spacing.xs) {
                         Image(systemName: "arrow.up.right.square")
-                        Text("Open link manually")
+                        Text(String(localized: "account.step.openLinkManually"))
                     }
                     .font(QMDesign.Typography.captionSmall)
                     .foregroundStyle(QMDesign.Colors.primaryGradient)
@@ -174,7 +174,7 @@ private struct DeviceCodeDisplayView: View {
                 HStack(spacing: QMDesign.Spacing.sm) {
                     Image(systemName: "checkmark.circle.fill")
                         .foregroundColor(QMDesign.Colors.success)
-                    Text("Connected!")
+                    Text(String(localized: "account.step.connected"))
                         .foregroundColor(QMDesign.Colors.success)
                 }
                 .font(QMDesign.Typography.bodyMedium)
@@ -182,18 +182,18 @@ private struct DeviceCodeDisplayView: View {
                 HStack(spacing: QMDesign.Spacing.sm) {
                     ProgressView()
                         .scaleEffect(0.8)
-                    Text("Waiting for authorization...")
+                    Text(String(localized: "account.step.waitingForAuth"))
                         .foregroundColor(QMDesign.Colors.textSecondary)
                 }
                 .font(QMDesign.Typography.caption)
 
-                Text("Expires in \(timeRemaining / 60):\(String(format: "%02d", timeRemaining % 60))")
+                Text(String(localized: "account.step.expiresIn \(timeRemaining / 60):\(String(format: "%02d", timeRemaining % 60))"))
                     .font(QMDesign.Typography.captionSmall)
                     .foregroundColor(QMDesign.Colors.textTertiary)
             }
 
             Button(action: onCancel) {
-                Text("Cancel")
+                Text(String(localized: "account.step.button.cancel"))
                     .font(QMDesign.Typography.bodySmall)
                     .foregroundColor(QMDesign.Colors.textSecondary)
             }
@@ -243,7 +243,7 @@ private struct AuthenticatedView: View {
                     .foregroundColor(QMDesign.Colors.success)
             }
 
-            Text("Connected!")
+            Text(String(localized: "account.step.connected"))
                 .font(QMDesign.Typography.titleSmall)
                 .foregroundColor(QMDesign.Colors.textPrimary)
 
@@ -260,7 +260,7 @@ private struct AuthenticatedView: View {
 
             Button(action: onContinue) {
                 HStack(spacing: QMDesign.Spacing.sm) {
-                    Text("Continue")
+                    Text(String(localized: "account.step.button.continue"))
                         .font(QMDesign.Typography.labelMedium)
                     Image(systemName: "arrow.right")
                         .font(.system(size: 14, weight: .semibold))

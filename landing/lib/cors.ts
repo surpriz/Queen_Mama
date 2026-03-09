@@ -12,6 +12,8 @@ const ALLOWED_ORIGINS = [
 const DEV_ORIGINS = [
   "http://localhost:3000",
   "http://127.0.0.1:3000",
+  "http://localhost:5173",
+  "http://127.0.0.1:5173",
 ];
 
 // Preview/staging origins pattern
@@ -21,7 +23,8 @@ const PREVIEW_ORIGIN_PATTERN = /^https:\/\/[\w-]+\.vercel\.app$/;
  * Check if an origin is allowed
  */
 export function isOriginAllowed(origin: string | null): boolean {
-  if (!origin) return false;
+  // Allow null origin (Electron file:// protocol, mobile apps)
+  if (!origin) return true;
 
   // Allow production domains
   if (ALLOWED_ORIGINS.includes(origin)) return true;

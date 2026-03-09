@@ -163,6 +163,22 @@ export function registerIPCHandlers(): void {
     }
   })
 
+  // Toggle main window visibility (from overlay home button)
+  ipcMain.on(IPC_CHANNELS.WINDOW_TOGGLE, () => {
+    const windows = BrowserWindow.getAllWindows()
+    for (const win of windows) {
+      if (!win.isAlwaysOnTop() && !win.isDestroyed()) {
+        if (win.isVisible()) {
+          win.hide()
+        } else {
+          win.show()
+          win.focus()
+        }
+        break
+      }
+    }
+  })
+
   // Screen capture (supports multi-display selection)
   ipcMain.handle(IPC_CHANNELS.SCREEN_CAPTURE, async () => {
     try {

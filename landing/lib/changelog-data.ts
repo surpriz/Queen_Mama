@@ -32,12 +32,27 @@ export const changelogData: ChangelogRelease[] = [
             id: "windowsDownload",
             title: "Cross-Platform Downloads",
             description: "The download page now auto-detects your OS and offers the right installer for macOS or Windows"
+          },
+          {
+            id: "frenchLocalization",
+            title: "Full French Interface",
+            description: "The macOS app is now fully available in French with a comprehensive String Catalog covering all screens"
+          },
+          {
+            id: "appLanguageSelection",
+            title: "In-App Language Switching",
+            description: "Choose your preferred app language (French, English, or system default) directly from Settings"
           }
         ]
       },
       {
         category: "improvements",
         changes: [
+          {
+            id: "refinedCoachingPrompts",
+            title: "Refined AI Coaching Prompts",
+            description: "Rewritten system prompts across all AI modes for more natural, concise, and actionable coaching responses"
+          },
           {
             id: "sonnet46Upgrade",
             title: "Upgraded to Claude Sonnet 4.6",
@@ -97,6 +112,11 @@ export const changelogData: ChangelogRelease[] = [
             id: "onboardingVisibility",
             title: "Onboarding Button Visibility",
             description: "Navigation buttons are now always visible during the onboarding flow without needing to scroll"
+          },
+          {
+            id: "zombieAuthRecovery",
+            title: "Stale Session Auto-Recovery",
+            description: "The app now detects and clears expired authentication states instead of silently failing"
           }
         ]
       },
@@ -122,6 +142,16 @@ export const changelogData: ChangelogRelease[] = [
             id: "windowsBuildEnv",
             title: "Windows Build Environment Fix",
             description: "Google Sign-In and environment detection now work correctly in production Windows builds"
+          },
+          {
+            id: "transcriptionProxy",
+            title: "Secure Transcription Relay",
+            description: "WebSocket proxy that keeps Deepgram API keys on the server, improving security for desktop app audio streaming"
+          },
+          {
+            id: "desktopCorsSupport",
+            title: "Desktop App Sync Support",
+            description: "CORS and session synchronization infrastructure enabling desktop apps to sync data with the web dashboard"
           }
         ]
       }

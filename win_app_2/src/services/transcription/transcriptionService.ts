@@ -41,10 +41,13 @@ let onConnectionChanged: ((connected: boolean, provider: string | null) => void)
 let onReconnectionBudgetExhausted: ((countdown: number) => void) | null = null
 
 const providers: TranscriptionProvider[] = [
-  new DeepgramProvider(),
-  new AssemblyAIProvider(),
-  new DeepgramFluxProvider(),
+  new DeepgramProvider(),       // Primary: WS proxy (API key stays on server)
+  new DeepgramFluxProvider(),   // Fallback 1: Direct Deepgram connection
+  new AssemblyAIProvider(),     // Fallback 2
 ]
+
+// Track providers that returned 403 (not available for plan) to avoid retrying
+const unavailableProviders = new Set<string>()
 
 function setupProviderCallbacks(provider: TranscriptionProvider): void {
   provider.onTranscript = (text) => {
@@ -79,15 +82,25 @@ export function setCallbacks(callbacks: {
   onReconnectionBudgetExhausted = callbacks.onReconnectionBudgetExhausted || null
 }
 
+/**
+ * Reset intentional disconnect flag — must be called before connect() when starting a new session
+ */
+export function resetDisconnectFlag(): void {
+  intentionalDisconnect = false
+}
+
 export async function connect(): Promise<void> {
+  if (intentionalDisconnect) {
+    log.info('Connect skipped: intentional disconnect active')
+    return
+  }
+
   log.info('Connecting to transcription service...')
 
   if (currentProvider) {
     currentProvider.disconnect()
     currentProvider = null
   }
-
-  intentionalDisconnect = false
   reconnectAttempts = 0
   reconnectTimestamps = []
   stopAutoRecovery()
@@ -99,7 +112,7 @@ export async function connect(): Promise<void> {
   }
   log.info(`Language set to: ${language}`)
 
-  const configuredProviders = providers.filter((p) => p.isConfigured)
+  const configuredProviders = providers.filter((p) => p.isConfigured && !unavailableProviders.has(p.name))
   let lastError: Error | null = null
 
   for (const provider of configuredProviders) {
@@ -123,7 +136,14 @@ export async function connect(): Promise<void> {
       log.info(`Connected with ${provider.name}`)
       return
     } catch (error) {
-      log.warn(`Provider ${provider.name} failed`, error)
+      const errMsg = (error as Error)?.message || ''
+      // Track 403 providers to avoid retrying them on reconnect
+      if (errMsg.includes('403')) {
+        log.warn(`Provider ${provider.name} not available for plan, skipping in future attempts`)
+        unavailableProviders.add(provider.name)
+      } else {
+        log.warn(`Provider ${provider.name} failed: ${errMsg}`)
+      }
       lastError = error as Error
     }
   }
@@ -150,6 +170,7 @@ export function disconnect(): void {
   reconnectTimestamps = []
   batchBuffer = []
   batchBufferSize = 0
+  unavailableProviders.clear() // Reset on full disconnect so providers are retried on next session
   onConnectionChanged?.(false, null)
 }
 
@@ -236,6 +257,13 @@ async function attemptReconnect(): Promise<void> {
 
   await sleep(delay)
 
+  // Check if session was stopped during the sleep
+  if (intentionalDisconnect) {
+    log.info('Reconnection cancelled: session was stopped')
+    isReconnecting = false
+    return
+  }
+
   try {
     await connect()
     isReconnecting = false
@@ -243,7 +271,9 @@ async function attemptReconnect(): Promise<void> {
     log.info('Reconnected successfully')
   } catch {
     isReconnecting = false
-    attemptReconnect()
+    if (!intentionalDisconnect) {
+      attemptReconnect()
+    }
   }
 }
 

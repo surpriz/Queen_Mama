@@ -14,6 +14,7 @@ protocol AIProvider: Sendable {
 
 enum AIProviderError: LocalizedError {
     case notAuthenticated
+    case serviceNotConfigured
     case requestFailed(Error)
     case invalidResponse
     case rateLimited
@@ -24,6 +25,8 @@ enum AIProviderError: LocalizedError {
         switch self {
         case .notAuthenticated:
             return "Please sign in to use AI features."
+        case .serviceNotConfigured:
+            return "AI service temporarily unavailable. Please try again."
         case .requestFailed(let error):
             return "Request failed: \(error.localizedDescription)"
         case .invalidResponse:

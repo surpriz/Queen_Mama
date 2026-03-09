@@ -69,13 +69,13 @@ struct SignInChoiceView: View {
                     .foregroundStyle(QMDesign.Colors.primaryGradient)
             }
 
-            Text(showRegistrationForm ? "Create Account" : "Welcome to Queen Mama")
+            Text(showRegistrationForm ? String(localized: "auth.choice.createAccount") : String(localized: "auth.choice.welcomeTitle"))
                 .font(QMDesign.Typography.titleMedium)
                 .foregroundColor(QMDesign.Colors.textPrimary)
 
             Text(showRegistrationForm
-                 ? "Create your account to get started"
-                 : "Sign in to unlock cloud sync, session history, and PRO features.")
+                 ? String(localized: "auth.choice.createAccountSubtitle")
+                 : String(localized: "auth.choice.welcomeSubtitle"))
                 .font(QMDesign.Typography.bodySmall)
                 .foregroundColor(QMDesign.Colors.textSecondary)
                 .multilineTextAlignment(.center)
@@ -105,7 +105,7 @@ struct SignInChoiceView: View {
                     HStack(spacing: QMDesign.Spacing.sm) {
                         Image(systemName: "envelope.fill")
                             .font(.system(size: 16))
-                        Text("Sign in with Email")
+                        Text(String(localized: "auth.choice.signInWithEmail"))
                             .font(QMDesign.Typography.labelMedium)
                     }
                     .frame(maxWidth: .infinity)
@@ -127,7 +127,7 @@ struct SignInChoiceView: View {
                     HStack(spacing: QMDesign.Spacing.sm) {
                         Image(systemName: "person.badge.plus")
                             .font(.system(size: 16))
-                        Text("Create Account")
+                        Text(String(localized: "auth.choice.createAccount"))
                             .font(QMDesign.Typography.labelMedium)
                     }
                     .frame(maxWidth: .infinity)
@@ -162,7 +162,7 @@ struct SignInChoiceView: View {
                     Image(systemName: "g.circle.fill")
                         .font(.system(size: 20))
                 }
-                Text(isGoogleLoading ? "Signing in..." : "Continue with Google")
+                Text(isGoogleLoading ? String(localized: "auth.choice.signingIn") : String(localized: "auth.choice.continueWithGoogle"))
                     .font(QMDesign.Typography.labelMedium)
             }
             .frame(maxWidth: .infinity)
@@ -185,7 +185,7 @@ struct SignInChoiceView: View {
             Rectangle()
                 .fill(QMDesign.Colors.borderSubtle)
                 .frame(height: 1)
-            Text("or")
+            Text(String(localized: "auth.choice.or"))
                 .font(QMDesign.Typography.caption)
                 .foregroundColor(QMDesign.Colors.textTertiary)
             Rectangle()
@@ -211,7 +211,7 @@ struct SignInChoiceView: View {
 
     private var skipButton: some View {
         Button(action: { onSkip?() }) {
-            Text("Skip for now")
+            Text(String(localized: "auth.choice.skipForNow"))
                 .font(QMDesign.Typography.bodySmall)
                 .foregroundColor(QMDesign.Colors.textTertiary)
         }
@@ -235,7 +235,7 @@ struct SignInChoiceView: View {
             } catch let error as AuthError {
                 switch error {
                 case .credentialsAccountExists:
-                    errorMessage = "This email uses password login. Please sign in with email instead."
+                    errorMessage = String(localized: "auth.choice.error.credentialsAccountExists")
                 default:
                     errorMessage = error.localizedDescription
                 }

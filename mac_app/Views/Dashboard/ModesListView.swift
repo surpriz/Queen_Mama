@@ -125,7 +125,7 @@ struct ModernModesSidebar: View {
                         .foregroundColor(.white)
                 }
 
-                Text("Modes")
+                Text(String(localized: "modes.title"))
                     .font(QMDesign.Typography.headline)
                     .foregroundColor(QMDesign.Colors.textPrimary)
 
@@ -142,7 +142,7 @@ struct ModernModesSidebar: View {
                         )
                 }
                 .buttonStyle(.plain)
-                .help("Create new mode")
+                .help(String(localized: "modes.help.createNewMode"))
             }
             .padding(QMDesign.Spacing.md)
             .background(
@@ -160,7 +160,7 @@ struct ModernModesSidebar: View {
             ScrollView {
                 VStack(spacing: QMDesign.Spacing.sm) {
                     // Built-in Section
-                    ModernModeSection(title: "BUILT-IN") {
+                    ModernModeSection(title: String(localized: "modes.section.builtIn")) {
                         ModernModeRow(
                             mode: .defaultMode,
                             isSelected: selectedMode?.name == "Default",
@@ -201,7 +201,7 @@ struct ModernModesSidebar: View {
                     // Custom Section
                     let customModes = modes.filter { !$0.isDefault }
                     if !customModes.isEmpty {
-                        ModernModeSection(title: "CUSTOM") {
+                        ModernModeSection(title: String(localized: "modes.section.custom")) {
                             ForEach(customModes) { mode in
                                 ModernModeRow(
                                     mode: mode,
@@ -293,7 +293,7 @@ struct ModernModeRow: View {
 
                         // Active badge (replaces Default badge)
                         if isActive {
-                            Text("Active")
+                            Text(String(localized: "modes.badge.active"))
                                 .font(QMDesign.Typography.captionSmall)
                                 .foregroundColor(.white)
                                 .padding(.horizontal, 6)
@@ -347,19 +347,19 @@ struct ModernModeRow: View {
         .animation(QMDesign.Animation.quick, value: isActive)
         .contextMenu {
             if let onActivate = onActivate, !isActive {
-                Button("Set as Active") { onActivate() }
+                Button(String(localized: "modes.contextMenu.setActive")) { onActivate() }
                 Divider()
             }
             if isCustom {
                 if let onEdit = onEdit {
-                    Button("Edit") { onEdit() }
+                    Button(String(localized: "modes.contextMenu.edit")) { onEdit() }
                 }
                 if let onDuplicate = onDuplicate {
-                    Button("Duplicate") { onDuplicate() }
+                    Button(String(localized: "modes.contextMenu.duplicate")) { onDuplicate() }
                 }
                 Divider()
                 if let onDelete = onDelete {
-                    Button("Delete", role: .destructive) { onDelete() }
+                    Button(String(localized: "modes.contextMenu.delete"), role: .destructive) { onDelete() }
                 }
             }
         }
@@ -469,7 +469,7 @@ struct ModernModeDetailHeader: View {
             VStack(alignment: .leading, spacing: 4) {
                 HStack(spacing: QMDesign.Spacing.sm) {
                     if isEditing {
-                        TextField("Mode Name", text: $editedName)
+                        TextField(String(localized: "modes.field.modeName"), text: $editedName)
                             .font(QMDesign.Typography.titleMedium)
                             .textFieldStyle(.plain)
                             .padding(QMDesign.Spacing.sm)
@@ -484,7 +484,7 @@ struct ModernModeDetailHeader: View {
                     }
 
                     if isActive {
-                        Text("Active")
+                        Text(String(localized: "modes.badge.active"))
                             .font(QMDesign.Typography.captionSmall)
                             .foregroundColor(.white)
                             .padding(.horizontal, 8)
@@ -496,7 +496,7 @@ struct ModernModeDetailHeader: View {
                     }
                 }
 
-                Text(mode.isDefault ? "Built-in mode" : "Custom mode")
+                Text(mode.isDefault ? String(localized: "modes.detail.builtInMode") : String(localized: "modes.detail.customMode"))
                     .font(QMDesign.Typography.caption)
                     .foregroundColor(QMDesign.Colors.textTertiary)
             }
@@ -509,7 +509,7 @@ struct ModernModeDetailHeader: View {
                     HStack(spacing: QMDesign.Spacing.xs) {
                         Image(systemName: "bolt.fill")
                             .font(.system(size: 12, weight: .semibold))
-                        Text("Activate")
+                        Text(String(localized: "modes.button.activate"))
                             .font(QMDesign.Typography.labelSmall)
                     }
                     .foregroundColor(.white)
@@ -534,7 +534,7 @@ struct ModernModeDetailHeader: View {
                     HStack(spacing: QMDesign.Spacing.xs) {
                         Image(systemName: isEditing ? "checkmark" : "pencil")
                             .font(.system(size: 12, weight: .semibold))
-                        Text(isEditing ? "Save" : "Edit")
+                        Text(isEditing ? String(localized: "modes.button.save") : String(localized: "modes.button.edit"))
                             .font(QMDesign.Typography.labelSmall)
                     }
                     .foregroundColor(.white)
@@ -586,7 +586,7 @@ struct ModernModePromptCard: View {
                     .font(.system(size: 14, weight: .semibold))
                     .foregroundStyle(QMDesign.Colors.primaryGradient)
 
-                Text("System Prompt")
+                Text(String(localized: "modes.detail.systemPrompt"))
                     .font(QMDesign.Typography.headline)
                     .foregroundColor(QMDesign.Colors.textPrimary)
 
@@ -600,7 +600,7 @@ struct ModernModePromptCard: View {
                         HStack(spacing: 4) {
                             Image(systemName: "doc.on.doc")
                                 .font(.system(size: 11))
-                            Text("Copy")
+                            Text(String(localized: "modes.button.copy"))
                                 .font(QMDesign.Typography.captionSmall)
                         }
                         .foregroundColor(QMDesign.Colors.textSecondary)
@@ -665,7 +665,7 @@ struct ModernModeFilesCard: View {
                     .font(.system(size: 14, weight: .semibold))
                     .foregroundStyle(QMDesign.Colors.primaryGradient)
 
-                Text("Attached Files")
+                Text(String(localized: "modes.detail.attachedFiles"))
                     .font(QMDesign.Typography.headline)
                     .foregroundColor(QMDesign.Colors.textPrimary)
 
@@ -676,7 +676,7 @@ struct ModernModeFilesCard: View {
                         HStack(spacing: 4) {
                             Image(systemName: "plus")
                                 .font(.system(size: 11, weight: .semibold))
-                            Text("Add File")
+                            Text(String(localized: "modes.button.addFile"))
                                 .font(QMDesign.Typography.captionSmall)
                         }
                         .foregroundColor(.white)
@@ -699,11 +699,11 @@ struct ModernModeFilesCard: View {
                         Image(systemName: "doc.badge.plus")
                             .font(.system(size: 32))
                             .foregroundColor(QMDesign.Colors.textTertiary)
-                        Text("No files attached")
+                        Text(String(localized: "modes.files.noFiles"))
                             .font(QMDesign.Typography.caption)
                             .foregroundColor(QMDesign.Colors.textTertiary)
                         if isEditing {
-                            Text("Click \"Add File\" to attach documents")
+                            Text(String(localized: "modes.files.addFileHint"))
                                 .font(QMDesign.Typography.captionSmall)
                                 .foregroundColor(QMDesign.Colors.textTertiary)
                         }
@@ -834,10 +834,10 @@ struct ModernEmptyModeView: View {
             }
 
             VStack(spacing: QMDesign.Spacing.sm) {
-                Text("No Mode Selected")
+                Text(String(localized: "modes.empty.noModeSelected"))
                     .font(QMDesign.Typography.titleSmall)
                     .foregroundColor(QMDesign.Colors.textPrimary)
-                Text("Select a mode from the sidebar to view or edit its settings")
+                Text(String(localized: "modes.empty.selectMode"))
                     .font(QMDesign.Typography.bodySmall)
                     .foregroundColor(QMDesign.Colors.textSecondary)
                     .multilineTextAlignment(.center)
@@ -863,10 +863,10 @@ struct ModernNewModeSheet: View {
             // Header
             HStack {
                 VStack(alignment: .leading, spacing: 4) {
-                    Text("Create New Mode")
+                    Text(String(localized: "modes.sheet.createNewMode"))
                         .font(QMDesign.Typography.titleMedium)
                         .foregroundStyle(QMDesign.Colors.primaryGradient)
-                    Text("Define a custom AI personality")
+                    Text(String(localized: "modes.sheet.definePersonality"))
                         .font(QMDesign.Typography.caption)
                         .foregroundColor(QMDesign.Colors.textSecondary)
                 }
@@ -888,11 +888,11 @@ struct ModernNewModeSheet: View {
                 VStack(spacing: QMDesign.Spacing.lg) {
                     // Name Field
                     VStack(alignment: .leading, spacing: QMDesign.Spacing.sm) {
-                        Text("Name")
+                        Text(String(localized: "modes.field.name"))
                             .font(QMDesign.Typography.labelMedium)
                             .foregroundColor(QMDesign.Colors.textPrimary)
 
-                        TextField("e.g., Technical Expert", text: $name)
+                        TextField(String(localized: "modes.field.namePlaceholder"), text: $name)
                             .textFieldStyle(.plain)
                             .font(QMDesign.Typography.bodyMedium)
                             .padding(QMDesign.Spacing.md)
@@ -904,7 +904,7 @@ struct ModernNewModeSheet: View {
 
                     // System Prompt Field
                     VStack(alignment: .leading, spacing: QMDesign.Spacing.sm) {
-                        Text("System Prompt")
+                        Text(String(localized: "modes.detail.systemPrompt"))
                             .font(QMDesign.Typography.labelMedium)
                             .foregroundColor(QMDesign.Colors.textPrimary)
 
@@ -918,7 +918,7 @@ struct ModernNewModeSheet: View {
                                     .fill(QMDesign.Colors.backgroundSecondary)
                             )
 
-                        Text("Define how the AI should behave, its tone, expertise, and response style.")
+                        Text(String(localized: "modes.sheet.promptHint"))
                             .font(QMDesign.Typography.captionSmall)
                             .foregroundColor(QMDesign.Colors.textTertiary)
                     }
@@ -928,7 +928,7 @@ struct ModernNewModeSheet: View {
 
             // Footer
             HStack {
-                Button("Cancel") {
+                Button(String(localized: "modes.button.cancel")) {
                     dismiss()
                 }
                 .buttonStyle(.plain)
@@ -945,7 +945,7 @@ struct ModernNewModeSheet: View {
                     HStack(spacing: QMDesign.Spacing.xs) {
                         Image(systemName: "plus.circle.fill")
                             .font(.system(size: 14))
-                        Text("Create Mode")
+                        Text(String(localized: "modes.button.createMode"))
                             .font(QMDesign.Typography.labelMedium)
                     }
                     .foregroundColor(.white)

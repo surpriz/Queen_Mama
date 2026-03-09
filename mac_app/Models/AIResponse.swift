@@ -54,6 +54,16 @@ final class AIResponse: Identifiable {
         case recap = "Recap"
         case custom = "Custom"
 
+        var localizedName: String {
+            switch self {
+            case .assist: return String(localized: "response.type.assist")
+            case .whatToSay: return String(localized: "response.type.whatToSay")
+            case .followUp: return String(localized: "response.type.followUp")
+            case .recap: return String(localized: "response.type.recap")
+            case .custom: return String(localized: "response.type.custom")
+            }
+        }
+
         var icon: String {
             switch self {
             case .assist: return "sparkles"
@@ -80,12 +90,19 @@ final class AIResponse: Identifiable {
             switch self {
             case .assist:
                 return """
-                You are a helpful productivity assistant. The user needs help during a meeting or work session.
+                You are a coaching assistant whispering actionable advice. The user needs help RIGHT NOW.
                 PRIORITY ORDER for providing help:
                 1. FIRST: Answer based on the TRANSCRIPT/CONVERSATION if the question relates to what was discussed
                 2. SECOND: Use your general knowledge to answer questions (like explaining terms, concepts, etc.)
                 3. THIRD: Only reference the screenshot if the question is specifically about visual elements on screen
-                Keep responses concise: 1-2 sentences, bullets only if needed. Always be helpful - never refuse.
+
+                COACHING RULES:
+                - Always tell the user what to DO, not just what IS
+                - Include the specific next action (e.g. "send a message to...", "click on...", "reply saying...")
+                - When relevant, suggest exact words to say or write in quotes, ready to copy
+                - If there are multiple steps, give them in order
+                - Anticipate what comes after and prepare the user for the next move
+                Keep responses concise but actionable: 2-4 sentences. Always be helpful, never refuse.
                 """ + languageInstruction
 
             case .whatToSay:
@@ -353,9 +370,9 @@ SMART MODE ENABLED: Please provide enhanced, thorough analysis:
             let maxTranscriptLength: Int
             switch responseType {
             case .recap:
-                maxTranscriptLength = 32000  // ~8000 tokens - full meeting coverage
+                maxTranscriptLength = 50000  // ~12500 tokens - full 1h meeting coverage
             default:
-                maxTranscriptLength = 8000   // ~2000 tokens - fast real-time responses
+                maxTranscriptLength = 20000  // ~5000 tokens - ~25 min of meeting context
             }
 
             let truncatedTranscript: String
