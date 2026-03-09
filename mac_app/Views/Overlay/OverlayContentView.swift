@@ -875,13 +875,6 @@ struct ModernExpandedContentView: View {
                 .animation(QMDesign.Animation.smooth, value: appState.errorMessage)
             }
 
-            // Modern Tab Bar (with conditional Briefing tab)
-            ModernTabBarView(selectedTab: $selectedTab, visibleTabs: visibleTabs) { tab in
-                if tab != .briefing {
-                    onSubmit()
-                }
-            }
-
             // Content Area - switches based on selected tab
             if selectedTab == .briefing {
                 // Memory Palace Briefing View
@@ -902,7 +895,17 @@ struct ModernExpandedContentView: View {
                         aiService.dismissResponse(response)
                     }
                 )
+            }
 
+            // Action Buttons (always visible at bottom, above status/input)
+            ModernTabBarView(selectedTab: $selectedTab, visibleTabs: visibleTabs) { tab in
+                if tab != .briefing {
+                    onSubmit()
+                }
+            }
+
+            // Status & Input (non-briefing only)
+            if selectedTab != .briefing {
                 // Status Section
                 StatusSection(
                     isSessionActive: appState.isSessionActive,
@@ -933,7 +936,7 @@ struct ModernExpandedContentView: View {
     }
 }
 
-// MARK: - Modern Tab Bar View
+// MARK: - Action Button Bar View
 
 struct ModernTabBarView: View {
     @Binding var selectedTab: TabItem
@@ -943,9 +946,9 @@ struct ModernTabBarView: View {
     @Namespace private var tabAnimation
 
     var body: some View {
-        HStack(spacing: 2) {
+        HStack(spacing: 6) {
             ForEach(visibleTabs, id: \.self) { tab in
-                ModernTabButton(
+                ActionButton(
                     tab: tab,
                     isSelected: selectedTab == tab,
                     namespace: tabAnimation
@@ -957,16 +960,32 @@ struct ModernTabBarView: View {
                 }
             }
         }
-        .padding(3)
-        .background(
-            RoundedRectangle(cornerRadius: QMDesign.Radius.md)
-                .fill(QMDesign.Colors.surfaceLight)
-        )
         .frame(height: QMDesign.Dimensions.Overlay.tabBarHeight)
     }
 }
 
-struct ModernTabButton: View {
+// MARK: - Action Button
+
+struct ActionButtonStyle: ButtonStyle {
+    let isSelected: Bool
+    let isHovered: Bool
+
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .shadow(
+                color: isSelected
+                    ? QMDesign.Colors.accent.opacity(configuration.isPressed ? 0.1 : 0.25)
+                    : Color.black.opacity(configuration.isPressed ? 0.0 : 0.12),
+                radius: configuration.isPressed ? 1 : 4,
+                x: 0,
+                y: configuration.isPressed ? 1 : 3
+            )
+            .scaleEffect(configuration.isPressed ? 0.93 : 1.0)
+            .animation(QMDesign.Animation.quick, value: configuration.isPressed)
+    }
+}
+
+struct ActionButton: View {
     let tab: TabItem
     let isSelected: Bool
     let namespace: Namespace.ID
@@ -974,42 +993,61 @@ struct ModernTabButton: View {
 
     @State private var isHovered = false
 
+    private var borderGradient: LinearGradient {
+        if isSelected {
+            return LinearGradient(
+                colors: [QMDesign.Colors.gradientStart.opacity(0.7),
+                         QMDesign.Colors.gradientEnd.opacity(0.7)],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+        } else {
+            return LinearGradient(
+                colors: [QMDesign.Colors.borderMedium, QMDesign.Colors.borderMedium],
+                startPoint: .top,
+                endPoint: .bottom
+            )
+        }
+    }
+
     var body: some View {
         Button(action: action) {
-            HStack(spacing: 4) {
+            VStack(spacing: 3) {
                 Image(systemName: tab.icon)
-                    .font(.system(size: 10, weight: isSelected ? .semibold : .regular))
+                    .font(.system(size: 11, weight: isSelected ? .semibold : .medium))
                 Text(tab.shortLabel)
-                    .font(.system(size: 10, weight: isSelected ? .semibold : .regular))
+                    .font(.system(size: 9, weight: isSelected ? .semibold : .medium))
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.8)
             }
-            .padding(.horizontal, QMDesign.Spacing.xs)
-            .padding(.vertical, 5)
             .frame(maxWidth: .infinity)
+            .padding(.vertical, QMDesign.Spacing.xs)
             .background(
                 ZStack {
                     if isSelected {
-                        RoundedRectangle(cornerRadius: QMDesign.Radius.sm)
+                        Capsule()
                             .fill(QMDesign.Colors.primaryGradient.opacity(0.2))
-                            .matchedGeometryEffect(id: "tabBackground", in: namespace)
+                        Capsule()
+                            .fill(QMDesign.Colors.primaryGradient.opacity(0.1))
+                            .matchedGeometryEffect(id: "actionSelection", in: namespace)
                     } else {
-                        RoundedRectangle(cornerRadius: QMDesign.Radius.sm)
-                            .fill(isHovered ? QMDesign.Colors.surfaceHover : QMDesign.Colors.surfaceMedium.opacity(0.5))
+                        Capsule()
+                            .fill(isHovered ? QMDesign.Colors.surfaceHover : QMDesign.Colors.surfaceLight)
                     }
                 }
             )
             .overlay(
-                RoundedRectangle(cornerRadius: QMDesign.Radius.sm)
-                    .stroke(
-                        isSelected ? QMDesign.Colors.accent.opacity(0.3) :
-                        isHovered ? QMDesign.Colors.borderSubtle.opacity(0.8) :
-                        QMDesign.Colors.borderSubtle.opacity(0.4),
-                        lineWidth: 0.5
-                    )
+                Capsule()
+                    .stroke(borderGradient, lineWidth: isSelected ? 1.0 : 0.75)
             )
-            .foregroundColor(isSelected ? QMDesign.Colors.accent : QMDesign.Colors.textSecondary)
+            .foregroundColor(
+                isSelected ? QMDesign.Colors.accent : QMDesign.Colors.textSecondary
+            )
         }
-        .buttonStyle(.plain)
+        .buttonStyle(ActionButtonStyle(isSelected: isSelected, isHovered: isHovered))
         .onHover { isHovered = $0 }
+        .animation(QMDesign.Animation.smooth, value: isSelected)
+        .animation(QMDesign.Animation.quick, value: isHovered)
     }
 }
 

@@ -609,6 +609,7 @@ struct LanguageSelectorRow: View {
                         onSelect: {
                             if config.appLanguage != lang.code {
                                 config.appLanguage = lang.code
+                                ConfigurationManager.applyLanguageOverride(lang.code)
                                 showRestartAlert = true
                             }
                         }

@@ -28,15 +28,10 @@ final class ProxyAPIClient: @unchecked Sendable {
     }
 
     private init() {
-        // Configure base URL from environment or default
-        #if DEBUG
-        let defaultURL = "http://localhost:3000"
-        #else
-        let defaultURL = "https://www.queenmama.co"
-        #endif
-
-        let urlString = ProcessInfo.processInfo.environment["API_BASE_URL"] ?? defaultURL
-        self.baseURL = URL(string: urlString) ?? URL(string: defaultURL)!
+        // Use centralized AppEnvironment for consistent base URL across all services
+        let urlString = ProcessInfo.processInfo.environment["API_BASE_URL"]
+            ?? AppEnvironment.current.apiBaseURL
+        self.baseURL = URL(string: urlString) ?? URL(string: "https://www.queenmama.co")!
 
         // Standard session for quick API calls (config, tokens, etc.)
         let config = URLSessionConfiguration.default

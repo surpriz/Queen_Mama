@@ -37,14 +37,46 @@ final class ProxyAIProvider: AIProvider {
         configManager.isAIProviderAvailable(providerName)
     }
 
+    /// Ensures proxy config is loaded, retrying once if needed.
+    /// If config cannot load because the token is invalid, forces re-authentication
+    /// to clear the "zombie" degraded mode state where UI shows Connected but nothing works.
+    private func ensureConfigLoaded() async throws {
+        if isConfigured { return }
+
+        // Config not loaded — attempt to reload before failing
+        print("[ProxyAIProvider] Config not loaded, attempting reload...")
+        do {
+            try await configManager.refreshConfig()
+        } catch {
+            print("[ProxyAIProvider] Config reload failed: \(error)")
+            let isAuthError = (error as? ProxyError).map {
+                if case .notAuthenticated = $0 { return true }
+                return false
+            } ?? false
+
+            if isAuthError && AuthenticationManager.shared.isAuthenticated {
+                // Token is truly invalid — force logout to clear zombie state
+                print("[ProxyAIProvider] Clearing zombie authenticated state — forcing re-authentication")
+                await AuthenticationManager.shared.logout()
+                throw AIProviderError.notAuthenticated
+            }
+            // Network/server error — don't force logout, it might be transient
+            throw AIProviderError.serviceNotConfigured
+        }
+
+        guard isConfigured else {
+            print("[ProxyAIProvider] Config loaded but provider not available")
+            throw AIProviderError.serviceNotConfigured
+        }
+        print("[ProxyAIProvider] Config reloaded successfully")
+    }
+
     func generateResponse(context: AIContext) async throws -> AIResponse {
         guard AuthenticationManager.shared.isAuthenticated else {
             throw AIProviderError.notAuthenticated
         }
 
-        guard isConfigured else {
-            throw AIProviderError.notAuthenticated
-        }
+        try await ensureConfigLoaded()
 
         let startTime = Date()
 
@@ -82,10 +114,37 @@ final class ProxyAIProvider: AIProvider {
                     return
                 }
 
-                let isConfigured = await MainActor.run { self.isConfigured }
-                guard isConfigured else {
-                    continuation.finish(throwing: AIProviderError.notAuthenticated)
-                    return
+                // Ensure config is loaded, retry once if needed
+                let configReady: Bool = await MainActor.run { self.isConfigured }
+                if !configReady {
+                    print("[ProxyAIProvider] Config not loaded, attempting reload...")
+                    do {
+                        try await ProxyConfigManager.shared.refreshConfig()
+                    } catch {
+                        print("[ProxyAIProvider] Config reload failed: \(error)")
+                        let isAuthError = (error as? ProxyError).map {
+                            if case .notAuthenticated = $0 { return true }
+                            return false
+                        } ?? false
+
+                        if isAuthError {
+                            let wasAuthenticated = await MainActor.run { AuthenticationManager.shared.isAuthenticated }
+                            if wasAuthenticated {
+                                print("[ProxyAIProvider] Clearing zombie authenticated state — forcing re-authentication")
+                                await AuthenticationManager.shared.logout()
+                            }
+                            continuation.finish(throwing: AIProviderError.notAuthenticated)
+                        } else {
+                            continuation.finish(throwing: AIProviderError.serviceNotConfigured)
+                        }
+                        return
+                    }
+                    let readyAfterRetry = await MainActor.run { self.isConfigured }
+                    if !readyAfterRetry {
+                        continuation.finish(throwing: AIProviderError.serviceNotConfigured)
+                        return
+                    }
+                    print("[ProxyAIProvider] Config reloaded successfully")
                 }
 
                 // Get values needed for streaming (on main actor)

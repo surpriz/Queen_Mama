@@ -177,7 +177,7 @@ struct QMDesign {
             static let expandedHeight: CGFloat = 480
 
             static let headerHeight: CGFloat = 44
-            static let tabBarHeight: CGFloat = 36
+            static let tabBarHeight: CGFloat = 44
             static let inputHeight: CGFloat = 48
         }
 
