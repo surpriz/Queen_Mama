@@ -706,6 +706,30 @@
       "windowsBuildEnv": {
         "title": "Windows Build Environment Fix",
         "description": "Google Sign-In and environment detection now work correctly in production Windows builds"
+      },
+      "frenchLocalization": {
+        "title": "Full French Interface",
+        "description": "The macOS app is now fully available in French with a comprehensive String Catalog covering all screens"
+      },
+      "appLanguageSelection": {
+        "title": "In-App Language Switching",
+        "description": "Choose your preferred app language (French, English, or system default) directly from Settings"
+      },
+      "refinedCoachingPrompts": {
+        "title": "Refined AI Coaching Prompts",
+        "description": "Rewritten system prompts across all AI modes for more natural, concise, and actionable coaching responses"
+      },
+      "zombieAuthRecovery": {
+        "title": "Stale Session Auto-Recovery",
+        "description": "The app now detects and clears expired authentication states instead of silently failing"
+      },
+      "transcriptionProxy": {
+        "title": "Secure Transcription Relay",
+        "description": "WebSocket proxy that keeps Deepgram API keys on the server, improving security for desktop app audio streaming"
+      },
+      "desktopCorsSupport": {
+        "title": "Desktop App Sync Support",
+        "description": "CORS and session synchronization infrastructure enabling desktop apps to sync data with the web dashboard"
       }
     }
   },
