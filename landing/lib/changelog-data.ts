@@ -42,6 +42,11 @@ export const changelogData: ChangelogRelease[] = [
             id: "appLanguageSelection",
             title: "In-App Language Switching",
             description: "Choose your preferred app language (French, English, or system default) directly from Settings"
+          },
+          {
+            id: "quickLanguageToggle",
+            title: "Quick Language Toggle",
+            description: "Switch between French and English with a single click from the dashboard sidebar"
           }
         ]
       },
@@ -117,6 +122,11 @@ export const changelogData: ChangelogRelease[] = [
             id: "zombieAuthRecovery",
             title: "Stale Session Auto-Recovery",
             description: "The app now detects and clears expired authentication states instead of silently failing"
+          },
+          {
+            id: "overlayModeSelection",
+            title: "Overlay Mode Selection Fix",
+            description: "Fixed duplicate selection highlight when custom and built-in modes share the same name"
           }
         ]
       },

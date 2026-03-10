@@ -730,6 +730,14 @@
       "desktopCorsSupport": {
         "title": "Desktop App Sync Support",
         "description": "CORS and session synchronization infrastructure enabling desktop apps to sync data with the web dashboard"
+      },
+      "quickLanguageToggle": {
+        "title": "Quick Language Toggle",
+        "description": "Switch between French and English with a single click from the dashboard sidebar"
+      },
+      "overlayModeSelection": {
+        "title": "Overlay Mode Selection Fix",
+        "description": "Fixed duplicate selection highlight when custom and built-in modes share the same name"
       }
     }
   },
