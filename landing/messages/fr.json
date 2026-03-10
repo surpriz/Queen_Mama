@@ -730,6 +730,14 @@
       "desktopCorsSupport": {
         "title": "Synchronisation des apps de bureau",
         "description": "Infrastructure CORS et synchronisation de sessions permettant aux applications de bureau de synchroniser les données avec le tableau de bord web"
+      },
+      "quickLanguageToggle": {
+        "title": "Changement de langue rapide",
+        "description": "Basculez entre français et anglais en un clic depuis la barre latérale du tableau de bord"
+      },
+      "overlayModeSelection": {
+        "title": "Correction sélection de mode overlay",
+        "description": "Correction du double surlignage de sélection lorsque des modes personnalisés et intégrés partagent le même nom"
       }
     }
   },
