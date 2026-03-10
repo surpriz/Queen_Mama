@@ -199,7 +199,8 @@ struct ModernModesSidebar: View {
                     }
 
                     // Custom Section
-                    let customModes = modes.filter { !$0.isDefault }
+                    let builtInNames: Set<String> = ["Default", "Professional", "Interview", "Sales", "Developer Exam"]
+                    let customModes = modes.filter { !$0.isDefault && !builtInNames.contains($0.name) }
                     if !customModes.isEmpty {
                         ModernModeSection(title: String(localized: "modes.section.custom")) {
                             ForEach(customModes) { mode in

@@ -88,6 +88,21 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                 print("[App] Cleaned up \(orphans.count) orphaned session(s)")
             }
         }
+
+        // Fix built-in modes that were incorrectly saved with isDefault = false
+        let builtInNames = ["Default", "Professional", "Interview", "Sales", "Developer Exam"]
+        let modeDescriptor = FetchDescriptor<Mode>()
+        if let allModes = try? context.fetch(modeDescriptor) {
+            var fixedCount = 0
+            for mode in allModes where builtInNames.contains(mode.name) && !mode.isDefault {
+                mode.isDefault = true
+                fixedCount += 1
+            }
+            if fixedCount > 0 {
+                try? context.save()
+                print("[App] Fixed \(fixedCount) built-in mode(s) with incorrect isDefault flag")
+            }
+        }
     }
 
     func applicationDidBecomeActive(_ notification: Notification) {

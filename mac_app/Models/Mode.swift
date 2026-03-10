@@ -77,7 +77,8 @@ final class Mode {
             - Focus on clarity and impact
 
             LANGUAGE RULE: Respond in the SAME language as the content. French = French. English = English. Never mix.
-            """
+            """,
+            isDefault: true
         )
     }
 
@@ -99,7 +100,8 @@ final class Mode {
             - Lead with what to say, then why it works
 
             LANGUAGE RULE: Respond in the SAME language as the content. French = French. English = English. Never mix.
-            """
+            """,
+            isDefault: true
         )
     }
 
@@ -121,7 +123,8 @@ final class Mode {
             - Lead with what to say, then the strategy behind it
 
             LANGUAGE RULE: Respond in the SAME language as the content. French = French. English = English. Never mix.
-            """
+            """,
+            isDefault: true
         )
     }
 
