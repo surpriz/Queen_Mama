@@ -230,12 +230,13 @@ struct ModeMenuItem: View {
                     ForEach(builtInModes, id: \.name) { mode in
                         ModeOptionButton(
                             mode: mode,
-                            isSelected: selectedMode?.name == mode.name,
+                            isSelected: selectedMode?.name == mode.name
+                                && !customModes.contains(where: { $0.id == selectedMode?.id }),
                             onSelect: { onSelect(mode) }
                         )
                     }
 
-                    // Custom modes section
+                    // Custom modes section (show up to 5 to prevent overflow)
                     if !customModes.isEmpty {
                         // Separator
                         HStack(spacing: QMDesign.Spacing.xs) {
@@ -251,12 +252,20 @@ struct ModeMenuItem: View {
                         }
                         .padding(.vertical, QMDesign.Spacing.xxs)
 
-                        ForEach(customModes, id: \.id) { mode in
+                        ForEach(customModes.prefix(5), id: \.id) { mode in
                             ModeOptionButton(
                                 mode: mode,
                                 isSelected: selectedMode?.id == mode.id,
                                 onSelect: { onSelect(mode) }
                             )
+                        }
+
+                        if customModes.count > 5 {
+                            Text("+\(customModes.count - 5)")
+                                .font(QMDesign.Typography.captionSmall)
+                                .foregroundColor(QMDesign.Colors.textTertiary)
+                                .frame(maxWidth: .infinity)
+                                .padding(.top, QMDesign.Spacing.xxs)
                         }
                     }
                 }

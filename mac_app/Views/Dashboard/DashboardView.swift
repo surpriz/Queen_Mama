@@ -441,6 +441,9 @@ struct ModernSidebarView: View {
 
                     Spacer()
 
+                    // Language toggle
+                    LanguageToggleButton()
+
                     // Keyboard shortcut hint
                     KeyboardShortcutBadge(shortcut: "Cmd+Shift+S", size: .small)
                 }
@@ -825,6 +828,54 @@ struct WebDashboardButton: View {
                 isLoading = false
             }
         }
+    }
+}
+
+// MARK: - Language Toggle Button
+
+struct LanguageToggleButton: View {
+    @ObservedObject private var config = ConfigurationManager.shared
+    @State private var isHovered = false
+
+    private var currentFlag: String {
+        switch config.appLanguage {
+        case "fr": return "🇫🇷"
+        case "en": return "🇬🇧"
+        default:
+            // "system" — show flag based on system locale
+            let systemLang = Locale.current.language.languageCode?.identifier ?? "en"
+            return systemLang == "fr" ? "🇫🇷" : "🇬🇧"
+        }
+    }
+
+    private var nextLanguage: String {
+        switch config.appLanguage {
+        case "fr": return "en"
+        case "en": return "fr"
+        default:
+            // "system" — toggle to the opposite of current system locale
+            let systemLang = Locale.current.language.languageCode?.identifier ?? "en"
+            return systemLang == "fr" ? "en" : "fr"
+        }
+    }
+
+    var body: some View {
+        Button {
+            config.appLanguage = nextLanguage
+            ConfigurationManager.applyLanguageOverride(nextLanguage)
+            config.relaunchApp()
+        } label: {
+            Text(currentFlag)
+                .font(.system(size: 12))
+                .frame(width: 22, height: 18)
+                .background(
+                    RoundedRectangle(cornerRadius: QMDesign.Radius.xs)
+                        .fill(isHovered ? QMDesign.Colors.surfaceHover : Color.clear)
+                )
+        }
+        .buttonStyle(.plain)
+        .onHover { isHovered = $0 }
+        .help(String(localized: "dashboard.sidebar.switchLanguage"))
     }
 }
 
