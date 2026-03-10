@@ -738,6 +738,14 @@
       "overlayModeSelection": {
         "title": "Correction sélection de mode overlay",
         "description": "Correction du double surlignage de sélection lorsque des modes personnalisés et intégrés partagent le même nom"
+      },
+      "appIcons": {
+        "title": "Mise à jour des icônes",
+        "description": "Mise à jour des icônes de l'application et des configurations des assets pour une identité visuelle actualisée"
+      },
+      "builtInModeDefaults": {
+        "title": "Correction des modes intégrés",
+        "description": "Correction des flags par défaut des modes intégrés et du filtrage pour séparer correctement les modes intégrés et personnalisés"
       }
     }
   },

@@ -82,6 +82,11 @@ export const changelogData: ChangelogRelease[] = [
             id: "authMethodDisplay",
             title: "Sign-in Method Badge",
             description: "Account settings now display whether you signed in with Google or Email"
+          },
+          {
+            id: "appIcons",
+            title: "App Icons Update",
+            description: "Updated app icons and asset configurations for a refreshed visual identity"
           }
         ]
       },
@@ -127,6 +132,11 @@ export const changelogData: ChangelogRelease[] = [
             id: "overlayModeSelection",
             title: "Overlay Mode Selection Fix",
             description: "Fixed duplicate selection highlight when custom and built-in modes share the same name"
+          },
+          {
+            id: "builtInModeDefaults",
+            title: "Built-in Mode Defaults Fix",
+            description: "Fixed built-in mode default flags and filtering to correctly separate built-in and custom modes"
           }
         ]
       },
