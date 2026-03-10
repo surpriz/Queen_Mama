@@ -180,8 +180,10 @@ struct ModeMenuItem: View {
 
     private let builtInModes: [Mode] = [.defaultMode, .professionalMode, .interviewMode, .salesMode, .developerExamMode]
 
+    private static let builtInNames: Set<String> = ["Default", "Professional", "Interview", "Sales", "Developer Exam"]
+
     private var customModes: [Mode] {
-        allModes.filter { !$0.isDefault }
+        allModes.filter { !$0.isDefault && !Self.builtInNames.contains($0.name) }
     }
 
     var body: some View {
