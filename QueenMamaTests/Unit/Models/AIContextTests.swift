@@ -24,7 +24,7 @@ final class AIContextTests: XCTestCase {
         )
 
         let prompt = context.systemPrompt
-        XCTAssertTrue(prompt.contains("productivity assistant"), "Default mode prompt should contain productivity assistant")
+        XCTAssertTrue(prompt.contains("coaching assistant"), "Default mode prompt should contain coaching assistant")
         XCTAssertTrue(prompt.contains("LANGUAGE RULE"), "Should include language rule")
     }
 
@@ -52,7 +52,7 @@ final class AIContextTests: XCTestCase {
         let prompt = context.systemPrompt
         XCTAssertTrue(prompt.contains("custom bot"), "Custom mode should use its own prompt")
         // Custom mode should NOT include the .assist system prompt addition
-        XCTAssertFalse(prompt.contains("productivity assistant"),
+        XCTAssertFalse(prompt.contains("coaching assistant"),
             "Custom mode should not include default responseType additions")
     }
 
@@ -65,7 +65,7 @@ final class AIContextTests: XCTestCase {
             let mode = Mode(name: name, systemPrompt: "test")
             let context = AIContext(transcript: "test", mode: mode, responseType: .assist)
             // Built-in modes should include the responseType addition
-            XCTAssertTrue(context.systemPrompt.contains("productivity assistant"),
+            XCTAssertTrue(context.systemPrompt.contains("coaching assistant"),
                 "\(name) should be treated as built-in mode")
         }
 
@@ -88,7 +88,7 @@ final class AIContextTests: XCTestCase {
     }
 
     func testLongTranscriptIsTruncated() {
-        let longTranscript = String(repeating: "word ", count: 2000) // ~10000 chars
+        let longTranscript = String(repeating: "word ", count: 5000) // ~25000 chars, exceeds 20000 limit
         let context = AIContext(transcript: longTranscript, responseType: .assist)
         let message = context.userMessage
 
