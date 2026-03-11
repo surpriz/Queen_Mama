@@ -9,16 +9,11 @@ final class URLConfigManager: @unchecked Sendable {
     let webBaseURL: URL
 
     private init() {
-        #if DEBUG
-        let defaultBase = "http://localhost:3000"
-        #else
-        let defaultBase = "https://www.queenmama.co"
-        #endif
+        let baseString = ProcessInfo.processInfo.environment["API_BASE_URL"]
+            ?? AppEnvironment.current.apiBaseURL
 
-        let baseString = ProcessInfo.processInfo.environment["API_BASE_URL"] ?? defaultBase
-
-        self.apiBaseURL = URL(string: baseString) ?? URL(string: defaultBase)!
-        self.webBaseURL = URL(string: baseString) ?? URL(string: defaultBase)!
+        self.apiBaseURL = URL(string: baseString) ?? URL(string: "https://www.queenmama.co")!
+        self.webBaseURL = URL(string: baseString) ?? URL(string: "https://www.queenmama.co")!
     }
 
     // MARK: - Helper URLs

@@ -32,6 +32,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             UpdaterManager.shared.checkForUpdatesInBackground()
         }
 
+        // Log environment for diagnostics
+        print("[App] Environment: \(AppEnvironment.current.displayName)")
+        print("[App] API URL: \(AppEnvironment.current.apiBaseURL)")
+
         // Restore authentication state on launch
         Task { @MainActor in
             await AuthenticationManager.shared.checkExistingAuth()
