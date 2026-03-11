@@ -8,6 +8,25 @@ import Combine
 class OverlayPanel: NSPanel {
     override var canBecomeKey: Bool { true }
     override var canBecomeMain: Bool { false }
+    // Allow panel to become key on any click, not just when a text field needs it.
+    // Default NSPanel behavior (becomesKeyOnlyIfNeeded = true) prevents key promotion
+    // on plain button clicks, which breaks SwiftUI popovers when another app is active.
+    override var becomesKeyOnlyIfNeeded: Bool { false }
+
+    override func sendEvent(_ event: NSEvent) {
+        // Explicitly promote to key window on mouse/scroll interaction.
+        // With .nonactivatingPanel, the app stays in background but the panel
+        // becomes key so SwiftUI controls and popovers receive events properly.
+        switch event.type {
+        case .leftMouseDown, .rightMouseDown, .scrollWheel:
+            if !isKeyWindow {
+                makeKey()
+            }
+        default:
+            break
+        }
+        super.sendEvent(event)
+    }
 
     init() {
         super.init(
