@@ -743,6 +743,14 @@
         "title": "Mise à jour des icônes",
         "description": "Mise à jour des icônes de l'application et des configurations des assets pour une identité visuelle actualisée"
       },
+      "autoMoveToApplications": {
+        "title": "Déplacement automatique dans Applications",
+        "description": "L'app détecte désormais quand elle est lancée depuis les Téléchargements ou une image disque et propose de se déplacer dans Applications pour des mises à jour sans problème"
+      },
+      "enhancedDiagnostics": {
+        "title": "Diagnostics d'erreurs améliorés",
+        "description": "Amélioration de la gestion des erreurs et des logs de diagnostic pour l'authentification, le réseau et la gestion des sessions"
+      },
       "builtInModeDefaults": {
         "title": "Correction des modes intégrés",
         "description": "Correction des flags par défaut des modes intégrés et du filtrage pour séparer correctement les modes intégrés et personnalisés"

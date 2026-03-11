@@ -87,6 +87,16 @@ export const changelogData: ChangelogRelease[] = [
             id: "appIcons",
             title: "App Icons Update",
             description: "Updated app icons and asset configurations for a refreshed visual identity"
+          },
+          {
+            id: "autoMoveToApplications",
+            title: "Auto-Move to Applications",
+            description: "The app now detects when it's running from Downloads or a disk image and offers to move itself to Applications for seamless updates"
+          },
+          {
+            id: "enhancedDiagnostics",
+            title: "Enhanced Error Diagnostics",
+            description: "Improved error handling and diagnostic logging across authentication, networking, and session management"
           }
         ]
       },

@@ -743,6 +743,14 @@
         "title": "App Icons Update",
         "description": "Updated app icons and asset configurations for a refreshed visual identity"
       },
+      "autoMoveToApplications": {
+        "title": "Auto-Move to Applications",
+        "description": "The app now detects when it's running from Downloads or a disk image and offers to move itself to Applications for seamless updates"
+      },
+      "enhancedDiagnostics": {
+        "title": "Enhanced Error Diagnostics",
+        "description": "Improved error handling and diagnostic logging across authentication, networking, and session management"
+      },
       "builtInModeDefaults": {
         "title": "Built-in Mode Defaults Fix",
         "description": "Fixed built-in mode default flags and filtering to correctly separate built-in and custom modes"
