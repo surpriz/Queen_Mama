@@ -59,7 +59,6 @@ struct OverlayContentView: View {
                 isAutoAnswerEnabled: isAutoAnswerEnabled,
                 isSmartModeEnabled: isSmartModeEnabled,
                 showPopupMenu: $showPopupMenu,
-                selectedMode: $appState.selectedMode,
                 onToggleExpand: { overlayController.toggleExpanded() },
                 onStart: {
                     // Show contact picker directly in widget
@@ -410,7 +409,6 @@ struct ModernPillHeaderView: View {
     @Binding var isAutoAnswerEnabled: Bool
     @Binding var isSmartModeEnabled: Bool
     @Binding var showPopupMenu: Bool
-    @Binding var selectedMode: Mode?
     let onToggleExpand: () -> Void
     let onStart: () -> Void
     let onStop: () -> Void
@@ -716,7 +714,6 @@ struct ModernPillHeaderView: View {
                     isAutoAnswerEnabled: $isAutoAnswerEnabled,
                     isSmartModeEnabled: $isSmartModeEnabled,
                     enableScreenCapture: $enableScreenCapture,
-                    selectedMode: $selectedMode,
                     isVisible: $showPopupMenu,
                     onCopyResponse: onCopyResponse,
                     onClearContext: onClearContext,

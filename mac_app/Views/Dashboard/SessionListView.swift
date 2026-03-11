@@ -26,10 +26,15 @@ struct SessionListView: View {
     @State private var showingDeleteAllConfirmation = false
 
     private var filteredSessions: [Session] {
+        // Deduplicate by ID to prevent SwiftUI ForEach issues
+        // (sync can import sessions that already exist locally)
+        var seen = Set<UUID>()
+        let uniqueSessions = sessions.filter { seen.insert($0.id).inserted }
+
         if searchText.isEmpty {
-            return sessions
+            return uniqueSessions
         }
-        return sessions.filter { session in
+        return uniqueSessions.filter { session in
             session.title.localizedCaseInsensitiveContains(searchText) ||
             session.transcript.localizedCaseInsensitiveContains(searchText)
         }
