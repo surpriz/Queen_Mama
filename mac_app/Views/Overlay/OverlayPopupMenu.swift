@@ -51,6 +51,7 @@ struct OverlayPopupMenu: View {
     @Binding var selectedMode: Mode?
     @Binding var isVisible: Bool
 
+    let onCopyResponse: () -> Void
     let onClearContext: () -> Void
     let onMovePosition: (OverlayPosition) -> Void
 
@@ -120,6 +121,18 @@ struct OverlayPopupMenu: View {
             MenuDivider()
 
             // Action Items
+            MenuActionItem(
+                title: String(localized: "overlay.menu.copyResponse"),
+                icon: "doc.on.doc",
+                shortcut: "Cmd+Shift+C",
+                isHovered: hoveredItem == "copy",
+                isDestructive: false
+            ) {
+                onCopyResponse()
+                isVisible = false
+            }
+            .onHover { if $0 { hoveredItem = "copy" } }
+
             MenuActionItem(
                 title: String(localized: "overlay.menu.clearContext"),
                 icon: QMDesign.Icons.clear,
@@ -769,6 +782,7 @@ struct MenuDivider: View {
             enableScreenCapture: .constant(true),
             selectedMode: .constant(nil),
             isVisible: .constant(true),
+            onCopyResponse: {},
             onClearContext: {},
             onMovePosition: { _ in }
         )

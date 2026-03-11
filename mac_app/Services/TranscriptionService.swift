@@ -273,6 +273,17 @@ final class TranscriptionService: ObservableObject {
     /// Transient errors (socket disconnects, timeouts) are downgraded to breadcrumbs
     /// to avoid flooding Sentry with noise from normal network conditions.
     private func classifyNetworkError(_ error: Error) -> NetworkErrorClass {
+        // TranscriptionError cases are expected during disconnection/reconnection cycles
+        // They are NOT permanent failures — classify as transient to avoid Sentry flooding
+        if let transcriptionError = error as? TranscriptionError {
+            switch transcriptionError {
+            case .disconnected, .tokenExpired:
+                return .transient
+            default:
+                return .permanent
+            }
+        }
+
         let nsError = error as NSError
 
         // NSPOSIXErrorDomain errors

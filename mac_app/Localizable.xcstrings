@@ -3216,6 +3216,40 @@
         }
       }
     },
+    "codeBlock.copied" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Copied!"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Copié !"
+          }
+        }
+      }
+    },
+    "codeBlock.copy" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Copy"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Copier"
+          }
+        }
+      }
+    },
     "dashboard.auth.notSignedIn" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -6628,6 +6662,23 @@
         }
       }
     },
+    "overlay.menu.copyResponse" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Copy Code"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Copier le code"
+          }
+        }
+      }
+    },
     "overlay.menu.custom" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -7338,6 +7389,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "L'IA détectera proactivement les moments clés"
+          }
+        }
+      }
+    },
+    "overlay.toast.copied" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Code copied to clipboard"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Code copié dans le presse-papier"
           }
         }
       }

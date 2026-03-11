@@ -82,8 +82,8 @@
     <string>J3GGTERWgV6iyXa+LuzXf3j4HWJ6M/Mb9WqSciHBeYc=</string>
     <key>SUEnableAutomaticChecks</key>
     <true/>
-    <!-- Check for updates every hour instead of every 24 hours -->
+    <!-- Check for updates every 24 hours (Sparkle default) -->
     <key>SUScheduledCheckInterval</key>
-    <integer>3600</integer>
+    <integer>86400</integer>
 </dict>
 </plist>
