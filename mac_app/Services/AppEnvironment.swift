@@ -16,10 +16,13 @@ enum AppEnvironment: String, CaseIterable {
         }
 
         // 2. Check UserDefaults override (for dev testing via Settings)
+        // Only in DEBUG to prevent stale overrides in RELEASE builds
+        #if DEBUG
         if let savedEnv = UserDefaults.standard.string(forKey: "appEnvironment"),
            let env = AppEnvironment(rawValue: savedEnv) {
             return env
         }
+        #endif
 
         // 3. Default based on build configuration
         #if DEBUG

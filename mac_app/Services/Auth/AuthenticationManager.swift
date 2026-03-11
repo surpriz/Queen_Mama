@@ -125,7 +125,7 @@ final class AuthenticationManager: ObservableObject {
             NotificationCenter.default.post(name: .userDidAuthenticate, object: nil)
 
         } catch {
-            authState = .error(message: error.localizedDescription)
+            authState = .error(message: AuthError.friendlyMessage(from: error))
             throw error
         }
     }
@@ -161,7 +161,7 @@ final class AuthenticationManager: ObservableObject {
             NotificationCenter.default.post(name: .userDidAuthenticate, object: nil)
 
         } catch {
-            authState = .error(message: error.localizedDescription)
+            authState = .error(message: AuthError.friendlyMessage(from: error))
             throw error
         }
     }
@@ -188,7 +188,7 @@ final class AuthenticationManager: ObservableObject {
             return response
 
         } catch {
-            authState = .error(message: error.localizedDescription)
+            authState = .error(message: AuthError.friendlyMessage(from: error))
             throw error
         }
     }
@@ -379,7 +379,7 @@ final class AuthenticationManager: ObservableObject {
             throw error
 
         } catch {
-            authState = .error(message: error.localizedDescription)
+            authState = .error(message: AuthError.friendlyMessage(from: error))
             throw error
         }
     }

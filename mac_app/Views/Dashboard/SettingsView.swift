@@ -1711,7 +1711,7 @@ struct ModernAccountSettingsView: View {
                     NSWorkspace.shared.open(url)
                 }
             } catch {
-                connectionError = error.localizedDescription
+                connectionError = AuthError.friendlyMessage(from: error)
             }
             isConnecting = false
         }

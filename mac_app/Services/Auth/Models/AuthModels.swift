@@ -383,4 +383,48 @@ enum AuthError: LocalizedError {
             return message
         }
     }
+
+    /// Translates raw URLError codes into user-friendly messages
+    static func friendlyMessage(from error: Error) -> String {
+        // If it's already an AuthError, use its localized description
+        if let authError = error as? AuthError {
+            return authError.localizedDescription
+        }
+
+        // Translate URLError codes into readable messages
+        if let urlError = error as? URLError {
+            switch urlError.code {
+            case .secureConnectionFailed: // -1200
+                return "Connexion sécurisée impossible. Vérifiez votre connexion internet ou réessayez."
+            case .notConnectedToInternet: // -1009
+                return "Pas de connexion internet."
+            case .timedOut: // -1001
+                return "Délai de connexion dépassé. Réessayez."
+            case .cannotFindHost: // -1003
+                return "Serveur introuvable. Vérifiez votre connexion internet."
+            case .cannotConnectToHost: // -1004
+                return "Impossible de joindre le serveur. Réessayez dans quelques instants."
+            case .networkConnectionLost: // -1005
+                return "Connexion perdue. Vérifiez votre connexion internet."
+            case .serverCertificateHasBadDate, // -1201
+                 .serverCertificateUntrusted, // -1202
+                 .serverCertificateHasUnknownRoot, // -1203
+                 .serverCertificateNotYetValid: // -1204
+                return "Certificat du serveur invalide. Réessayez plus tard."
+            default:
+                #if DEBUG
+                return "\(error.localizedDescription) (code: \(urlError.code.rawValue))"
+                #else
+                return "Erreur de connexion. Vérifiez votre connexion internet et réessayez."
+                #endif
+            }
+        }
+
+        // For any other error type
+        #if DEBUG
+        return error.localizedDescription
+        #else
+        return "Erreur de connexion. Réessayez."
+        #endif
+    }
 }

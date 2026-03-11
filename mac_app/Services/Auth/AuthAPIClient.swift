@@ -8,6 +8,9 @@ final class AuthAPIClient {
     private let session: URLSession
     private let tokenStore = AuthTokenStore.shared
 
+    /// Exposed for diagnostics
+    var currentBaseURL: String { baseURL.absoluteString }
+
     private init() {
         // Configure base URL based on environment
         let urlString = AppEnvironment.current.apiBaseURL
@@ -17,6 +20,8 @@ final class AuthAPIClient {
         config.timeoutIntervalForRequest = 30
         config.timeoutIntervalForResource = 60
         self.session = URLSession(configuration: config)
+
+        print("[AuthAPI] Base URL: \(self.baseURL.absoluteString) (env: \(AppEnvironment.current.displayName))")
     }
 
     // MARK: - Device Code Flow
@@ -234,7 +239,13 @@ final class AuthAPIClient {
     }
 
     private func perform<T: Decodable>(_ request: URLRequest) async throws -> T {
-        let (data, response) = try await session.data(for: request)
+        let (data, response): (Data, URLResponse)
+        do {
+            (data, response) = try await session.data(for: request)
+        } catch {
+            print("[AuthAPI] Request failed: \(request.url?.absoluteString ?? "?") - \(error)")
+            throw error
+        }
 
         guard let httpResponse = response as? HTTPURLResponse else {
             throw AuthError.serverError("Invalid response")

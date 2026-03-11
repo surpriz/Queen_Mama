@@ -19,6 +19,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         // Force dark mode for the entire app (design is dark-only)
         NSApp.appearance = NSAppearance(named: .darkAqua)
 
+        // Check if the app needs to be moved to /Applications
+        // Must happen before Sparkle init to prevent "can't update from Downloads" error
+        AppMoveHelper.moveToApplicationsFolderIfNeeded()
+
         // Initialize crash reporting (requires Sentry DSN to be configured)
         CrashReporter.shared.start()
 
@@ -31,6 +35,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         DispatchQueue.main.asyncAfter(deadline: .now() + 5) {
             UpdaterManager.shared.checkForUpdatesInBackground()
         }
+
+        // Log environment for diagnostics
+        print("[App] Environment: \(AppEnvironment.current.displayName)")
+        print("[App] API URL: \(AppEnvironment.current.apiBaseURL)")
 
         // Restore authentication state on launch
         Task { @MainActor in

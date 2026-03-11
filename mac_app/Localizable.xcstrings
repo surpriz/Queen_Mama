@@ -339,6 +339,159 @@
         }
       }
     },
+    "appmove.alert.later" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Later"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Plus tard"
+          }
+        }
+      }
+    },
+    "appmove.alert.message %@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Queen Mama is currently running from %@. To receive automatic updates, the app needs to be in your Applications folder.\n\nWould you like to move it now?"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Queen Mama s'exécute actuellement depuis %@. Pour recevoir les mises à jour automatiques, l'app doit se trouver dans votre dossier Applications.\n\nVoulez-vous la déplacer maintenant ?"
+          }
+        }
+      }
+    },
+    "appmove.alert.move" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Move to Applications"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Déplacer dans Applications"
+          }
+        }
+      }
+    },
+    "appmove.alert.title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Move Queen Mama to Applications?"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Déplacer Queen Mama dans Applications ?"
+          }
+        }
+      }
+    },
+    "appmove.error.message %@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Could not move Queen Mama to Applications.\n\nPlease move it manually by dragging it to the Applications folder.\n\nError: %@"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Impossible de déplacer Queen Mama dans Applications.\n\nVeuillez la déplacer manuellement en la glissant dans le dossier Applications.\n\nErreur : %@"
+          }
+        }
+      }
+    },
+    "appmove.error.title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Move Failed"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Échec du déplacement"
+          }
+        }
+      }
+    },
+    "appmove.location.dmg" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "a disk image"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "une image disque"
+          }
+        }
+      }
+    },
+    "appmove.location.downloads" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "the Downloads folder"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "le dossier Téléchargements"
+          }
+        }
+      }
+    },
+    "appmove.location.temporary" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "a temporary location"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "un emplacement temporaire"
+          }
+        }
+      }
+    },
     "app.loading" : {
       "extractionState" : "manual",
       "localizations" : {
