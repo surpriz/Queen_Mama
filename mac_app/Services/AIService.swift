@@ -396,8 +396,15 @@ final class AIService: ObservableObject {
                         }
                     }
 
-                    let providerType = await MainActor.run { self.proxyProvider.providerType }
-                    print("[AIService] Successfully completed via backend proxy")
+                    // Use actual provider from backend stream metadata, fallback to nominal type
+                    let providerType: AIProviderType = await MainActor.run {
+                        if let backendProvider = ProxyAPIClient.shared.lastStreamProvider,
+                           let mapped = ProxyAIProviderFactory.mapBackendNameToType(backendProvider) {
+                            return mapped
+                        }
+                        return self.proxyProvider.providerType
+                    }
+                    print("[AIService] Successfully completed via backend proxy (provider: \(providerType.rawValue))")
                     print("[AIService] Response length: \(accumulatedResponse.count) chars")
                     print("[AIService] Response preview: \(accumulatedResponse.prefix(200))...")
 
@@ -814,8 +821,15 @@ final class AIService: ObservableObject {
                         }
                     }
 
-                    let providerType = await MainActor.run { self.proxyProvider.providerType }
-                    print("[AIService] Proactive response completed via backend proxy")
+                    // Use actual provider from backend stream metadata, fallback to nominal type
+                    let providerType: AIProviderType = await MainActor.run {
+                        if let backendProvider = ProxyAPIClient.shared.lastStreamProvider,
+                           let mapped = ProxyAIProviderFactory.mapBackendNameToType(backendProvider) {
+                            return mapped
+                        }
+                        return self.proxyProvider.providerType
+                    }
+                    print("[AIService] Proactive response completed via backend proxy (provider: \(providerType.rawValue))")
 
                     // Final UI updates and persistence on main actor
                     await MainActor.run {

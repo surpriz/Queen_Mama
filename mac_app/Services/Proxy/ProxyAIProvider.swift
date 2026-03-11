@@ -96,10 +96,13 @@ final class ProxyAIProvider: AIProvider {
 
         let latencyMs = Int(Date().timeIntervalSince(startTime) * 1000)
 
+        // Use actual provider from backend response instead of hardcoded nominal type
+        let actualProvider = ProxyAIProviderFactory.mapBackendNameToType(response.provider) ?? providerType
+
         return AIResponse(
             type: context.responseType,
             content: response.content,
-            provider: providerType,
+            provider: actualProvider,
             latencyMs: latencyMs
         )
     }
@@ -194,7 +197,7 @@ enum ProxyAIProviderFactory {
     static func createAllConfigured() -> [AIProvider] {
         let configManager = ProxyConfigManager.shared
         return configManager.availableAIProviders.compactMap { providerName -> AIProvider? in
-            guard let type = mapBackendProviderToType(providerName) else {
+            guard let type = mapBackendNameToType(providerName) else {
                 print("[ProxyAIProviderFactory] Unknown provider from backend: \(providerName)")
                 return nil
             }
@@ -205,7 +208,7 @@ enum ProxyAIProviderFactory {
     /// Map backend provider names to AIProviderType
     /// Backend uses: "openai", "anthropic", "gemini", "grok"
     /// Swift enum uses: "OpenAI", "Anthropic", "Google Gemini", "xAI Grok"
-    private static func mapBackendProviderToType(_ name: String) -> AIProviderType? {
+    static func mapBackendNameToType(_ name: String) -> AIProviderType? {
         switch name.lowercased() {
         case "openai":
             return .openai

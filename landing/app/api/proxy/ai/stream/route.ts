@@ -294,7 +294,9 @@ export async function POST(request: Request) {
         if (streamClosed) return;
 
         if (successProvider && successModel) {
-          // Send completion marker with provider info
+          // Send metadata with actual provider/model used before completion marker
+          const metaEvent = `data: ${JSON.stringify({ provider: successProvider, model: successModel })}\n\n`;
+          controller.enqueue(encoder.encode(metaEvent));
           controller.enqueue(encoder.encode(`data: [DONE]\n\n`));
           streamClosed = true;
           controller.close();
