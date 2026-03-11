@@ -19,6 +19,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         // Force dark mode for the entire app (design is dark-only)
         NSApp.appearance = NSAppearance(named: .darkAqua)
 
+        // Check if the app needs to be moved to /Applications
+        // Must happen before Sparkle init to prevent "can't update from Downloads" error
+        AppMoveHelper.moveToApplicationsFolderIfNeeded()
+
         // Initialize crash reporting (requires Sentry DSN to be configured)
         CrashReporter.shared.start()
 
