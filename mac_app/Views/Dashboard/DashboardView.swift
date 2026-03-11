@@ -837,15 +837,8 @@ struct LanguageToggleButton: View {
     @ObservedObject private var config = ConfigurationManager.shared
     @State private var isHovered = false
 
-    private var currentFlag: String {
-        switch config.appLanguage {
-        case "fr": return "🇫🇷"
-        case "en": return "🇬🇧"
-        default:
-            // "system" — show flag based on system locale
-            let systemLang = Locale.current.language.languageCode?.identifier ?? "en"
-            return systemLang == "fr" ? "🇫🇷" : "🇬🇧"
-        }
+    private var targetFlag: String {
+        nextLanguage == "fr" ? "🇫🇷" : "🇬🇧"
     }
 
     private var nextLanguage: String {
@@ -865,7 +858,7 @@ struct LanguageToggleButton: View {
             ConfigurationManager.applyLanguageOverride(nextLanguage)
             config.relaunchApp()
         } label: {
-            Text(currentFlag)
+            Text(targetFlag)
                 .font(.system(size: 12))
                 .frame(width: 22, height: 18)
                 .background(
