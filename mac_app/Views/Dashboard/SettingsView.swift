@@ -526,7 +526,7 @@ struct DisplayOptionRow: View {
     var body: some View {
         Button(action: onSelect) {
             HStack(spacing: QMDesign.Spacing.sm) {
-                Image(systemName: "display")
+                Image(systemName: display.icon)
                     .font(.system(size: 12))
                     .foregroundColor(isSelected ? .white : QMDesign.Colors.textSecondary)
                     .frame(width: 28, height: 28)

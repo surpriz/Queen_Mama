@@ -715,6 +715,7 @@ struct ModernPillHeaderView: View {
                     isSmartModeEnabled: $isSmartModeEnabled,
                     enableScreenCapture: $enableScreenCapture,
                     isVisible: $showPopupMenu,
+                    selectedDisplayID: $config.selectedDisplayID,
                     onCopyResponse: onCopyResponse,
                     onClearContext: onClearContext,
                     onMovePosition: onMovePosition
