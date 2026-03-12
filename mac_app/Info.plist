@@ -50,6 +50,10 @@
     <key>NSSupportsAutomaticGraphicsSwitching</key>
     <true/>
 
+    <!-- App Environment (injected at build time via APP_ENVIRONMENT build setting) -->
+    <key>AppEnvironment</key>
+    <string>$(APP_ENVIRONMENT)</string>
+
     <!-- Sentry Crash Reporting -->
     <!-- NOTE: Set SentryDSN via Xcode build settings or xcconfig: -->
     <!-- INFOPLIST_KEY_SentryDSN = $(SENTRY_DSN) -->

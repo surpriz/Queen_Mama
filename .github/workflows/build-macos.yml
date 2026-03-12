@@ -139,6 +139,14 @@ jobs:
 
       - name: Build Archive
         run: |
+          # Set environment based on release type
+          if [[ "${{ steps.release_type.outputs.is_prerelease }}" == "true" ]]; then
+            APP_ENV="staging"
+          else
+            APP_ENV="production"
+          fi
+          echo "🌐 App environment: $APP_ENV"
+
           # Build without signing Swift packages (they'll be re-signed in Export step)
           xcodebuild archive \
             -project $XCODE_PROJECT \
@@ -148,6 +156,7 @@ jobs:
             CODE_SIGN_IDENTITY=- \
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGNING_ALLOWED=NO \
+            APP_ENVIRONMENT=$APP_ENV \
             -skipPackagePluginValidation \
             -skipMacroValidation
 
