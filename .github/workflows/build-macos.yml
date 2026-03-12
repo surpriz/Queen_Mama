@@ -28,7 +28,7 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Select Xcode
-        if: ${{ !contains(runner.name, 'self-hosted') }}
+        if: ${{ vars.MACOS_RUNNER != 'self-hosted' }}
         run: sudo xcode-select -s /Applications/Xcode_16.2.app
 
       - name: Run Tests
