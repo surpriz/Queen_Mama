@@ -37,7 +37,7 @@ final class AIContextTests: XCTestCase {
         )
 
         let prompt = context.systemPrompt
-        XCTAssertTrue(prompt.contains("communication assistant"),
+        XCTAssertTrue(prompt.contains("communication coach"),
             "Built-in mode should include responseType system prompt addition")
     }
 
