@@ -21,13 +21,12 @@ env:
 
 jobs:
   test:
-    runs-on: ${{ vars.MACOS_RUNNER || 'macos-14' }}
+    runs-on: macos-14
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
 
       - name: Select Xcode
-        if: ${{ vars.MACOS_RUNNER != 'self-hosted' }}
         run: sudo xcode-select -s /Applications/Xcode_16.2.app
 
       - name: Build & Run Tests
