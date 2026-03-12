@@ -362,14 +362,19 @@ struct SessionListView: View {
             selectedSession = nil
         }
 
-        // Delete from remote server first (if synced)
+        // Delete from remote server (if synced)
         let sessionId = session.id
         Task {
             await syncManager.deleteRemoteSession(sessionId)
         }
 
-        // Delete locally
-        sessionManager.deleteSession(session)
+        // Delete locally using view's model context (same context @Query observes)
+        modelContext.delete(session)
+        do {
+            try modelContext.save()
+        } catch {
+            print("[SessionList] Error deleting session: \(error)")
+        }
     }
 
     private func toggleSelection(_ session: Session) {

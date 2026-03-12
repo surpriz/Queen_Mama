@@ -395,9 +395,11 @@ final class SyncManager: ObservableObject {
             let accessToken = try await authManager.getAccessToken()
             try await performRemoteDeletion(sessionId: idString, accessToken: accessToken)
 
-            // Remove from synced tracking
+            // Remove from synced and imported tracking to prevent re-import
             syncedSessionIds.remove(idString)
+            importedSessionIds.remove(idString)
             UserDefaults.standard.set(Array(syncedSessionIds), forKey: syncedSessionsKey)
+            UserDefaults.standard.set(Array(importedSessionIds), forKey: importedSessionsKey)
 
             print("[Sync] Successfully deleted session \(idString) from server")
         } catch {
