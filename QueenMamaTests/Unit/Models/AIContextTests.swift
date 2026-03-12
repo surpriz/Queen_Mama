@@ -24,7 +24,7 @@ final class AIContextTests: XCTestCase {
         )
 
         let prompt = context.systemPrompt
-        XCTAssertTrue(prompt.contains("coaching assistant"), "Default mode prompt should contain coaching assistant")
+        XCTAssertTrue(prompt.contains("NZT"), "Default mode prompt should contain NZT identity")
         XCTAssertTrue(prompt.contains("LANGUAGE RULE"), "Should include language rule")
     }
 
@@ -37,7 +37,7 @@ final class AIContextTests: XCTestCase {
         )
 
         let prompt = context.systemPrompt
-        XCTAssertTrue(prompt.contains("communication coach"),
+        XCTAssertTrue(prompt.contains("NZT for communication"),
             "Built-in mode should include responseType system prompt addition")
     }
 
@@ -52,7 +52,7 @@ final class AIContextTests: XCTestCase {
         let prompt = context.systemPrompt
         XCTAssertTrue(prompt.contains("custom bot"), "Custom mode should use its own prompt")
         // Custom mode should NOT include the .assist system prompt addition
-        XCTAssertFalse(prompt.contains("coaching assistant"),
+        XCTAssertFalse(prompt.contains("NZT"),
             "Custom mode should not include default responseType additions")
     }
 
@@ -65,7 +65,7 @@ final class AIContextTests: XCTestCase {
             let mode = Mode(name: name, systemPrompt: "test")
             let context = AIContext(transcript: "test", mode: mode, responseType: .assist)
             // Built-in modes should include the responseType addition
-            XCTAssertTrue(context.systemPrompt.contains("coaching assistant"),
+            XCTAssertTrue(context.systemPrompt.contains("NZT"),
                 "\(name) should be treated as built-in mode")
         }
 
