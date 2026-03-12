@@ -458,7 +458,7 @@ final class MarkdownParserTests: XCTestCase {
 
         // Default mode SHOULD still get the .assist addition
         XCTAssertTrue(
-            prompt.contains("PRIORITY ORDER for providing help"),
+            prompt.contains("NZT EFFECT"),
             "Default mode should include .assist systemPromptAddition"
         )
     }
