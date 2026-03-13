@@ -456,10 +456,26 @@ final class MarkdownParserTests: XCTestCase {
         )
         let prompt = context.systemPrompt
 
-        // Default mode SHOULD still get the .assist addition
+        // Default mode SHOULD get the classic .assist addition (not NZT)
+        XCTAssertTrue(
+            prompt.contains("coaching assistant"),
+            "Default mode should include classic .assist systemPromptAddition"
+        )
+    }
+
+    func test_limitlessMode_getsNZTAddition() {
+        let limitlessMode = Mode.limitlessMode
+        let context = AIContext(
+            transcript: "test",
+            mode: limitlessMode,
+            responseType: .assist
+        )
+        let prompt = context.systemPrompt
+
+        // Limitless mode SHOULD get the NZT .assist addition
         XCTAssertTrue(
             prompt.contains("NZT EFFECT"),
-            "Default mode should include .assist systemPromptAddition"
+            "Limitless mode should include NZT .assist systemPromptAddition"
         )
     }
 }

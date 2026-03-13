@@ -24,7 +24,7 @@ final class AIContextTests: XCTestCase {
         )
 
         let prompt = context.systemPrompt
-        XCTAssertTrue(prompt.contains("NZT"), "Default mode prompt should contain NZT identity")
+        XCTAssertTrue(prompt.contains("coaching assistant"), "Default mode prompt should contain coaching assistant identity")
         XCTAssertTrue(prompt.contains("LANGUAGE RULE"), "Should include language rule")
     }
 
@@ -57,17 +57,26 @@ final class AIContextTests: XCTestCase {
     }
 
     func testBuiltInModeNames() {
-        // Verify the 5 built-in names are correctly classified
+        // Verify the built-in names are correctly classified
         // Developer Exam intentionally skips responseType addition to avoid conflicting instructions
-        let builtInWithResponseType = ["Default", "Professional", "Interview", "Sales"]
+        // Default uses classic coaching prompts, others use NZT-enhanced prompts
+        let nztModes = ["Limitless", "Professional", "Interview", "Sales"]
 
-        for name in builtInWithResponseType {
+        for name in nztModes {
             let mode = Mode(name: name, systemPrompt: "test")
             let context = AIContext(transcript: "test", mode: mode, responseType: .assist)
-            // Built-in modes should include the responseType addition
+            // NZT modes should include the NZT responseType addition
             XCTAssertTrue(context.systemPrompt.contains("NZT"),
-                "\(name) should be treated as built-in mode")
+                "\(name) should use NZT prompt additions")
         }
+
+        // Default mode uses classic coaching prompts (no NZT)
+        let defaultMode = Mode(name: "Default", systemPrompt: "test")
+        let defaultContext = AIContext(transcript: "test", mode: defaultMode, responseType: .assist)
+        XCTAssertTrue(defaultContext.systemPrompt.contains("coaching assistant"),
+            "Default should use classic prompt additions")
+        XCTAssertFalse(defaultContext.systemPrompt.contains("NZT"),
+            "Default should NOT use NZT prompt additions")
 
         // Developer Exam is built-in but skips responseType addition
         let examMode = Mode(name: "Developer Exam", systemPrompt: "test")
