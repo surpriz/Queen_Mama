@@ -1,17 +1,17 @@
 name: Validate Web App
 
 on:
-  push:
-    branches: [main, staging]
-    paths:
-      - 'landing/**'
-      - '.github/workflows/deploy-web.yml'
   pull_request:
     branches: [main, staging]
     paths:
       - 'landing/**'
-  workflow_dispatch:
+      - '.github/workflows/deploy-web.yml'
   workflow_call:
+  workflow_dispatch:
+
+concurrency:
+  group: validate-web-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   validate:
