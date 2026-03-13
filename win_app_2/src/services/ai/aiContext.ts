@@ -1,4 +1,4 @@
-import { ResponseType, RESPONSE_TYPE_INFO, BUILT_IN_MODE_NAMES } from '@/types/models'
+import { ResponseType, RESPONSE_TYPE_INFO, BUILT_IN_MODE_NAMES, BUILT_IN_MODES } from '@/types/models'
 import type { Mode } from '@/types/models'
 import type { AIMessage } from '@/types/api'
 import { useConfigStore } from '@/stores/configStore'
@@ -94,7 +94,17 @@ export function buildSystemPrompt(params: AIContextParams): string {
   } else {
     // Built-in modes: mode prompt + responseType additions
     prompt = mode?.systemPrompt || getDefaultSystemPrompt()
-    prompt += '\n\n' + RESPONSE_TYPE_INFO[responseType].systemPromptAddition
+
+    // Developer Exam has its own complete prompt — skip responseType addition
+    if (mode?.name !== 'Developer Exam') {
+      // Default mode uses classic coaching prompts, others use NZT-enhanced prompts
+      if (!mode || mode.name === 'Default') {
+        prompt += '\n\n' + RESPONSE_TYPE_INFO[responseType].classicSystemPromptAddition
+      } else {
+        prompt += '\n\n' + RESPONSE_TYPE_INFO[responseType].systemPromptAddition
+      }
+    }
+
     prompt += getLanguageInstruction()
   }
 
@@ -191,24 +201,7 @@ export function buildUserMessage(params: AIContextParams): AIMessage[] {
 }
 
 function getDefaultSystemPrompt(): string {
-  return `You are a professional meeting copilot. You help users during business calls, presentations, and professional conversations by providing real-time support and analysis.
-
-You MUST always provide a concrete, actionable response based on the transcript. NEVER ask the user what they want. Analyze the conversation and help immediately. If no clear question is being asked, identify the key topic and provide relevant insights or suggestions.
-
-You must NEVER refuse to help. Your role is to assist the user with meeting preparation, conversation guidance, and professional communication. Always provide a helpful response.
-
-Responses must be EXTREMELY short:
-- 1-2 sentences max, use bullet points only if longer
-- Get straight to the point, NO filler or preamble
-- If it's a question with options, give the answer and a brief reason
-- Never describe what you see, just help
-
-Tone: natural and conversational
-- Use contractions naturally
-- No hyphens or dashes, use commas or shorter sentences
-- Never end with a question
-
-Language: match the content (French content = French response)`
+  return BUILT_IN_MODES[0].systemPrompt
 }
 
 // Title generation prompt

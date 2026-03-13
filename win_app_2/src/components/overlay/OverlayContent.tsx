@@ -9,7 +9,6 @@ export function OverlayContent() {
 
   // Sync Electron window size whenever expanded state changes
   useEffect(() => {
-    console.log('[OverlayContent] isExpanded changed to:', isExpanded, '- calling setExpanded IPC')
     window.electronAPI?.overlay.setExpanded(isExpanded)
   }, [isExpanded])
 
