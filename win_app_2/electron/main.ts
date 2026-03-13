@@ -168,10 +168,15 @@ if (!gotTheLock) {
       }
     })
 
-    // Quit when all windows are closed
-    app.on('window-all-closed', () => {
-      app.quit()
+    // Don't quit when dashboard is hidden - overlay stays alive
+    app.on('window-all-closed', (e: Event) => {
+      e.preventDefault()
     })
+  })
+
+  // Set quitting flag so mainWindow close handler allows it
+  app.on('before-quit', () => {
+    ;(app as typeof app & { isQuitting: boolean }).isQuitting = true
   })
 
   // Clean up on quit

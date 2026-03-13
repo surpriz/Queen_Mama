@@ -63,7 +63,6 @@ export function ExpandedContent() {
 
   return (
     <div className="flex flex-col flex-1 min-h-0 border-t border-white/5 overflow-hidden">
-      <TabBar onTabSelected={handleTabSelected} />
       <TranscriptPanel />
 
       {/* Screenshot preview thumbnail */}
@@ -87,6 +86,8 @@ export function ExpandedContent() {
       )}
 
       <ResponseDisplay />
+
+      <TabBar onTabSelected={handleTabSelected} />
 
       {/* "Screen only" badge when session is not active */}
       {!isSessionActive && (

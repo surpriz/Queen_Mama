@@ -104,9 +104,14 @@ export function toggleOverlay(): void {
 }
 
 export function setOverlayExpanded(expanded: boolean): void {
-  if (!overlayWindow || overlayWindow.isDestroyed()) return
+  console.log('[OverlayWindow] setOverlayExpanded called with:', expanded)
+  if (!overlayWindow || overlayWindow.isDestroyed()) {
+    console.log('[OverlayWindow] ABORT: window is null or destroyed')
+    return
+  }
 
   const currentBounds = overlayWindow.getBounds()
+  console.log('[OverlayWindow] currentBounds:', JSON.stringify(currentBounds))
   let size: { width: number; height: number }
 
   if (expanded) {
@@ -123,7 +128,8 @@ export function setOverlayExpanded(expanded: boolean): void {
     overlayWindow.setMaximumSize(OVERLAY_MAX.width, OVERLAY_MAX.height)
   } else {
     size = OVERLAY_COLLAPSED
-    // Disable resizing when collapsed
+    // Reset minimum size before collapsing, then disable resizing
+    overlayWindow.setMinimumSize(OVERLAY_COLLAPSED.width, OVERLAY_COLLAPSED.height)
     overlayWindow.setResizable(false)
   }
 
@@ -155,12 +161,18 @@ export function setOverlayExpanded(expanded: boolean): void {
   const display = screen.getPrimaryDisplay()
   const { width: screenW, height: screenH } = display.workAreaSize
 
-  overlayWindow.setBounds({
+  const newBounds = {
     x: Math.max(0, Math.min(newX, screenW - size.width)),
     y: Math.max(0, Math.min(newY, screenH - size.height)),
     width: size.width,
     height: size.height,
-  })
+  }
+  console.log('[OverlayWindow] setBounds to:', JSON.stringify(newBounds))
+  overlayWindow.setBounds(newBounds)
+
+  // Verify after setBounds
+  const afterBounds = overlayWindow.getBounds()
+  console.log('[OverlayWindow] actual bounds after set:', JSON.stringify(afterBounds))
 }
 
 export function setOverlaySize(width: number, height: number): void {

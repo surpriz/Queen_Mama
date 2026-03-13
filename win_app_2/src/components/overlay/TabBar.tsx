@@ -19,8 +19,8 @@ export function TabBar({ onTabSelected }: TabBarProps) {
   const setSelectedTab = useOverlayStore((s) => s.setSelectedTab)
 
   return (
-    <div className="px-2 pt-1.5 pb-1">
-      <div className="flex items-center bg-qm-surface-light rounded-qm-md p-[3px]" style={{ height: 34 }}>
+    <div className="px-2 pt-1 pb-1.5">
+      <div className="flex items-center gap-1.5">
         {TABS.map(({ type, label, icon: Icon }) => (
           <button
             key={type}
@@ -29,14 +29,23 @@ export function TabBar({ onTabSelected }: TabBarProps) {
               onTabSelected?.(type)
             }}
             className={cn(
-              'flex flex-1 items-center justify-center gap-1 py-1.5 text-caption font-medium rounded-qm-sm transition-colors whitespace-nowrap',
+              'flex flex-1 flex-col items-center justify-center gap-1 py-2 rounded-xl transition-all duration-200',
+              'active:scale-95',
               selectedTab === type
-                ? 'text-qm-accent bg-gradient-to-br from-qm-gradient-start/20 to-qm-gradient-end/20 border border-qm-accent/30'
-                : 'text-qm-text-tertiary hover:text-qm-text-secondary hover:bg-qm-surface-hover border border-white/[0.04]',
+                ? 'bg-gradient-to-br from-qm-gradient-start/20 to-qm-gradient-end/20 border border-qm-accent/40 text-qm-accent shadow-[0_2px_8px_rgba(139,92,246,0.2)]'
+                : 'bg-qm-surface-light border border-white/10 text-qm-text-tertiary hover:text-qm-text-secondary hover:bg-qm-surface-hover hover:border-white/15',
             )}
+            style={{ height: 44 }}
           >
-            <Icon size={12} />
-            {label}
+            <Icon size={14} strokeWidth={selectedTab === type ? 2.5 : 2} />
+            <span
+              className={cn(
+                'text-[9px] leading-none',
+                selectedTab === type ? 'font-semibold' : 'font-medium',
+              )}
+            >
+              {label}
+            </span>
           </button>
         ))}
       </div>
