@@ -47,6 +47,11 @@ export const changelogData: ChangelogRelease[] = [
             id: "quickLanguageToggle",
             title: "Quick Language Toggle",
             description: "Switch between French and English with a single click from the dashboard sidebar"
+          },
+          {
+            id: "limitlessMode",
+            title: "Limitless Mode",
+            description: "A new AI mode inspired by NZT for enhanced cognitive pattern recognition, anticipation, and deep knowledge synthesis"
           }
         ]
       },
@@ -97,6 +102,16 @@ export const changelogData: ChangelogRelease[] = [
             id: "enhancedDiagnostics",
             title: "Enhanced Error Diagnostics",
             description: "Improved error handling and diagnostic logging across authentication, networking, and session management"
+          },
+          {
+            id: "adaptiveResponseDepth",
+            title: "Adaptive Response Depth",
+            description: "AI responses now dynamically adjust their depth and detail based on conversation complexity and context"
+          },
+          {
+            id: "conciseAssistFormat",
+            title: "Streamlined Assist Responses",
+            description: "Assist responses during live sessions now use a concise bullet-point format for quick scanning"
           }
         ]
       },
@@ -182,6 +197,11 @@ export const changelogData: ChangelogRelease[] = [
             id: "desktopCorsSupport",
             title: "Desktop App Sync Support",
             description: "CORS and session synchronization infrastructure enabling desktop apps to sync data with the web dashboard"
+          },
+          {
+            id: "ciCdOptimization",
+            title: "CI/CD Pipeline Optimization",
+            description: "Eliminated duplicate test runs and added concurrency controls across all build and deploy workflows"
           }
         ]
       }

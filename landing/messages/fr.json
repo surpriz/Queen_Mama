@@ -754,6 +754,22 @@
       "builtInModeDefaults": {
         "title": "Correction des modes intégrés",
         "description": "Correction des flags par défaut des modes intégrés et du filtrage pour séparer correctement les modes intégrés et personnalisés"
+      },
+      "limitlessMode": {
+        "title": "Mode Limitless",
+        "description": "Un nouveau mode IA inspiré du NZT pour une reconnaissance de patterns cognitive améliorée, l'anticipation et la synthèse de connaissances profondes"
+      },
+      "adaptiveResponseDepth": {
+        "title": "Profondeur de réponse adaptative",
+        "description": "Les réponses IA ajustent désormais dynamiquement leur profondeur et leurs détails selon la complexité et le contexte de la conversation"
+      },
+      "conciseAssistFormat": {
+        "title": "Réponses Assist rationalisées",
+        "description": "Les réponses Assist en session live utilisent désormais un format concis en bullet points pour une lecture rapide"
+      },
+      "ciCdOptimization": {
+        "title": "Optimisation du pipeline CI/CD",
+        "description": "Élimination des exécutions de tests en double et ajout de contrôles de concurrence sur tous les workflows de build et déploiement"
       }
     }
   },
