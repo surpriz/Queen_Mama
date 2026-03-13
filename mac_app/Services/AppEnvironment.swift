@@ -24,7 +24,15 @@ enum AppEnvironment: String, CaseIterable {
         }
         #endif
 
-        // 3. Default based on build configuration
+        // 3. Check Info.plist (injected at build time via APP_ENVIRONMENT build setting)
+        if let plistEnv = Bundle.main.infoDictionary?["AppEnvironment"] as? String,
+           !plistEnv.isEmpty,
+           !plistEnv.hasPrefix("$("),  // Unresolved build setting = not set
+           let env = AppEnvironment(rawValue: plistEnv.lowercased()) {
+            return env
+        }
+
+        // 4. Default based on build configuration
         #if DEBUG
         return .development
         #else

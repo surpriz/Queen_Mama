@@ -39,9 +39,14 @@ final class ScreenCaptureService: NSObject, ObservableObject {
         let name: String
         let width: Int
         let height: Int
+        let isBuiltin: Bool
 
         var resolution: String {
             "\(width)×\(height)"
+        }
+
+        var icon: String {
+            isBuiltin ? "laptopcomputer" : "display"
         }
     }
 
@@ -204,12 +209,22 @@ final class ScreenCaptureService: NSObject, ObservableObject {
     func getAvailableDisplays() async -> [DisplayInfo] {
         do {
             let content = try await SCShareableContent.excludingDesktopWindows(false, onScreenWindowsOnly: true)
+            // Build lookup: CGDirectDisplayID → NSScreen for real names
+            let screenByID: [CGDirectDisplayID: NSScreen] = Dictionary(
+                uniqueKeysWithValues: NSScreen.screens.compactMap { screen in
+                    guard let id = screen.deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")] as? CGDirectDisplayID
+                    else { return nil }
+                    return (id, screen)
+                }
+            )
             return content.displays.enumerated().map { index, display in
-                DisplayInfo(
+                let nsScreen = screenByID[display.displayID]
+                return DisplayInfo(
                     id: display.displayID,
-                    name: "Display \(index + 1)",
+                    name: nsScreen?.localizedName ?? "Display \(index + 1)",
                     width: Int(display.width),
-                    height: Int(display.height)
+                    height: Int(display.height),
+                    isBuiltin: CGDisplayIsBuiltin(display.displayID) != 0
                 )
             }
         } catch {

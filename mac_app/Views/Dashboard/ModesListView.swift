@@ -91,11 +91,25 @@ struct ModesListView: View {
 
     private func ensureDefaultModesExist() {
         if modes.isEmpty {
-            let defaultModes = [Mode.defaultMode, Mode.professionalMode, Mode.interviewMode, Mode.salesMode, Mode.developerExamMode]
+            let defaultModes = [Mode.defaultMode, Mode.limitlessMode, Mode.professionalMode, Mode.interviewMode, Mode.salesMode, Mode.developerExamMode]
             for mode in defaultModes {
                 modelContext.insert(mode)
             }
             try? modelContext.save()
+        } else {
+            // Migration: ensure new built-in modes are added for existing users
+            let existingNames = Set(modes.map(\.name))
+            let allBuiltInModes: [Mode] = [.defaultMode, .limitlessMode, .professionalMode, .interviewMode, .salesMode, .developerExamMode]
+            var inserted = false
+            for builtIn in allBuiltInModes {
+                if !existingNames.contains(builtIn.name) {
+                    modelContext.insert(builtIn)
+                    inserted = true
+                }
+            }
+            if inserted {
+                try? modelContext.save()
+            }
         }
     }
 }
@@ -169,6 +183,13 @@ struct ModernModesSidebar: View {
                             onActivate: { onActivate(.defaultMode) }
                         )
                         ModernModeRow(
+                            mode: .limitlessMode,
+                            isSelected: selectedMode?.name == "Limitless",
+                            isActive: activeMode?.name == "Limitless",
+                            onSelect: { onSelect(.limitlessMode) },
+                            onActivate: { onActivate(.limitlessMode) }
+                        )
+                        ModernModeRow(
                             mode: .professionalMode,
                             isSelected: selectedMode?.name == "Professional",
                             isActive: activeMode?.name == "Professional",
@@ -199,7 +220,7 @@ struct ModernModesSidebar: View {
                     }
 
                     // Custom Section
-                    let builtInNames: Set<String> = ["Default", "Professional", "Interview", "Sales", "Developer Exam"]
+                    let builtInNames: Set<String> = ["Default", "Limitless", "Professional", "Interview", "Sales", "Developer Exam"]
                     let customModes = modes.filter { !$0.isDefault && !builtInNames.contains($0.name) }
                     if !customModes.isEmpty {
                         ModernModeSection(title: String(localized: "modes.section.custom")) {
@@ -369,6 +390,7 @@ struct ModernModeRow: View {
     private func iconForMode(_ name: String) -> String {
         switch name.lowercased() {
         case "default": return "sparkles"
+        case "limitless": return "brain"
         case "professional": return "briefcase"
         case "interview": return "person.fill.questionmark"
         case "sales": return "chart.line.uptrend.xyaxis"
@@ -563,6 +585,7 @@ struct ModernModeDetailHeader: View {
     private func iconForMode(_ name: String) -> String {
         switch name.lowercased() {
         case "default": return "sparkles"
+        case "limitless": return "brain"
         case "professional": return "briefcase"
         case "interview": return "person.fill.questionmark"
         case "sales": return "chart.line.uptrend.xyaxis"

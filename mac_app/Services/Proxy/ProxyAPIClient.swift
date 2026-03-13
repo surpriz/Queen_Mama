@@ -15,6 +15,17 @@ final class ProxyAPIClient: @unchecked Sendable {
     private var cachedConfig: ProxyConfig?
     private var configCachedAt: Date?
 
+    // Thread-safe storage for actual provider used during last streaming request
+    private let streamProviderLock = NSLock()
+    private var _lastStreamProvider: String?
+
+    /// The actual provider name returned by the backend during the last streaming request
+    var lastStreamProvider: String? {
+        streamProviderLock.lock()
+        defer { streamProviderLock.unlock() }
+        return _lastStreamProvider
+    }
+
     // Cache for transcription tokens (in-memory + Keychain persistence)
     private var cachedTranscriptionToken: TranscriptionToken?
 
@@ -300,6 +311,12 @@ final class ProxyAPIClient: @unchecked Sendable {
 
                             if let data = jsonString.data(using: .utf8),
                                let chunk = try? JSONDecoder().decode(StreamChunk.self, from: data) {
+                                // Store actual provider from metadata chunk (sent before [DONE])
+                                if let provider = chunk.provider {
+                                    self.streamProviderLock.lock()
+                                    self._lastStreamProvider = provider
+                                    self.streamProviderLock.unlock()
+                                }
                                 if let content = chunk.content {
                                     continuation.yield(content)
                                 }
@@ -572,6 +589,8 @@ struct AIProxyResponse: Codable {
 private struct StreamChunk: Codable {
     let content: String?
     let error: String?
+    let provider: String?
+    let model: String?
 }
 
 private struct ErrorResponse: Codable {

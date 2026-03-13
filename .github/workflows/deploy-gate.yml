@@ -7,6 +7,10 @@ on:
       - 'landing/**'
   workflow_dispatch:
 
+concurrency:
+  group: deploy-web-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   test:
     uses: ./.github/workflows/test-web.yml

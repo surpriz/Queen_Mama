@@ -6,8 +6,6 @@
 //
 
 import SwiftUI
-import SwiftData
-@preconcurrency import ScreenCaptureKit
 
 // MARK: - Overlay Position
 
@@ -48,33 +46,19 @@ struct OverlayPopupMenu: View {
     @Binding var isAutoAnswerEnabled: Bool
     @Binding var isSmartModeEnabled: Bool
     @Binding var enableScreenCapture: Bool
-    @Binding var selectedMode: Mode?
     @Binding var isVisible: Bool
+    @Binding var selectedDisplayID: UInt32
 
+    let onCopyResponse: () -> Void
     let onClearContext: () -> Void
     let onMovePosition: (OverlayPosition) -> Void
 
     @State private var showPositionSubmenu = false
-    @State private var showModeSubmenu = false
     @State private var showDisplaySubmenu = false
     @State private var hoveredItem: String?
 
     var body: some View {
         VStack(spacing: 0) {
-            // Mode Selector (at the top for prominence)
-            ModeMenuItem(
-                selectedMode: $selectedMode,
-                isExpanded: $showModeSubmenu,
-                isHovered: hoveredItem == "mode",
-                onSelect: { mode in
-                    selectedMode = mode
-                    showModeSubmenu = false
-                }
-            )
-            .onHover { if $0 { hoveredItem = "mode" } }
-
-            MenuDivider()
-
             // Toggle Items
             MenuToggleItem(
                 title: String(localized: "overlay.menu.autoAnswer"),
@@ -113,13 +97,26 @@ struct OverlayPopupMenu: View {
             // Display Submenu
             DisplayMenuItem(
                 isExpanded: $showDisplaySubmenu,
-                isHovered: hoveredItem == "display"
+                isHovered: hoveredItem == "display",
+                selectedDisplayID: $selectedDisplayID
             )
             .onHover { if $0 { hoveredItem = "display" } }
 
             MenuDivider()
 
             // Action Items
+            MenuActionItem(
+                title: String(localized: "overlay.menu.copyResponse"),
+                icon: "doc.on.doc",
+                shortcut: "Cmd+Shift+C",
+                isHovered: hoveredItem == "copy",
+                isDestructive: false
+            ) {
+                onCopyResponse()
+                isVisible = false
+            }
+            .onHover { if $0 { hoveredItem = "copy" } }
+
             MenuActionItem(
                 title: String(localized: "overlay.menu.clearContext"),
                 icon: QMDesign.Icons.clear,
@@ -164,181 +161,6 @@ struct OverlayPopupMenu: View {
             if !isHovering {
                 hoveredItem = nil
             }
-        }
-    }
-}
-
-// MARK: - Mode Menu Item
-
-struct ModeMenuItem: View {
-    @Binding var selectedMode: Mode?
-    @Binding var isExpanded: Bool
-    let isHovered: Bool
-    let onSelect: (Mode) -> Void
-
-    @Query(sort: \Mode.createdAt) private var allModes: [Mode]
-
-    private let builtInModes: [Mode] = [.defaultMode, .professionalMode, .interviewMode, .salesMode, .developerExamMode]
-
-    private static let builtInNames: Set<String> = ["Default", "Professional", "Interview", "Sales", "Developer Exam"]
-
-    private var customModes: [Mode] {
-        allModes.filter { !$0.isDefault && !Self.builtInNames.contains($0.name) }
-    }
-
-    var body: some View {
-        VStack(spacing: 0) {
-            // Main row showing current mode
-            Button(action: { withAnimation(QMDesign.Animation.quick) { isExpanded.toggle() } }) {
-                HStack(spacing: QMDesign.Spacing.sm) {
-                    // Icon
-                    Image(systemName: QMDesign.Icons.modes)
-                        .font(.system(size: 13))
-                        .foregroundStyle(QMDesign.Colors.primaryGradient)
-                        .frame(width: 20)
-
-                    // Title and current mode
-                    VStack(alignment: .leading, spacing: 1) {
-                        Text(String(localized: "overlay.menu.mode"))
-                            .font(QMDesign.Typography.captionSmall)
-                            .foregroundColor(QMDesign.Colors.textTertiary)
-                            .lineLimit(1)
-                        Text(selectedMode?.name ?? String(localized: "overlay.menu.defaultMode"))
-                            .font(QMDesign.Typography.bodySmall)
-                            .foregroundColor(QMDesign.Colors.textPrimary)
-                            .lineLimit(1)
-                    }
-
-                    Spacer(minLength: QMDesign.Spacing.xs)
-
-                    // Expand chevron
-                    Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
-                        .font(.system(size: 10, weight: .semibold))
-                        .foregroundColor(QMDesign.Colors.textTertiary)
-                }
-                .padding(.horizontal, QMDesign.Spacing.sm)
-                .padding(.vertical, QMDesign.Spacing.xs)
-                .background(
-                    RoundedRectangle(cornerRadius: QMDesign.Radius.sm)
-                        .fill(isHovered || isExpanded ? QMDesign.Colors.surfaceHover : Color.clear)
-                )
-            }
-            .buttonStyle(.plain)
-
-            // Submenu with mode options
-            if isExpanded {
-                VStack(spacing: 2) {
-                    // Built-in modes
-                    ForEach(builtInModes, id: \.name) { mode in
-                        ModeOptionButton(
-                            mode: mode,
-                            isSelected: selectedMode?.name == mode.name
-                                && !customModes.contains(where: { $0.id == selectedMode?.id }),
-                            onSelect: { onSelect(mode) }
-                        )
-                    }
-
-                    // Custom modes section (show up to 5 to prevent overflow)
-                    if !customModes.isEmpty {
-                        // Separator
-                        HStack(spacing: QMDesign.Spacing.xs) {
-                            Rectangle()
-                                .fill(QMDesign.Colors.borderSubtle)
-                                .frame(height: 1)
-                            Text(String(localized: "overlay.menu.custom"))
-                                .font(.system(size: 8, weight: .semibold))
-                                .foregroundColor(QMDesign.Colors.textTertiary)
-                            Rectangle()
-                                .fill(QMDesign.Colors.borderSubtle)
-                                .frame(height: 1)
-                        }
-                        .padding(.vertical, QMDesign.Spacing.xxs)
-
-                        ForEach(customModes.prefix(5), id: \.id) { mode in
-                            ModeOptionButton(
-                                mode: mode,
-                                isSelected: selectedMode?.id == mode.id,
-                                onSelect: { onSelect(mode) }
-                            )
-                        }
-
-                        if customModes.count > 5 {
-                            Text("+\(customModes.count - 5)")
-                                .font(QMDesign.Typography.captionSmall)
-                                .foregroundColor(QMDesign.Colors.textTertiary)
-                                .frame(maxWidth: .infinity)
-                                .padding(.top, QMDesign.Spacing.xxs)
-                        }
-                    }
-                }
-                .padding(QMDesign.Spacing.xs)
-                .background(
-                    RoundedRectangle(cornerRadius: QMDesign.Radius.sm)
-                        .fill(QMDesign.Colors.surfaceLight)
-                )
-                .padding(.horizontal, QMDesign.Spacing.xs)
-                .padding(.top, QMDesign.Spacing.xxs)
-            }
-        }
-    }
-}
-
-// MARK: - Mode Option Button
-
-struct ModeOptionButton: View {
-    let mode: Mode
-    let isSelected: Bool
-    let onSelect: () -> Void
-
-    @State private var isHovered = false
-
-    var body: some View {
-        Button(action: onSelect) {
-            HStack(spacing: QMDesign.Spacing.sm) {
-                // Icon
-                Image(systemName: iconForMode(mode.name))
-                    .font(.system(size: 12))
-                    .foregroundColor(isSelected ? .white : QMDesign.Colors.textSecondary)
-                    .frame(width: 24, height: 24)
-                    .background(
-                        Circle()
-                            .fill(isSelected ? QMDesign.Colors.success : QMDesign.Colors.surfaceMedium)
-                    )
-
-                // Name
-                Text(mode.name)
-                    .font(QMDesign.Typography.bodySmall)
-                    .foregroundColor(isSelected ? QMDesign.Colors.textPrimary : QMDesign.Colors.textSecondary)
-                    .lineLimit(1)
-
-                Spacer(minLength: QMDesign.Spacing.xs)
-
-                // Checkmark
-                if isSelected {
-                    Image(systemName: "checkmark")
-                        .font(.system(size: 10, weight: .bold))
-                        .foregroundColor(QMDesign.Colors.success)
-                }
-            }
-            .padding(.horizontal, QMDesign.Spacing.sm)
-            .padding(.vertical, QMDesign.Spacing.xs)
-            .background(
-                RoundedRectangle(cornerRadius: QMDesign.Radius.sm)
-                    .fill(isSelected ? QMDesign.Colors.success.opacity(0.15) : (isHovered ? QMDesign.Colors.surfaceHover : Color.clear))
-            )
-        }
-        .buttonStyle(.plain)
-        .onHover { isHovered = $0 }
-    }
-
-    private func iconForMode(_ name: String) -> String {
-        switch name.lowercased() {
-        case "default": return "sparkles"
-        case "professional": return "briefcase"
-        case "interview": return "person.fill.questionmark"
-        case "sales": return "chart.line.uptrend.xyaxis"
-        case "developer exam": return "chevron.left.forwardslash.chevron.right"
-        default: return "person.crop.circle"
         }
     }
 }
@@ -556,20 +378,16 @@ struct PositionButton: View {
 struct DisplayMenuItem: View {
     @Binding var isExpanded: Bool
     let isHovered: Bool
+    @Binding var selectedDisplayID: UInt32
 
-    @ObservedObject private var config = ConfigurationManager.shared
+    /// Cached display list — loaded when submenu expands, never during body re-evaluation
     @State private var displays: [ScreenCaptureService.DisplayInfo] = []
-    @State private var isLoadingDisplays = false
 
     var body: some View {
         VStack(spacing: 0) {
             // Main row showing current display
             Button(action: {
                 withAnimation(QMDesign.Animation.quick) { isExpanded.toggle() }
-                // Load displays when expanding (lazy load)
-                if isExpanded && displays.isEmpty && !isLoadingDisplays {
-                    loadDisplays()
-                }
             }) {
                 HStack(spacing: QMDesign.Spacing.sm) {
                     Image(systemName: "display")
@@ -606,11 +424,7 @@ struct DisplayMenuItem: View {
             // Submenu with display options
             if isExpanded {
                 VStack(spacing: 2) {
-                    if isLoadingDisplays {
-                        ProgressView()
-                            .scaleEffect(0.8)
-                            .padding(QMDesign.Spacing.sm)
-                    } else if displays.isEmpty {
+                    if displays.isEmpty {
                         Text(String(localized: "overlay.menu.noDisplaysFound"))
                             .font(QMDesign.Typography.captionSmall)
                             .foregroundColor(QMDesign.Colors.textTertiary)
@@ -634,28 +448,24 @@ struct DisplayMenuItem: View {
                 .padding(.top, QMDesign.Spacing.xxs)
             }
         }
+        .onChange(of: isExpanded) { expanded in
+            if expanded {
+                loadDisplays()
+            }
+        }
     }
 
     private func loadDisplays() {
-        isLoadingDisplays = true
-        Task { @MainActor in
-            do {
-                // Use SCShareableContent directly instead of creating a new ScreenCaptureService instance
-                // This avoids potential conflicts with the existing capture session
-                let content = try await SCShareableContent.excludingDesktopWindows(false, onScreenWindowsOnly: true)
-                displays = content.displays.enumerated().map { index, display in
-                    ScreenCaptureService.DisplayInfo(
-                        id: display.displayID,
-                        name: "Display \(index + 1)",
-                        width: Int(display.width),
-                        height: Int(display.height)
-                    )
-                }
-            } catch {
-                print("[DisplayMenuItem] Failed to load displays: \(error.localizedDescription)")
-                displays = []
-            }
-            isLoadingDisplays = false
+        displays = NSScreen.screens.compactMap { screen -> ScreenCaptureService.DisplayInfo? in
+            guard let displayID = screen.deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")] as? CGDirectDisplayID
+            else { return nil }
+            return ScreenCaptureService.DisplayInfo(
+                id: displayID,
+                name: screen.localizedName,
+                width: Int(screen.frame.width),
+                height: Int(screen.frame.height),
+                isBuiltin: CGDisplayIsBuiltin(displayID) != 0
+            )
         }
     }
 
@@ -664,14 +474,14 @@ struct DisplayMenuItem: View {
             return String(localized: "overlay.menu.primaryDisplay")
         }
 
-        if config.selectedDisplayID == 0 {
+        if selectedDisplayID == 0 {
             if let first = displays.first {
                 return "\(first.name) • \(first.resolution)"
             }
             return String(localized: "overlay.menu.primaryDisplay")
         }
 
-        if let selected = displays.first(where: { $0.id == config.selectedDisplayID }) {
+        if let selected = displays.first(where: { $0.id == selectedDisplayID }) {
             return "\(selected.name) • \(selected.resolution)"
         }
 
@@ -679,17 +489,26 @@ struct DisplayMenuItem: View {
     }
 
     private func isDisplaySelected(_ display: ScreenCaptureService.DisplayInfo) -> Bool {
-        if config.selectedDisplayID == 0 {
+        if selectedDisplayID == 0 {
             return display.id == displays.first?.id
         }
-        return display.id == config.selectedDisplayID
+        return display.id == selectedDisplayID
     }
 
     private func selectDisplay(_ display: ScreenCaptureService.DisplayInfo) {
-        if display.id == displays.first?.id {
-            config.selectedDisplayID = 0
-        } else {
-            config.selectedDisplayID = display.id
+        let newID: UInt32 = (display.id == displays.first?.id) ? 0 : display.id
+        DispatchQueue.main.async {
+            selectedDisplayID = newID
+            // Flash confirmation on the target screen after binding is committed
+            if let screen = NSScreen.screens.first(where: {
+                ($0.deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")] as? CGDirectDisplayID) == display.id
+            }) {
+                DisplayFlashController.shared.flash(
+                    displayName: display.name,
+                    isBuiltin: display.isBuiltin,
+                    on: screen
+                )
+            }
         }
     }
 }
@@ -706,7 +525,7 @@ struct DisplayMenuOptionButton: View {
     var body: some View {
         Button(action: onSelect) {
             HStack(spacing: QMDesign.Spacing.sm) {
-                Image(systemName: "display")
+                Image(systemName: display.icon)
                     .font(.system(size: 12))
                     .foregroundColor(isSelected ? .white : QMDesign.Colors.textSecondary)
                     .frame(width: 24, height: 24)
@@ -767,8 +586,9 @@ struct MenuDivider: View {
             isAutoAnswerEnabled: .constant(true),
             isSmartModeEnabled: .constant(false),
             enableScreenCapture: .constant(true),
-            selectedMode: .constant(nil),
             isVisible: .constant(true),
+            selectedDisplayID: .constant(0),
+            onCopyResponse: {},
             onClearContext: {},
             onMovePosition: { _ in }
         )

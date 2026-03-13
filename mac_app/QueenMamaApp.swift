@@ -29,12 +29,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         // Initialize analytics (PostHog)
         AnalyticsService.shared.start()
 
-        // Initialize Sparkle updater and check for updates in background
-        // This ensures users get update notifications without opening Settings
+        // Initialize Sparkle updater (startingUpdater: true handles scheduled checks)
+        // No manual background check needed — Sparkle's internal scheduler runs every 24h
         _ = UpdaterManager.shared
-        DispatchQueue.main.asyncAfter(deadline: .now() + 5) {
-            UpdaterManager.shared.checkForUpdatesInBackground()
-        }
 
         // Log environment for diagnostics
         print("[App] Environment: \(AppEnvironment.current.displayName)")

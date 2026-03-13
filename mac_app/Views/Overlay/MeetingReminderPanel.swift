@@ -208,3 +208,109 @@ struct MeetingReminderView: View {
 }
 
 // Note: VisualEffectView is defined in OverlayContentView.swift
+
+// MARK: - Display Flash Controller
+
+@MainActor
+final class DisplayFlashController {
+    static let shared = DisplayFlashController()
+
+    private var panel: NSPanel?
+    private var dismissTimer: Timer?
+
+    func flash(displayName: String, isBuiltin: Bool, on screen: NSScreen) {
+        dismissSilently()
+
+        let panelSize = NSSize(width: 220, height: 44)
+        let flashPanel = NSPanel(
+            contentRect: NSRect(origin: .zero, size: panelSize),
+            styleMask: [.borderless, .nonactivatingPanel],
+            backing: .buffered,
+            defer: false
+        )
+        flashPanel.level = .floating
+        flashPanel.isOpaque = false
+        flashPanel.backgroundColor = .clear
+        flashPanel.hasShadow = true
+        flashPanel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .transient]
+        flashPanel.hidesOnDeactivate = false
+
+        // Position top-center of the target screen
+        let screenFrame = screen.visibleFrame
+        let x = screenFrame.midX - panelSize.width / 2
+        let y = screenFrame.maxY - panelSize.height - 20
+        flashPanel.setFrameOrigin(NSPoint(x: x, y: y))
+
+        let view = DisplayFlashView(displayName: displayName, isBuiltin: isBuiltin)
+        let hostingView = NSHostingView(rootView: view)
+        hostingView.frame = flashPanel.contentView!.bounds
+        hostingView.autoresizingMask = [.width, .height]
+        flashPanel.contentView = hostingView
+
+        flashPanel.alphaValue = 1
+        flashPanel.orderFrontRegardless()
+        self.panel = flashPanel
+
+        dismissTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: false) { [weak self] _ in
+            Task { @MainActor [weak self] in self?.dismiss() }
+        }
+        RunLoop.main.add(dismissTimer!, forMode: .common)
+    }
+
+    private func dismiss() {
+        dismissTimer?.invalidate()
+        dismissTimer = nil
+        guard let panel else { return }
+        NSAnimationContext.runAnimationGroup({ context in
+            context.duration = 0.3
+            context.timingFunction = CAMediaTimingFunction(name: .easeIn)
+            panel.animator().alphaValue = 0
+        }, completionHandler: {
+            Task { @MainActor [weak self] in
+                self?.panel?.orderOut(nil)
+                self?.panel = nil
+            }
+        })
+    }
+
+    private func dismissSilently() {
+        dismissTimer?.invalidate()
+        dismissTimer = nil
+        panel?.orderOut(nil)
+        panel = nil
+    }
+}
+
+// MARK: - Display Flash View
+
+struct DisplayFlashView: View {
+    let displayName: String
+    let isBuiltin: Bool
+
+    var body: some View {
+        HStack(spacing: QMDesign.Spacing.xs) {
+            Image(systemName: isBuiltin ? "laptopcomputer" : "display")
+                .font(.system(size: 14, weight: .medium))
+                .foregroundColor(QMDesign.Colors.success)
+
+            Text(displayName)
+                .font(QMDesign.Typography.labelMedium)
+                .foregroundColor(QMDesign.Colors.textPrimary)
+                .lineLimit(1)
+        }
+        .padding(.horizontal, QMDesign.Spacing.md)
+        .padding(.vertical, QMDesign.Spacing.sm)
+        .frame(maxWidth: .infinity)
+        .background(
+            ZStack {
+                VisualEffectView(material: .hudWindow, blendingMode: .behindWindow)
+                QMDesign.Colors.surfaceMedium.opacity(0.6)
+            }
+        )
+        .clipShape(RoundedRectangle(cornerRadius: QMDesign.Radius.lg))
+        .overlay(
+            RoundedRectangle(cornerRadius: QMDesign.Radius.lg)
+                .stroke(QMDesign.Colors.success.opacity(0.3), lineWidth: 1)
+        )
+    }
+}

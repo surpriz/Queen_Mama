@@ -26,10 +26,15 @@ struct SessionListView: View {
     @State private var showingDeleteAllConfirmation = false
 
     private var filteredSessions: [Session] {
+        // Deduplicate by ID to prevent SwiftUI ForEach issues
+        // (sync can import sessions that already exist locally)
+        var seen = Set<UUID>()
+        let uniqueSessions = sessions.filter { seen.insert($0.id).inserted }
+
         if searchText.isEmpty {
-            return sessions
+            return uniqueSessions
         }
-        return sessions.filter { session in
+        return uniqueSessions.filter { session in
             session.title.localizedCaseInsensitiveContains(searchText) ||
             session.transcript.localizedCaseInsensitiveContains(searchText)
         }
@@ -357,14 +362,19 @@ struct SessionListView: View {
             selectedSession = nil
         }
 
-        // Delete from remote server first (if synced)
+        // Delete from remote server (if synced)
         let sessionId = session.id
         Task {
             await syncManager.deleteRemoteSession(sessionId)
         }
 
-        // Delete locally
-        sessionManager.deleteSession(session)
+        // Delete locally using view's model context (same context @Query observes)
+        modelContext.delete(session)
+        do {
+            try modelContext.save()
+        } catch {
+            print("[SessionList] Error deleting session: \(error)")
+        }
     }
 
     private func toggleSelection(_ session: Session) {

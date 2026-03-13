@@ -1,16 +1,17 @@
 name: Tests Web
 
 on:
-  push:
-    branches: [main, staging]
-    paths:
-      - 'landing/**'
-      - '.github/workflows/test-web.yml'
   pull_request:
     branches: [main, staging]
     paths:
       - 'landing/**'
+      - '.github/workflows/test-web.yml'
   workflow_call:
+  workflow_dispatch:
+
+concurrency:
+  group: test-web-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   test:

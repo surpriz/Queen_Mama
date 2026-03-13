@@ -59,13 +59,28 @@ struct OverlayContentView: View {
                 isAutoAnswerEnabled: isAutoAnswerEnabled,
                 isSmartModeEnabled: isSmartModeEnabled,
                 showPopupMenu: $showPopupMenu,
-                selectedMode: $appState.selectedMode,
                 onToggleExpand: { overlayController.toggleExpanded() },
                 onStart: {
                     // Show contact picker directly in widget
                     showingContactPicker = true
                 },
                 onStop: { Task { await appState.stopSession() } },
+                onCopyResponse: {
+                    let content: String? = if !appState.aiService.currentResponse.isEmpty {
+                        appState.aiService.currentResponse
+                    } else {
+                        appState.aiService.responses.first?.content
+                    }
+                    guard let content, !content.isEmpty else { return }
+                    // Extract last code block, or fall back to full response
+                    let blocks = MarkdownParser.parse(content)
+                    let codeContent = blocks.reversed().compactMap { block -> String? in
+                        if case .codeBlock(let code, _) = block, !code.isEmpty { return code }
+                        return nil
+                    }.first
+                    NSPasteboard.general.clearContents()
+                    NSPasteboard.general.setString(codeContent ?? content, forType: .string)
+                },
                 onClearContext: { appState.clearContext() },
                 onMovePosition: { position in overlayController.moveToPosition(position) }
             )
@@ -394,10 +409,10 @@ struct ModernPillHeaderView: View {
     @Binding var isAutoAnswerEnabled: Bool
     @Binding var isSmartModeEnabled: Bool
     @Binding var showPopupMenu: Bool
-    @Binding var selectedMode: Mode?
     let onToggleExpand: () -> Void
     let onStart: () -> Void
     let onStop: () -> Void
+    let onCopyResponse: () -> Void
     let onClearContext: () -> Void
     let onMovePosition: (OverlayPosition) -> Void
 
@@ -699,8 +714,9 @@ struct ModernPillHeaderView: View {
                     isAutoAnswerEnabled: $isAutoAnswerEnabled,
                     isSmartModeEnabled: $isSmartModeEnabled,
                     enableScreenCapture: $enableScreenCapture,
-                    selectedMode: $selectedMode,
                     isVisible: $showPopupMenu,
+                    selectedDisplayID: $config.selectedDisplayID,
+                    onCopyResponse: onCopyResponse,
                     onClearContext: onClearContext,
                     onMovePosition: onMovePosition
                 )
@@ -853,6 +869,38 @@ struct ModernExpandedContentView: View {
     }
 
     @State private var aiErrorDismissTask: Task<Void, Never>?
+    @State private var showCopiedToast = false
+
+    /// Extracts the last code block from a markdown response
+    private func lastCodeBlock(from content: String) -> String? {
+        let blocks = MarkdownParser.parse(content)
+        // Find the last code block
+        for block in blocks.reversed() {
+            if case .codeBlock(let code, _) = block, !code.isEmpty {
+                return code
+            }
+        }
+        return nil
+    }
+
+    private func copyLatestResponse() {
+        // Get latest response content
+        let content: String? = if !aiService.currentResponse.isEmpty {
+            aiService.currentResponse
+        } else {
+            aiService.responses.first?.content
+        }
+        guard let content, !content.isEmpty else { return }
+
+        // Extract last code block, or fall back to full response
+        let textToCopy = lastCodeBlock(from: content) ?? content
+        NSPasteboard.general.clearContents()
+        NSPasteboard.general.setString(textToCopy, forType: .string)
+        showCopiedToast = true
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+            showCopiedToast = false
+        }
+    }
 
     var body: some View {
         VStack(spacing: QMDesign.Spacing.sm) {
@@ -933,6 +981,38 @@ struct ModernExpandedContentView: View {
         }
         .padding(.horizontal, QMDesign.Spacing.sm)
         .padding(.bottom, QMDesign.Spacing.sm)
+        .overlay(alignment: .top) {
+            // Copy confirmation toast
+            if showCopiedToast {
+                HStack(spacing: QMDesign.Spacing.xs) {
+                    Image(systemName: "checkmark.circle.fill")
+                        .font(.system(size: 12))
+                        .foregroundColor(QMDesign.Colors.success)
+                    Text(String(localized: "overlay.toast.copied"))
+                        .font(QMDesign.Typography.caption)
+                        .foregroundColor(QMDesign.Colors.textPrimary)
+                }
+                .padding(.horizontal, QMDesign.Spacing.md)
+                .padding(.vertical, QMDesign.Spacing.xs)
+                .background(
+                    Capsule()
+                        .fill(QMDesign.Colors.backgroundSecondary)
+                        .shadow(color: QMDesign.Shadows.medium.color, radius: QMDesign.Shadows.medium.radius)
+                )
+                .transition(.move(edge: .top).combined(with: .opacity))
+                .padding(.top, QMDesign.Spacing.sm)
+            }
+        }
+        .animation(QMDesign.Animation.smooth, value: showCopiedToast)
+        .background {
+            // Hidden button for Cmd+Shift+C keyboard shortcut
+            Button(action: copyLatestResponse) {
+                EmptyView()
+            }
+            .keyboardShortcut("c", modifiers: [.command, .shift])
+            .opacity(0)
+            .frame(width: 0, height: 0)
+        }
     }
 }
 
