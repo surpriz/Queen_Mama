@@ -26,6 +26,7 @@ export function useSession() {
     startSession: sessionManager.startSession,
     endSession: sessionManager.endSession,
     deleteSession: sessionManager.deleteSession,
+    deleteSessions: sessionManager.deleteSessions,
     updateTranscript: sessionManager.updateTranscript,
     setSummary: sessionManager.setSummary,
     exportSession: (format: ExportFormat) => {

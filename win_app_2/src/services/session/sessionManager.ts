@@ -326,3 +326,47 @@ export async function deleteSession(id: string): Promise<void> {
     log.error('Failed to delete remote session (will retry on next sync)', err),
   )
 }
+
+export async function deleteSessions(ids: string[]): Promise<void> {
+  if (ids.length === 0) return
+
+  // Zustand (single batch update, single re-render)
+  useSessionStore.getState().removeSessions(ids)
+
+  // SQLite - batched cascade delete
+  const placeholders = ids.map(() => '?').join(', ')
+  try {
+    const r1 = await db.query(
+      `DELETE FROM transcript_entries WHERE session_id IN (${placeholders})`,
+      ids,
+    )
+    log.info(`Bulk deleted ${r1.changes ?? 0} transcript_entries`)
+
+    const r2 = await db.query(
+      `DELETE FROM ai_responses WHERE session_id IN (${placeholders})`,
+      ids,
+    )
+    log.info(`Bulk deleted ${r2.changes ?? 0} ai_responses`)
+
+    const r3 = await db.query(
+      `DELETE FROM sessions WHERE id IN (${placeholders})`,
+      ids,
+    )
+    log.info(`Bulk deleted ${r3.changes ?? 0} sessions`)
+
+    await db.walCheckpoint()
+    log.info(`Bulk delete complete: ${ids.length} sessions`)
+  } catch (err) {
+    log.error('Bulk delete failed', err)
+    for (const id of ids) {
+      await db.query('DELETE FROM sessions WHERE id = ?', [id]).catch(() => {})
+    }
+    await db.walCheckpoint().catch(() => {})
+  }
+
+  // Remote deletes - parallel, fire-and-forget
+  Promise.allSettled(ids.map((id) => deleteRemoteSession(id))).then((results) => {
+    const failed = results.filter((r) => r.status === 'rejected').length
+    if (failed > 0) log.error(`${failed}/${ids.length} remote deletes failed`)
+  })
+}

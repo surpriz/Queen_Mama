@@ -12,6 +12,7 @@ interface SessionStoreState {
   addSession: (session: Session) => void
   updateSession: (id: string, updates: Partial<Session>) => void
   removeSession: (id: string) => void
+  removeSessions: (ids: string[]) => void
   setCurrentSession: (session: Session | null) => void
   setSearchQuery: (query: string) => void
   setLoading: (loading: boolean) => void
@@ -43,6 +44,16 @@ export const useSessionStore = create<SessionStoreState>((set, get) => ({
       sessions: state.sessions.filter((s) => s.id !== id),
       currentSession: state.currentSession?.id === id ? null : state.currentSession,
     })),
+  removeSessions: (ids) => {
+    const idSet = new Set(ids)
+    set((state) => ({
+      sessions: state.sessions.filter((s) => !idSet.has(s.id)),
+      currentSession:
+        state.currentSession && idSet.has(state.currentSession.id)
+          ? null
+          : state.currentSession,
+    }))
+  },
   setCurrentSession: (session) => set({ currentSession: session }),
   setSearchQuery: (query) => set({ searchQuery: query }),
   setLoading: (loading) => set({ isLoading: loading }),
