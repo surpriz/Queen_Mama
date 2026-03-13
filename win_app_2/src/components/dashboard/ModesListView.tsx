@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Plus, Edit, Trash2, Check, Copy, Briefcase, Users, TrendingUp, Sparkles, GraduationCap } from 'lucide-react'
+import { Plus, Edit, Trash2, Check, Copy, Briefcase, Users, TrendingUp, Sparkles, GraduationCap, Brain, Code } from 'lucide-react'
 import { BUILT_IN_MODE_NAMES, type Mode } from '@/types/models'
 import { useAppStore } from '@/stores/appStore'
 import { cn } from '@/lib/utils'
@@ -8,11 +8,12 @@ import { useModes } from '@/hooks/useModes'
 import { v4 as uuidv4 } from 'uuid'
 
 const MODE_ICONS: Record<string, typeof Briefcase> = {
+  Default: Sparkles,
+  Limitless: Brain,
   Professional: Briefcase,
   Interview: Users,
   Sales: TrendingUp,
-  Default: Sparkles,
-  DevExam: GraduationCap,
+  'Developer Exam': Code,
 }
 
 function getModeIcon(name: string) {
@@ -80,7 +81,6 @@ export function ModesListView() {
       mode.name as (typeof BUILT_IN_MODE_NAMES)[number],
     )
     const isSelected = selectedMode?.id === mode.id || selectedMode?.name === mode.name
-    const isDefault = mode.isDefault
     const ModeIcon = getModeIcon(mode.name)
 
     return (
@@ -109,7 +109,7 @@ export function ModesListView() {
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
             <h3 className="text-body-sm font-medium text-qm-text-primary truncate">{mode.name}</h3>
-            {isDefault && (
+            {isSelected && (
               <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400">
                 Active
               </span>
@@ -221,7 +221,7 @@ export function ModesListView() {
                   <h3 className="text-title-sm font-semibold text-qm-text-primary">{detailMode.name}</h3>
                   <p className="text-caption text-qm-text-tertiary">
                     {BUILT_IN_MODE_NAMES.includes(detailMode.name as (typeof BUILT_IN_MODE_NAMES)[number]) ? 'Built-in mode' : 'Custom mode'}
-                    {detailMode.isDefault && ' · Active'}
+                    {(selectedMode?.id === detailMode.id || selectedMode?.name === detailMode.name) && ' · Active'}
                   </p>
                 </div>
               </div>
