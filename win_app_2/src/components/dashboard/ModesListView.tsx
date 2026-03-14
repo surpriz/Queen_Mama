@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Plus, Edit, Trash2, Check, Copy, Briefcase, Users, TrendingUp, Sparkles, GraduationCap, Brain, Code } from 'lucide-react'
+import { Plus, Edit, Trash2, Check, Copy, Briefcase, Users, TrendingUp, Sparkles, Brain, Code } from 'lucide-react'
 import { BUILT_IN_MODE_NAMES, type Mode } from '@/types/models'
 import { useAppStore } from '@/stores/appStore'
 import { cn } from '@/lib/utils'
