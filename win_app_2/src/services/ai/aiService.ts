@@ -105,11 +105,15 @@ export async function generateStreamingResponse(params: AIContextParams, options
     batchTimer = null
   }
 
+  // Token limits matching macOS: 1000 default, 3000 for recap
+  const maxTokens = params.responseType === 'Recap' ? 3000 : 1000
+
   try {
     const stream = proxyApi.streamAIResponse({
       model: 'auto',
       messages,
       stream: true,
+      max_tokens: maxTokens,
     })
 
     for await (const chunk of stream) {

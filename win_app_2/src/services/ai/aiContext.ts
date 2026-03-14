@@ -4,7 +4,9 @@ import type { AIMessage } from '@/types/api'
 import { useConfigStore } from '@/stores/configStore'
 import * as contactDb from '@/services/contacts/contactDb'
 
-const MAX_TRANSCRIPT_LENGTH = 8000
+// Match macOS transcript limits: 20000 standard (~25 min), 50000 recap (~1h)
+const MAX_TRANSCRIPT_LENGTH = 20000
+const MAX_TRANSCRIPT_LENGTH_RECAP = 50000
 
 let cachedContactsContext = ''
 
@@ -144,10 +146,11 @@ export function buildUserMessage(params: AIContextParams): AIMessage[] {
   let textContent = ''
 
   if (transcript.trim()) {
+    const maxLen = responseType === ResponseType.Recap ? MAX_TRANSCRIPT_LENGTH_RECAP : MAX_TRANSCRIPT_LENGTH
     const truncated =
-      transcript.length > MAX_TRANSCRIPT_LENGTH
+      transcript.length > maxLen
         ? '[...previous conversation truncated...]\n\n' +
-          transcript.slice(-MAX_TRANSCRIPT_LENGTH)
+          transcript.slice(-maxLen)
         : transcript
 
     textContent += `## Transcript:\n${truncated}\n\n`

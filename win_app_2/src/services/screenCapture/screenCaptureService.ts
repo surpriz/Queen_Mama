@@ -18,7 +18,7 @@ let onCaptureCallback: ScreenCaptureCallback | null = null
 // Pre-capture cache for instant access during AI triggers
 let cachedScreenshotData: string | null = null
 let cachedScreenshotTimestamp = 0
-const CACHE_MAX_AGE = 30000 // 30 seconds - generous for AI triggers on static screens
+const CACHE_MAX_AGE = 2000 // 2 seconds - match macOS for fresh screenshots
 
 async function hashImage(dataUrl: string): Promise<string> {
   const encoder = new TextEncoder()
