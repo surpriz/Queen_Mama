@@ -70,9 +70,21 @@ export interface DeviceAPI {
   getInfo: () => Promise<DeviceInfo>
 }
 
+export interface DisplayInfo {
+  id: string
+  name: string
+  display_id: string
+  thumbnailDataUrl: string
+  width: number
+  height: number
+  isPrimary: boolean
+}
+
 export interface ScreenAPI {
   capture: () => Promise<string | null>
-  getSources: () => Promise<Array<{ id: string; name: string; thumbnailDataUrl: string }>>
+  getSources: () => Promise<Array<{ id: string; name: string; display_id: string; thumbnailDataUrl: string }>>
+  getDisplays: () => Promise<DisplayInfo[]>
+  flashDisplay: (displayId: string, displayName: string, sourceId?: string) => void
 }
 
 export interface AuthAPI {
@@ -144,7 +156,7 @@ export interface ElectronAPI {
   // Screen (namespaced)
   screen: ScreenAPI
   // Screen capture (flat - backward compat)
-  getScreenSources: () => Promise<Array<{ id: string; name: string; thumbnailDataUrl: string }>>
+  getScreenSources: () => Promise<Array<{ id: string; name: string; display_id: string; thumbnailDataUrl: string }>>
 
   // Tray
   updateTrayIcon: (active: boolean) => void

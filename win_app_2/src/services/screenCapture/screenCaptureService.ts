@@ -188,6 +188,8 @@ export const screenCaptureService = {
   },
 
   async captureOnce(): Promise<string | null> {
+    // Reset hash dedup so we always reprocess for manual triggers
+    lastHash = null
     return captureAndProcess()
   },
 
