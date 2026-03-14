@@ -51,6 +51,7 @@ const PLAN_FEATURES = {
     undetectableEnabled: true,
     screenshotEnabled: true,
     knowledgeBaseEnabled: true, // Context Intelligence enabled
+    proactiveSuggestionsEnabled: true,
   },
 } as const;
 
