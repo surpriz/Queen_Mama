@@ -253,6 +253,11 @@ export function PopupMenu() {
               {smartModeEnabled ? 'ON' : 'OFF'}
             </span>
           </button>
+          {smartModeEnabled && (
+            <p className="px-3 pb-1.5 -mt-1 text-[10px] text-purple-400/70 leading-tight">
+              Slower but more accurate — uses advanced reasoning
+            </p>
+          )}
 
           {/* Screen Capture toggle */}
           <button

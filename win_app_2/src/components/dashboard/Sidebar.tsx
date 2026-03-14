@@ -55,9 +55,9 @@ function LicenseBadge() {
 
   if (isPro()) {
     return (
-      <div className="flex items-center gap-1.5 px-3 py-2 rounded-qm-md bg-qm-accent/10">
-        <Crown size={12} className="text-qm-accent" />
-        <span className="text-caption font-medium text-qm-accent">{plan.charAt(0) + plan.slice(1).toLowerCase()}</span>
+      <div className="flex items-center gap-1.5 px-3 py-2 rounded-qm-md bg-qm-warning/10 border border-qm-warning/30">
+        <Crown size={12} className="text-qm-warning" />
+        <span className="text-caption font-medium text-qm-warning">{plan.charAt(0) + plan.slice(1).toLowerCase()}</span>
       </div>
     )
   }

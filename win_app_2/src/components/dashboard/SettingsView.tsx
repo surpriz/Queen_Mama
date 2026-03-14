@@ -206,7 +206,10 @@ export function SettingsView() {
                   </div>
                   <div className="flex justify-between items-center">
                     <span className="text-body-sm text-qm-text-secondary">Plan</span>
-                    <span className="text-body-sm text-qm-accent font-medium capitalize">
+                    <span className={cn(
+                      "text-body-sm font-medium capitalize",
+                      license.isPro() ? "text-qm-warning" : "text-qm-accent"
+                    )}>
                       {license.currentLicense.plan}
                     </span>
                   </div>
