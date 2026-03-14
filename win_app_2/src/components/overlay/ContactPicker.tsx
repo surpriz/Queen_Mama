@@ -12,7 +12,6 @@ import { useContactStore } from '@/stores/contactStore'
 import * as contactDb from '@/services/contacts/contactDb'
 import * as contactSyncService from '@/services/contacts/contactSyncService'
 import type { Contact } from '@/types/models'
-import { cn } from '@/lib/utils'
 
 interface ContactPickerProps {
   /** If provided, contact will be linked to this session on select */

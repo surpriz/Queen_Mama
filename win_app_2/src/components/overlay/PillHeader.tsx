@@ -139,7 +139,7 @@ export function PillHeader() {
   const handleOpenDashboard = useCallback(
     (e: React.MouseEvent) => {
       e.stopPropagation()
-      window.electronAPI?.window.toggle()
+      window.electronAPI?.window.show()
     },
     [],
   )
