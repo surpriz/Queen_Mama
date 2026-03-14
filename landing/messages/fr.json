@@ -430,6 +430,42 @@
     },
     "badgeNew": "Nouveau",
     "entries": {
+      "winOverlayContentProtection": {
+        "title": "Protection contre l'enregistrement d'écran (Windows)",
+        "description": "Le widget overlay est désormais exclu des captures d'écran et enregistrements quand la protection du contenu est activée sur Windows"
+      },
+      "winBulkSessionDeletion": {
+        "title": "Suppression groupée de sessions (Windows)",
+        "description": "Sélectionnez et supprimez plusieurs sessions à la fois depuis la vue Sessions de l'application Windows"
+      },
+      "pricingPlanAlignment": {
+        "title": "Fonctionnalités de plans actualisées",
+        "description": "Les trois plans d'abonnement reflètent désormais fidèlement les fonctionnalités disponibles dans les apps, incluant la capture d'écran pour Pro et les suggestions proactives pour Enterprise"
+      },
+      "winModeDescriptions": {
+        "title": "Descriptions des modes intégrés (Windows)",
+        "description": "Les prompts des modes intégrés sont désormais remplacés par des descriptions claires des capacités de chaque mode"
+      },
+      "winPlanColors": {
+        "title": "Design des badges de plan (Windows)",
+        "description": "Les badges Pro et Enterprise utilisent désormais des couleurs or/ambre pour distinguer visuellement les plans payants, aligné avec le design macOS"
+      },
+      "winActiveModeFix": {
+        "title": "Mode actif au démarrage (Windows)",
+        "description": "Le mode Défaut est désormais auto-sélectionné et affiché comme actif au premier chargement de l'application Windows"
+      },
+      "winSmartModeUX": {
+        "title": "Contexte du Mode Smart (Windows)",
+        "description": "Le Mode Smart affiche désormais une info-bulle explicative précisant son comportement de raisonnement avancé (plus lent mais plus précis)"
+      },
+      "winScreenCaptureCache": {
+        "title": "Correctif capture d'écran (Windows)",
+        "description": "Correction d'un problème de déduplication empêchant les nouvelles captures d'écran d'être analysées en mode IA Écran uniquement"
+      },
+      "winAiCooldownFix": {
+        "title": "Correctif requêtes IA manuelles (Windows)",
+        "description": "Les requêtes IA manuelles ne sont plus bloquées par le minuteur de cooldown des réponses automatiques"
+      },
       "voiceDictation": {
         "title": "Mode dictée vocale",
         "description": "Dictée vocale autonome pour des requêtes IA rapides sans démarrer une session complète"
