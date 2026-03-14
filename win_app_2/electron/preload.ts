@@ -71,6 +71,9 @@ const electronAPI = {
   screen: {
     capture: () => ipcRenderer.invoke(IPC_CHANNELS.SCREEN_CAPTURE),
     getSources: () => ipcRenderer.invoke(IPC_CHANNELS.SCREEN_GET_SOURCES),
+    getDisplays: () => ipcRenderer.invoke(IPC_CHANNELS.SCREEN_GET_DISPLAYS),
+    flashDisplay: (displayId: string, displayName: string, sourceId?: string) =>
+      ipcRenderer.send(IPC_CHANNELS.SCREEN_FLASH_DISPLAY, displayId, displayName, sourceId),
   },
   getScreenSources: () => ipcRenderer.invoke(IPC_CHANNELS.SCREEN_GET_SOURCES),
 

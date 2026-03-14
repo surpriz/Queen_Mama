@@ -12,10 +12,14 @@ import {
   CheckCircle,
   Clock,
   AlertCircle,
+  CheckSquare,
+  Square,
+  X,
 } from 'lucide-react'
 import { useSession } from '@/hooks/useSession'
 import { formatDate, truncate, cn } from '@/lib/utils'
 import { SessionDetail } from './SessionDetail'
+import { Modal } from '@/components/common/Modal'
 import {
   performFullSync,
   queueSessionForSync,
@@ -25,15 +29,24 @@ import {
 } from '@/services/sync/syncManager'
 
 export function SessionsView() {
-  const { filteredSessions, searchQuery, setSearchQuery, deleteSession } = useSession()
+  const { filteredSessions, currentSession, searchQuery, setSearchQuery, deleteSession, deleteSessions } = useSession()
   const [selectedSessionId, setSelectedSessionId] = useState<string | null>(null)
   const [isSyncing, setIsSyncing] = useState(false)
   const [isPulling, setIsPulling] = useState(false)
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null)
 
+  // Bulk selection state
+  const [isSelectMode, setIsSelectMode] = useState(false)
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
+  const [bulkModal, setBulkModal] = useState<'bulk' | 'all' | null>(null)
+  const [isDeleting, setIsDeleting] = useState(false)
+
   const selectedSession = selectedSessionId
     ? filteredSessions.find((s) => s.id === selectedSessionId)
     : null
+
+  // Sessions eligible for bulk selection/deletion (exclude active session)
+  const deletableSessions = filteredSessions.filter((s) => s.id !== currentSession?.id)
 
   const formatDuration = (startTime: string, endTime: string | null): string => {
     if (!endTime) return ''
@@ -85,6 +98,65 @@ export function SessionsView() {
     [deleteSession, selectedSessionId],
   )
 
+  // ── Bulk selection handlers ──────────────────────────────────────────
+
+  const handleToggleSelectMode = useCallback(() => {
+    setIsSelectMode((prev) => {
+      if (prev) {
+        setSelectedIds(new Set())
+        setBulkModal(null)
+      }
+      setDeleteConfirmId(null)
+      return !prev
+    })
+  }, [])
+
+  const handleToggleCard = useCallback((e: React.MouseEvent, id: string) => {
+    e.stopPropagation()
+    setSelectedIds((prev) => {
+      const next = new Set(prev)
+      next.has(id) ? next.delete(id) : next.add(id)
+      return next
+    })
+  }, [])
+
+  const handleSelectAll = useCallback(() => {
+    setSelectedIds((prev) => {
+      if (prev.size === deletableSessions.length) return new Set()
+      return new Set(deletableSessions.map((s) => s.id))
+    })
+  }, [deletableSessions])
+
+  const handleBulkDelete = useCallback(async () => {
+    setIsDeleting(true)
+    try {
+      const ids = [...selectedIds]
+      if (selectedSessionId && selectedIds.has(selectedSessionId)) {
+        setSelectedSessionId(null)
+      }
+      await deleteSessions(ids)
+      setSelectedIds(new Set())
+      setBulkModal(null)
+      setIsSelectMode(false)
+    } finally {
+      setIsDeleting(false)
+    }
+  }, [selectedIds, deleteSessions, selectedSessionId])
+
+  const handleDeleteAll = useCallback(async () => {
+    setIsDeleting(true)
+    try {
+      const ids = deletableSessions.map((s) => s.id)
+      setSelectedSessionId(null)
+      await deleteSessions(ids)
+      setSelectedIds(new Set())
+      setBulkModal(null)
+      setIsSelectMode(false)
+    } finally {
+      setIsDeleting(false)
+    }
+  }, [deletableSessions, deleteSessions])
+
   const pendingCount = getPendingCount()
 
   const getSyncIcon = (status?: string) => {
@@ -117,35 +189,86 @@ export function SessionsView() {
             />
           </div>
 
-          {/* Toolbar: count + sync actions */}
-          <div className="flex items-center justify-between">
-            <span className="text-caption text-qm-text-tertiary">
-              {filteredSessions.length} session{filteredSessions.length !== 1 ? 's' : ''}
-              {pendingCount > 0 && (
-                <span className="ml-1 text-yellow-400">({pendingCount} pending)</span>
-              )}
-            </span>
-            <div className="flex items-center gap-1">
-              {/* Pull remote */}
-              <button
-                onClick={handlePullRemote}
-                disabled={isPulling}
-                className="p-1.5 rounded-qm-sm text-qm-text-tertiary hover:text-qm-accent hover:bg-qm-surface-hover transition-colors disabled:opacity-50"
-                title="Pull sessions from web dashboard"
-              >
-                {isPulling ? <Loader2 size={14} className="animate-spin" /> : <RefreshCw size={14} />}
-              </button>
-              {/* Sync all */}
-              <button
-                onClick={handleSyncAll}
-                disabled={isSyncing}
-                className="p-1.5 rounded-qm-sm text-qm-text-tertiary hover:text-qm-accent hover:bg-qm-surface-hover transition-colors disabled:opacity-50"
-                title="Upload all sessions to web dashboard"
-              >
-                {isSyncing ? <Loader2 size={14} className="animate-spin" /> : <CloudUpload size={14} />}
-              </button>
+          {/* Toolbar */}
+          {isSelectMode ? (
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <span className="text-caption text-qm-text-tertiary">
+                  {selectedIds.size} selected
+                </span>
+                <button
+                  onClick={handleSelectAll}
+                  className="text-caption text-qm-accent hover:text-qm-accent/80 transition-colors"
+                >
+                  {selectedIds.size === deletableSessions.length ? 'Deselect all' : 'Select all'}
+                </button>
+              </div>
+              <div className="flex items-center gap-1">
+                <button
+                  onClick={() => setBulkModal('bulk')}
+                  disabled={selectedIds.size === 0}
+                  className="px-2 py-1 rounded-qm-sm text-[10px] font-semibold bg-qm-error/15 text-qm-error hover:bg-qm-error/25 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  title={`Delete ${selectedIds.size} selected session(s)`}
+                >
+                  Delete ({selectedIds.size})
+                </button>
+                <button
+                  onClick={() => setBulkModal('all')}
+                  disabled={deletableSessions.length === 0}
+                  className="px-2 py-1 rounded-qm-sm text-[10px] font-semibold bg-qm-error/10 text-qm-error hover:bg-qm-error/20 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  title="Delete all sessions"
+                >
+                  Delete all
+                </button>
+                <button
+                  onClick={handleToggleSelectMode}
+                  className="p-1.5 rounded-qm-sm text-qm-text-tertiary hover:text-qm-text-secondary hover:bg-qm-surface-hover transition-colors"
+                  title="Cancel selection"
+                >
+                  <X size={14} />
+                </button>
+              </div>
             </div>
-          </div>
+          ) : (
+            <div className="flex items-center justify-between">
+              <span className="text-caption text-qm-text-tertiary">
+                {filteredSessions.length} session{filteredSessions.length !== 1 ? 's' : ''}
+                {pendingCount > 0 && (
+                  <span className="ml-1 text-yellow-400">({pendingCount} pending)</span>
+                )}
+              </span>
+              <div className="flex items-center gap-1">
+                {/* Select mode */}
+                {deletableSessions.length > 0 && (
+                  <button
+                    onClick={handleToggleSelectMode}
+                    className="p-1.5 rounded-qm-sm text-qm-text-tertiary hover:text-qm-accent hover:bg-qm-surface-hover transition-colors"
+                    title="Select sessions"
+                  >
+                    <CheckSquare size={14} />
+                  </button>
+                )}
+                {/* Pull remote */}
+                <button
+                  onClick={handlePullRemote}
+                  disabled={isPulling}
+                  className="p-1.5 rounded-qm-sm text-qm-text-tertiary hover:text-qm-accent hover:bg-qm-surface-hover transition-colors disabled:opacity-50"
+                  title="Pull sessions from web dashboard"
+                >
+                  {isPulling ? <Loader2 size={14} className="animate-spin" /> : <RefreshCw size={14} />}
+                </button>
+                {/* Sync all */}
+                <button
+                  onClick={handleSyncAll}
+                  disabled={isSyncing}
+                  className="p-1.5 rounded-qm-sm text-qm-text-tertiary hover:text-qm-accent hover:bg-qm-surface-hover transition-colors disabled:opacity-50"
+                  title="Upload all sessions to web dashboard"
+                >
+                  {isSyncing ? <Loader2 size={14} className="animate-spin" /> : <CloudUpload size={14} />}
+                </button>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Session cards */}
@@ -159,58 +282,85 @@ export function SessionsView() {
               const duration = formatDuration(session.startTime, session.endTime)
               const isSelected = session.id === selectedSessionId
               const isConfirmingDelete = deleteConfirmId === session.id
+              const isActive = session.id === currentSession?.id
+              const isChecked = selectedIds.has(session.id)
 
               return (
                 <div
                   key={session.id}
-                  onClick={() => setSelectedSessionId(session.id)}
+                  onClick={
+                    isSelectMode
+                      ? isActive
+                        ? undefined
+                        : (e) => handleToggleCard(e, session.id)
+                      : () => setSelectedSessionId(session.id)
+                  }
                   className={cn(
-                    'p-4 rounded-qm-lg cursor-pointer transition-colors group',
-                    isSelected
-                      ? 'bg-qm-surface-hover border border-qm-border-medium'
-                      : 'bg-qm-surface-light hover:bg-qm-surface-medium border border-transparent',
+                    'p-4 rounded-qm-lg transition-colors group',
+                    isSelectMode && isActive ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer',
+                    isSelectMode && isChecked
+                      ? 'bg-qm-accent/5 border border-qm-accent/40'
+                      : isSelected && !isSelectMode
+                        ? 'bg-qm-surface-hover border border-qm-border-medium'
+                        : 'bg-qm-surface-light hover:bg-qm-surface-medium border border-transparent',
                   )}
                 >
                   {/* Title + Actions */}
                   <div className="flex items-start justify-between gap-2 mb-2">
-                    <h3 className="text-body-md font-medium text-qm-text-primary line-clamp-1 min-w-0">
-                      {session.title}
-                    </h3>
-                    <div className="flex items-center gap-1 shrink-0">
-                      {/* Delete button / confirm */}
-                      {isConfirmingDelete ? (
-                        <div className="flex items-center gap-1">
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              handleDeleteConfirm(session.id)
-                            }}
-                            className="px-2 py-0.5 rounded-qm-sm bg-qm-error/15 text-qm-error text-[10px] font-semibold hover:bg-qm-error/25 transition-colors"
-                          >
-                            Delete
-                          </button>
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              setDeleteConfirmId(null)
-                            }}
-                            className="px-2 py-0.5 rounded-qm-sm bg-qm-surface-medium text-qm-text-tertiary text-[10px] font-semibold hover:bg-qm-surface-hover transition-colors"
-                          >
-                            Cancel
-                          </button>
-                        </div>
-                      ) : (
+                    <div className="flex items-center gap-2 min-w-0">
+                      {isSelectMode && !isActive && (
                         <button
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            setDeleteConfirmId(session.id)
-                          }}
-                          className="opacity-0 group-hover:opacity-100 p-1.5 rounded-qm-sm hover:bg-qm-error/15 text-qm-text-tertiary hover:text-qm-error transition-all"
+                          onClick={(e) => handleToggleCard(e, session.id)}
+                          className="shrink-0 text-qm-text-tertiary hover:text-qm-accent transition-colors"
                         >
-                          <Trash2 size={14} />
+                          {isChecked ? (
+                            <CheckSquare size={16} className="text-qm-accent" />
+                          ) : (
+                            <Square size={16} />
+                          )}
                         </button>
                       )}
+                      <h3 className="text-body-md font-medium text-qm-text-primary line-clamp-1 min-w-0">
+                        {session.title}
+                      </h3>
                     </div>
+                    {!isSelectMode && (
+                      <div className="flex items-center gap-1 shrink-0">
+                        {/* Delete button / confirm */}
+                        {isConfirmingDelete ? (
+                          <div className="flex items-center gap-1">
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                handleDeleteConfirm(session.id)
+                              }}
+                              className="px-2 py-0.5 rounded-qm-sm bg-qm-error/15 text-qm-error text-[10px] font-semibold hover:bg-qm-error/25 transition-colors"
+                            >
+                              Delete
+                            </button>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                setDeleteConfirmId(null)
+                              }}
+                              className="px-2 py-0.5 rounded-qm-sm bg-qm-surface-medium text-qm-text-tertiary text-[10px] font-semibold hover:bg-qm-surface-hover transition-colors"
+                            >
+                              Cancel
+                            </button>
+                          </div>
+                        ) : (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              setDeleteConfirmId(session.id)
+                            }}
+                            className="opacity-0 group-hover:opacity-100 p-1.5 rounded-qm-sm hover:bg-qm-error/15 text-qm-text-tertiary hover:text-qm-error transition-all"
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        )}
+                      </div>
+                    )}
                   </div>
 
                   {/* Date + Duration + Sync badge */}
@@ -290,6 +440,60 @@ export function SessionsView() {
           </div>
         )}
       </div>
+
+      {/* Bulk delete confirmation modal */}
+      <Modal
+        isOpen={bulkModal === 'bulk'}
+        onClose={isDeleting ? () => {} : () => setBulkModal(null)}
+        title={`Delete ${selectedIds.size} session${selectedIds.size !== 1 ? 's' : ''}?`}
+        subtitle="This action cannot be undone. Selected sessions and their transcripts will be permanently removed."
+        size="sm"
+      >
+        <div className="flex justify-end gap-2 pt-2">
+          <button
+            onClick={() => setBulkModal(null)}
+            disabled={isDeleting}
+            className="px-4 py-2 rounded-qm-md bg-qm-surface-light text-qm-text-secondary text-body-sm hover:bg-qm-surface-medium transition-colors disabled:opacity-50"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={handleBulkDelete}
+            disabled={isDeleting}
+            className="px-4 py-2 rounded-qm-md bg-qm-error text-white text-body-sm font-semibold hover:bg-qm-error/90 transition-colors disabled:opacity-50 flex items-center gap-1.5"
+          >
+            {isDeleting && <Loader2 size={14} className="animate-spin" />}
+            Delete {selectedIds.size} session{selectedIds.size !== 1 ? 's' : ''}
+          </button>
+        </div>
+      </Modal>
+
+      {/* Delete all confirmation modal */}
+      <Modal
+        isOpen={bulkModal === 'all'}
+        onClose={isDeleting ? () => {} : () => setBulkModal(null)}
+        title={`Delete all ${deletableSessions.length} sessions?`}
+        subtitle="This action cannot be undone. All sessions in the current view and their transcripts will be permanently removed."
+        size="sm"
+      >
+        <div className="flex justify-end gap-2 pt-2">
+          <button
+            onClick={() => setBulkModal(null)}
+            disabled={isDeleting}
+            className="px-4 py-2 rounded-qm-md bg-qm-surface-light text-qm-text-secondary text-body-sm hover:bg-qm-surface-medium transition-colors disabled:opacity-50"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={handleDeleteAll}
+            disabled={isDeleting}
+            className="px-4 py-2 rounded-qm-md bg-qm-error text-white text-body-sm font-semibold hover:bg-qm-error/90 transition-colors disabled:opacity-50 flex items-center gap-1.5"
+          >
+            {isDeleting && <Loader2 size={14} className="animate-spin" />}
+            Delete all sessions
+          </button>
+        </div>
+      </Modal>
     </div>
   )
 }

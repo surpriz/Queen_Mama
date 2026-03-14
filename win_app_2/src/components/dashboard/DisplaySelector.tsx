@@ -10,6 +10,7 @@ import { cn } from '@/lib/utils'
 interface ScreenSource {
   id: string
   name: string
+  display_id: string
   thumbnailDataUrl: string
 }
 
@@ -44,9 +45,11 @@ export function DisplaySelector() {
     loadSources()
   }, [])
 
-  const handleSelect = async (sourceId: string) => {
-    setSelectedId(sourceId)
-    await window.electronAPI?.store?.set('selectedDisplayId', sourceId)
+  const handleSelect = async (source: ScreenSource) => {
+    setSelectedId(source.id)
+    await window.electronAPI?.store?.set('selectedDisplayId', source.id)
+    // Flash the selected display
+    window.electronAPI?.screen?.flashDisplay(source.display_id, source.name, source.id)
   }
 
   if (sources.length <= 1) {
@@ -77,7 +80,7 @@ export function DisplaySelector() {
           return (
             <button
               key={source.id}
-              onClick={() => handleSelect(source.id)}
+              onClick={() => handleSelect(source)}
               className={cn(
                 'flex flex-col items-center gap-1.5 p-2 rounded-qm-md border transition-all',
                 isSelected

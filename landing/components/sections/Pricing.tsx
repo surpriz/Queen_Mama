@@ -34,6 +34,7 @@ export function Pricing() {
       features: [
         { text: t("pro.feature1"), included: true },
         { text: t("pro.feature2"), included: true },
+        { text: t("pro.featureScreenshot"), included: true },
         { text: t("pro.feature3"), included: true },
         { text: t("pro.feature4"), included: true },
         { text: t("pro.feature5"), included: true },
@@ -56,6 +57,8 @@ export function Pricing() {
         { text: t("enterprise.feature4"), included: true },
         { text: t("enterprise.feature5"), included: true },
         { text: t("enterprise.feature6"), included: true },
+        { text: t("enterprise.feature7"), included: true },
+        { text: t("enterprise.feature8"), included: true },
       ],
       cta: t("enterprise.cta"),
       popular: false,

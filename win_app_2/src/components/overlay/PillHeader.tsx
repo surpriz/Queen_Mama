@@ -246,7 +246,10 @@ export function PillHeader() {
 
         {/* 7. Smart mode badge */}
         {smartModeEnabled && (
-          <div className="flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-purple-500/20">
+          <div
+            className="flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-purple-500/20"
+            title="Smart Mode — Slower but more accurate, uses advanced reasoning"
+          >
             <Brain size={11} className="text-purple-400" />
             <span className="text-caption-sm text-purple-400 font-medium">Smart</span>
           </div>

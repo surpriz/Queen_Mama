@@ -58,8 +58,9 @@ export async function generateStreamingResponse(params: AIContextParams, options
   const overlayStore = useOverlayStore.getState()
   overlayStore.setStreamingContent('')
 
-  // Check cache first
-  const cached = await getCachedResponse(
+  // Check cache first (skip cache in screen-only mode — each call needs a fresh screenshot)
+  const isScreenOnly = !params.transcript.trim() && !!params.screenshot
+  const cached = isScreenOnly ? null : await getCachedResponse(
     params.transcript,
     params.mode?.id ?? null,
     params.responseType,
@@ -104,11 +105,15 @@ export async function generateStreamingResponse(params: AIContextParams, options
     batchTimer = null
   }
 
+  // Token limits matching macOS: 1000 default, 3000 for recap
+  const maxTokens = params.responseType === 'Recap' ? 3000 : 1000
+
   try {
     const stream = proxyApi.streamAIResponse({
       model: 'auto',
       messages,
       stream: true,
+      max_tokens: maxTokens,
     })
 
     for await (const chunk of stream) {
@@ -177,8 +182,12 @@ export async function generateStreamingResponse(params: AIContextParams, options
 async function getScreenshotIfEnabled(): Promise<string | undefined> {
   try {
     if (useConfigStore.getState().autoScreenCapture) {
-      const screenshot = await screenCaptureService.getCachedOrCapture()
-      return screenshot ?? undefined
+      // Always force a fresh capture for manual triggers — never use stale cache
+      const fresh = await screenCaptureService.captureOnce()
+      if (fresh) return fresh
+      // Fallback to cache if fresh capture returned null (e.g. hash dedup on static screen)
+      const cached = await screenCaptureService.getCachedOrCapture()
+      return cached ?? undefined
     }
   } catch (err) {
     log.warn('Failed to fetch screenshot for AI context', err)
@@ -198,7 +207,7 @@ export async function assist(
     screenshot: finalScreenshot,
     mode,
     responseType: 'Assist' as ResponseType,
-  })
+  }, { manualTrigger: true })
 }
 
 export async function whatToSay(transcript: string, mode: Mode | null): Promise<string> {
@@ -208,7 +217,7 @@ export async function whatToSay(transcript: string, mode: Mode | null): Promise<
     screenshot,
     mode,
     responseType: 'What should I say?' as ResponseType,
-  })
+  }, { manualTrigger: true })
 }
 
 export async function followUp(transcript: string, mode: Mode | null): Promise<string> {
@@ -218,7 +227,7 @@ export async function followUp(transcript: string, mode: Mode | null): Promise<s
     screenshot,
     mode,
     responseType: 'Follow-up' as ResponseType,
-  })
+  }, { manualTrigger: true })
 }
 
 export async function recap(transcript: string, mode: Mode | null): Promise<string> {
@@ -228,7 +237,7 @@ export async function recap(transcript: string, mode: Mode | null): Promise<stri
     screenshot,
     mode,
     responseType: 'Recap' as ResponseType,
-  })
+  }, { manualTrigger: true })
 }
 
 export async function askCustomQuestion(

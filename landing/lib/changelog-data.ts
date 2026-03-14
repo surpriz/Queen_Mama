@@ -52,6 +52,16 @@ export const changelogData: ChangelogRelease[] = [
             id: "limitlessMode",
             title: "Limitless Mode",
             description: "A new AI mode inspired by NZT for enhanced cognitive pattern recognition, anticipation, and deep knowledge synthesis"
+          },
+          {
+            id: "winOverlayContentProtection",
+            title: "Screen Recording Protection (Windows)",
+            description: "The overlay widget is now excluded from screen captures and recordings when content protection is enabled on Windows"
+          },
+          {
+            id: "winBulkSessionDeletion",
+            title: "Bulk Session Deletion (Windows)",
+            description: "Select and delete multiple sessions at once from the Sessions view in the Windows app"
           }
         ]
       },
@@ -112,6 +122,31 @@ export const changelogData: ChangelogRelease[] = [
             id: "conciseAssistFormat",
             title: "Streamlined Assist Responses",
             description: "Assist responses during live sessions now use a concise bullet-point format for quick scanning"
+          },
+          {
+            id: "pricingPlanAlignment",
+            title: "Accurate Plan Features",
+            description: "All three subscription plans now accurately reflect the features available in the apps, including screenshot capture for Pro and proactive suggestions for Enterprise"
+          },
+          {
+            id: "winModeDescriptions",
+            title: "Built-in Mode Descriptions (Windows)",
+            description: "Built-in mode prompts are now shown as clear capability descriptions instead of raw system prompts"
+          },
+          {
+            id: "winPlanColors",
+            title: "Plan Badge Design (Windows)",
+            description: "Pro and Enterprise plan badges now use gold/amber colors to visually distinguish paid tiers, matching the macOS design"
+          },
+          {
+            id: "winActiveModeFix",
+            title: "Active Mode on Launch (Windows)",
+            description: "The Default mode is now auto-selected and shown as active when the Windows app first loads"
+          },
+          {
+            id: "winSmartModeUX",
+            title: "Smart Mode Context (Windows)",
+            description: "Smart Mode now displays an explanatory tooltip clarifying its slower-but-more-accurate advanced reasoning behavior"
           }
         ]
       },
@@ -162,6 +197,16 @@ export const changelogData: ChangelogRelease[] = [
             id: "builtInModeDefaults",
             title: "Built-in Mode Defaults Fix",
             description: "Fixed built-in mode default flags and filtering to correctly separate built-in and custom modes"
+          },
+          {
+            id: "winScreenCaptureCache",
+            title: "Screen Capture Refresh Fix (Windows)",
+            description: "Fixed a deduplication issue preventing fresh screenshots from being analyzed in Screen-Only AI mode"
+          },
+          {
+            id: "winAiCooldownFix",
+            title: "Manual AI Request Fix (Windows)",
+            description: "Manual AI requests are no longer blocked by the auto-response cooldown timer"
           }
         ]
       },

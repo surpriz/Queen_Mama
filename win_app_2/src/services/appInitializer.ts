@@ -22,6 +22,8 @@ import { loadSessions } from '@/services/session/sessionManager'
 import * as contactDb from '@/services/contacts/contactDb'
 import * as contactSyncService from '@/services/contacts/contactSyncService'
 import { useContactStore } from '@/stores/contactStore'
+import { modesService } from '@/services/modes/modesService'
+import { useAppStore } from '@/stores/appStore'
 
 let initialized = false
 
@@ -58,7 +60,19 @@ export async function initializeApp(): Promise<void> {
     console.error('[AppInit] Sessions load failed:', error)
   }
 
-  // 2c. Load contacts from DB
+  // 2c. Auto-select Default mode
+  try {
+    const allModes = await modesService.getAll()
+    const defaultMode = allModes.find((m) => m.name === 'Default')
+    if (defaultMode) {
+      useAppStore.getState().setSelectedMode(defaultMode)
+      console.log('[AppInit] Default mode selected')
+    }
+  } catch (error) {
+    console.error('[AppInit] Default mode selection failed:', error)
+  }
+
+  // 2d. Load contacts from DB
   try {
     const contacts = await contactDb.getAllContacts()
     useContactStore.getState().setContacts(contacts)

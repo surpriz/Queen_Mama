@@ -70,6 +70,8 @@ export const IPC_CHANNELS = {
 
   // Screen capture
   SCREEN_CAPTURE: 'screen:capture',
+  SCREEN_GET_DISPLAYS: 'screen:get-displays',
+  SCREEN_FLASH_DISPLAY: 'screen:flash-display',
 
   // Auth / OAuth
   AUTH_PROTOCOL_CALLBACK: 'auth:protocol-callback',

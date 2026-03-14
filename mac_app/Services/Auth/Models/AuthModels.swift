@@ -230,7 +230,7 @@ struct LicenseFeatures: Codable, Equatable {
         exportFormats: ["plainText"],
         autoAnswerEnabled: false, // Enterprise only
         sessionSyncEnabled: false,
-        dailyAiRequestLimit: 50,
+        dailyAiRequestLimit: 1,
         maxSyncedSessions: 0,
         maxTranscriptSize: 10240,
         undetectableEnabled: false, // Enterprise only

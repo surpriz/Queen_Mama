@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { Plus, Edit, Trash2, Check, Copy, Briefcase, Users, TrendingUp, Sparkles, GraduationCap } from 'lucide-react'
+import { useState, useEffect } from 'react'
+import { Plus, Edit, Trash2, Check, Copy, Briefcase, Users, TrendingUp, Sparkles, GraduationCap, Brain, Code } from 'lucide-react'
 import { BUILT_IN_MODE_NAMES, type Mode } from '@/types/models'
 import { useAppStore } from '@/stores/appStore'
 import { cn } from '@/lib/utils'
@@ -8,11 +8,28 @@ import { useModes } from '@/hooks/useModes'
 import { v4 as uuidv4 } from 'uuid'
 
 const MODE_ICONS: Record<string, typeof Briefcase> = {
+  Default: Sparkles,
+  Limitless: Brain,
   Professional: Briefcase,
   Interview: Users,
   Sales: TrendingUp,
-  Default: Sparkles,
-  DevExam: GraduationCap,
+  'Developer Exam': Code,
+}
+
+/** Public descriptions for built-in modes (hides actual system prompts) */
+const BUILT_IN_DESCRIPTIONS: Record<string, string> = {
+  Default:
+    'General-purpose real-time coaching assistant. Adapts to any situation — meetings, exams, workflows — with actionable, context-aware advice. Matches the language of the conversation automatically.',
+  Limitless:
+    'Enhanced cognitive mode providing deep analysis, instant pattern recognition, and encyclopedic knowledge across all domains. Thinks several steps ahead and connects information from multiple fields.',
+  Professional:
+    'Optimized for corporate environments — meetings, negotiations, presentations, and strategy sessions. Delivers executive-level insights, business acumen, and professional communication guidance.',
+  Interview:
+    'Specialized coaching for job interviews. Helps craft compelling, structured answers using proven methodologies. Adapts to technical, behavioral, and situational questions in real time.',
+  Sales:
+    'Sales-focused coaching for closing deals with confidence. Provides real-time objection handling, persuasion techniques, and strategic negotiation guidance tailored to the conversation flow.',
+  'Developer Exam':
+    'Coding assessment companion for online exams (CodinGame, LeetCode, HackerRank, etc.). Provides optimal algorithmic approaches, complexity analysis, and clean implementation guidance.',
 }
 
 function getModeIcon(name: string) {
@@ -20,14 +37,24 @@ function getModeIcon(name: string) {
 }
 
 export function ModesListView() {
-  const selectedMode = useAppStore((s) => s.selectedMode)
-  const setSelectedMode = useAppStore((s) => s.setSelectedMode)
+  const activeMode = useAppStore((s) => s.selectedMode)
+  const setActiveMode = useAppStore((s) => s.setSelectedMode)
   const { modes, loading, saveMode, deleteMode } = useModes()
   const [editingMode, setEditingMode] = useState<Mode | null>(null)
   const [isCreating, setIsCreating] = useState(false)
+  const [viewingMode, setViewingMode] = useState<Mode | null>(null)
+
+  // Auto-select Default mode on first load if no mode is active
+  useEffect(() => {
+    if (!loading && modes.length > 0 && !activeMode) {
+      const defaultMode = modes.find((m) => m.name === 'Default')
+      if (defaultMode) setActiveMode(defaultMode)
+    }
+  }, [loading, modes, activeMode, setActiveMode])
 
   const handleSelect = (mode: Mode) => {
-    setSelectedMode(mode)
+    setViewingMode(mode)
+    setActiveMode(mode)
   }
 
   const handleSave = async (mode: Mode) => {
@@ -38,7 +65,11 @@ export function ModesListView() {
 
   const handleDelete = async (id: string) => {
     await deleteMode(id)
-    if (selectedMode?.id === id) setSelectedMode(null)
+    if (activeMode?.id === id) {
+      const defaultMode = modes.find((m) => m.name === 'Default')
+      setActiveMode(defaultMode ?? null)
+    }
+    if (viewingMode?.id === id) setViewingMode(null)
   }
 
   const handleDuplicate = async (mode: Mode) => {
@@ -59,8 +90,9 @@ export function ModesListView() {
     (m) => !BUILT_IN_MODE_NAMES.includes(m.name as (typeof BUILT_IN_MODE_NAMES)[number]),
   )
 
-  // For split view: show editor on the right
-  const detailMode = editingMode || (isCreating ? null : selectedMode ? modes.find((m) => m.id === selectedMode.id || m.name === selectedMode.name) : null)
+  // For split view: show editor on the right. Use viewingMode if set, otherwise show activeMode
+  const currentView = viewingMode ?? activeMode
+  const detailMode = editingMode || (isCreating ? null : currentView ? modes.find((m) => m.id === currentView.id || m.name === currentView.name) : null)
 
   if (editingMode || isCreating) {
     return (
@@ -79,8 +111,8 @@ export function ModesListView() {
     const isBuiltIn = BUILT_IN_MODE_NAMES.includes(
       mode.name as (typeof BUILT_IN_MODE_NAMES)[number],
     )
-    const isSelected = selectedMode?.id === mode.id || selectedMode?.name === mode.name
-    const isDefault = mode.isDefault
+    const isActive = activeMode?.id === mode.id || activeMode?.name === mode.name
+    const isViewing = currentView?.id === mode.id || currentView?.name === mode.name
     const ModeIcon = getModeIcon(mode.name)
 
     return (
@@ -89,32 +121,36 @@ export function ModesListView() {
         onClick={() => handleSelect(mode)}
         className={cn(
           'flex items-center gap-3 px-3 py-3 rounded-qm-lg cursor-pointer transition-all group',
-          isSelected
+          isViewing
             ? 'bg-qm-accent/10 border border-qm-accent/30'
-            : 'hover:bg-qm-surface-light border border-transparent',
+            : isActive
+              ? 'bg-emerald-500/5 border border-emerald-500/20'
+              : 'hover:bg-qm-surface-light border border-transparent',
         )}
       >
         {/* Mode icon */}
         <div
           className={cn(
             'flex items-center justify-center w-8 h-8 rounded-full flex-shrink-0',
-            isSelected
+            isViewing
               ? 'bg-gradient-to-br from-qm-gradient-start to-qm-gradient-end'
-              : 'bg-qm-surface-light',
+              : isActive
+                ? 'bg-emerald-500/15'
+                : 'bg-qm-surface-light',
           )}
         >
-          <ModeIcon size={14} className={isSelected ? 'text-white' : 'text-qm-text-secondary'} />
+          <ModeIcon size={14} className={isViewing ? 'text-white' : isActive ? 'text-emerald-400' : 'text-qm-text-secondary'} />
         </div>
 
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
             <h3 className="text-body-sm font-medium text-qm-text-primary truncate">{mode.name}</h3>
-            {isDefault && (
+            {isActive && (
               <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400">
                 Active
               </span>
             )}
-            {isSelected && <Check size={12} className="text-qm-accent flex-shrink-0" />}
+            {isActive && <Check size={12} className="text-emerald-400 flex-shrink-0" />}
           </div>
         </div>
 
@@ -221,15 +257,17 @@ export function ModesListView() {
                   <h3 className="text-title-sm font-semibold text-qm-text-primary">{detailMode.name}</h3>
                   <p className="text-caption text-qm-text-tertiary">
                     {BUILT_IN_MODE_NAMES.includes(detailMode.name as (typeof BUILT_IN_MODE_NAMES)[number]) ? 'Built-in mode' : 'Custom mode'}
-                    {detailMode.isDefault && ' · Active'}
+                    {(activeMode?.id === detailMode.id || activeMode?.name === detailMode.name) && ' · Active'}
                   </p>
                 </div>
               </div>
             </div>
             <div className="p-4 rounded-qm-lg bg-qm-surface-light border border-qm-border-subtle">
-              <h4 className="text-label-md text-qm-text-secondary mb-2">System Prompt</h4>
+              <h4 className="text-label-md text-qm-text-secondary mb-2">
+                {BUILT_IN_DESCRIPTIONS[detailMode.name] ? 'Description' : 'System Prompt'}
+              </h4>
               <p className="text-body-sm text-qm-text-primary leading-relaxed whitespace-pre-wrap">
-                {detailMode.systemPrompt}
+                {BUILT_IN_DESCRIPTIONS[detailMode.name] ?? detailMode.systemPrompt}
               </p>
             </div>
           </div>

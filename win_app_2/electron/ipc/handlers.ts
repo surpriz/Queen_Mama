@@ -1,4 +1,4 @@
-import { ipcMain, app, shell, safeStorage, BrowserWindow, desktopCapturer, dialog } from 'electron'
+import { ipcMain, app, shell, safeStorage, BrowserWindow, desktopCapturer, dialog, screen, systemPreferences } from 'electron'
 import { IPC_CHANNELS } from './channels'
 import { v4 as uuidv4 } from 'uuid'
 import * as os from 'os'
@@ -18,6 +18,7 @@ import {
   setOverlaySize,
   getOverlayWindow,
 } from '../windows/overlayWindow'
+import { flashDisplay } from '../windows/displayFlash'
 
 const store = new Store()
 
@@ -179,6 +180,15 @@ export function registerIPCHandlers(): void {
     }
   })
 
+  // Log screen recording permission status at registration time (macOS only)
+  if (process.platform === 'darwin') {
+    const screenStatus = systemPreferences.getMediaAccessStatus('screen')
+    console.log(`[IPC] Screen Recording permission: ${screenStatus}`)
+    if (screenStatus !== 'granted') {
+      console.warn('[IPC] Screen Recording NOT granted — add your terminal/Electron to System Settings > Privacy & Security > Screen Recording')
+    }
+  }
+
   // Screen capture (supports multi-display selection)
   ipcMain.handle(IPC_CHANNELS.SCREEN_CAPTURE, async () => {
     try {
@@ -186,28 +196,79 @@ export function registerIPCHandlers(): void {
         types: ['screen'],
         thumbnailSize: { width: 1920, height: 1080 },
       })
-      if (sources.length === 0) return null
+      console.log(`[IPC] Screen capture: ${sources.length} sources found`)
+      if (sources.length === 0) {
+        console.warn('[IPC] Screen capture: desktopCapturer returned 0 sources — check Screen Recording permission')
+        return null
+      }
 
       // Check if user has selected a specific display
       let selectedSource = sources[0] // Default to primary
-      try {
-        const Store = (await import('electron-store')).default
-        const store = new Store()
-        const selectedDisplayId = store.get('selectedDisplayId') as string | undefined
-        if (selectedDisplayId) {
-          const match = sources.find((s) => s.id === selectedDisplayId || s.display_id === selectedDisplayId)
-          if (match) {
-            selectedSource = match
-          }
+      const selectedDisplayId = store.get('selectedDisplayId') as string | undefined
+      if (selectedDisplayId) {
+        const match = sources.find((s) => s.id === selectedDisplayId || s.display_id === selectedDisplayId)
+        if (match) {
+          selectedSource = match
         }
-      } catch {
-        // electron-store not available, use primary
       }
 
       return selectedSource.thumbnail.toDataURL('image/jpeg', 0.5)
     } catch (error) {
       console.error('[IPC] Screen capture failed:', error)
       return null
+    }
+  })
+
+  // Get screen-only displays for the display selector
+  ipcMain.handle(IPC_CHANNELS.SCREEN_GET_DISPLAYS, async () => {
+    try {
+      const electronDisplays = screen.getAllDisplays()
+      const primaryId = screen.getPrimaryDisplay().id
+
+      // Try desktopCapturer for thumbnails (requires Screen Recording permission on macOS)
+      let sources: Electron.DesktopCapturerSource[] = []
+      try {
+        sources = await desktopCapturer.getSources({
+          types: ['screen'],
+          thumbnailSize: { width: 320, height: 180 },
+        })
+      } catch {
+        // Permission denied or unavailable — fall through to electron displays
+      }
+
+      // If desktopCapturer returned sources, merge with Electron display info
+      if (sources.length > 0) {
+        return sources.map((s, index) => {
+          const matchedDisplay = s.display_id
+            ? electronDisplays.find((d) => d.id.toString() === s.display_id)
+            : electronDisplays[index]
+
+          return {
+            id: s.id,
+            name: s.name,
+            display_id: s.display_id || matchedDisplay?.id.toString() || '',
+            thumbnailDataUrl: s.thumbnail.toDataURL(),
+            width: matchedDisplay?.size.width ?? 0,
+            height: matchedDisplay?.size.height ?? 0,
+            isPrimary: matchedDisplay ? matchedDisplay.id === primaryId : index === 0,
+          }
+        })
+      }
+
+      // Fallback: use Electron's screen API directly (always works, no permission needed)
+      console.log('[IPC] desktopCapturer returned empty, using screen.getAllDisplays() fallback')
+      return electronDisplays.map((d, index) => ({
+        id: `screen:${index}:0`,
+        name: d.label || (d.id === primaryId ? 'Primary Display' : `Display ${index + 1}`),
+        display_id: d.id.toString(),
+        thumbnailDataUrl: '',
+        width: d.size.width,
+        height: d.size.height,
+        isPrimary: d.id === primaryId,
+      }))
+    } catch (error) {
+      console.error('[IPC] Screen get displays failed:', error)
+      return []
     }
   })
 
@@ -222,11 +283,17 @@ export function registerIPCHandlers(): void {
         .map((s) => ({
           id: s.id,
           name: s.name,
+          display_id: s.display_id,
           thumbnailDataUrl: s.thumbnail.toDataURL(),
         }))
     } catch {
       return []
     }
+  })
+
+  // Flash display confirmation HUD
+  ipcMain.on(IPC_CHANNELS.SCREEN_FLASH_DISPLAY, (_event, displayId: string, displayName: string, sourceId?: string) => {
+    flashDisplay(displayId, displayName, sourceId)
   })
 
   // Display affinity

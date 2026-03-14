@@ -30,10 +30,16 @@ export function createMainWindow(): BrowserWindow {
     mainWindow?.show()
   })
 
-  // Quit app when main window is closed
+  // Hide to tray instead of quitting when dashboard is closed
+  mainWindow.on('close', (event) => {
+    if (!(app as typeof app & { isQuitting?: boolean }).isQuitting) {
+      event.preventDefault()
+      mainWindow?.hide()
+    }
+  })
+
   mainWindow.on('closed', () => {
     mainWindow = null
-    app.quit()
   })
 
   // Error handlers for debugging
