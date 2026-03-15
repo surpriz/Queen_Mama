@@ -51,10 +51,10 @@ final class HealthCheckServiceTests: XCTestCase {
         )
     }
 
-    func test_thresholds_maxWebSocketReconnects_is3() {
+    func test_thresholds_maxWebSocketReconnects_is8() {
         XCTAssertEqual(
-            HealthCheckService.Thresholds.maxWebSocketReconnects, 3,
-            "Max WebSocket reconnects threshold should be 3"
+            HealthCheckService.Thresholds.maxWebSocketReconnects, 8,
+            "Max WebSocket reconnects threshold should be 8"
         )
     }
 
