@@ -156,7 +156,7 @@ export function PopupMenu() {
 
       {isOpen && (
         <div
-          className="absolute right-0 top-full mt-1 w-48 bg-qm-surface-medium border border-qm-border-subtle rounded-qm-md shadow-qm-lg z-50 overflow-hidden"
+          className="absolute right-0 top-full mt-1 w-48 bg-qm-bg-secondary border border-qm-border-medium rounded-qm-md shadow-qm-lg z-50 overflow-hidden"
           onClick={(e) => e.stopPropagation()}
         >
           {/* Position submenu */}
@@ -169,7 +169,7 @@ export function PopupMenu() {
           </button>
 
           {showPositions && (
-            <div className="border-t border-qm-border-subtle bg-qm-surface-dark">
+            <div className="border-t border-qm-border-subtle bg-qm-bg-primary">
               {POSITIONS.map(({ value, label }) => (
                 <button
                   key={value}
@@ -200,7 +200,7 @@ export function PopupMenu() {
           </button>
 
           {showModes && (
-            <div className="border-t border-qm-border-subtle bg-qm-surface-dark max-h-48 overflow-y-auto">
+            <div className="border-t border-qm-border-subtle bg-qm-bg-primary max-h-48 overflow-y-auto">
               {modes.map((mode) => (
                 <button
                   key={mode.id}
@@ -231,7 +231,7 @@ export function PopupMenu() {
               'text-caption-sm font-medium px-1.5 py-0.5 rounded-full',
               autoAnswerEnabled
                 ? 'bg-qm-auto-answer/20 text-qm-auto-answer'
-                : 'bg-qm-surface-dark text-qm-text-tertiary',
+                : 'bg-qm-bg-primary text-qm-text-tertiary',
             )}>
               {autoAnswerEnabled ? 'ON' : 'OFF'}
             </span>
@@ -248,7 +248,7 @@ export function PopupMenu() {
               'text-caption-sm font-medium px-1.5 py-0.5 rounded-full',
               smartModeEnabled
                 ? 'bg-purple-500/20 text-purple-400'
-                : 'bg-qm-surface-dark text-qm-text-tertiary',
+                : 'bg-qm-bg-primary text-qm-text-tertiary',
             )}>
               {smartModeEnabled ? 'ON' : 'OFF'}
             </span>
@@ -270,7 +270,7 @@ export function PopupMenu() {
               'text-caption-sm font-medium px-1.5 py-0.5 rounded-full',
               autoScreenCapture
                 ? 'bg-qm-accent/20 text-qm-accent'
-                : 'bg-qm-surface-dark text-qm-text-tertiary',
+                : 'bg-qm-bg-primary text-qm-text-tertiary',
             )}>
               {autoScreenCapture ? 'ON' : 'OFF'}
             </span>
@@ -300,7 +300,7 @@ export function PopupMenu() {
           </button>
 
           {showDisplays && (
-            <div className="border-t border-qm-border-subtle bg-qm-surface-dark px-1.5 py-1.5 space-y-1">
+            <div className="border-t border-qm-border-subtle bg-qm-bg-primary px-1.5 py-1.5 space-y-1">
               {displaySources.length === 0 ? (
                 <p className="text-caption-sm text-qm-text-tertiary text-center py-2">No displays found</p>
               ) : (
