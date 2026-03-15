@@ -73,6 +73,19 @@ async function getAllReleases(isStaging: boolean): Promise<GitHubRelease[]> {
   }
 }
 
+// Find the latest stable electron-mac release (electron-mac/v*)
+function findElectronMacRelease(
+  releases: GitHubRelease[],
+  isStaging: boolean
+): GitHubRelease | null {
+  const prefix = "electron-mac/v";
+  const electronReleases = releases.filter((r) => r.tag_name.startsWith(prefix) && r.assets.some((a) => a.name.endsWith(".dmg")));
+  if (isStaging) {
+    return electronReleases.find((r) => r.prerelease) || electronReleases[0] || null;
+  }
+  return electronReleases.find((r) => !r.prerelease) || null;
+}
+
 // Find the latest release for a specific platform (mac/v*, win/v*, or legacy v*)
 function findPlatformRelease(
   releases: GitHubRelease[],
@@ -128,6 +141,7 @@ export default async function DownloadPage({ params }: Props) {
 
   const macRelease = findPlatformRelease(allReleases, "macos", staging);
   const winRelease = findPlatformRelease(allReleases, "windows", staging);
+  const electronMacRelease = findElectronMacRelease(allReleases, staging);
 
   const dmgAsset = macRelease?.assets?.find((a) => a.name.endsWith(".dmg"));
   const exeAsset = winRelease?.assets?.find((a) => a.name.endsWith(".exe"));
@@ -152,6 +166,14 @@ export default async function DownloadPage({ params }: Props) {
   const secondaryDownloadUrl = staging
     ? `/api/download/${secondaryVersion}?platform=${secondaryOS}&prerelease=true`
     : `/api/download/${secondaryVersion}?platform=${secondaryOS}`;
+
+  // Electron Mac section (only shown to Mac users when a release exists)
+  const electronMacVersion = electronMacRelease?.tag_name?.replace(/^electron-mac\/v/, "") || null;
+  const electronMacDownloadUrl = electronMacVersion
+    ? (staging
+        ? `/api/download/${electronMacVersion}?platform=electron-mac&prerelease=true`
+        : `/api/download/${electronMacVersion}?platform=electron-mac`)
+    : null;
 
   // OS-specific content
   const isMac = userOS === "macos";
@@ -381,6 +403,36 @@ export default async function DownloadPage({ params }: Props) {
               ))}
             </ul>
           </div>
+
+          {/* Discrete Electron Mac Section — only for Mac users when a release exists */}
+          {isMac && electronMacDownloadUrl && (
+            <div className="mt-16 max-w-2xl mx-auto">
+              <div className="p-5 bg-white/[0.03] border border-white/10 rounded-xl">
+                <div className="flex items-start gap-3">
+                  <div className="flex-shrink-0 mt-0.5">
+                    <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                  </div>
+                  <div className="flex-1 text-left">
+                    <p className="text-gray-500 text-sm font-medium">{t("electronMacTitle")}</p>
+                    <p className="text-gray-600 text-xs mt-0.5">{t("electronMacSubtitle")}</p>
+                    <div className="mt-2 flex items-center gap-3">
+                      <a
+                        href={electronMacDownloadUrl}
+                        className="text-gray-500 hover:text-gray-300 transition-colors text-xs underline underline-offset-2"
+                      >
+                        {t("electronMacDownload")}
+                        {electronMacVersion && ` (v${electronMacVersion})`}
+                      </a>
+                      <span className="text-gray-700 text-xs">&bull;</span>
+                      <span className="text-gray-700 text-xs">{t("electronMacNote")}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
