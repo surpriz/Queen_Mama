@@ -29,9 +29,11 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         // Initialize analytics (PostHog)
         AnalyticsService.shared.start()
 
-        // Initialize Sparkle updater (startingUpdater: true handles scheduled checks)
-        // No manual background check needed — Sparkle's internal scheduler runs every 24h
-        _ = UpdaterManager.shared
+        // Defer Sparkle initialization to avoid AuthorizationCopyRights XPC call
+        // blocking the main thread during app launch (Sentry: App Hanging, 51 events)
+        DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) {
+            _ = UpdaterManager.shared
+        }
 
         // Log environment for diagnostics
         print("[App] Environment: \(AppEnvironment.current.displayName)")
@@ -39,6 +41,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
         // Restore authentication state on launch
         Task { @MainActor in
+            // Preload Keychain values on background thread to avoid blocking main thread
+            // with ~8 synchronous SecItemCopyMatching calls during auth check
+            await AuthTokenStore.shared.preloadCache()
+
             await AuthenticationManager.shared.checkExistingAuth()
 
             // Set user context for crash reports and analytics if authenticated

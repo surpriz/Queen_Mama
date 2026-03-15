@@ -22,7 +22,97 @@ final class AuthTokenStore {
     private var _accessToken: String?
     private var _accessTokenExpiry: Date?
 
+    // In-memory cache for Keychain-backed properties
+    // Eliminates repeated SecItemCopyMatching calls on main thread (Sentry: App Hanging)
+    private var _cachedRefreshToken: String?
+    private var _cachedStoredUser: AuthUser?
+    private var _cachedStoredTokenExpiry: Date?
+    private(set) var isCacheLoaded = false
+
     private init() {}
+
+    // MARK: - Keychain Cache (Background Preload)
+
+    /// Preloads all Keychain values into memory on a background thread.
+    /// Call this before accessing Keychain-backed properties to avoid blocking main thread
+    /// with SecItemCopyMatching calls (~8 calls during checkExistingAuth).
+    func preloadCache() async {
+        let svc = self.service
+        let legSvc = self.legacyService
+        let rtAcct = self.refreshTokenAccount
+        let uiAcct = self.userInfoAccount
+        let teAcct = self.tokenExpiryAccount
+
+        typealias CacheResult = (String?, AuthUser?, Date?)
+
+        let result: CacheResult = await withCheckedContinuation { continuation in
+            DispatchQueue.global(qos: .userInitiated).async {
+                // Helper: read raw data from Keychain (no actor isolation needed)
+                func readData(account: String, service: String) -> Data? {
+                    let query: [String: Any] = [
+                        kSecClass as String: kSecClassGenericPassword,
+                        kSecAttrService as String: service,
+                        kSecAttrAccount as String: account,
+                        kSecReturnData as String: true,
+                        kSecMatchLimit as String: kSecMatchLimitOne
+                    ]
+                    var result: AnyObject?
+                    let status = SecItemCopyMatching(query as CFDictionary, &result)
+                    guard status == errSecSuccess else { return nil }
+                    return result as? Data
+                }
+
+                // Read refresh token (try new service, then legacy)
+                let refreshToken: String? = {
+                    if let data = readData(account: rtAcct, service: svc),
+                       let str = String(data: data, encoding: .utf8) {
+                        return str
+                    }
+                    if let data = readData(account: rtAcct, service: legSvc),
+                       let str = String(data: data, encoding: .utf8) {
+                        return str
+                    }
+                    return nil
+                }()
+
+                // Read stored user
+                let storedUser: AuthUser? = {
+                    if let data = readData(account: uiAcct, service: svc),
+                       let user = try? JSONDecoder().decode(AuthUser.self, from: data) {
+                        return user
+                    }
+                    if let data = readData(account: uiAcct, service: legSvc),
+                       let user = try? JSONDecoder().decode(AuthUser.self, from: data) {
+                        return user
+                    }
+                    return nil
+                }()
+
+                // Read token expiry
+                let tokenExpiry: Date? = {
+                    let formatter = ISO8601DateFormatter()
+                    if let data = readData(account: teAcct, service: svc),
+                       let str = String(data: data, encoding: .utf8) {
+                        return formatter.date(from: str)
+                    }
+                    if let data = readData(account: teAcct, service: legSvc),
+                       let str = String(data: data, encoding: .utf8) {
+                        return formatter.date(from: str)
+                    }
+                    return nil
+                }()
+
+                continuation.resume(returning: (refreshToken, storedUser, tokenExpiry))
+            }
+        }
+
+        _cachedRefreshToken = result.0
+        _cachedStoredUser = result.1
+        _cachedStoredTokenExpiry = result.2
+        isCacheLoaded = true
+
+        print("[TokenStore] Cache preloaded on background thread - refreshToken: \(result.0 != nil), user: \(result.1 != nil), expiry: \(result.2 != nil)")
+    }
 
     // MARK: - Access Token (Memory)
 
@@ -51,25 +141,27 @@ final class AuthTokenStore {
         return expiry.addingTimeInterval(-60) > Date()
     }
 
-    // MARK: - Refresh Token (Keychain)
+    // MARK: - Refresh Token (Keychain, cached)
 
     var refreshToken: String? {
         get {
-            // Try new service first
+            // Return from cache if preloaded (avoids main-thread SecItemCopyMatching)
+            if isCacheLoaded {
+                return _cachedRefreshToken
+            }
+            // Fallback: direct Keychain read (before preloadCache is called)
             if let token = try? getString(account: refreshTokenAccount, service: service) {
                 return token
             }
-            // Fallback to legacy service for migration
             if let legacyToken = try? getString(account: refreshTokenAccount, service: legacyService) {
                 print("[TokenStore] Found token in legacy keychain, migrating...")
-                // Migrate to new service
                 try? saveString(legacyToken, account: refreshTokenAccount, service: service)
-                // Delete from legacy (optional, keep for safety)
                 return legacyToken
             }
             return nil
         }
         set {
+            _cachedRefreshToken = newValue
             if let token = newValue {
                 do {
                     try saveString(token, account: refreshTokenAccount, service: service)
@@ -83,16 +175,19 @@ final class AuthTokenStore {
         }
     }
 
-    // MARK: - User Info (Keychain)
+    // MARK: - User Info (Keychain, cached)
 
     var storedUser: AuthUser? {
         get {
-            // Try new service first
+            // Return from cache if preloaded (avoids main-thread SecItemCopyMatching)
+            if isCacheLoaded {
+                return _cachedStoredUser
+            }
+            // Fallback: direct Keychain read (before preloadCache is called)
             if let data = try? getData(account: userInfoAccount, service: service),
                let user = try? JSONDecoder().decode(AuthUser.self, from: data) {
                 return user
             }
-            // Fallback to legacy service for migration
             if let legacyData = try? getData(account: userInfoAccount, service: legacyService),
                let user = try? JSONDecoder().decode(AuthUser.self, from: legacyData) {
                 print("[TokenStore] Found user in legacy keychain, migrating...")
@@ -102,6 +197,7 @@ final class AuthTokenStore {
             return nil
         }
         set {
+            _cachedStoredUser = newValue
             if let user = newValue,
                let data = try? JSONEncoder().encode(user) {
                 do {
@@ -116,21 +212,25 @@ final class AuthTokenStore {
         }
     }
 
-    // MARK: - Token Expiry Persistence
+    // MARK: - Token Expiry Persistence (cached)
 
     var storedTokenExpiry: Date? {
         get {
-            // Try new service first
+            // Return from cache if preloaded (avoids main-thread SecItemCopyMatching)
+            if isCacheLoaded {
+                return _cachedStoredTokenExpiry
+            }
+            // Fallback: direct Keychain read (before preloadCache is called)
             if let string = try? getString(account: tokenExpiryAccount, service: service) {
                 return ISO8601DateFormatter().date(from: string)
             }
-            // Fallback to legacy service
             if let legacyString = try? getString(account: tokenExpiryAccount, service: legacyService) {
                 return ISO8601DateFormatter().date(from: legacyString)
             }
             return nil
         }
         set {
+            _cachedStoredTokenExpiry = newValue
             if let expiry = newValue {
                 let string = ISO8601DateFormatter().string(from: expiry)
                 do {

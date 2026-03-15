@@ -98,7 +98,19 @@ final class AudioCaptureService: ObservableObject {
             throw AudioCaptureError.microphonePermissionDenied
         }
 
-        // Setup audio engine
+        // Pre-warm AVAudioEngine on background thread to avoid 2+ second
+        // main thread hang from XPC call during inputNode hardware initialization
+        // (Sentry: App Hanging QUEEN-MAMA-MACOS-K, 5 events, 3 users)
+        print("[AudioCapture] Pre-warming audio engine on background thread...")
+        let engine = audioEngine
+        await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
+            DispatchQueue.global(qos: .userInitiated).async {
+                _ = engine.inputNode  // Triggers AudioComponentMgr XPC call off main thread
+                continuation.resume()
+            }
+        }
+
+        // Setup audio engine (now fast since inputNode is already initialized)
         print("[AudioCapture] Setting up audio engine...")
         try setupAudioEngine()
 

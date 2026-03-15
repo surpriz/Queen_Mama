@@ -454,8 +454,8 @@ final class ProxyAPIClient: @unchecked Sendable {
             let errorResponse = try? JSONDecoder().decode(ErrorResponse.self, from: data)
             throw ProxyError.accessDenied(errorResponse?.message ?? "Access denied")
 
-        case 502, 503, 504:
-            // Gateway/service errors - retry with exponential backoff
+        case 500, 502, 503, 504:
+            // Server/gateway errors - retry with exponential backoff
             if retryCount < maxRetries {
                 let delay = retryDelay[retryCount]
                 print("[ProxyAPI] HTTP \(httpResponse.statusCode) error. Retrying in \(delay)s... (attempt \(retryCount + 1)/\(maxRetries))")
@@ -504,31 +504,37 @@ final class ProxyAPIClient: @unchecked Sendable {
         }
         if let cachedToken { return cachedToken }
 
-        // Try to refresh
+        // Try to refresh with retry (2 attempts with 2s delay)
+        // Reduces forced logouts from transient network errors (Sentry: MACOS-M, 12 events)
         guard let refreshToken = await MainActor.run(body: { tokenStore.refreshToken }) else {
             return nil
         }
 
-        do {
-            let response = try await AuthAPIClient.shared.refreshTokens(refreshToken)
-            await MainActor.run {
-                tokenStore.accessToken = response.accessToken
-                tokenStore.accessTokenExpiry = Date().addingTimeInterval(TimeInterval(response.expiresIn))
-                tokenStore.refreshToken = response.refreshToken
+        for attempt in 1...2 {
+            do {
+                let response = try await AuthAPIClient.shared.refreshTokens(refreshToken)
+                await MainActor.run {
+                    tokenStore.accessToken = response.accessToken
+                    tokenStore.accessTokenExpiry = Date().addingTimeInterval(TimeInterval(response.expiresIn))
+                    tokenStore.refreshToken = response.refreshToken
+                }
+                return response.accessToken
+            } catch {
+                print("[ProxyAPI] Token refresh failed (attempt \(attempt)/2): \(error)")
+                if attempt < 2 {
+                    try? await Task.sleep(nanoseconds: 2_000_000_000) // 2s before retry
+                } else {
+                    await MainActor.run {
+                        CrashReporter.shared.addBreadcrumb(
+                            category: "proxy_auth",
+                            message: "Token refresh failed after 2 attempts: \(error.localizedDescription)",
+                            level: .warning
+                        )
+                    }
+                }
             }
-            return response.accessToken
-        } catch {
-            print("[ProxyAPI] Token refresh failed: \(error)")
-            // Add breadcrumb to help diagnose auth-related Sentry issues (MACOS-D, MACOS-M)
-            await MainActor.run {
-                CrashReporter.shared.addBreadcrumb(
-                    category: "proxy_auth",
-                    message: "Token refresh failed: \(error.localizedDescription)",
-                    level: .warning
-                )
-            }
-            return nil
         }
+        return nil
     }
 }
 

@@ -70,6 +70,10 @@ final class ScreenCaptureService: NSObject, ObservableObject {
     // Screenshot deduplication for cost optimization
     private var lastScreenshotHash: String?
 
+    // SCStream error recovery (auto-retry on display reconfiguration)
+    private var streamRecoveryAttempts = 0
+    private let maxStreamRecoveryAttempts = 1
+
     // MARK: - Pre-Capture Cache (Phase 1 Optimization)
     // Cache screenshots in background for instant access during AI triggers
     private var cachedScreenshotData: Data?
@@ -501,16 +505,49 @@ final class ScreenCaptureService: NSObject, ObservableObject {
 extension ScreenCaptureService: SCStreamDelegate {
     nonisolated func stream(_ stream: SCStream, didStopWithError error: Error) {
         Task { @MainActor in
+            let nsError = error as NSError
+
+            // SCStream error -3815: display reconfiguration (monitor disconnected/reconnected)
+            // Attempt auto-recovery with fresh display enumeration (Sentry: MACOS-T, 3 events)
+            if nsError.code == -3815 && self.streamRecoveryAttempts < self.maxStreamRecoveryAttempts {
+                self.streamRecoveryAttempts += 1
+                print("[ScreenCapture] SCStream error -3815, attempting auto-recovery (attempt \(self.streamRecoveryAttempts))...")
+
+                CrashReporter.shared.addBreadcrumb(
+                    category: "screen_capture",
+                    message: "SCStream -3815: auto-recovery attempt \(self.streamRecoveryAttempts)"
+                )
+
+                // Clean up current stream
+                self.stream = nil
+                self.streamOutput = nil
+                self.isCapturing = false
+
+                // Brief delay for display to stabilize
+                try? await Task.sleep(nanoseconds: 500_000_000) // 500ms
+
+                do {
+                    try await self.startCapture()
+                    print("[ScreenCapture] Auto-recovery successful")
+                    self.streamRecoveryAttempts = 0
+                    return
+                } catch {
+                    print("[ScreenCapture] Auto-recovery failed: \(error)")
+                }
+            }
+
+            self.streamRecoveryAttempts = 0
             self.isCapturing = false
             self.errorMessage = error.localizedDescription
 
-            // TRACKING: Report screen capture errors
             CrashReporter.shared.captureError(error, extras: [
                 "context": "screen_capture_stream",
-                "selected_display_id": self.config.selectedDisplayID
+                "selected_display_id": self.config.selectedDisplayID,
+                "error_code": nsError.code
             ])
             AnalyticsService.shared.capture("screen_capture_error", properties: [
-                "error": error.localizedDescription
+                "error": error.localizedDescription,
+                "error_code": nsError.code
             ])
         }
     }

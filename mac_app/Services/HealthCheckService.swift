@@ -26,7 +26,7 @@ final class HealthCheckService: ObservableObject {
         static let maxAIResponseTimeMs: Int = 10_000
         static let maxTranscriptionLatencyMs: Int = 2_000
         static let minTranscriptionWordsPerMinute: Int = 10
-        static let maxWebSocketReconnects: Int = 3
+        static let maxWebSocketReconnects: Int = 8
     }
 
     // MARK: - Private Properties
