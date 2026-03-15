@@ -438,6 +438,22 @@
         "title": "Suppression groupée de sessions (Windows)",
         "description": "Sélectionnez et supprimez plusieurs sessions à la fois depuis la vue Sessions de l'application Windows"
       },
+      "backgroundStartup": {
+        "title": "Démarrage plus rapide",
+        "description": "Les identifiants Keychain, le matériel audio et la vérification des mises à jour s'initialisent désormais en arrière-plan, éliminant les freezes au lancement"
+      },
+      "dualInstanceFix": {
+        "title": "Protection contre les instances multiples",
+        "description": "Empêche les doublons d'application lors du changement de langue d'interface entre français et anglais"
+      },
+      "serverRetryLogic": {
+        "title": "Récupération automatique des erreurs serveur",
+        "description": "Les erreurs serveur et les échecs de rafraîchissement de token sont désormais retentés automatiquement avant d'échouer"
+      },
+      "screenCaptureRecovery": {
+        "title": "Récupération automatique de la capture d'écran",
+        "description": "La capture d'écran reprend automatiquement lorsqu'un écran externe est déconnecté ou reconfiguré"
+      },
       "pricingPlanAlignment": {
         "title": "Fonctionnalités de plans actualisées",
         "description": "Les trois plans d'abonnement reflètent désormais fidèlement les fonctionnalités disponibles dans les apps, incluant la capture d'écran pour Pro et les suggestions proactives pour Enterprise"

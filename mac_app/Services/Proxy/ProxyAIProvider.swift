@@ -43,24 +43,34 @@ final class ProxyAIProvider: AIProvider {
     private func ensureConfigLoaded() async throws {
         if isConfigured { return }
 
-        // Config not loaded — attempt to reload before failing
+        // Config not loaded — attempt to reload with retry for transient errors
         print("[ProxyAIProvider] Config not loaded, attempting reload...")
-        do {
-            try await configManager.refreshConfig()
-        } catch {
-            print("[ProxyAIProvider] Config reload failed: \(error)")
+        var lastError: Error?
+        for attempt in 1...2 {
+            do {
+                try await configManager.refreshConfig()
+                lastError = nil
+                break
+            } catch {
+                lastError = error
+                print("[ProxyAIProvider] Config reload attempt \(attempt)/2 failed: \(error)")
+                if attempt < 2 {
+                    try? await Task.sleep(nanoseconds: 1_000_000_000) // 1s before retry
+                }
+            }
+        }
+
+        if let error = lastError {
             let isAuthError = (error as? ProxyError).map {
                 if case .notAuthenticated = $0 { return true }
                 return false
             } ?? false
 
             if isAuthError && AuthenticationManager.shared.isAuthenticated {
-                // Token is truly invalid — force logout to clear zombie state
                 print("[ProxyAIProvider] Clearing zombie authenticated state — forcing re-authentication")
                 await AuthenticationManager.shared.logout()
                 throw AIProviderError.notAuthenticated
             }
-            // Network/server error — don't force logout, it might be transient
             throw AIProviderError.serviceNotConfigured
         }
 
@@ -121,10 +131,21 @@ final class ProxyAIProvider: AIProvider {
                 let configReady: Bool = await MainActor.run { self.isConfigured }
                 if !configReady {
                     print("[ProxyAIProvider] Config not loaded, attempting reload...")
-                    do {
-                        try await ProxyConfigManager.shared.refreshConfig()
-                    } catch {
-                        print("[ProxyAIProvider] Config reload failed: \(error)")
+                    var configLoadError: Error?
+                    for attempt in 1...2 {
+                        do {
+                            try await ProxyConfigManager.shared.refreshConfig()
+                            configLoadError = nil
+                            break
+                        } catch {
+                            configLoadError = error
+                            print("[ProxyAIProvider] Config reload attempt \(attempt)/2 failed: \(error)")
+                            if attempt < 2 {
+                                try? await Task.sleep(nanoseconds: 1_000_000_000)
+                            }
+                        }
+                    }
+                    if let error = configLoadError {
                         let isAuthError = (error as? ProxyError).map {
                             if case .notAuthenticated = $0 { return true }
                             return false
