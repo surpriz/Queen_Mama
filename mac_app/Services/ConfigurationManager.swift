@@ -267,14 +267,14 @@ final class ConfigurationManager: ObservableObject {
         UserDefaults.standard.synchronize()
 
         let url = Bundle.main.bundleURL
+        // Spawn a shell that waits for the current process to exit, then reopens the app.
+        // Avoids `-n` flag which forces a new instance and can cause duplicates on slower Macs.
         let task = Process()
-        task.launchPath = "/usr/bin/open"
-        task.arguments = ["-n", url.path]
+        task.launchPath = "/bin/sh"
+        task.arguments = ["-c", "while kill -0 \(ProcessInfo.processInfo.processIdentifier) 2>/dev/null; do sleep 0.2; done; open \"\(url.path)\""]
         try? task.run()
 
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
-            NSApplication.shared.terminate(nil)
-        }
+        NSApplication.shared.terminate(nil)
     }
 
     // MARK: - Proactive Moment Check
