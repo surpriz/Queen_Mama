@@ -13,6 +13,10 @@ export default defineConfig({
         },
       },
     },
+    define: {
+      'process.env.SENTRY_DSN': JSON.stringify(process.env.SENTRY_DSN || ''),
+      'process.env.VITE_APP_ENV': JSON.stringify(process.env.VITE_APP_ENV || ''),
+    },
     resolve: {
       alias: {
         '@electron': resolve(__dirname, 'electron'),

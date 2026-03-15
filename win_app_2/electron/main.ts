@@ -1,5 +1,19 @@
 import { app, BrowserWindow, ipcMain, globalShortcut } from 'electron'
 import { execSync } from 'child_process'
+import { init as initSentry } from '@sentry/electron/main'
+
+// Initialize Sentry in the main process before anything else
+if (process.env.SENTRY_DSN) {
+  initSentry({
+    dsn: process.env.SENTRY_DSN,
+    environment:
+      process.env.NODE_ENV === 'development'
+        ? 'development'
+        : (process.env.VITE_APP_ENV || 'production'),
+    release: `com.queenmama.windows@${app.getVersion()}`,
+    tracesSampleRate: 0.1,
+  })
+}
 import {
   createMainWindow,
   getMainWindow,
