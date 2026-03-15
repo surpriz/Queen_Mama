@@ -109,6 +109,11 @@ export const changelogData: ChangelogRelease[] = [
             description: "The app now detects when it's running from Downloads or a disk image and offers to move itself to Applications for seamless updates"
           },
           {
+            id: "backgroundStartup",
+            title: "Faster App Startup",
+            description: "Keychain credentials, audio hardware, and update checker now initialize in background, eliminating startup freezes"
+          },
+          {
             id: "enhancedDiagnostics",
             title: "Enhanced Error Diagnostics",
             description: "Improved error handling and diagnostic logging across authentication, networking, and session management"
@@ -197,6 +202,21 @@ export const changelogData: ChangelogRelease[] = [
             id: "builtInModeDefaults",
             title: "Built-in Mode Defaults Fix",
             description: "Fixed built-in mode default flags and filtering to correctly separate built-in and custom modes"
+          },
+          {
+            id: "dualInstanceFix",
+            title: "Single Instance Protection",
+            description: "Prevents duplicate app instances when switching the UI language between French and English"
+          },
+          {
+            id: "serverRetryLogic",
+            title: "Automatic Server Error Recovery",
+            description: "Server errors and token refresh failures now retry automatically before failing, reducing forced logouts"
+          },
+          {
+            id: "screenCaptureRecovery",
+            title: "Screen Capture Auto-Recovery",
+            description: "Automatically recovers screen capture when an external display is disconnected or reconfigured"
           },
           {
             id: "winScreenCaptureCache",

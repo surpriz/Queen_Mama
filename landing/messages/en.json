@@ -438,6 +438,22 @@
         "title": "Bulk Session Deletion (Windows)",
         "description": "Select and delete multiple sessions at once from the Sessions view in the Windows app"
       },
+      "backgroundStartup": {
+        "title": "Faster App Startup",
+        "description": "Keychain credentials, audio hardware, and update checker now initialize in background, eliminating startup freezes"
+      },
+      "dualInstanceFix": {
+        "title": "Single Instance Protection",
+        "description": "Prevents duplicate app instances when switching the UI language between French and English"
+      },
+      "serverRetryLogic": {
+        "title": "Automatic Server Error Recovery",
+        "description": "Server errors and token refresh failures now retry automatically before failing, reducing forced logouts"
+      },
+      "screenCaptureRecovery": {
+        "title": "Screen Capture Auto-Recovery",
+        "description": "Automatically recovers screen capture when an external display is disconnected or reconfigured"
+      },
       "pricingPlanAlignment": {
         "title": "Accurate Plan Features",
         "description": "All three subscription plans now accurately reflect the features available in the apps, including screenshot capture for Pro and proactive suggestions for Enterprise"
