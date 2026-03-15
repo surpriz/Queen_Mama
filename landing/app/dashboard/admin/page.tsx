@@ -181,6 +181,11 @@ export default async function AdminPage() {
             Knowledge Base
           </button>
         </Link>
+        <Link href="/dashboard/admin/profitability">
+          <button className="px-6 py-3 rounded-[var(--qm-radius-md)] border border-[var(--qm-accent)] text-[var(--qm-accent)] hover:bg-[var(--qm-accent)]/10 font-medium transition-colors">
+            Profitability
+          </button>
+        </Link>
       </div>
     </div>
   );
