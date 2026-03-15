@@ -24,7 +24,7 @@ final class LicenseModelTests: XCTestCase {
         XCTAssertEqual(features.exportFormats, ["plainText"], "Free tier should only have plainText export")
         XCTAssertFalse(features.autoAnswerEnabled, "Free tier should not have auto answer")
         XCTAssertFalse(features.sessionSyncEnabled, "Free tier should not have session sync")
-        XCTAssertEqual(features.dailyAiRequestLimit, 50, "Free tier should have 50 daily AI requests")
+        XCTAssertEqual(features.dailyAiRequestLimit, 1, "Free tier should have 1 daily AI request")
         XCTAssertEqual(features.maxSyncedSessions, 0, "Free tier should have 0 synced sessions")
         XCTAssertEqual(features.maxTranscriptSize, 10240, "Free tier transcript size should be 10KB")
         XCTAssertFalse(features.undetectableEnabled, "Free tier should not have undetectable")
