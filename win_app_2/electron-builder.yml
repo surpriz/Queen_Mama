@@ -1,5 +1,5 @@
 appId: com.queenmama.windows
-productName: Queen Mama
+productName: Queen Mama Electron
 copyright: Copyright © 2026 Queen Mama
 directories:
   output: release
@@ -27,6 +27,11 @@ mac:
         - arm64
   icon: resources/icon.icns
   category: public.app-category.productivity
+  hardenedRuntime: true
+  entitlements: resources/entitlements.mac.plist
+  entitlementsInherit: resources/entitlements.mac.plist
+  notarize:
+    teamId: "WNNDDTBPGK"
 publish:
   provider: generic
   url: https://www.queenmama.co/api/updates/windows

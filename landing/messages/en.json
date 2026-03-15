@@ -371,7 +371,11 @@
     "feature5": "Session recording and cloud sync (PRO)",
     "feature6": "Automatic updates via Sparkle",
     "privacyPolicy": "Privacy Policy",
-    "termsOfService": "Terms of Service"
+    "termsOfService": "Terms of Service",
+    "electronMacTitle": "Cross-platform version (Electron)",
+    "electronMacSubtitle": "For advanced users who prefer the cross-platform experience.",
+    "electronMacDownload": "Download Electron DMG",
+    "electronMacNote": "Same features, different technology stack."
   },
   "Manifesto": {
     "headline": "The World Will Call It <highlight>Cheating</highlight>",

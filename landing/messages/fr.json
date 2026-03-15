@@ -371,7 +371,11 @@
     "feature5": "Enregistrement de session et sync cloud (PRO)",
     "feature6": "Mises à jour automatiques via Sparkle",
     "privacyPolicy": "Politique de confidentialité",
-    "termsOfService": "Conditions d'utilisation"
+    "termsOfService": "Conditions d'utilisation",
+    "electronMacTitle": "Version multiplateforme (Electron)",
+    "electronMacSubtitle": "Pour les utilisateurs avancés qui préfèrent l'expérience multiplateforme.",
+    "electronMacDownload": "Télécharger le DMG Electron",
+    "electronMacNote": "Mêmes fonctionnalités, stack technique différente."
   },
   "Manifesto": {
     "headline": "Le monde appellera ça de la <highlight>triche</highlight>",

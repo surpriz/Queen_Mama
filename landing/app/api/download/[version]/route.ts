@@ -26,7 +26,7 @@ interface GitHubRelease {
   assets: GitHubAsset[];
 }
 
-async function getRelease(version: string, includePrerelease: boolean, platform: "windows" | "macos"): Promise<GitHubRelease | null> {
+async function getRelease(version: string, includePrerelease: boolean, platform: "windows" | "macos" | "electron-mac"): Promise<GitHubRelease | null> {
   const headers: HeadersInit = {
     Accept: "application/vnd.github.v3+json",
     "User-Agent": "QueenMama-Download-Proxy",
@@ -46,9 +46,11 @@ async function getRelease(version: string, includePrerelease: boolean, platform:
       if (!res.ok) return null;
       const releases: GitHubRelease[] = await res.json();
       const ext = platform === "windows" ? ".exe" : ".dmg";
+      const tagPrefix = platform === "electron-mac" ? "electron-mac/" : platform === "windows" ? "win/" : "mac/";
 
       const filtered = releases.filter((r) => {
         if (includePrerelease ? false : r.prerelease) return false;
+        if (platform === "electron-mac") return r.tag_name.startsWith(tagPrefix) && r.assets.some((a) => a.name.endsWith(ext));
         return r.assets.some((a) => a.name.endsWith(ext));
       });
 
@@ -57,13 +59,12 @@ async function getRelease(version: string, includePrerelease: boolean, platform:
       }
       return filtered[0] || null;
     } else {
-      // Try platform-prefixed tag first (mac/v1.3.17 or win/v1.0.0), then legacy (v1.3.17)
-      const prefix = platform === "windows" ? "win" : "mac";
+      // Try platform-prefixed tag first (mac/v1.3.17 or win/v1.0.0 or electron-mac/v1.0.0), then legacy (v1.3.17)
+      const prefix = platform === "windows" ? "win" : platform === "electron-mac" ? "electron-mac" : "mac";
       const cleanVersion = version.startsWith("v") ? version.slice(1) : version;
-      const tagsToTry = [
-        `${prefix}/v${cleanVersion}`,
-        `v${cleanVersion}`,
-      ];
+      const tagsToTry = platform === "electron-mac"
+        ? [`electron-mac/v${cleanVersion}`]
+        : [`${prefix}/v${cleanVersion}`, `v${cleanVersion}`];
 
       for (const tag of tagsToTry) {
         const res = await fetch(
@@ -99,10 +100,11 @@ async function downloadAsset(asset: GitHubAsset): Promise<Response | null> {
   }
 }
 
-function detectPlatform(request: NextRequest): "windows" | "macos" {
+function detectPlatform(request: NextRequest): "windows" | "macos" | "electron-mac" {
   const platformParam = request.nextUrl.searchParams.get("platform");
   if (platformParam === "windows") return "windows";
   if (platformParam === "macos") return "macos";
+  if (platformParam === "electron-mac") return "electron-mac";
 
   // Auto-detect from User-Agent
   const ua = request.headers.get("user-agent") || "";
