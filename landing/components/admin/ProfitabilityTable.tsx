@@ -4,7 +4,7 @@ export interface UserProfitabilityRow {
   userId: string;
   name: string | null;
   email: string;
-  plan: "PRO" | "ENTERPRISE";
+  plan: "FREE" | "PRO" | "ENTERPRISE";
   revenue: number;
   aiCost: number;
   transcriptionCost: number;
@@ -28,6 +28,8 @@ function getPlanBadgeColor(plan: string) {
       return "bg-amber-500/20 text-amber-300";
     case "PRO":
       return "bg-green-500/20 text-green-300";
+    case "FREE":
+      return "bg-gray-500/20 text-gray-400";
     default:
       return "bg-gray-500/20 text-gray-300";
   }
@@ -91,9 +93,7 @@ export function ProfitabilityTable({ users }: { users: UserProfitabilityRow[] })
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   <span
-                    className={`px-3 py-1 rounded-full text-xs font-medium ${getPlanBadgeColor(
-                      user.plan
-                    )}`}
+                    className={`px-3 py-1 rounded-full text-xs font-medium ${getPlanBadgeColor(user.plan)}`}
                   >
                     {user.plan}
                   </span>

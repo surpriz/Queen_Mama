@@ -24,7 +24,7 @@ interface TopConsumer {
   userId: string;
   name: string | null;
   email: string;
-  plan: "PRO" | "ENTERPRISE";
+  plan: "FREE" | "PRO" | "ENTERPRISE";
   aiCost: number;
   transcriptionCost: number;
   totalCost: number;
@@ -117,7 +117,9 @@ export default function ProfitabilityPage() {
                     className={`px-2 py-0.5 rounded-full text-xs font-medium ${
                       user.plan === "ENTERPRISE"
                         ? "bg-amber-500/20 text-amber-300"
-                        : "bg-green-500/20 text-green-300"
+                        : user.plan === "PRO"
+                        ? "bg-green-500/20 text-green-300"
+                        : "bg-gray-500/20 text-gray-400"
                     }`}
                   >
                     {user.plan}

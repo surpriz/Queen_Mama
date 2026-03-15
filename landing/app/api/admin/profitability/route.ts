@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/admin";
 
-// 1 transcription_token log ≈ 15 min session × $0.0043/min (Deepgram Nova-3)
 const TRANSCRIPTION_COST_PER_LOG = 0.0645;
 
 export async function GET(request: NextRequest) {
@@ -22,19 +21,38 @@ export async function GET(request: NextRequest) {
     const periodStart = new Date(Date.UTC(year, month - 1, 1));
     const periodEnd = new Date(Date.UTC(year, month, 1));
 
-    // Get all non-FREE subscription IDs first (for reliable filtering)
-    const paidSubscriptions = await prisma.subscription.findMany({
-      where: { plan: { not: "FREE" } },
-      select: { id: true, userId: true, plan: true },
+    // All usage logs in the period — no plan filter
+    const usageAggregates = await prisma.usageLog.groupBy({
+      by: ["userId", "action"],
+      where: {
+        createdAt: { gte: periodStart, lt: periodEnd },
+        action: { in: ["ai_request", "smart_mode", "transcription_token"] },
+      },
+      _sum: { cost: true },
+      _count: { id: true },
     });
 
-    const paidUserIds = paidSubscriptions.map((s) => s.userId);
-    const subscriptionIds = paidSubscriptions.map((s) => s.id);
-    const planByUser = Object.fromEntries(
-      paidSubscriptions.map((s) => [s.userId, s.plan])
-    );
+    // Invoices paid in the period (for revenue — works when Stripe is active)
+    const invoicesInPeriod = await prisma.invoice.findMany({
+      where: {
+        createdAt: { gte: periodStart, lt: periodEnd },
+        status: "paid",
+      },
+      select: {
+        amountPaid: true,
+        subscription: { select: { userId: true } },
+      },
+    });
 
-    if (paidUserIds.length === 0) {
+    // All user IDs with activity this period
+    const activeUserIds = [
+      ...new Set([
+        ...usageAggregates.map((a) => a.userId),
+        ...invoicesInPeriod.map((i) => i.subscription.userId),
+      ]),
+    ];
+
+    if (activeUserIds.length === 0) {
       return NextResponse.json({
         month: `${year}-${String(month).padStart(2, "0")}`,
         summary: { totalRevenue: 0, totalCosts: 0, totalMargin: 0, userCount: 0 },
@@ -42,49 +60,47 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    // Run queries in parallel
-    const [invoices, usageAggregates, users] = await Promise.all([
-      // Invoices paid during the period (use createdAt since Stripe billing
-      // periods may not align with calendar months)
-      prisma.invoice.findMany({
-        where: {
-          subscriptionId: { in: subscriptionIds },
-          createdAt: { gte: periodStart, lt: periodEnd },
-          status: "paid",
-        },
-        select: {
-          amountPaid: true,
-          subscription: { select: { userId: true } },
-        },
-      }),
+    // User identities + current plan
+    const users = await prisma.user.findMany({
+      where: { id: { in: activeUserIds } },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        subscription: { select: { plan: true } },
+      },
+    });
 
-      // UsageLog aggregates by user and action
-      prisma.usageLog.groupBy({
-        by: ["userId", "action"],
-        where: {
-          userId: { in: paidUserIds },
-          createdAt: { gte: periodStart, lt: periodEnd },
-          action: { in: ["ai_request", "smart_mode", "transcription_token"] },
-        },
-        _sum: { cost: true },
-        _count: { id: true },
-      }),
+    // Reconstruct historical plan for each user at the end of the period.
+    // Walk backwards: start from the current plan, undo each plan change that
+    // occurred at or after periodEnd (chronological order = earliest first).
+    const planChangeLogs = await prisma.usageLog.findMany({
+      where: { action: { in: ["ADMIN_PLAN_CHANGED", "STRIPE_PLAN_CHANGED"] } },
+      select: { createdAt: true, metadata: true },
+      orderBy: { createdAt: "asc" },
+    });
 
-      // User identities
-      prisma.user.findMany({
-        where: { id: { in: paidUserIds } },
-        select: { id: true, name: true, email: true },
-      }),
-    ]);
+    type Plan = "FREE" | "PRO" | "ENTERPRISE";
+    const planAtPeriod: Record<string, Plan> = {};
+    for (const u of users) {
+      let plan: Plan = (u.subscription?.plan ?? "FREE") as Plan;
+      for (const log of planChangeLogs) {
+        if (log.createdAt < periodEnd) continue;
+        const meta = log.metadata as { targetUserId?: string; oldPlan?: string } | null;
+        if (meta?.targetUserId !== u.id || !meta?.oldPlan) continue;
+        plan = meta.oldPlan as Plan;
+      }
+      planAtPeriod[u.id] = plan;
+    }
 
-    // Build revenue map (amountPaid is in cents)
+    // Revenue map
     const revenueByUser: Record<string, number> = {};
-    for (const inv of invoices) {
+    for (const inv of invoicesInPeriod) {
       const uid = inv.subscription.userId;
       revenueByUser[uid] = (revenueByUser[uid] ?? 0) + inv.amountPaid / 100;
     }
 
-    // Build cost and count maps
+    // Cost maps
     const aiCostByUser: Record<string, number> = {};
     const aiCountByUser: Record<string, number> = {};
     const transcCostByUser: Record<string, number> = {};
@@ -102,37 +118,27 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    // Merge all data — include users with revenue OR usage
-    const usersWithActivity = new Set([
-      ...Object.keys(revenueByUser),
-      ...usageAggregates.map((a) => a.userId),
-    ]);
-
-    const userMap = Object.fromEntries(users.map((u) => [u.id, u]));
-
-    const rows = [...usersWithActivity]
-      .filter((uid) => userMap[uid] && planByUser[uid])
-      .map((uid) => {
-        const u = userMap[uid];
-        const revenue = revenueByUser[uid] ?? 0;
-        const aiCost = aiCostByUser[uid] ?? 0;
-        const transcriptionCost = transcCostByUser[uid] ?? 0;
+    const rows = users
+      .map((u) => {
+        const revenue = revenueByUser[u.id] ?? 0;
+        const aiCost = aiCostByUser[u.id] ?? 0;
+        const transcriptionCost = transcCostByUser[u.id] ?? 0;
         const totalCost = aiCost + transcriptionCost;
         return {
-          userId: uid,
+          userId: u.id,
           name: u.name,
           email: u.email,
-          plan: planByUser[uid] as "PRO" | "ENTERPRISE",
+          plan: planAtPeriod[u.id] ?? "FREE",
           revenue,
           aiCost,
           transcriptionCost,
           totalCost,
           margin: revenue - totalCost,
-          aiRequestCount: aiCountByUser[uid] ?? 0,
-          transcriptionTokenCount: transcCountByUser[uid] ?? 0,
+          aiRequestCount: aiCountByUser[u.id] ?? 0,
+          transcriptionTokenCount: transcCountByUser[u.id] ?? 0,
         };
       })
-      .sort((a, b) => a.margin - b.margin); // Worst margin first
+      .sort((a, b) => a.margin - b.margin);
 
     const totalRevenue = rows.reduce((s, r) => s + r.revenue, 0);
     const totalCosts = rows.reduce((s, r) => s + r.totalCost, 0);
