@@ -115,6 +115,25 @@ function ProviderBadge({ provider }: { provider: string }) {
   )
 }
 
+// ── Processing indicator (mirrors macOS ProcessingIndicator) ─────────
+
+function ProcessingIndicator() {
+  return (
+    <div className="flex items-center gap-2 px-1 py-2">
+      <div className="flex items-center gap-1">
+        {[0, 1, 2].map((i) => (
+          <span
+            key={i}
+            className="inline-block w-1.5 h-1.5 rounded-full bg-qm-accent animate-bounce"
+            style={{ animationDelay: `${i * 0.15}s`, animationDuration: '0.6s' }}
+          />
+        ))}
+      </div>
+      <span className="text-qm-text-secondary text-body-sm">Analyzing...</span>
+    </div>
+  )
+}
+
 // ── Main component ───────────────────────────────────────────────────
 
 export function ResponseDisplay() {
@@ -142,14 +161,14 @@ export function ResponseDisplay() {
     return () => clearInterval(interval)
   }, [])
 
-  // Auto-scroll on new content
+  // Auto-scroll when processing starts or new content arrives
   useEffect(() => {
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight
     }
-  }, [streamingContent, responseHistory.length])
+  }, [streamingContent, responseHistory.length, isProcessing])
 
-  const hasContent = streamingContent || responseHistory.length > 0
+  const hasHistory = responseHistory.length > 0
 
   return (
     <div className="flex-1 min-h-0 relative overflow-hidden">
@@ -161,7 +180,7 @@ export function ResponseDisplay() {
         </div>
       )}
       <div ref={scrollRef} className="h-full overflow-y-auto p-3 space-y-3">
-        {hasContent ? (
+        {(hasHistory || isProcessing || streamingContent) ? (
           <>
             {/* History bubbles (newest first in store, render oldest first) */}
             {[...responseHistory].reverse().map((entry, idx) => (
@@ -197,6 +216,9 @@ export function ResponseDisplay() {
               </div>
             ))}
 
+            {/* Analyzing indicator — shown immediately on click, before first token */}
+            {isProcessing && !streamingContent && <ProcessingIndicator />}
+
             {/* Live streaming content (not yet in history) */}
             {streamingContent && (
               <div className="relative rounded-qm-md bg-qm-surface-medium/40 p-3">
@@ -211,18 +233,23 @@ export function ResponseDisplay() {
                 </div>
 
                 <div className="prose prose-invert prose-sm max-w-none text-body-sm leading-relaxed pr-16">
-                  <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                    {streamingContent}
-                  </ReactMarkdown>
-                  {isProcessing && (
-                    <span className="inline-block w-1.5 h-4 bg-qm-accent animate-pulse ml-0.5" />
+                  {isProcessing ? (
+                    // Plain text during streaming — avoids expensive Markdown re-parsing on every chunk
+                    <p className="whitespace-pre-wrap m-0">
+                      {streamingContent}
+                      <span className="inline-block w-1.5 h-4 bg-qm-accent animate-pulse ml-0.5" />
+                    </p>
+                  ) : (
+                    <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                      {streamingContent}
+                    </ReactMarkdown>
                   )}
                 </div>
 
                 {/* Timestamp placeholder for live content */}
                 <div className="mt-1.5 text-right">
                   <span className="text-[10px] text-qm-text-tertiary/60 select-none">
-                    {isProcessing ? 'streaming...' : 'just now'}
+                    streaming...
                   </span>
                 </div>
               </div>
@@ -230,17 +257,11 @@ export function ResponseDisplay() {
           </>
         ) : (
           <div className="flex flex-col items-center justify-center h-full gap-2">
-            {isProcessing ? (
-              <span className="text-qm-text-tertiary text-body-sm">Generating...</span>
-            ) : (
-              <>
-                <Sparkles size={24} className="text-qm-accent" />
-                <span className="text-qm-text-secondary text-body-sm">Ready to assist</span>
-                <div className="flex items-center gap-1 text-qm-text-tertiary text-caption">
-                  <span>Type a question or click a tab</span>
-                </div>
-              </>
-            )}
+            <Sparkles size={24} className="text-qm-accent" />
+            <span className="text-qm-text-secondary text-body-sm">Ready to assist</span>
+            <div className="flex items-center gap-1 text-qm-text-tertiary text-caption">
+              <span>Type a question or click a tab</span>
+            </div>
           </div>
         )}
       </div>
