@@ -34,6 +34,12 @@ jobs:
       - name: Select Xcode
         run: sudo xcode-select -s /Applications/Xcode_16.2.app
 
+      - name: Prepare Info.plist for CI
+        run: |
+          # Remove LSMultipleInstancesProhibited for CI — this flag prevents
+          # LaunchServices from launching the test host app on GitHub Actions runners
+          /usr/libexec/PlistBuddy -c "Delete :LSMultipleInstancesProhibited" mac_app/Info.plist 2>/dev/null || true
+
       - name: Run Tests
         run: |
           xcodebuild test \
