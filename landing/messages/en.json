@@ -478,6 +478,22 @@
         "title": "Smart Mode Context (Windows)",
         "description": "Smart Mode now displays an explanatory tooltip clarifying its slower-but-more-accurate advanced reasoning behavior"
       },
+      "electronMacDownload": {
+        "title": "Electron macOS App",
+        "description": "A new macOS version is now available as a universal Electron DMG on the download page"
+      },
+      "truthFirstCoaching": {
+        "title": "Honest, Accurate AI Coaching",
+        "description": "Built-in modes now prioritize factually correct answers over confirmation — if you're wrong, the AI says so clearly and explains why"
+      },
+      "modeDescriptions": {
+        "title": "Built-in Mode Descriptions (macOS)",
+        "description": "Built-in mode prompts on macOS are now shown as clear capability descriptions instead of raw system prompts"
+      },
+      "processingIndicator": {
+        "title": "AI Processing Indicator",
+        "description": "A visual indicator now shows when the AI is actively generating a response"
+      },
       "winScreenCaptureCache": {
         "title": "Screen Capture Refresh Fix (Windows)",
         "description": "Fixed a deduplication issue preventing fresh screenshots from being analyzed in Screen-Only AI mode"

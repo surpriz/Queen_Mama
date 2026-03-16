@@ -16,6 +16,29 @@ import {
   recordKnowledgeUsage,
 } from "@/lib/knowledge-retrieval";
 
+// Token usage tracking for cost calculation
+interface TokenUsage {
+  inputTokens: number;
+  outputTokens: number;
+}
+
+// Cost per million tokens (USD)
+const TOKEN_COSTS: Record<string, { input: number; output: number }> = {
+  "claude-sonnet-4-6":          { input: 3.00,  output: 15.00 },
+  "claude-sonnet-4-5-20250929": { input: 3.00,  output: 15.00 },
+  "gpt-4o":                     { input: 2.50,  output: 10.00 },
+  "o4-mini":                    { input: 1.10,  output: 4.40  },
+  "grok-4-1-fast-non-reasoning": { input: 3.00,  output: 15.00 },
+  "grok-4-1-fast-reasoning":     { input: 3.00,  output: 15.00 },
+};
+
+function calculateCost(model: string, usage: TokenUsage): number {
+  const rates = TOKEN_COSTS[model];
+  if (!rates) return 0;
+  return (usage.inputTokens / 1_000_000) * rates.input
+       + (usage.outputTokens / 1_000_000) * rates.output;
+}
+
 // CORS headers for desktop app requests
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -205,6 +228,7 @@ export async function POST(request: Request) {
       async start(controller) {
         let successProvider: string | null = null;
         let successModel: string | null = null;
+        let successTokenUsage: TokenUsage = { inputTokens: 0, outputTokens: 0 };
         const errors: string[] = [];
 
         // Try each model in the cascade until one succeeds
@@ -212,6 +236,7 @@ export async function POST(request: Request) {
           if (abortController.signal.aborted) break;
 
           const { provider, model } = cascadeItem;
+          const tokenUsage: TokenUsage = { inputTokens: 0, outputTokens: 0 };
 
           try {
             console.log(`[AI Cascade] Trying ${provider}/${model}...`);
@@ -235,7 +260,8 @@ export async function POST(request: Request) {
                   enhancedSystemPrompt,
                   userMessage,
                   screenshot,
-                  requestMaxTokens
+                  requestMaxTokens,
+                  tokenUsage
                 );
                 break;
               case "anthropic":
@@ -246,7 +272,8 @@ export async function POST(request: Request) {
                   userMessage,
                   screenshot,
                   requestMaxTokens,
-                  mode // Pass the actual mode for fine-grained thinking control
+                  mode,
+                  tokenUsage
                 );
                 break;
               default:
@@ -275,7 +302,8 @@ export async function POST(request: Request) {
 
             successProvider = provider;
             successModel = model;
-            console.log(`[AI Cascade] Success with ${provider}/${model}`);
+            successTokenUsage = tokenUsage;
+            console.log(`[AI Cascade] Success with ${provider}/${model} (tokens: ${tokenUsage.inputTokens}in/${tokenUsage.outputTokens}out)`);
             break; // Exit cascade loop on success
 
           } catch (error) {
@@ -301,13 +329,21 @@ export async function POST(request: Request) {
           streamClosed = true;
           controller.close();
 
-          // Record usage (async, don't block stream)
+          // Record usage with token counts and cost (async, don't block stream)
+          const cost = calculateCost(successModel, successTokenUsage);
           prisma.usageLog
             .create({
               data: {
                 userId,
                 action: "ai_request",
                 provider: successProvider,
+                tokensUsed: successTokenUsage.inputTokens + successTokenUsage.outputTokens,
+                cost,
+                metadata: {
+                  inputTokens: successTokenUsage.inputTokens,
+                  outputTokens: successTokenUsage.outputTokens,
+                  model: successModel,
+                },
               },
             })
             .catch(console.error);
@@ -379,7 +415,8 @@ async function streamOpenAICompatible(
   systemPrompt: string,
   userMessage: string,
   screenshot: string | undefined,
-  maxTokens: number
+  maxTokens: number,
+  tokenUsage: TokenUsage
 ): Promise<ReadableStream<Uint8Array>> {
   const messages: Array<{ role: string; content: string | object[] }> = [
     { role: "system", content: systemPrompt },
@@ -433,6 +470,9 @@ async function streamOpenAICompatible(
     requestBody.max_tokens = maxTokens;
   }
 
+  // Request usage data in streaming response (sent in the final chunk)
+  requestBody.stream_options = { include_usage: true };
+
   const response = await fetch(PROVIDER_URLS[provider], {
     method: "POST",
     headers: {
@@ -482,6 +522,11 @@ async function streamOpenAICompatible(
               if (content) {
                 controller.enqueue(encoder.encode(`data: ${JSON.stringify({ content })}\n\n`));
               }
+              // Capture usage from the final chunk (OpenAI sends usage on last data chunk)
+              if (data.usage) {
+                tokenUsage.inputTokens = data.usage.prompt_tokens ?? 0;
+                tokenUsage.outputTokens = data.usage.completion_tokens ?? 0;
+              }
             } catch {
               // Ignore parse errors
             }
@@ -503,7 +548,8 @@ async function streamAnthropic(
   userMessage: string,
   screenshot: string | undefined,
   maxTokens: number,
-  mode: "standard" | "smart" | "recap"
+  mode: "standard" | "smart" | "recap",
+  tokenUsage: TokenUsage
 ): Promise<ReadableStream<Uint8Array>> {
   const messages: Array<{ role: string; content: string | object[] }> = [];
 
@@ -609,6 +655,14 @@ async function streamAnthropic(
                 if (content) {
                   controller.enqueue(encoder.encode(`data: ${JSON.stringify({ content })}\n\n`));
                 }
+              }
+              // Capture input_tokens from message_start event
+              if (data.type === "message_start" && data.message?.usage) {
+                tokenUsage.inputTokens = data.message.usage.input_tokens ?? 0;
+              }
+              // Capture final output_tokens from message_delta event
+              if (data.type === "message_delta" && data.usage) {
+                tokenUsage.outputTokens = data.usage.output_tokens ?? 0;
               }
             } catch {
               // Ignore parse errors

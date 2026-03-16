@@ -1,49 +1,64 @@
 import { defineConfig, externalizeDepsPlugin } from 'electron-vite'
 import react from '@vitejs/plugin-react'
 import { resolve } from 'path'
+import { loadEnv } from 'vite'
 
-export default defineConfig({
-  main: {
-    plugins: [externalizeDepsPlugin()],
-    build: {
-      rollupOptions: {
-        external: ['fsevents'],
-        input: {
-          index: resolve(__dirname, 'electron/main.ts'),
+export default defineConfig(({ mode }) => {
+  // Load .env file so main process define can access VITE_SENTRY_DSN
+  const env = loadEnv(mode, process.cwd(), '')
+
+  return {
+    main: {
+      plugins: [externalizeDepsPlugin()],
+      build: {
+        rollupOptions: {
+          external: ['fsevents'],
+          input: {
+            index: resolve(__dirname, 'electron/main.ts'),
+          },
+        },
+      },
+      define: {
+        // SENTRY_DSN for main process — falls back to VITE_SENTRY_DSN from .env
+        'process.env.SENTRY_DSN': JSON.stringify(
+          env.SENTRY_DSN || env.VITE_SENTRY_DSN || process.env.SENTRY_DSN || ''
+        ),
+        'process.env.VITE_APP_ENV': JSON.stringify(
+          env.VITE_APP_ENV || process.env.VITE_APP_ENV || ''
+        ),
+      },
+      resolve: {
+        alias: {
+          '@electron': resolve(__dirname, 'electron'),
         },
       },
     },
-    resolve: {
-      alias: {
-        '@electron': resolve(__dirname, 'electron'),
-      },
-    },
-  },
-  preload: {
-    plugins: [externalizeDepsPlugin()],
-    build: {
-      rollupOptions: {
-        external: ['fsevents'],
-        input: {
-          index: resolve(__dirname, 'electron/preload.ts'),
+    preload: {
+      plugins: [externalizeDepsPlugin()],
+      build: {
+        rollupOptions: {
+          external: ['fsevents'],
+          input: {
+            index: resolve(__dirname, 'electron/preload.ts'),
+          },
         },
       },
     },
-  },
-  renderer: {
-    root: '.',
-    build: {
-      rollupOptions: {
-        input: {
-          index: resolve(__dirname, 'index.html'),
+    renderer: {
+      root: '.',
+      build: {
+        rollupOptions: {
+          input: {
+            index: resolve(__dirname, 'index.html'),
+          },
         },
       },
-    },
-    resolve: {
-      alias: {
-        '@': resolve(__dirname, 'src'),
+      resolve: {
+        alias: {
+          '@': resolve(__dirname, 'src'),
+        },
       },
+      plugins: [react()],
     },
-    plugins: [react()],
-  },
+  }
 })

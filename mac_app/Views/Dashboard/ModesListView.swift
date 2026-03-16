@@ -327,7 +327,7 @@ struct ModernModeRow: View {
                         }
                     }
 
-                    Text(String(mode.systemPrompt.prefix(40)) + "...")
+                    Text(mode.builtInDescription ?? (String(mode.systemPrompt.prefix(40)) + "..."))
                         .font(QMDesign.Typography.captionSmall)
                         .foregroundColor(QMDesign.Colors.textTertiary)
                         .lineLimit(1)
@@ -606,7 +606,7 @@ struct ModernModePromptCard: View {
         VStack(alignment: .leading, spacing: QMDesign.Spacing.md) {
             // Header
             HStack(spacing: QMDesign.Spacing.sm) {
-                Image(systemName: "text.alignleft")
+                Image(systemName: mode.isDefault ? "lock.fill" : "text.alignleft")
                     .font(.system(size: 14, weight: .semibold))
                     .foregroundStyle(QMDesign.Colors.primaryGradient)
 
@@ -616,7 +616,7 @@ struct ModernModePromptCard: View {
 
                 Spacer()
 
-                if !isEditing {
+                if !isEditing && !mode.isDefault {
                     Button(action: {
                         NSPasteboard.general.clearContents()
                         NSPasteboard.general.setString(mode.systemPrompt, forType: .string)
@@ -640,7 +640,33 @@ struct ModernModePromptCard: View {
             }
 
             // Content
-            if isEditing {
+            if mode.isDefault {
+                HStack(alignment: .top, spacing: QMDesign.Spacing.sm) {
+                    Image(systemName: "lock.fill")
+                        .font(.system(size: 13))
+                        .foregroundColor(QMDesign.Colors.textTertiary)
+                        .padding(.top, 1)
+                    VStack(alignment: .leading, spacing: QMDesign.Spacing.xs) {
+                        Text(mode.builtInDescription ?? "")
+                            .font(QMDesign.Typography.bodySmall)
+                            .foregroundColor(QMDesign.Colors.textSecondary)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                        Text(String(localized: "modes.detail.builtInPromptHidden"))
+                            .font(QMDesign.Typography.captionSmall)
+                            .foregroundColor(QMDesign.Colors.textTertiary)
+                    }
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(QMDesign.Spacing.md)
+                .background(
+                    RoundedRectangle(cornerRadius: QMDesign.Radius.md)
+                        .fill(QMDesign.Colors.backgroundSecondary)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: QMDesign.Radius.md)
+                                .stroke(QMDesign.Colors.borderSubtle, style: StrokeStyle(lineWidth: 1, dash: [4]))
+                        )
+                )
+            } else if isEditing {
                 TextEditor(text: $editedPrompt)
                     .font(QMDesign.Typography.bodySmall)
                     .foregroundColor(QMDesign.Colors.textPrimary)

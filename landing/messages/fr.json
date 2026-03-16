@@ -478,6 +478,22 @@
         "title": "Contexte du Mode Smart (Windows)",
         "description": "Le Mode Smart affiche désormais une info-bulle explicative précisant son comportement de raisonnement avancé (plus lent mais plus précis)"
       },
+      "electronMacDownload": {
+        "title": "Application Electron macOS",
+        "description": "Une nouvelle version macOS est disponible en téléchargement sous forme de DMG Electron universel"
+      },
+      "truthFirstCoaching": {
+        "title": "Coaching IA honnête et précis",
+        "description": "Les modes intégrés priorisent désormais les réponses factuellement correctes — si vous faites fausse route, l'IA le dit clairement et explique pourquoi"
+      },
+      "modeDescriptions": {
+        "title": "Descriptions des modes intégrés (macOS)",
+        "description": "Les prompts des modes intégrés sur macOS affichent désormais des descriptions lisibles plutôt que les instructions brutes"
+      },
+      "processingIndicator": {
+        "title": "Indicateur de traitement IA",
+        "description": "Un indicateur visuel s'affiche désormais pendant que l'IA génère une réponse"
+      },
       "winScreenCaptureCache": {
         "title": "Correctif capture d'écran (Windows)",
         "description": "Correction d'un problème de déduplication empêchant les nouvelles captures d'écran d'être analysées en mode IA Écran uniquement"

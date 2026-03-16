@@ -66,6 +66,8 @@ export async function POST(request: Request) {
             }
           }
 
+          const oldPlan = existingSubscription?.plan ?? "FREE";
+
           await prisma.user.update({
             where: { id: userId },
             data: { stripeCustomerId: session.customer as string },
@@ -108,6 +110,17 @@ export async function POST(request: Request) {
               throw upsertError;
             }
           }
+
+          // Log plan change for historical profitability reconstruction
+          if (oldPlan !== plan) {
+            await prisma.usageLog.create({
+              data: {
+                userId,
+                action: "STRIPE_PLAN_CHANGED",
+                metadata: { targetUserId: userId, oldPlan, newPlan: plan },
+              },
+            });
+          }
         }
         break;
       }
@@ -147,13 +160,24 @@ export async function POST(request: Request) {
 
       case "customer.subscription.deleted": {
         const subscription = event.data.object as Stripe.Subscription;
+        const existingSub = await prisma.subscription.findUnique({
+          where: { stripeSubscriptionId: subscription.id },
+          select: { userId: true, plan: true },
+        });
         await prisma.subscription.update({
           where: { stripeSubscriptionId: subscription.id },
-          data: {
-            status: "CANCELED",
-            plan: "FREE",
-          },
+          data: { status: "CANCELED", plan: "FREE" },
         });
+        // Log plan change for historical profitability reconstruction
+        if (existingSub && existingSub.plan !== "FREE") {
+          await prisma.usageLog.create({
+            data: {
+              userId: existingSub.userId,
+              action: "STRIPE_PLAN_CHANGED",
+              metadata: { targetUserId: existingSub.userId, oldPlan: existingSub.plan, newPlan: "FREE" },
+            },
+          });
+        }
         break;
       }
 

@@ -62,6 +62,11 @@ export const changelogData: ChangelogRelease[] = [
             id: "winBulkSessionDeletion",
             title: "Bulk Session Deletion (Windows)",
             description: "Select and delete multiple sessions at once from the Sessions view in the Windows app"
+          },
+          {
+            id: "electronMacDownload",
+            title: "Electron macOS App",
+            description: "A new macOS version is now available as a universal Electron DMG on the download page"
           }
         ]
       },
@@ -152,6 +157,21 @@ export const changelogData: ChangelogRelease[] = [
             id: "winSmartModeUX",
             title: "Smart Mode Context (Windows)",
             description: "Smart Mode now displays an explanatory tooltip clarifying its slower-but-more-accurate advanced reasoning behavior"
+          },
+          {
+            id: "truthFirstCoaching",
+            title: "Honest, Accurate AI Coaching",
+            description: "Built-in modes now prioritize factually correct answers over confirmation — if you're wrong, the AI says so clearly and explains why"
+          },
+          {
+            id: "modeDescriptions",
+            title: "Built-in Mode Descriptions (macOS)",
+            description: "Built-in mode prompts on macOS are now shown as clear capability descriptions instead of raw system prompts"
+          },
+          {
+            id: "processingIndicator",
+            title: "AI Processing Indicator",
+            description: "A visual indicator now shows when the AI is actively generating a response"
           }
         ]
       },

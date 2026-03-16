@@ -165,10 +165,11 @@ export const screenCaptureService = {
   /**
    * Get cached screenshot if available, otherwise capture new one.
    * Falls back to cached data when fresh capture returns null (hash dedup on static screens).
+   * @param maxAge Maximum cache age in ms before triggering a fresh capture (default: CACHE_MAX_AGE)
    */
-  async getCachedOrCapture(): Promise<string | null> {
+  async getCachedOrCapture(maxAge = CACHE_MAX_AGE): Promise<string | null> {
     const age = Date.now() - cachedScreenshotTimestamp
-    if (cachedScreenshotData && age < CACHE_MAX_AGE) {
+    if (cachedScreenshotData && age < maxAge) {
       log.info(`Using cached screenshot (age: ${age}ms)`)
       return cachedScreenshotData
     }

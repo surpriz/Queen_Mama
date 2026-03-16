@@ -17,7 +17,8 @@ const log = createLogger('AIService')
 
 let isProcessing = false
 let lastResponseTime = 0
-const UI_BATCH_INTERVAL = 50 // ms
+const UI_BATCH_INTERVAL = 16 // ms - ~60fps for smooth streaming
+const RELAY_INTERVAL = 100 // ms - less frequent IPC relay to reduce overhead
 const MIN_RESPONSE_COOLDOWN = 2000 // 2 seconds between auto-responses
 
 export interface StreamingOptions {
@@ -25,9 +26,16 @@ export interface StreamingOptions {
 }
 
 export async function generateStreamingResponse(params: AIContextParams, options?: StreamingOptions): Promise<string> {
+  // Show processing state immediately so the UI responds on first click,
+  // before screenshot capture and network latency kick in
+  useAppStore.getState().setProcessing(true)
+  const overlayStore = useOverlayStore.getState()
+  overlayStore.setStreamingContent('')
+
   if (isProcessing) {
     log.warn('Already processing, skipping duplicate')
     useAppStore.getState().setErrorMessage('Already processing a request...')
+    useAppStore.getState().setProcessing(false)
     return ''
   }
 
@@ -36,6 +44,7 @@ export async function generateStreamingResponse(params: AIContextParams, options
     const timeSinceLastResponse = Date.now() - lastResponseTime
     if (timeSinceLastResponse < MIN_RESPONSE_COOLDOWN) {
       log.warn(`Response cooldown active (${Math.round(timeSinceLastResponse / 1000)}s/${MIN_RESPONSE_COOLDOWN / 1000}s), skipping`)
+      useAppStore.getState().setProcessing(false)
       return ''
     }
   }
@@ -50,13 +59,11 @@ export async function generateStreamingResponse(params: AIContextParams, options
     } else {
       useAppStore.getState().setErrorMessage('AI request not available on your plan')
     }
+    useAppStore.getState().setProcessing(false)
     return ''
   }
 
   isProcessing = true
-  useAppStore.getState().setProcessing(true)
-  const overlayStore = useOverlayStore.getState()
-  overlayStore.setStreamingContent('')
 
   // Check cache first (skip cache in screen-only mode — each call needs a fresh screenshot)
   const isScreenOnly = !params.transcript.trim() && !!params.screenshot
@@ -92,15 +99,21 @@ export async function generateStreamingResponse(params: AIContextParams, options
   let fullContent = ''
   let batchedContent = ''
   let batchTimer: ReturnType<typeof setTimeout> | null = null
+  let relayTimer: ReturnType<typeof setTimeout> | null = null
 
   const flushBatch = () => {
     if (batchedContent) {
       overlayStore.setStreamingContent(batchedContent)
-      // Broadcast streaming content to all windows
-      window.electronAPI?.relay?.broadcast('relay:ai-response', {
-        type: 'streaming',
-        streamingContent: batchedContent,
-      })
+      // Relay to other windows at a lower frequency to reduce IPC overhead
+      if (!relayTimer) {
+        relayTimer = setTimeout(() => {
+          window.electronAPI?.relay?.broadcast('relay:ai-response', {
+            type: 'streaming',
+            streamingContent: batchedContent,
+          })
+          relayTimer = null
+        }, RELAY_INTERVAL)
+      }
     }
     batchTimer = null
   }
@@ -131,6 +144,11 @@ export async function generateStreamingResponse(params: AIContextParams, options
     // Final flush
     if (batchTimer) {
       clearTimeout(batchTimer)
+      batchTimer = null
+    }
+    if (relayTimer) {
+      clearTimeout(relayTimer)
+      relayTimer = null
     }
     overlayStore.setStreamingContent(fullContent)
 
@@ -182,10 +200,10 @@ export async function generateStreamingResponse(params: AIContextParams, options
 async function getScreenshotIfEnabled(): Promise<string | undefined> {
   try {
     if (useConfigStore.getState().autoScreenCapture) {
-      // Always force a fresh capture for manual triggers — never use stale cache
+      // Force a fresh capture so page/window changes are always reflected
       const fresh = await screenCaptureService.captureOnce()
       if (fresh) return fresh
-      // Fallback to cache if fresh capture returned null (e.g. hash dedup on static screen)
+      // Fallback to cache if fresh capture returned null (hash dedup on static screen)
       const cached = await screenCaptureService.getCachedOrCapture()
       return cached ?? undefined
     }
