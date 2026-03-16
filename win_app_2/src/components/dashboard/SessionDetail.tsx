@@ -12,6 +12,7 @@ interface SessionDetailProps {
 export function SessionDetail({ sessionId, onBack }: SessionDetailProps) {
   const session = useSessionStore((s) => s.sessions.find((se) => se.id === sessionId))
   const [copied, setCopied] = useState(false)
+  const [copiedSummary, setCopiedSummary] = useState(false)
   const [showExportMenu, setShowExportMenu] = useState(false)
   const exportMenuRef = useRef<HTMLDivElement>(null)
 
@@ -169,7 +170,20 @@ export function SessionDetail({ sessionId, onBack }: SessionDetailProps) {
         {/* Summary */}
         {session.summary && (
           <div className="p-4 rounded-qm-lg bg-qm-surface-light border border-qm-border-subtle">
-            <h3 className="text-label-md text-qm-text-secondary mb-2">Summary</h3>
+            <div className="flex items-center justify-between mb-2">
+              <h3 className="text-label-md text-qm-text-secondary">Summary</h3>
+              <button
+                onClick={() => {
+                  navigator.clipboard.writeText(session.summary!)
+                  setCopiedSummary(true)
+                  setTimeout(() => setCopiedSummary(false), 2000)
+                }}
+                className="p-1.5 rounded-qm-md hover:bg-qm-surface-hover text-qm-text-tertiary hover:text-qm-text-secondary transition-colors"
+                title="Copy summary"
+              >
+                {copiedSummary ? <Check size={14} className="text-qm-success" /> : <Copy size={14} />}
+              </button>
+            </div>
             <p className="text-body-md text-qm-text-primary leading-relaxed">{session.summary}</p>
           </div>
         )}

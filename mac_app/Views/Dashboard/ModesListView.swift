@@ -68,6 +68,10 @@ struct ModesListView: View {
             if appState.selectedMode == nil {
                 appState.selectedMode = .defaultMode
             }
+            // Auto-select the active mode so the detail panel opens on it
+            if selectedMode == nil {
+                selectedMode = appState.selectedMode
+            }
         }
     }
 
