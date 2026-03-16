@@ -1,4 +1,5 @@
 import { useState, useCallback } from 'react'
+import { useTranslation } from 'react-i18next'
 import {
   Search,
   Trash2,
@@ -29,6 +30,7 @@ import {
 } from '@/services/sync/syncManager'
 
 export function SessionsView() {
+  const { t } = useTranslation('dashboard')
   const { filteredSessions, currentSession, searchQuery, setSearchQuery, deleteSession, deleteSessions } = useSession()
   const [selectedSessionId, setSelectedSessionId] = useState<string | null>(null)
   const [isSyncing, setIsSyncing] = useState(false)
@@ -184,7 +186,7 @@ export function SessionsView() {
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search sessions..."
+              placeholder={t('sessions.searchPlaceholder')}
               className="w-full pl-10 pr-4 py-2.5 rounded-qm-md bg-qm-surface-light border border-qm-border-subtle text-body-sm text-qm-text-primary placeholder:text-qm-text-disabled focus:border-qm-accent focus:outline-none"
             />
           </div>
@@ -194,13 +196,13 @@ export function SessionsView() {
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <span className="text-caption text-qm-text-tertiary">
-                  {selectedIds.size} selected
+                  {t('sessions.selected', { count: selectedIds.size })}
                 </span>
                 <button
                   onClick={handleSelectAll}
                   className="text-caption text-qm-accent hover:text-qm-accent/80 transition-colors"
                 >
-                  {selectedIds.size === deletableSessions.length ? 'Deselect all' : 'Select all'}
+                  {selectedIds.size === deletableSessions.length ? t('sessions.deselectAll') : t('sessions.selectAll')}
                 </button>
               </div>
               <div className="flex items-center gap-1">
@@ -208,22 +210,22 @@ export function SessionsView() {
                   onClick={() => setBulkModal('bulk')}
                   disabled={selectedIds.size === 0}
                   className="px-2 py-1 rounded-qm-sm text-[10px] font-semibold bg-qm-error/15 text-qm-error hover:bg-qm-error/25 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                  title={`Delete ${selectedIds.size} selected session(s)`}
+                  title={t('sessions.deleteSessionTitle', { count: selectedIds.size })}
                 >
-                  Delete ({selectedIds.size})
+                  {t('sessions.deleteCount', { count: selectedIds.size })}
                 </button>
                 <button
                   onClick={() => setBulkModal('all')}
                   disabled={deletableSessions.length === 0}
                   className="px-2 py-1 rounded-qm-sm text-[10px] font-semibold bg-qm-error/10 text-qm-error hover:bg-qm-error/20 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                  title="Delete all sessions"
+                  title={t('sessions.deleteAll')}
                 >
-                  Delete all
+                  {t('sessions.deleteAll')}
                 </button>
                 <button
                   onClick={handleToggleSelectMode}
                   className="p-1.5 rounded-qm-sm text-qm-text-tertiary hover:text-qm-text-secondary hover:bg-qm-surface-hover transition-colors"
-                  title="Cancel selection"
+                  title={t('sessions.cancelSelection')}
                 >
                   <X size={14} />
                 </button>
@@ -232,9 +234,9 @@ export function SessionsView() {
           ) : (
             <div className="flex items-center justify-between">
               <span className="text-caption text-qm-text-tertiary">
-                {filteredSessions.length} session{filteredSessions.length !== 1 ? 's' : ''}
+                {t('sessions.sessionCount', { count: filteredSessions.length })}
                 {pendingCount > 0 && (
-                  <span className="ml-1 text-yellow-400">({pendingCount} pending)</span>
+                  <span className="ml-1 text-yellow-400">{t('status.nPending', { ns: 'common', count: pendingCount })}</span>
                 )}
               </span>
               <div className="flex items-center gap-1">
@@ -243,7 +245,7 @@ export function SessionsView() {
                   <button
                     onClick={handleToggleSelectMode}
                     className="p-1.5 rounded-qm-sm text-qm-text-tertiary hover:text-qm-accent hover:bg-qm-surface-hover transition-colors"
-                    title="Select sessions"
+                    title={t('sessions.selectSessions')}
                   >
                     <CheckSquare size={14} />
                   </button>
@@ -253,7 +255,7 @@ export function SessionsView() {
                   onClick={handlePullRemote}
                   disabled={isPulling}
                   className="p-1.5 rounded-qm-sm text-qm-text-tertiary hover:text-qm-accent hover:bg-qm-surface-hover transition-colors disabled:opacity-50"
-                  title="Pull sessions from web dashboard"
+                  title={t('sessions.pullSessions')}
                 >
                   {isPulling ? <Loader2 size={14} className="animate-spin" /> : <RefreshCw size={14} />}
                 </button>
@@ -262,7 +264,7 @@ export function SessionsView() {
                   onClick={handleSyncAll}
                   disabled={isSyncing}
                   className="p-1.5 rounded-qm-sm text-qm-text-tertiary hover:text-qm-accent hover:bg-qm-surface-hover transition-colors disabled:opacity-50"
-                  title="Upload all sessions to web dashboard"
+                  title={t('sessions.uploadSessions')}
                 >
                   {isSyncing ? <Loader2 size={14} className="animate-spin" /> : <CloudUpload size={14} />}
                 </button>
@@ -275,7 +277,7 @@ export function SessionsView() {
         <div className="flex-1 overflow-y-auto px-4 pb-4 space-y-2">
           {filteredSessions.length === 0 ? (
             <div className="text-center py-12 text-qm-text-tertiary text-body-sm">
-              {searchQuery ? 'No sessions found' : 'No sessions yet'}
+              {searchQuery ? t('sessions.noSessionsFound') : t('sessions.noSessionsYet')}
             </div>
           ) : (
             filteredSessions.map((session) => {
@@ -336,7 +338,7 @@ export function SessionsView() {
                               }}
                               className="px-2 py-0.5 rounded-qm-sm bg-qm-error/15 text-qm-error text-[10px] font-semibold hover:bg-qm-error/25 transition-colors"
                             >
-                              Delete
+                              {t('actions.delete', { ns: 'common' })}
                             </button>
                             <button
                               onClick={(e) => {
@@ -345,7 +347,7 @@ export function SessionsView() {
                               }}
                               className="px-2 py-0.5 rounded-qm-sm bg-qm-surface-medium text-qm-text-tertiary text-[10px] font-semibold hover:bg-qm-surface-hover transition-colors"
                             >
-                              Cancel
+                              {t('actions.cancel', { ns: 'common' })}
                             </button>
                           </div>
                         ) : (
@@ -394,10 +396,10 @@ export function SessionsView() {
                         )}
                         title={
                           session.syncStatus === 'synced'
-                            ? 'Synced to cloud'
+                            ? t('sessions.syncedToCloud')
                             : session.syncStatus === 'failed'
-                              ? 'Sync failed - click to retry'
-                              : 'Click to sync'
+                              ? t('sessions.syncFailedRetry')
+                              : t('sessions.clickToSync')
                         }
                       >
                         {getSyncIcon(session.syncStatus)}
@@ -432,10 +434,10 @@ export function SessionsView() {
               <FileText size={32} className="text-qm-accent" />
             </div>
             <h3 className="text-title-sm font-semibold text-qm-text-primary mb-2">
-              No Session Selected
+              {t('sessions.noSessionSelected')}
             </h3>
             <p className="text-body-sm text-qm-text-tertiary">
-              Select a session to view its details
+              {t('sessions.selectSessionToView')}
             </p>
           </div>
         )}
@@ -445,8 +447,8 @@ export function SessionsView() {
       <Modal
         isOpen={bulkModal === 'bulk'}
         onClose={isDeleting ? () => {} : () => setBulkModal(null)}
-        title={`Delete ${selectedIds.size} session${selectedIds.size !== 1 ? 's' : ''}?`}
-        subtitle="This action cannot be undone. Selected sessions and their transcripts will be permanently removed."
+        title={t('sessions.deleteSessionTitle', { count: selectedIds.size })}
+        subtitle={t('sessions.deleteSessionSubtitle')}
         size="sm"
       >
         <div className="flex justify-end gap-2 pt-2">
@@ -455,7 +457,7 @@ export function SessionsView() {
             disabled={isDeleting}
             className="px-4 py-2 rounded-qm-md bg-qm-surface-light text-qm-text-secondary text-body-sm hover:bg-qm-surface-medium transition-colors disabled:opacity-50"
           >
-            Cancel
+            {t('actions.cancel', { ns: 'common' })}
           </button>
           <button
             onClick={handleBulkDelete}
@@ -463,7 +465,7 @@ export function SessionsView() {
             className="px-4 py-2 rounded-qm-md bg-qm-error text-white text-body-sm font-semibold hover:bg-qm-error/90 transition-colors disabled:opacity-50 flex items-center gap-1.5"
           >
             {isDeleting && <Loader2 size={14} className="animate-spin" />}
-            Delete {selectedIds.size} session{selectedIds.size !== 1 ? 's' : ''}
+            {t('sessions.deleteSessionTitle', { count: selectedIds.size })}
           </button>
         </div>
       </Modal>
@@ -472,8 +474,8 @@ export function SessionsView() {
       <Modal
         isOpen={bulkModal === 'all'}
         onClose={isDeleting ? () => {} : () => setBulkModal(null)}
-        title={`Delete all ${deletableSessions.length} sessions?`}
-        subtitle="This action cannot be undone. All sessions in the current view and their transcripts will be permanently removed."
+        title={t('sessions.deleteAllTitle', { count: deletableSessions.length })}
+        subtitle={t('sessions.deleteAllSubtitle')}
         size="sm"
       >
         <div className="flex justify-end gap-2 pt-2">
@@ -482,7 +484,7 @@ export function SessionsView() {
             disabled={isDeleting}
             className="px-4 py-2 rounded-qm-md bg-qm-surface-light text-qm-text-secondary text-body-sm hover:bg-qm-surface-medium transition-colors disabled:opacity-50"
           >
-            Cancel
+            {t('actions.cancel', { ns: 'common' })}
           </button>
           <button
             onClick={handleDeleteAll}
@@ -490,7 +492,7 @@ export function SessionsView() {
             className="px-4 py-2 rounded-qm-md bg-qm-error text-white text-body-sm font-semibold hover:bg-qm-error/90 transition-colors disabled:opacity-50 flex items-center gap-1.5"
           >
             {isDeleting && <Loader2 size={14} className="animate-spin" />}
-            Delete all sessions
+            {t('sessions.deleteAllSessions')}
           </button>
         </div>
       </Modal>

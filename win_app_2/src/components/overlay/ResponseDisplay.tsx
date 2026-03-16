@@ -1,5 +1,6 @@
 import { useRef, useEffect, useState, useCallback } from 'react'
 import { Copy, Check, Sparkles, ThumbsUp, ThumbsDown, AlertCircle } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { useOverlayStore } from '@/stores/overlayStore'
 import { useAppStore } from '@/stores/appStore'
 import { useLicenseStore } from '@/stores/licenseStore'
@@ -10,26 +11,31 @@ import remarkGfm from 'remark-gfm'
 
 // ── Relative time helper ─────────────────────────────────────────────
 
-function formatRelativeTime(isoTimestamp: string): string {
-  const diff = Date.now() - new Date(isoTimestamp).getTime()
-  const seconds = Math.floor(diff / 1000)
+function useFormatRelativeTime() {
+  const { t } = useTranslation('overlay')
 
-  if (seconds < 5) return 'just now'
-  if (seconds < 60) return `${seconds}s ago`
+  return function formatRelativeTime(isoTimestamp: string): string {
+    const diff = Date.now() - new Date(isoTimestamp).getTime()
+    const seconds = Math.floor(diff / 1000)
 
-  const minutes = Math.floor(seconds / 60)
-  if (minutes < 60) return `${minutes}m ago`
+    if (seconds < 5) return t('response.justNow')
+    if (seconds < 60) return t('response.secondsAgo', { count: seconds })
 
-  const hours = Math.floor(minutes / 60)
-  if (hours < 24) return `${hours}h ago`
+    const minutes = Math.floor(seconds / 60)
+    if (minutes < 60) return t('response.minutesAgo', { count: minutes })
 
-  const days = Math.floor(hours / 24)
-  return `${days}d ago`
+    const hours = Math.floor(minutes / 60)
+    if (hours < 24) return t('response.hoursAgo', { count: hours })
+
+    const days = Math.floor(hours / 24)
+    return t('response.daysAgo', { count: days })
+  }
 }
 
 // ── Per-bubble copy button ───────────────────────────────────────────
 
 function CopyButton({ text }: { text: string }) {
+  const { t } = useTranslation('overlay')
   const [copied, setCopied] = useState(false)
 
   const handleCopy = useCallback(() => {
@@ -42,7 +48,7 @@ function CopyButton({ text }: { text: string }) {
     <button
       onClick={handleCopy}
       className="p-1 rounded-qm-sm bg-qm-surface-medium hover:bg-qm-surface-hover text-qm-text-tertiary transition-colors"
-      title="Copy to clipboard"
+      title={t('response.copyToClipboard')}
     >
       {copied ? <Check size={12} className="text-qm-success" /> : <Copy size={12} />}
     </button>
@@ -52,6 +58,7 @@ function CopyButton({ text }: { text: string }) {
 // ── Per-bubble feedback buttons ─────────────────────────────────────
 
 function FeedbackButtons({ responseId, sessionId }: { responseId: string; sessionId: string }) {
+  const { t } = useTranslation('overlay')
   const [feedback, setFeedback] = useState<'positive' | 'negative' | null>(null)
   const canUseKB = useLicenseStore((s) => s.canUse)(Feature.KnowledgeBase).type === 'allowed'
 
@@ -77,7 +84,7 @@ function FeedbackButtons({ responseId, sessionId }: { responseId: string; sessio
             ? 'bg-qm-success/20 text-qm-success'
             : 'bg-qm-surface-medium hover:bg-qm-surface-hover text-qm-text-tertiary'
         } ${feedback !== null ? 'opacity-60 cursor-default' : ''}`}
-        title="Helpful"
+        title={t('response.helpful')}
       >
         <ThumbsUp size={12} />
       </button>
@@ -89,7 +96,7 @@ function FeedbackButtons({ responseId, sessionId }: { responseId: string; sessio
             ? 'bg-red-500/20 text-red-400'
             : 'bg-qm-surface-medium hover:bg-qm-surface-hover text-qm-text-tertiary'
         } ${feedback !== null ? 'opacity-60 cursor-default' : ''}`}
-        title="Not helpful"
+        title={t('response.notHelpful')}
       >
         <ThumbsDown size={12} />
       </button>
@@ -118,6 +125,7 @@ function ProviderBadge({ provider }: { provider: string }) {
 // ── Processing indicator (mirrors macOS ProcessingIndicator) ─────────
 
 function ProcessingIndicator() {
+  const { t } = useTranslation('overlay')
   return (
     <div className="flex items-center gap-2 px-1 py-2">
       <div className="flex items-center gap-1">
@@ -129,7 +137,7 @@ function ProcessingIndicator() {
           />
         ))}
       </div>
-      <span className="text-qm-text-secondary text-body-sm">Analyzing...</span>
+      <span className="text-qm-text-secondary text-body-sm">{t('response.analyzing')}</span>
     </div>
   )
 }
@@ -137,6 +145,8 @@ function ProcessingIndicator() {
 // ── Main component ───────────────────────────────────────────────────
 
 export function ResponseDisplay() {
+  const { t } = useTranslation('overlay')
+  const formatRelativeTime = useFormatRelativeTime()
   const streamingContent = useOverlayStore((s) => s.streamingContent)
   const responseHistory = useOverlayStore((s) => s.responseHistory)
   const isAutoAnswer = useOverlayStore((s) => s.isAutoAnswer)
@@ -192,7 +202,7 @@ export function ResponseDisplay() {
                 <div className="absolute top-2 right-2 flex items-center gap-1.5">
                   {isAutoAnswer && (
                     <span className="text-[10px] font-medium leading-none px-1.5 py-0.5 rounded bg-qm-accent/20 text-qm-accent select-none">
-                      AUTO
+                      {t('response.autoLabel')}
                     </span>
                   )}
                   {entry.provider && <ProviderBadge provider={entry.provider} />}
@@ -226,7 +236,7 @@ export function ResponseDisplay() {
                 <div className="absolute top-2 right-2 flex items-center gap-1.5">
                   {isAutoAnswer && (
                     <span className="text-[10px] font-medium leading-none px-1.5 py-0.5 rounded bg-qm-accent/20 text-qm-accent select-none">
-                      AUTO
+                      {t('response.autoLabel')}
                     </span>
                   )}
                   {!isProcessing && <CopyButton text={streamingContent} />}
@@ -249,7 +259,7 @@ export function ResponseDisplay() {
                 {/* Timestamp placeholder for live content */}
                 <div className="mt-1.5 text-right">
                   <span className="text-[10px] text-qm-text-tertiary/60 select-none">
-                    streaming...
+                    {t('response.streaming')}
                   </span>
                 </div>
               </div>
@@ -258,9 +268,9 @@ export function ResponseDisplay() {
         ) : (
           <div className="flex flex-col items-center justify-center h-full gap-2">
             <Sparkles size={24} className="text-qm-accent" />
-            <span className="text-qm-text-secondary text-body-sm">Ready to assist</span>
+            <span className="text-qm-text-secondary text-body-sm">{t('response.readyToAssist')}</span>
             <div className="flex items-center gap-1 text-qm-text-tertiary text-caption">
-              <span>Type a question or click a tab</span>
+              <span>{t('response.typeQuestionOrTab')}</span>
             </div>
           </div>
         )}

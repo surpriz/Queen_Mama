@@ -1,7 +1,9 @@
 import { useState, useEffect } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Activity, List, Users, Settings, Mic, BookUser, ChevronRight, Globe, Crown, MessageSquareText } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { GradientText } from '@/components/common/GradientText'
+import { LanguageSwitcher } from '@/components/common/LanguageSwitcher'
 import { StatusIndicator, type StatusType } from '@/components/common/StatusIndicator'
 import { useAppStore } from '@/stores/appStore'
 import { useAuthStore } from '@/stores/authStore'
@@ -12,14 +14,6 @@ interface SidebarProps {
   activeItem: NavItem
   onItemClick: (item: NavItem) => void
 }
-
-const NAV_ITEMS: { id: NavItem; label: string; subtitle: string; icon: typeof Activity }[] = [
-  { id: 'sessions', label: 'Sessions', subtitle: 'Past recordings', icon: List },
-  { id: 'live', label: 'Live Session', subtitle: 'Active session', icon: Activity },
-  { id: 'modes', label: 'Modes', subtitle: 'AI personalities', icon: Users },
-  { id: 'contacts', label: 'Contacts', subtitle: 'People', icon: BookUser },
-  { id: 'settings', label: 'Settings', subtitle: 'Configuration', icon: Settings },
-]
 
 function formatDuration(startedAt: number): string {
   const seconds = Math.floor((Date.now() - startedAt) / 1000)
@@ -41,6 +35,7 @@ function AudioLevelBar({ level }: { level: number }) {
 }
 
 function LicenseBadge() {
+  const { t } = useTranslation()
   const plan = useLicenseStore((s) => s.currentLicense.plan)
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated)
   const isPro = useLicenseStore((s) => s.isPro)
@@ -48,7 +43,7 @@ function LicenseBadge() {
   if (!isAuthenticated) {
     return (
       <div className="px-3 py-2 rounded-qm-md bg-qm-surface-light">
-        <span className="text-caption text-qm-text-tertiary">Not Connected</span>
+        <span className="text-caption text-qm-text-tertiary">{t('status.notConnected')}</span>
       </div>
     )
   }
@@ -65,18 +60,27 @@ function LicenseBadge() {
   return (
     <div className="px-3 py-2 rounded-qm-md bg-qm-surface-light">
       <div className="flex items-center justify-between">
-        <span className="text-caption font-semibold text-qm-accent">FREE</span>
-        <span className="text-caption-sm text-qm-text-tertiary">Upgrade for more</span>
+        <span className="text-caption font-semibold text-qm-accent">{t('license.free')}</span>
+        <span className="text-caption-sm text-qm-text-tertiary">{t('license.upgradeForMore')}</span>
       </div>
     </div>
   )
 }
 
 export function Sidebar({ activeItem, onItemClick }: SidebarProps) {
+  const { t } = useTranslation()
   const isSessionActive = useAppStore((s) => s.isSessionActive)
   const sessionStartedAt = useAppStore((s) => s.sessionStartedAt)
   const audioLevel = useAppStore((s) => s.audioLevel)
   const currentUser = useAuthStore((s) => s.currentUser)
+
+  const NAV_ITEMS: { id: NavItem; label: string; subtitle: string; icon: typeof Activity }[] = [
+    { id: 'sessions', label: t('nav.sessions', { ns: 'dashboard' }), subtitle: t('nav.sessionsSubtitle', { ns: 'dashboard' }), icon: List },
+    { id: 'live', label: t('nav.live', { ns: 'dashboard' }), subtitle: t('nav.liveSubtitle', { ns: 'dashboard' }), icon: Activity },
+    { id: 'modes', label: t('nav.modes', { ns: 'dashboard' }), subtitle: t('nav.modesSubtitle', { ns: 'dashboard' }), icon: Users },
+    { id: 'contacts', label: t('nav.contacts', { ns: 'dashboard' }), subtitle: t('nav.contactsSubtitle', { ns: 'dashboard' }), icon: BookUser },
+    { id: 'settings', label: t('nav.settings', { ns: 'dashboard' }), subtitle: t('nav.settingsSubtitle', { ns: 'dashboard' }), icon: Settings },
+  ]
 
   const sessionStatus: StatusType = isSessionActive ? 'active' : 'idle'
 
@@ -144,7 +148,9 @@ export function Sidebar({ activeItem, onItemClick }: SidebarProps) {
 
       {/* STATUS section */}
       <div className="px-3 pb-3 space-y-2">
-        <span className="px-3 text-caption-sm font-semibold text-qm-text-tertiary uppercase tracking-wider">Status</span>
+        <span className="px-3 text-caption-sm font-semibold text-qm-text-tertiary uppercase tracking-wider">
+          {t('nav.status', { ns: 'dashboard' })}
+        </span>
 
         {/* Recording / Idle status */}
         <div
@@ -156,7 +162,7 @@ export function Sidebar({ activeItem, onItemClick }: SidebarProps) {
           <StatusIndicator status={sessionStatus} size={8} />
           <div className="flex flex-col">
             <span className="text-body-sm text-qm-text-primary">
-              {isSessionActive ? 'Recording' : 'No session active'}
+              {isSessionActive ? t('status.recording') : t('status.noSession')}
             </span>
             {isSessionActive && sessionStartedAt && (
               <span className="text-caption-sm text-qm-text-tertiary">
@@ -171,7 +177,7 @@ export function Sidebar({ activeItem, onItemClick }: SidebarProps) {
           <div className="px-3 py-2 rounded-qm-md bg-qm-surface-light space-y-1.5">
             <div className="flex items-center gap-1.5">
               <Mic size={11} className="text-qm-accent" />
-              <span className="text-caption text-qm-text-secondary">Audio Level</span>
+              <span className="text-caption text-qm-text-secondary">{t('audioLevel')}</span>
             </div>
             <AudioLevelBar level={audioLevel} />
           </div>
@@ -180,13 +186,16 @@ export function Sidebar({ activeItem, onItemClick }: SidebarProps) {
         {/* License badge */}
         <LicenseBadge />
 
+        {/* Language switcher */}
+        <LanguageSwitcher />
+
         {/* Web Dashboard button */}
         <button
           onClick={handleOpenWebDashboard}
           className="w-full flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-qm-pill bg-qm-accent/80 hover:bg-qm-accent text-white text-caption font-medium transition-colors"
         >
           <Globe size={12} />
-          Web Dashboard
+          {t('webDashboard')}
         </button>
       </div>
 
@@ -204,7 +213,7 @@ export function Sidebar({ activeItem, onItemClick }: SidebarProps) {
             className="flex items-center gap-1 text-caption-sm text-qm-text-tertiary hover:text-qm-text-secondary transition-colors"
           >
             <MessageSquareText size={10} />
-            Feedback
+            {t('feedback')}
           </button>
         </div>
       </div>

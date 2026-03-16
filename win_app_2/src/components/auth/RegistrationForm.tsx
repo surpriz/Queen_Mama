@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useAuth } from '@/hooks/useAuth'
 import { LoadingSpinner } from '@/components/common/LoadingSpinner'
 
@@ -7,6 +8,7 @@ interface RegistrationFormProps {
 }
 
 export function RegistrationForm({ onBack }: RegistrationFormProps) {
+  const { t } = useTranslation()
   const { registerWithCredentials } = useAuth()
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
@@ -22,7 +24,7 @@ export function RegistrationForm({ onBack }: RegistrationFormProps) {
     try {
       await registerWithCredentials(name, email, password)
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Registration failed')
+      setError(err instanceof Error ? err.message : t('auth.registrationFailed'))
       setIsLoading(false)
     }
   }
@@ -34,10 +36,10 @@ export function RegistrationForm({ onBack }: RegistrationFormProps) {
         onClick={onBack}
         className="self-start text-body-sm text-qm-text-secondary hover:text-qm-text-primary transition-colors"
       >
-        &larr; Back
+        &larr; {t('actions.back')}
       </button>
 
-      <h2 className="text-title-sm font-semibold text-qm-text-primary">Create Account</h2>
+      <h2 className="text-title-sm font-semibold text-qm-text-primary">{t('auth.createAccount')}</h2>
 
       {error && (
         <div className="p-3 rounded-qm-md bg-qm-error-light text-qm-error text-body-sm">
@@ -49,7 +51,7 @@ export function RegistrationForm({ onBack }: RegistrationFormProps) {
         type="text"
         value={name}
         onChange={(e) => setName(e.target.value)}
-        placeholder="Full Name"
+        placeholder={t('auth.fullName')}
         required
         className="px-4 py-3 rounded-qm-md bg-qm-surface-light border border-qm-border-subtle text-qm-text-primary placeholder:text-qm-text-disabled focus:border-qm-accent focus:outline-none"
       />
@@ -58,7 +60,7 @@ export function RegistrationForm({ onBack }: RegistrationFormProps) {
         type="email"
         value={email}
         onChange={(e) => setEmail(e.target.value)}
-        placeholder="Email"
+        placeholder={t('auth.email')}
         required
         className="px-4 py-3 rounded-qm-md bg-qm-surface-light border border-qm-border-subtle text-qm-text-primary placeholder:text-qm-text-disabled focus:border-qm-accent focus:outline-none"
       />
@@ -67,7 +69,7 @@ export function RegistrationForm({ onBack }: RegistrationFormProps) {
         type="password"
         value={password}
         onChange={(e) => setPassword(e.target.value)}
-        placeholder="Password (8+ characters)"
+        placeholder={t('auth.passwordRequirements')}
         required
         minLength={8}
         className="px-4 py-3 rounded-qm-md bg-qm-surface-light border border-qm-border-subtle text-qm-text-primary placeholder:text-qm-text-disabled focus:border-qm-accent focus:outline-none"
@@ -78,7 +80,7 @@ export function RegistrationForm({ onBack }: RegistrationFormProps) {
         disabled={isLoading}
         className="px-4 py-3 rounded-qm-lg bg-gradient-to-r from-qm-gradient-start to-qm-gradient-end text-white font-medium disabled:opacity-50 hover:shadow-qm-glow transition-shadow"
       >
-        {isLoading ? <LoadingSpinner size={20} className="mx-auto" /> : 'Create Account'}
+        {isLoading ? <LoadingSpinner size={20} className="mx-auto" /> : t('auth.createAccount')}
       </button>
     </form>
   )

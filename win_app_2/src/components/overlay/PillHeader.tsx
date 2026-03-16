@@ -11,6 +11,7 @@ import {
   Brain,
   Loader2,
 } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { useOverlayStore } from '@/stores/overlayStore'
 import { useAppStore } from '@/stores/appStore'
 import { useConfigStore } from '@/stores/configStore'
@@ -44,14 +45,8 @@ const MOMENT_BG_COLORS: Record<MomentType, string> = {
   closingOpportunity: 'bg-emerald-500/20',
 }
 
-const MOMENT_LABELS_SHORT: Record<MomentType, string> = {
-  objection: 'OBJ',
-  expertiseQuestion: 'Q',
-  hesitation: 'HES',
-  closingOpportunity: 'CLOSE',
-}
-
 export function PillHeader() {
+  const { t } = useTranslation('overlay')
   const isExpanded = useOverlayStore((s) => s.isExpanded)
   const toggleExpanded = useOverlayStore((s) => s.toggleExpanded)
   const isSessionActive = useAppStore((s) => s.isSessionActive)
@@ -62,6 +57,13 @@ export function PillHeader() {
   const autoScreenCapture = useConfigStore((s) => s.autoScreenCapture)
   const updateConfig = useConfigStore((s) => s.updateConfig)
   const isFinalizingSession = useAppStore((s) => s.isFinalizingSession)
+
+  const MOMENT_LABELS_SHORT: Record<MomentType, string> = {
+    objection: t('proactive.obj'),
+    expertiseQuestion: t('proactive.q'),
+    hesitation: t('proactive.hes'),
+    closingOpportunity: t('proactive.close'),
+  }
 
   // Moment detection state
   const [currentMoment, setCurrentMoment] = useState<DetectedMoment | null>(null)
@@ -157,7 +159,7 @@ export function PillHeader() {
       <div
         className="flex items-center justify-center w-7 h-7 rounded-full bg-gradient-to-br from-qm-gradient-start to-qm-gradient-end flex-shrink-0 shadow-sm cursor-grab active:cursor-grabbing"
         onClick={(e) => e.stopPropagation()}
-        title="Drag to move"
+        title={t('pillHeader.dragToMove')}
       >
         <AudioLines size={13} className="text-white" />
       </div>
@@ -167,7 +169,7 @@ export function PillHeader() {
         onClick={handleOpenDashboard}
         className="flex items-center justify-center w-[26px] h-[26px] rounded-full bg-qm-surface-medium hover:bg-gradient-to-br hover:from-qm-gradient-start/40 hover:to-qm-gradient-end/40 transition-all hover-scale-lg flex-shrink-0 titlebar-no-drag"
         style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}
-        title="Open Dashboard"
+        title={t('pillHeader.openDashboard')}
       >
         <Home size={13} className="text-qm-text-secondary" />
       </button>
@@ -236,11 +238,11 @@ export function PillHeader() {
               ? 'bg-emerald-500/20 hover:bg-emerald-500/30'
               : 'bg-qm-surface-medium hover:bg-qm-surface-hover',
           )}
-          title={isUndetectable ? 'Hidden mode ON - Click to disable' : 'Hidden mode OFF - Click to enable'}
+          title={isUndetectable ? t('pillHeader.hiddenModeOn') : t('pillHeader.hiddenModeOff')}
         >
           <EyeOff size={11} className={isUndetectable ? 'text-emerald-400' : 'text-qm-text-tertiary'} />
           <span className={cn('text-caption-sm font-medium', isUndetectable ? 'text-emerald-400' : 'text-qm-text-tertiary')}>
-            Hidden
+            {t('pillHeader.hidden')}
           </span>
         </button>
 
@@ -248,10 +250,10 @@ export function PillHeader() {
         {smartModeEnabled && (
           <div
             className="flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-purple-500/20"
-            title="Smart Mode — Slower but more accurate, uses advanced reasoning"
+            title={t('pillHeader.smartModeTooltip')}
           >
             <Brain size={11} className="text-purple-400" />
-            <span className="text-caption-sm text-purple-400 font-medium">Smart</span>
+            <span className="text-caption-sm text-purple-400 font-medium">{t('pillHeader.smart')}</span>
           </div>
         )}
 
@@ -259,7 +261,7 @@ export function PillHeader() {
         {autoAnswerEnabled && (
           <div className="flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-qm-auto-answer/20 animate-pulse ring-1 ring-qm-auto-answer/30 transition-opacity duration-250">
             <Zap size={11} className="text-qm-auto-answer" />
-            <span className="text-caption-sm text-qm-auto-answer font-medium">Auto</span>
+            <span className="text-caption-sm text-qm-auto-answer font-medium">{t('pillHeader.auto')}</span>
           </div>
         )}
 
@@ -272,7 +274,7 @@ export function PillHeader() {
               ? 'bg-emerald-500/20 text-emerald-400'
               : 'bg-qm-error/15 text-qm-error hover:bg-qm-error/25',
           )}
-          title={autoScreenCapture ? 'Screen capture ON' : 'Screen capture OFF'}
+          title={autoScreenCapture ? t('pillHeader.screenCaptureOn') : t('pillHeader.screenCaptureOff')}
         >
           <Camera size={12} />
         </button>
@@ -284,7 +286,7 @@ export function PillHeader() {
         {isFinalizingSession && (
           <div className="flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-qm-accent/15">
             <Loader2 size={11} className="text-qm-accent animate-spin" />
-            <span className="text-caption-sm text-qm-accent font-medium">Résumé...</span>
+            <span className="text-caption-sm text-qm-accent font-medium">{t('pillHeader.summary')}</span>
           </div>
         )}
 
@@ -302,7 +304,7 @@ export function PillHeader() {
                 ? 'w-[26px] h-[26px] bg-red-500/15 hover:bg-red-500/25'
                 : 'w-8 h-8 bg-gradient-to-br from-qm-gradient-start to-qm-gradient-end shadow-qm-glow hover-scale-lg',
             )}
-            title={isSessionActive ? 'Stop session' : 'Start session'}
+            title={isSessionActive ? t('pillHeader.stopSession') : t('pillHeader.startSession')}
           >
             {isSessionActive ? (
               <Square size={10} className="text-red-400" fill="currentColor" />

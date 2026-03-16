@@ -1,5 +1,6 @@
 import { useCallback } from 'react'
 import { Monitor, AlertTriangle } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { TabBar } from './TabBar'
 import { TranscriptPanel } from './TranscriptPanel'
 import { ResponseDisplay } from './ResponseDisplay'
@@ -10,6 +11,7 @@ import { useAiResponse } from '@/hooks/useAiResponse'
 import { ResponseType } from '@/types/models'
 
 export function ExpandedContent() {
+  const { t } = useTranslation('overlay')
   const autoScreenCapture = useConfigStore((s) => s.autoScreenCapture)
   const isSessionActive = useAppStore((s) => s.isSessionActive)
   const currentTranscript = useAppStore((s) => s.currentTranscript)
@@ -43,12 +45,12 @@ export function ExpandedContent() {
           {autoScreenCapture ? (
             <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-yellow-500/10">
               <Monitor size={10} className="text-yellow-400" />
-              <span className="text-caption-sm font-medium text-yellow-400">Screen only</span>
+              <span className="text-caption-sm font-medium text-yellow-400">{t('expandedContent.screenOnly')}</span>
             </div>
           ) : (
             <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-red-500/10">
               <AlertTriangle size={10} className="text-red-400" />
-              <span className="text-caption-sm font-medium text-red-400">No input</span>
+              <span className="text-caption-sm font-medium text-red-400">{t('expandedContent.noInput')}</span>
             </div>
           )}
         </div>

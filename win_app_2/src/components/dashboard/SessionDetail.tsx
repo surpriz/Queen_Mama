@@ -1,5 +1,6 @@
 import { ArrowLeft, Download, Copy, Check, ChevronDown, CheckCircle, Clock, Circle } from 'lucide-react'
 import { useState, useRef, useEffect } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useSessionStore } from '@/stores/sessionStore'
 import { exportSession, type ExportFormat } from '@/services/session/sessionExport'
 import { formatDate, formatDuration } from '@/lib/utils'
@@ -10,6 +11,7 @@ interface SessionDetailProps {
 }
 
 export function SessionDetail({ sessionId, onBack }: SessionDetailProps) {
+  const { t } = useTranslation('dashboard')
   const session = useSessionStore((s) => s.sessions.find((se) => se.id === sessionId))
   const [copied, setCopied] = useState(false)
   const [copiedSummary, setCopiedSummary] = useState(false)
@@ -30,9 +32,9 @@ export function SessionDetail({ sessionId, onBack }: SessionDetailProps) {
     return (
       <div className="p-6">
         <button onClick={onBack} className="text-body-sm text-qm-text-secondary hover:text-qm-text-primary">
-          &larr; Back
+          &larr; {t('sessionDetail.back')}
         </button>
-        <p className="mt-4 text-qm-text-tertiary">Session not found</p>
+        <p className="mt-4 text-qm-text-tertiary">{t('sessionDetail.sessionNotFound')}</p>
       </div>
     )
   }
@@ -77,19 +79,19 @@ export function SessionDetail({ sessionId, onBack }: SessionDetailProps) {
       case 'synced':
         return (
           <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium bg-green-500/15 text-green-400">
-            <CheckCircle size={12} /> Synced
+            <CheckCircle size={12} /> {t('status.synced', { ns: 'common' })}
           </span>
         )
       case 'pending':
         return (
           <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium bg-yellow-500/15 text-yellow-400">
-            <Clock size={12} /> Pending
+            <Clock size={12} /> {t('status.pending', { ns: 'common' })}
           </span>
         )
       case 'local':
         return (
           <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium bg-gray-500/15 text-gray-400">
-            <Circle size={10} /> Local
+            <Circle size={10} /> {t('status.local', { ns: 'common' })}
           </span>
         )
       default:
@@ -130,7 +132,7 @@ export function SessionDetail({ sessionId, onBack }: SessionDetailProps) {
                 onClick={() => setShowExportMenu(!showExportMenu)}
                 className="flex items-center gap-1.5 px-3 py-1.5 rounded-qm-md bg-qm-surface-medium hover:bg-qm-surface-hover text-body-sm text-qm-text-secondary transition-colors"
               >
-                <Download size={14} /> Export <ChevronDown size={12} />
+                <Download size={14} /> {t('sessionDetail.export')} <ChevronDown size={12} />
               </button>
               {showExportMenu && (
                 <div className="absolute right-0 top-full mt-1 w-40 rounded-qm-md bg-qm-surface-medium border border-qm-border-subtle shadow-lg z-50 py-1">
@@ -138,25 +140,25 @@ export function SessionDetail({ sessionId, onBack }: SessionDetailProps) {
                     onClick={() => handleExport('markdown')}
                     className="w-full text-left px-3 py-1.5 text-body-sm text-qm-text-secondary hover:bg-qm-surface-hover transition-colors"
                   >
-                    Markdown
+                    {t('sessionDetail.markdown')}
                   </button>
                   <button
                     onClick={() => handleExport('plaintext')}
                     className="w-full text-left px-3 py-1.5 text-body-sm text-qm-text-secondary hover:bg-qm-surface-hover transition-colors"
                   >
-                    Plain Text
+                    {t('sessionDetail.plainText')}
                   </button>
                   <button
                     onClick={() => handleExport('json')}
                     className="w-full text-left px-3 py-1.5 text-body-sm text-qm-text-secondary hover:bg-qm-surface-hover transition-colors"
                   >
-                    JSON
+                    {t('sessionDetail.json')}
                   </button>
                   <button
                     onClick={() => handleExport('csv')}
                     className="w-full text-left px-3 py-1.5 text-body-sm text-qm-text-secondary hover:bg-qm-surface-hover transition-colors"
                   >
-                    CSV
+                    {t('sessionDetail.csv')}
                   </button>
                 </div>
               )}
@@ -171,7 +173,7 @@ export function SessionDetail({ sessionId, onBack }: SessionDetailProps) {
         {session.summary && (
           <div className="p-4 rounded-qm-lg bg-qm-surface-light border border-qm-border-subtle">
             <div className="flex items-center justify-between mb-2">
-              <h3 className="text-label-md text-qm-text-secondary">Summary</h3>
+              <h3 className="text-label-md text-qm-text-secondary">{t('sessionDetail.summary')}</h3>
               <button
                 onClick={() => {
                   navigator.clipboard.writeText(session.summary!)
@@ -179,7 +181,7 @@ export function SessionDetail({ sessionId, onBack }: SessionDetailProps) {
                   setTimeout(() => setCopiedSummary(false), 2000)
                 }}
                 className="p-1.5 rounded-qm-md hover:bg-qm-surface-hover text-qm-text-tertiary hover:text-qm-text-secondary transition-colors"
-                title="Copy summary"
+                title={t('sessionDetail.copySummary')}
               >
                 {copiedSummary ? <Check size={14} className="text-qm-success" /> : <Copy size={14} />}
               </button>
@@ -190,9 +192,9 @@ export function SessionDetail({ sessionId, onBack }: SessionDetailProps) {
 
         {/* Transcript */}
         <div className="p-4 rounded-qm-lg bg-qm-surface-light border border-qm-border-subtle">
-          <h3 className="text-label-md text-qm-text-secondary mb-2">Transcript</h3>
+          <h3 className="text-label-md text-qm-text-secondary mb-2">{t('sessionDetail.transcript')}</h3>
           <p className="text-body-md text-qm-text-primary leading-relaxed whitespace-pre-wrap">
-            {session.transcript || 'No transcript available'}
+            {session.transcript || t('sessionDetail.noTranscript')}
           </p>
         </div>
       </div>

@@ -1,8 +1,10 @@
 import { useEffect, useRef } from 'react'
 import { Mic } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { useAppStore } from '@/stores/appStore'
 
 export function TranscriptPanel() {
+  const { t } = useTranslation('overlay')
   const isSessionActive = useAppStore((s) => s.isSessionActive)
   const currentTranscript = useAppStore((s) => s.currentTranscript)
   const interimTranscript = useAppStore((s) => s.interimTranscript)
@@ -24,7 +26,7 @@ export function TranscriptPanel() {
       <div className="flex items-center justify-between px-3 py-1.5">
         <div className="flex items-center gap-1.5">
           <Mic size={11} className={audioLevel > 0.01 ? 'text-green-400' : 'text-white/30'} />
-          <span className="text-[10px] font-medium text-white/50 uppercase tracking-wider">Transcript</span>
+          <span className="text-[10px] font-medium text-white/50 uppercase tracking-wider">{t('transcript.title')}</span>
         </div>
         {audioLevel > 0.01 && (
           <div className="flex items-center gap-1">
@@ -61,7 +63,7 @@ export function TranscriptPanel() {
             {interimTranscript ? (
               <span className="text-white/40 animate-pulse">{interimTranscript}</span>
             ) : (
-              'Listening...'
+              t('transcript.listening')
             )}
           </span>
         )}

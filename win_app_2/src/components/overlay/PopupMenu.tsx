@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { MoreVertical, Move, Settings, Trash2, Monitor, ChevronRight, ChevronDown, ChevronUp, Zap, Brain, Camera, Layers, EyeOff, Check } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { useOverlayStore } from '@/stores/overlayStore'
 import type { OverlayPosition } from '@/types/electron.d'
 import { useConfigStore } from '@/stores/configStore'
@@ -7,15 +8,6 @@ import { useAppStore } from '@/stores/appStore'
 import type { Mode } from '@/types/models'
 import { useModes } from '@/hooks/useModes'
 import { cn } from '@/lib/utils'
-
-const POSITIONS: { value: OverlayPosition; label: string }[] = [
-  { value: 'topLeft', label: 'Top Left' },
-  { value: 'topCenter', label: 'Top Center' },
-  { value: 'topRight', label: 'Top Right' },
-  { value: 'bottomLeft', label: 'Bottom Left' },
-  { value: 'bottomCenter', label: 'Bottom Center' },
-  { value: 'bottomRight', label: 'Bottom Right' },
-]
 
 interface DisplaySource {
   id: string
@@ -28,6 +20,23 @@ interface DisplaySource {
 }
 
 export function PopupMenu() {
+  const { t } = useTranslation('overlay')
+
+  const getTranslatedModeName = (name: string): string => {
+    const key = name.toLowerCase().replace(/\s+/g, '_')
+    const translated = t(`builtIn.${key}.name`, { ns: 'modes', defaultValue: '' })
+    return translated || name
+  }
+
+  const POSITIONS: { value: OverlayPosition; label: string }[] = [
+    { value: 'topLeft', label: t('popupMenu.positions.topLeft') },
+    { value: 'topCenter', label: t('popupMenu.positions.topCenter') },
+    { value: 'topRight', label: t('popupMenu.positions.topRight') },
+    { value: 'bottomLeft', label: t('popupMenu.positions.bottomLeft') },
+    { value: 'bottomCenter', label: t('popupMenu.positions.bottomCenter') },
+    { value: 'bottomRight', label: t('popupMenu.positions.bottomRight') },
+  ]
+
   const [isOpen, setIsOpen] = useState(false)
   const [showPositions, setShowPositions] = useState(false)
   const [showModes, setShowModes] = useState(false)
@@ -165,7 +174,7 @@ export function PopupMenu() {
             className="flex items-center gap-2 w-full px-3 py-2 text-body-sm text-qm-text-secondary hover:bg-qm-surface-hover transition-colors"
           >
             <Move size={14} />
-            Position
+            {t('popupMenu.position')}
           </button>
 
           {showPositions && (
@@ -194,8 +203,8 @@ export function PopupMenu() {
             className="flex items-center gap-2 w-full px-3 py-2 text-body-sm text-qm-text-secondary hover:bg-qm-surface-hover transition-colors"
           >
             <Layers size={14} />
-            <span className="flex-1 text-left">Mode</span>
-            <span className="text-caption text-qm-text-tertiary mr-1">{selectedMode?.name ?? 'Default'}</span>
+            <span className="flex-1 text-left">{t('popupMenu.mode')}</span>
+            <span className="text-caption text-qm-text-tertiary mr-1">{selectedMode ? getTranslatedModeName(selectedMode.name) : t('popupMenu.default')}</span>
             <ChevronRight size={12} className="text-qm-text-tertiary" />
           </button>
 
@@ -212,7 +221,7 @@ export function PopupMenu() {
                       : 'text-qm-text-tertiary hover:bg-qm-surface-hover',
                   )}
                 >
-                  {mode.name}
+                  {getTranslatedModeName(mode.name)}
                 </button>
               ))}
             </div>
@@ -226,14 +235,14 @@ export function PopupMenu() {
             className="flex items-center gap-2 w-full px-3 py-2 text-body-sm text-qm-text-secondary hover:bg-qm-surface-hover transition-colors"
           >
             <Zap size={14} className={autoAnswerEnabled ? 'text-qm-auto-answer' : ''} />
-            <span className="flex-1 text-left">Auto-Answer</span>
+            <span className="flex-1 text-left">{t('popupMenu.autoAnswer')}</span>
             <span className={cn(
               'text-caption-sm font-medium px-1.5 py-0.5 rounded-full',
               autoAnswerEnabled
                 ? 'bg-qm-auto-answer/20 text-qm-auto-answer'
                 : 'bg-qm-bg-primary text-qm-text-tertiary',
             )}>
-              {autoAnswerEnabled ? 'ON' : 'OFF'}
+              {autoAnswerEnabled ? t('popupMenu.on') : t('popupMenu.off')}
             </span>
           </button>
 
@@ -243,19 +252,19 @@ export function PopupMenu() {
             className="flex items-center gap-2 w-full px-3 py-2 text-body-sm text-qm-text-secondary hover:bg-qm-surface-hover transition-colors"
           >
             <Brain size={14} className={smartModeEnabled ? 'text-purple-400' : ''} />
-            <span className="flex-1 text-left">Smart Mode</span>
+            <span className="flex-1 text-left">{t('popupMenu.smartMode')}</span>
             <span className={cn(
               'text-caption-sm font-medium px-1.5 py-0.5 rounded-full',
               smartModeEnabled
                 ? 'bg-purple-500/20 text-purple-400'
                 : 'bg-qm-bg-primary text-qm-text-tertiary',
             )}>
-              {smartModeEnabled ? 'ON' : 'OFF'}
+              {smartModeEnabled ? t('popupMenu.on') : t('popupMenu.off')}
             </span>
           </button>
           {smartModeEnabled && (
             <p className="px-3 pb-1.5 -mt-1 text-[10px] text-purple-400/70 leading-tight">
-              Slower but more accurate — uses advanced reasoning
+              {t('popupMenu.smartModeDescription')}
             </p>
           )}
 
@@ -265,14 +274,14 @@ export function PopupMenu() {
             className="flex items-center gap-2 w-full px-3 py-2 text-body-sm text-qm-text-secondary hover:bg-qm-surface-hover transition-colors"
           >
             <Camera size={14} className={autoScreenCapture ? 'text-qm-accent' : ''} />
-            <span className="flex-1 text-left">Screen Capture</span>
+            <span className="flex-1 text-left">{t('popupMenu.screenCapture')}</span>
             <span className={cn(
               'text-caption-sm font-medium px-1.5 py-0.5 rounded-full',
               autoScreenCapture
                 ? 'bg-qm-accent/20 text-qm-accent'
                 : 'bg-qm-bg-primary text-qm-text-tertiary',
             )}>
-              {autoScreenCapture ? 'ON' : 'OFF'}
+              {autoScreenCapture ? t('popupMenu.on') : t('popupMenu.off')}
             </span>
           </button>
 
@@ -285,13 +294,13 @@ export function PopupMenu() {
           >
             <Monitor size={14} />
             <div className="flex-1 text-left min-w-0">
-              <span className="text-caption-sm text-qm-text-tertiary block leading-tight">Display</span>
+              <span className="text-caption-sm text-qm-text-tertiary block leading-tight">{t('popupMenu.display')}</span>
               <span className="text-body-sm text-qm-text-primary leading-tight truncate block">
                 {(() => {
                   const active = displaySources.length > 0
                     ? (displaySources.find((s) => s.id === selectedDisplayId) ?? displaySources[0])
                     : null
-                  if (!active) return 'Primary'
+                  if (!active) return t('popupMenu.primary')
                   return active.width ? `${active.name} · ${active.width}×${active.height}` : active.name
                 })()}
               </span>
@@ -302,7 +311,7 @@ export function PopupMenu() {
           {showDisplays && (
             <div className="border-t border-qm-border-subtle bg-qm-bg-primary px-1.5 py-1.5 space-y-1">
               {displaySources.length === 0 ? (
-                <p className="text-caption-sm text-qm-text-tertiary text-center py-2">No displays found</p>
+                <p className="text-caption-sm text-qm-text-tertiary text-center py-2">{t('popupMenu.noDisplaysFound')}</p>
               ) : (
                 displaySources.map((source) => {
                   const isSelected = selectedDisplayId === source.id || (!selectedDisplayId && displaySources.indexOf(source) === 0)
@@ -360,7 +369,7 @@ export function PopupMenu() {
             className="flex items-center gap-2 w-full px-3 py-2 text-body-sm text-qm-text-secondary hover:bg-qm-surface-hover transition-colors"
           >
             <Settings size={14} />
-            Settings
+            {t('popupMenu.settings')}
           </button>
 
           {/* Hide Widget */}
@@ -369,7 +378,7 @@ export function PopupMenu() {
             className="flex items-center gap-2 w-full px-3 py-2 text-body-sm text-qm-text-secondary hover:bg-qm-surface-hover transition-colors"
           >
             <EyeOff size={14} />
-            Hide Widget
+            {t('popupMenu.hideWidget')}
           </button>
 
           {/* Clear context */}
@@ -378,7 +387,7 @@ export function PopupMenu() {
             className="flex items-center gap-2 w-full px-3 py-2 text-body-sm text-qm-error hover:bg-qm-error/10 transition-colors border-t border-qm-border-subtle"
           >
             <Trash2 size={14} />
-            Clear Context
+            {t('popupMenu.clearContext')}
           </button>
         </div>
       )}

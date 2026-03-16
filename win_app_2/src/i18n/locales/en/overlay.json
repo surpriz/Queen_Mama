@@ -1,0 +1,105 @@
+{
+  "tabs": {
+    "assist": "Assist",
+    "whatToSay": "What to say",
+    "followUp": "Follow-up",
+    "recap": "Recap"
+  },
+  "pillHeader": {
+    "dragToMove": "Drag to move",
+    "openDashboard": "Open Dashboard",
+    "hiddenModeOn": "Hidden mode ON - Click to disable",
+    "hiddenModeOff": "Hidden mode OFF - Click to enable",
+    "hidden": "Hidden",
+    "smartModeTooltip": "Smart Mode — Slower but more accurate, uses advanced reasoning",
+    "smart": "Smart",
+    "auto": "Auto",
+    "screenCaptureOn": "Screen capture ON",
+    "screenCaptureOff": "Screen capture OFF",
+    "summary": "Summary...",
+    "stopSession": "Stop session",
+    "startSession": "Start session"
+  },
+  "response": {
+    "justNow": "just now",
+    "secondsAgo": "{{count}}s ago",
+    "minutesAgo": "{{count}}m ago",
+    "hoursAgo": "{{count}}h ago",
+    "daysAgo": "{{count}}d ago",
+    "copyToClipboard": "Copy to clipboard",
+    "helpful": "Helpful",
+    "notHelpful": "Not helpful",
+    "analyzing": "Analyzing...",
+    "autoLabel": "AUTO",
+    "streaming": "streaming...",
+    "readyToAssist": "Ready to assist",
+    "typeQuestionOrTab": "Type a question or click a tab"
+  },
+  "inputBar": {
+    "smartModeActivated": "Smart Mode activated",
+    "smartModeOn": "Smart Mode ON",
+    "smartModeOff": "Smart Mode OFF",
+    "smart": "Smart",
+    "placeholder": "Ask about your screen or conversation..."
+  },
+  "transcript": {
+    "title": "Transcript",
+    "listening": "Listening..."
+  },
+  "expandedContent": {
+    "screenOnly": "Screen only",
+    "noInput": "No input"
+  },
+  "popupMenu": {
+    "position": "Position",
+    "positions": {
+      "topLeft": "Top Left",
+      "topCenter": "Top Center",
+      "topRight": "Top Right",
+      "bottomLeft": "Bottom Left",
+      "bottomCenter": "Bottom Center",
+      "bottomRight": "Bottom Right"
+    },
+    "mode": "Mode",
+    "default": "Default",
+    "autoAnswer": "Auto-Answer",
+    "on": "ON",
+    "off": "OFF",
+    "smartMode": "Smart Mode",
+    "smartModeDescription": "Slower but more accurate — uses advanced reasoning",
+    "screenCapture": "Screen Capture",
+    "display": "Display",
+    "primary": "Primary",
+    "noDisplaysFound": "No displays found",
+    "settings": "Settings",
+    "hideWidget": "Hide Widget",
+    "clearContext": "Clear Context"
+  },
+  "contactPicker": {
+    "whoAreYouTalkingTo": "Who are you talking to?",
+    "newContact": "New Contact",
+    "searchPlaceholder": "Search contacts...",
+    "noMatchingContacts": "No matching contacts",
+    "noContactsYet": "No contacts yet",
+    "recent": "Recent",
+    "all": "All",
+    "back": "Back",
+    "createAndStart": "Create & Start",
+    "startSolo": "Start Solo",
+    "noDetails": "No details",
+    "name": "Name",
+    "fullName": "Full name",
+    "email": "Email",
+    "role": "Role",
+    "company": "Company",
+    "emailPlaceholder": "email@example.com",
+    "rolePlaceholder": "e.g. CTO",
+    "companyPlaceholder": "e.g. Acme Corp"
+  },
+  "proactive": {
+    "obj": "OBJ",
+    "q": "Q",
+    "hes": "HES",
+    "close": "CLOSE"
+  }
+}

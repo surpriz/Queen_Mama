@@ -1,4 +1,5 @@
 import { useEffect, useState, useMemo } from 'react'
+import { useTranslation } from 'react-i18next'
 import { HashRouter, Routes, Route } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { DashboardPage } from './pages/DashboardPage'
@@ -24,6 +25,7 @@ const queryClient = new QueryClient({
 })
 
 function AppContent() {
+  const { t } = useTranslation()
   const [isInitialized, setIsInitialized] = useState(false)
   const { hasCompletedOnboarding, loadOnboardingState } = useOnboardingStore()
   const { authState, isAuthenticated, sessionExpired } = useAuthStore()
@@ -73,7 +75,7 @@ function AppContent() {
         element={
           launchState === 'checking' ? (
             <div className="flex h-screen items-center justify-center bg-qm-bg-primary">
-              <LoadingSpinner size="lg" label="Initializing..." />
+              <LoadingSpinner size="lg" label={t('loading')} />
             </div>
           ) : launchState === 'dashboard' ? (
             <DashboardPage />

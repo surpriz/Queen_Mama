@@ -1,6 +1,9 @@
 import { create } from 'zustand'
+import { subscribeWithSelector } from 'zustand/middleware'
 import type { AppConfig } from '@/types/config'
 import { DEFAULT_CONFIG } from '@/types/config'
+import i18n, { detectSystemLanguage } from '@/i18n'
+import { getTrayStrings } from '@/i18n/trayTranslations'
 
 interface ConfigStoreState extends AppConfig {
   // Actions
@@ -9,7 +12,7 @@ interface ConfigStoreState extends AppConfig {
   loadFromStorage: () => Promise<void>
 }
 
-export const useConfigStore = create<ConfigStoreState>((set) => ({
+export const useConfigStore = create<ConfigStoreState>()(subscribeWithSelector((set) => ({
   ...DEFAULT_CONFIG,
 
   updateConfig: (partial) => {
@@ -39,12 +42,36 @@ export const useConfigStore = create<ConfigStoreState>((set) => ({
         ;(loaded as Record<string, unknown>)[key] = value
       }
     }
+    // Detect system language on first launch
+    if (!loaded.uiLanguage) {
+      const detected = detectSystemLanguage()
+      loaded.uiLanguage = detected
+      window.electronAPI?.store.set('config.uiLanguage', detected)
+    }
     if (Object.keys(loaded).length > 0) {
       set(loaded)
       // Restore content protection state on startup
       if (loaded.isUndetectabilityEnabled) {
         window.electronAPI?.setDisplayAffinity(true)
       }
+      // Sync i18next with stored UI language
+      if (loaded.uiLanguage && i18n.language !== loaded.uiLanguage) {
+        i18n.changeLanguage(loaded.uiLanguage)
+      }
+      // Sync tray with stored UI language
+      if (loaded.uiLanguage) {
+        window.electronAPI?.notifyLanguageChange?.(loaded.uiLanguage, getTrayStrings(loaded.uiLanguage))
+      }
     }
   },
-}))
+})))
+
+// Reactive bridge: keep i18next in sync when uiLanguage changes
+useConfigStore.subscribe(
+  (state) => state.uiLanguage,
+  (lang) => {
+    if (lang && i18n.language !== lang) {
+      i18n.changeLanguage(lang)
+    }
+  },
+)

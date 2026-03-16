@@ -6,7 +6,25 @@ import { getMainWindow } from './mainWindow'
 import { toggleOverlay } from './overlayWindow'
 import { safeSendToWindow } from '../utils/ipcUtils'
 
+interface TrayStrings {
+  startSession: string
+  stopSession: string
+  showHideWidget: string
+  openDashboard: string
+  quit: string
+}
+
+const DEFAULT_TRAY_STRINGS: TrayStrings = {
+  startSession: 'Start Session',
+  stopSession: 'Stop Session',
+  showHideWidget: 'Show/Hide Widget',
+  openDashboard: 'Open Dashboard',
+  quit: 'Quit Queen Mama',
+}
+
 let tray: Tray | null = null
+let currentTrayStrings: TrayStrings = DEFAULT_TRAY_STRINGS
+let currentSessionActive = false
 
 function getIcon(name: string): Electron.NativeImage {
   const iconPath = join(__dirname, `../../resources/${name}`)
@@ -49,12 +67,19 @@ export function createTray(): Tray {
   return tray
 }
 
+export function setTrayLanguage(strings: TrayStrings): void {
+  currentTrayStrings = strings
+  updateTrayMenu(currentSessionActive)
+}
+
 export function updateTrayMenu(isSessionActive: boolean): void {
   if (!tray) return
+  currentSessionActive = isSessionActive
 
+  const s = currentTrayStrings
   const contextMenu = Menu.buildFromTemplate([
     {
-      label: isSessionActive ? 'Stop Session' : 'Start Session',
+      label: isSessionActive ? s.stopSession : s.startSession,
       click: () => {
         const mainWindow = getMainWindow()
         safeSendToWindow(mainWindow, IPC_CHANNELS.SESSION_TOGGLE)
@@ -62,11 +87,11 @@ export function updateTrayMenu(isSessionActive: boolean): void {
     },
     { type: 'separator' },
     {
-      label: 'Show/Hide Widget',
+      label: s.showHideWidget,
       click: () => toggleOverlay(),
     },
     {
-      label: 'Open Dashboard',
+      label: s.openDashboard,
       click: () => {
         const mainWindow = getMainWindow()
         if (mainWindow && !mainWindow.isDestroyed()) {
@@ -77,7 +102,7 @@ export function updateTrayMenu(isSessionActive: boolean): void {
     },
     { type: 'separator' },
     {
-      label: 'Quit Queen Mama',
+      label: s.quit,
       click: () => {
         app.quit()
       },

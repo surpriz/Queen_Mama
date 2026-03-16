@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next'
 import { Lock } from 'lucide-react'
 import { getUpgradeUrl } from '@/services/license/featureGating'
 
@@ -7,6 +8,8 @@ interface ProFeatureBannerProps {
 }
 
 export function ProFeatureBanner({ featureName, description }: ProFeatureBannerProps) {
+  const { t } = useTranslation()
+
   const handleUpgrade = () => {
     window.electronAPI?.openExternal(getUpgradeUrl())
   }
@@ -27,7 +30,7 @@ export function ProFeatureBanner({ featureName, description }: ProFeatureBannerP
         onClick={handleUpgrade}
         className="px-6 py-2 rounded-qm-pill bg-gradient-to-r from-qm-gradient-start to-qm-gradient-end text-white text-body-sm font-medium hover:shadow-qm-glow transition-shadow"
       >
-        Upgrade to Pro
+        {t('license.upgradeToPro')}
       </button>
     </div>
   )

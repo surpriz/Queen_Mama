@@ -8,6 +8,7 @@
 
 import { useState, useCallback } from 'react'
 import { Search, X, UserPlus, Check, ArrowLeft, Plus } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { useContactStore } from '@/stores/contactStore'
 import * as contactDb from '@/services/contacts/contactDb'
 import * as contactSyncService from '@/services/contacts/contactSyncService'
@@ -23,6 +24,7 @@ interface ContactPickerProps {
 }
 
 export function ContactPicker({ sessionId, onStart, onClose }: ContactPickerProps) {
+  const { t } = useTranslation('overlay')
   const contacts = useContactStore((s) => s.contacts)
   const addContact = useContactStore((s) => s.addContact)
   const [search, setSearch] = useState('')
@@ -124,10 +126,10 @@ export function ContactPicker({ sessionId, onStart, onClose }: ContactPickerProp
               >
                 <ArrowLeft size={16} />
               </button>
-              <h3 className="text-body-md font-semibold text-qm-text-primary">New Contact</h3>
+              <h3 className="text-body-md font-semibold text-qm-text-primary">{t('contactPicker.newContact')}</h3>
             </div>
           ) : (
-            <h3 className="text-body-md font-semibold text-qm-text-primary">Who are you talking to?</h3>
+            <h3 className="text-body-md font-semibold text-qm-text-primary">{t('contactPicker.whoAreYouTalkingTo')}</h3>
           )}
           <button
             onClick={onClose}
@@ -142,45 +144,45 @@ export function ContactPicker({ sessionId, onStart, onClose }: ContactPickerProp
           <div className="flex-1 overflow-y-auto px-4 py-4 space-y-3">
             <div>
               <label className="block text-caption font-medium text-qm-text-secondary mb-1">
-                Name <span className="text-qm-error">*</span>
+                {t('contactPicker.name')} <span className="text-qm-error">*</span>
               </label>
               <input
                 type="text"
                 value={newName}
                 onChange={(e) => setNewName(e.target.value)}
-                placeholder="Full name"
+                placeholder={t('contactPicker.fullName')}
                 autoFocus
                 className="w-full px-3 py-2 rounded-qm-md bg-qm-surface-light border border-qm-border-subtle text-body-sm text-qm-text-primary placeholder:text-qm-text-disabled focus:border-qm-accent focus:outline-none"
               />
             </div>
             <div>
-              <label className="block text-caption font-medium text-qm-text-secondary mb-1">Email</label>
+              <label className="block text-caption font-medium text-qm-text-secondary mb-1">{t('contactPicker.email')}</label>
               <input
                 type="email"
                 value={newEmail}
                 onChange={(e) => setNewEmail(e.target.value)}
-                placeholder="email@example.com"
+                placeholder={t('contactPicker.emailPlaceholder')}
                 className="w-full px-3 py-2 rounded-qm-md bg-qm-surface-light border border-qm-border-subtle text-body-sm text-qm-text-primary placeholder:text-qm-text-disabled focus:border-qm-accent focus:outline-none"
               />
             </div>
             <div className="flex gap-3">
               <div className="flex-1">
-                <label className="block text-caption font-medium text-qm-text-secondary mb-1">Role</label>
+                <label className="block text-caption font-medium text-qm-text-secondary mb-1">{t('contactPicker.role')}</label>
                 <input
                   type="text"
                   value={newRole}
                   onChange={(e) => setNewRole(e.target.value)}
-                  placeholder="e.g. CTO"
+                  placeholder={t('contactPicker.rolePlaceholder')}
                   className="w-full px-3 py-2 rounded-qm-md bg-qm-surface-light border border-qm-border-subtle text-body-sm text-qm-text-primary placeholder:text-qm-text-disabled focus:border-qm-accent focus:outline-none"
                 />
               </div>
               <div className="flex-1">
-                <label className="block text-caption font-medium text-qm-text-secondary mb-1">Company</label>
+                <label className="block text-caption font-medium text-qm-text-secondary mb-1">{t('contactPicker.company')}</label>
                 <input
                   type="text"
                   value={newCompany}
                   onChange={(e) => setNewCompany(e.target.value)}
-                  placeholder="e.g. Acme Corp"
+                  placeholder={t('contactPicker.companyPlaceholder')}
                   className="w-full px-3 py-2 rounded-qm-md bg-qm-surface-light border border-qm-border-subtle text-body-sm text-qm-text-primary placeholder:text-qm-text-disabled focus:border-qm-accent focus:outline-none"
                 />
               </div>
@@ -195,7 +197,7 @@ export function ContactPicker({ sessionId, onStart, onClose }: ContactPickerProp
                 type="text"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                placeholder="Search contacts..."
+                placeholder={t('contactPicker.searchPlaceholder')}
                 autoFocus
                 className="w-full pl-8 pr-3 py-2 rounded-qm-md bg-qm-surface-light border border-qm-border-subtle text-body-sm text-qm-text-primary placeholder:text-qm-text-disabled focus:border-qm-accent focus:outline-none"
               />
@@ -205,13 +207,13 @@ export function ContactPicker({ sessionId, onStart, onClose }: ContactPickerProp
             <div className="flex-1 overflow-y-auto px-2 pb-2">
               {sorted.length === 0 ? (
                 <div className="text-center py-8 text-caption text-qm-text-tertiary">
-                  {search ? 'No matching contacts' : 'No contacts yet'}
+                  {search ? t('contactPicker.noMatchingContacts') : t('contactPicker.noContactsYet')}
                 </div>
               ) : (
                 <>
                   {recentContacts.length > 0 && (
                     <div className="mb-2">
-                      <p className="text-caption-sm text-qm-text-tertiary px-2 py-1 uppercase tracking-wider">Recent</p>
+                      <p className="text-caption-sm text-qm-text-tertiary px-2 py-1 uppercase tracking-wider">{t('contactPicker.recent')}</p>
                       {recentContacts.map((contact) => (
                         <ContactPickerItem
                           key={contact.id}
@@ -223,7 +225,7 @@ export function ContactPicker({ sessionId, onStart, onClose }: ContactPickerProp
                   )}
                   {otherContacts.length > 0 && (
                     <div>
-                      <p className="text-caption-sm text-qm-text-tertiary px-2 py-1 uppercase tracking-wider">All</p>
+                      <p className="text-caption-sm text-qm-text-tertiary px-2 py-1 uppercase tracking-wider">{t('contactPicker.all')}</p>
                       {otherContacts.map((contact) => (
                         <ContactPickerItem
                           key={contact.id}
@@ -247,7 +249,7 @@ export function ContactPicker({ sessionId, onStart, onClose }: ContactPickerProp
                 onClick={() => setIsCreating(false)}
                 className="px-3 py-1.5 rounded-qm-md text-body-sm text-qm-text-secondary hover:bg-qm-surface-hover transition-colors"
               >
-                Back
+                {t('contactPicker.back')}
               </button>
               <button
                 onClick={handleCreateAndStart}
@@ -255,7 +257,7 @@ export function ContactPicker({ sessionId, onStart, onClose }: ContactPickerProp
                 className="flex items-center gap-1.5 px-4 py-1.5 rounded-qm-md bg-gradient-to-r from-qm-gradient-start to-qm-gradient-end text-white text-body-sm font-medium hover:shadow-qm-glow transition-all disabled:opacity-50"
               >
                 <Plus size={14} />
-                {isSaving ? 'Creating...' : 'Create & Start'}
+                {isSaving ? t('actions.creating', { ns: 'common' }) : t('contactPicker.createAndStart')}
               </button>
             </>
           ) : (
@@ -265,13 +267,13 @@ export function ContactPicker({ sessionId, onStart, onClose }: ContactPickerProp
                 className="flex items-center gap-1.5 px-3 py-1.5 rounded-qm-md text-body-sm text-qm-text-secondary hover:bg-qm-surface-hover transition-colors"
               >
                 <UserPlus size={14} />
-                New Contact
+                {t('contactPicker.newContact')}
               </button>
               <button
                 onClick={handleStartSolo}
                 className="flex items-center gap-1.5 px-4 py-1.5 rounded-qm-md bg-qm-surface-light text-body-sm text-qm-text-secondary hover:bg-qm-surface-hover transition-colors"
               >
-                Start Solo
+                {t('contactPicker.startSolo')}
               </button>
             </>
           )}
@@ -288,6 +290,7 @@ function ContactPickerItem({
   contact: Contact
   onSelect: () => void
 }) {
+  const { t } = useTranslation('overlay')
   const initials = (() => {
     const parts = contact.name.trim().split(/\s+/)
     if (parts.length >= 2) return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase()
@@ -307,7 +310,7 @@ function ContactPickerItem({
       <div className="flex-1 min-w-0">
         <p className="text-body-sm font-medium text-qm-text-primary truncate">{contact.name}</p>
         <p className="text-caption text-qm-text-tertiary truncate">
-          {[contact.role, contact.company].filter(Boolean).join(' @ ') || 'No details'}
+          {[contact.role, contact.company].filter(Boolean).join(' @ ') || t('contactPicker.noDetails')}
         </p>
       </div>
       <div className="flex items-center gap-2 flex-shrink-0">

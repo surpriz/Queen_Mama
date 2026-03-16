@@ -96,6 +96,9 @@ export const IPC_CHANNELS = {
   MEETING_MONITOR_STOP: 'meeting:monitor-stop',
   MEETING_DISMISS: 'meeting:dismiss',
 
+  // i18n
+  I18N_LANGUAGE_CHANGED: 'i18n:language-changed',
+
   // Database operations
   DB_QUERY: 'db:query',
   DB_QUERY_GET: 'db:query-get',

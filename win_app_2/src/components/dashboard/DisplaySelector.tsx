@@ -4,6 +4,7 @@
  */
 
 import { useState, useEffect } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Monitor, RefreshCw } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -15,6 +16,7 @@ interface ScreenSource {
 }
 
 export function DisplaySelector() {
+  const { t } = useTranslation('dashboard')
   const [sources, setSources] = useState<ScreenSource[]>([])
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
@@ -61,14 +63,14 @@ export function DisplaySelector() {
     <div className="py-3">
       <div className="flex items-center justify-between mb-2">
         <div>
-          <p className="text-body-sm text-qm-text-primary font-medium">Capture Display</p>
-          <p className="text-caption text-qm-text-tertiary">Choose which screen to capture</p>
+          <p className="text-body-sm text-qm-text-primary font-medium">{t('settings.general.captureDisplay')}</p>
+          <p className="text-caption text-qm-text-tertiary">{t('settings.general.captureDisplayDescription')}</p>
         </div>
         <button
           onClick={loadSources}
           disabled={loading}
           className="p-1.5 rounded-qm-sm text-qm-text-tertiary hover:bg-qm-surface-hover transition-colors"
-          title="Refresh displays"
+          title={t('settings.general.refreshDisplays')}
         >
           <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
         </button>

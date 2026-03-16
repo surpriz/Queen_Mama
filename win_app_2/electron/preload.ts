@@ -80,6 +80,10 @@ const electronAPI = {
   // Tray
   updateTrayIcon: (active: boolean) => ipcRenderer.send(IPC_CHANNELS.TRAY_UPDATE_ICON, active),
 
+  // i18n
+  notifyLanguageChange: (lang: string, strings: unknown) =>
+    ipcRenderer.send(IPC_CHANNELS.I18N_LANGUAGE_CHANGED, lang, strings),
+
   // Display affinity
   setDisplayAffinity: (exclude: boolean) =>
     ipcRenderer.send(IPC_CHANNELS.DISPLAY_SET_AFFINITY, exclude),

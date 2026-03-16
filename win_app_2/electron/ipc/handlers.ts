@@ -18,6 +18,7 @@ import {
   setOverlaySize,
   getOverlayWindow,
 } from '../windows/overlayWindow'
+import { setTrayLanguage } from '../windows/trayManager'
 import { flashDisplay } from '../windows/displayFlash'
 
 const store = new Store()
@@ -333,6 +334,13 @@ export function registerIPCHandlers(): void {
     } catch (error) {
       console.error('[IPC] File read failed:', error)
       return null
+    }
+  })
+
+  // i18n: language changed from renderer
+  ipcMain.on(IPC_CHANNELS.I18N_LANGUAGE_CHANGED, (_event, _lang: string, strings: { startSession: string; stopSession: string; showHideWidget: string; openDashboard: string; quit: string }) => {
+    if (strings) {
+      setTrayLanguage(strings)
     }
   })
 

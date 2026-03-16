@@ -1,0 +1,28 @@
+{
+  "builtIn": {
+    "default": {
+      "name": "Default",
+      "description": "General-purpose real-time coaching assistant. Adapts to any situation — meetings, exams, workflows — with actionable, context-aware advice. Matches the language of the conversation automatically."
+    },
+    "limitless": {
+      "name": "Limitless",
+      "description": "Enhanced cognitive mode providing deep analysis, instant pattern recognition, and encyclopedic knowledge across all domains. Thinks several steps ahead and connects information from multiple fields."
+    },
+    "professional": {
+      "name": "Professional",
+      "description": "Optimized for corporate environments — meetings, negotiations, presentations, and strategy sessions. Delivers executive-level insights, business acumen, and professional communication guidance."
+    },
+    "interview": {
+      "name": "Interview",
+      "description": "Specialized coaching for job interviews. Helps craft compelling, structured answers using proven methodologies. Adapts to technical, behavioral, and situational questions in real time."
+    },
+    "sales": {
+      "name": "Sales",
+      "description": "Sales-focused coaching for closing deals with confidence. Provides real-time objection handling, persuasion techniques, and strategic negotiation guidance tailored to the conversation flow."
+    },
+    "developer_exam": {
+      "name": "Developer Exam",
+      "description": "Coding assessment companion for online exams (CodinGame, LeetCode, HackerRank, etc.). Provides optimal algorithmic approaches, complexity analysis, and clean implementation guidance."
+    }
+  }
+}

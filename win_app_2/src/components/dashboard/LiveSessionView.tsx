@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Mic, MicOff, Square, Play, Sparkles, Copy, Check, Trash2 } from 'lucide-react'
 import { useAppStore } from '@/stores/appStore'
 import { useOverlayStore } from '@/stores/overlayStore'
@@ -28,6 +29,7 @@ function ProviderBadge({ provider }: { provider: string }) {
 }
 
 export function LiveSessionView() {
+  const { t } = useTranslation('dashboard')
   const {
     isSessionActive,
     currentTranscript,
@@ -91,14 +93,14 @@ export function LiveSessionView() {
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">
-          <h2 className="text-title-sm font-semibold text-qm-text-primary">Live Session</h2>
+          <h2 className="text-title-sm font-semibold text-qm-text-primary">{t('liveSession.title')}</h2>
           <StatusIndicator
             status={isSessionActive ? 'active' : 'idle'}
             size={8}
           />
           {isFinalizingSession && (
             <span className="text-caption text-qm-accent animate-pulse">
-              Generating summary...
+              {t('liveSession.generatingSummary')}
             </span>
           )}
         </div>
@@ -116,11 +118,11 @@ export function LiveSessionView() {
           >
             {isSessionActive ? (
               <>
-                <Square size={14} /> Stop
+                <Square size={14} /> {t('liveSession.stop')}
               </>
             ) : (
               <>
-                <Play size={14} /> Start Session
+                <Play size={14} /> {t('liveSession.startSession')}
               </>
             )}
           </button>
@@ -140,17 +142,17 @@ export function LiveSessionView() {
         <div className="flex-1 flex flex-col rounded-qm-lg bg-qm-surface-light border border-qm-border-subtle overflow-hidden">
           <div className="flex items-center justify-between px-4 py-3 border-b border-qm-border-subtle">
             <div className="flex items-center gap-2">
-              <span className="text-label-md text-qm-text-secondary">Transcript</span>
+              <span className="text-label-md text-qm-text-secondary">{t('liveSession.transcript')}</span>
               {wordCount > 0 && (
                 <span className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-qm-surface-medium text-qm-text-tertiary">
-                  {wordCount} {wordCount === 1 ? 'word' : 'words'}
+                  {t('liveSession.wordCount', { count: wordCount })}
                 </span>
               )}
               {currentTranscript && (
                 <button
                   onClick={handleCopyTranscript}
                   className="p-1 rounded-qm-sm hover:bg-qm-surface-medium text-qm-text-tertiary transition-colors"
-                  title="Copy transcript"
+                  title={t('liveSession.copyTranscript')}
                 >
                   {transcriptCopied ? <Check size={14} className="text-qm-success" /> : <Copy size={14} />}
                 </button>
@@ -174,7 +176,7 @@ export function LiveSessionView() {
           >
             {currentTranscript || (
               <span className="text-qm-text-tertiary italic">
-                {isSessionActive ? 'Listening...' : 'Start a session to see the transcript'}
+                {isSessionActive ? t('liveSession.listening') : t('liveSession.startSessionForAI')}
               </span>
             )}
             {interimTranscript && (
@@ -190,22 +192,22 @@ export function LiveSessionView() {
           <div className="flex items-center justify-between px-4 py-3 border-b border-qm-border-subtle">
             <div className="flex items-center gap-2">
               <Sparkles size={14} className="text-qm-accent" />
-              <span className="text-label-md text-qm-text-secondary">AI Responses</span>
+              <span className="text-label-md text-qm-text-secondary">{t('liveSession.aiResponses')}</span>
               {responseHistory.length > 0 && (
                 <span className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-qm-accent/10 text-qm-accent">
-                  {responseHistory.length} {responseHistory.length === 1 ? 'response' : 'responses'}
+                  {t('liveSession.responseCount', { count: responseHistory.length })}
                 </span>
               )}
             </div>
             <div className="flex items-center gap-2">
               {isProcessing && (
-                <span className="text-caption text-qm-accent animate-pulse">Processing...</span>
+                <span className="text-caption text-qm-accent animate-pulse">{t('liveSession.processing')}</span>
               )}
               {responseHistory.length > 0 && (
                 <button
                   onClick={clearHistory}
                   className="p-1 rounded-qm-sm hover:bg-qm-surface-medium text-qm-text-tertiary hover:text-qm-error transition-colors"
-                  title="Clear responses"
+                  title={t('liveSession.clearResponses')}
                 >
                   <Trash2 size={14} />
                 </button>
@@ -215,7 +217,7 @@ export function LiveSessionView() {
           <div ref={aiPanelRef} className="flex-1 p-4 overflow-y-auto space-y-3">
             {responseHistory.length === 0 && !streamingContent ? (
               <span className="text-qm-text-tertiary italic text-body-sm">
-                {isSessionActive ? 'Type a question or click a tab to get AI assistance' : 'Start a session to get AI assistance'}
+                {isSessionActive ? t('liveSession.typeQuestion') : t('liveSession.startSessionForAI')}
               </span>
             ) : (
               <>
@@ -249,7 +251,7 @@ export function LiveSessionView() {
                   <div className="p-3 rounded-qm-md bg-qm-accent/5 border border-qm-accent/20">
                     <div className="flex items-center gap-2 mb-1.5">
                       <span className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-qm-accent/20 text-qm-accent animate-pulse">
-                        STREAMING
+                        {t('liveSession.streaming')}
                       </span>
                     </div>
                     <div className="prose prose-invert prose-sm max-w-none text-body-sm text-qm-text-primary leading-relaxed">

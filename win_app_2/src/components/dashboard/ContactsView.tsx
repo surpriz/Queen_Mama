@@ -1,6 +1,7 @@
 import { useState, useCallback } from 'react'
 import { Search, Trash2, Users, ArrowLeft, Save, Plus } from 'lucide-react'
 import { v4 as uuidv4 } from 'uuid'
+import { useTranslation } from 'react-i18next'
 import { useContactStore } from '@/stores/contactStore'
 import * as contactDb from '@/services/contacts/contactDb'
 import * as contactSyncService from '@/services/contacts/contactSyncService'
@@ -43,6 +44,7 @@ function ContactDetail({
   onSave: (updated: Contact) => void
   onDelete: (id: string) => void
 }) {
+  const { t } = useTranslation('dashboard')
   const [name, setName] = useState(contact.name)
   const [email, setEmail] = useState(contact.email || '')
   const [role, setRole] = useState(contact.role || '')
@@ -76,12 +78,12 @@ function ContactDetail({
         >
           <ArrowLeft size={16} />
         </button>
-        <h2 className="text-title-sm font-semibold text-qm-text-primary">Edit Contact</h2>
+        <h2 className="text-title-sm font-semibold text-qm-text-primary">{t('contacts.editContact')}</h2>
       </div>
 
       <div className="space-y-4 max-w-lg">
         <div>
-          <label className="block text-caption font-medium text-qm-text-secondary mb-1.5">Name</label>
+          <label className="block text-caption font-medium text-qm-text-secondary mb-1.5">{t('contacts.name')}</label>
           <input
             type="text"
             value={name}
@@ -90,41 +92,41 @@ function ContactDetail({
           />
         </div>
         <div>
-          <label className="block text-caption font-medium text-qm-text-secondary mb-1.5">Email</label>
+          <label className="block text-caption font-medium text-qm-text-secondary mb-1.5">{t('contacts.email')}</label>
           <input
             type="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            placeholder="email@example.com"
+            placeholder={t('contacts.emailPlaceholder')}
             className="w-full px-3 py-2.5 rounded-qm-md bg-qm-surface-light border border-qm-border-subtle text-body-sm text-qm-text-primary placeholder:text-qm-text-disabled focus:border-qm-accent focus:outline-none"
           />
         </div>
         <div>
-          <label className="block text-caption font-medium text-qm-text-secondary mb-1.5">Role</label>
+          <label className="block text-caption font-medium text-qm-text-secondary mb-1.5">{t('contacts.role')}</label>
           <input
             type="text"
             value={role}
             onChange={(e) => setRole(e.target.value)}
-            placeholder="e.g. CTO, Project Manager"
+            placeholder={t('contacts.rolePlaceholder')}
             className="w-full px-3 py-2.5 rounded-qm-md bg-qm-surface-light border border-qm-border-subtle text-body-sm text-qm-text-primary placeholder:text-qm-text-disabled focus:border-qm-accent focus:outline-none"
           />
         </div>
         <div>
-          <label className="block text-caption font-medium text-qm-text-secondary mb-1.5">Company</label>
+          <label className="block text-caption font-medium text-qm-text-secondary mb-1.5">{t('contacts.company')}</label>
           <input
             type="text"
             value={company}
             onChange={(e) => setCompany(e.target.value)}
-            placeholder="e.g. Acme Corp"
+            placeholder={t('contacts.companyPlaceholder')}
             className="w-full px-3 py-2.5 rounded-qm-md bg-qm-surface-light border border-qm-border-subtle text-body-sm text-qm-text-primary placeholder:text-qm-text-disabled focus:border-qm-accent focus:outline-none"
           />
         </div>
         <div>
-          <label className="block text-caption font-medium text-qm-text-secondary mb-1.5">Notes</label>
+          <label className="block text-caption font-medium text-qm-text-secondary mb-1.5">{t('contacts.notes')}</label>
           <textarea
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
-            placeholder="Add notes about this person..."
+            placeholder={t('contacts.notesPlaceholder')}
             rows={4}
             className="w-full px-3 py-2.5 rounded-qm-md bg-qm-surface-light border border-qm-border-subtle text-body-sm text-qm-text-primary placeholder:text-qm-text-disabled focus:border-qm-accent focus:outline-none resize-none"
           />
@@ -137,29 +139,29 @@ function ContactDetail({
             className="flex items-center gap-2 px-4 py-2.5 rounded-qm-md bg-qm-accent hover:bg-qm-accent/80 text-white text-body-sm font-medium transition-colors disabled:opacity-50"
           >
             <Save size={14} />
-            {isSaving ? 'Saving...' : 'Save'}
+            {isSaving ? t('actions.saving', { ns: 'common' }) : t('actions.save', { ns: 'common' })}
           </button>
           <button
             onClick={() => onDelete(contact.id)}
             className="flex items-center gap-2 px-4 py-2.5 rounded-qm-md bg-red-500/10 hover:bg-red-500/20 text-red-400 text-body-sm font-medium transition-colors"
           >
             <Trash2 size={14} />
-            Delete
+            {t('actions.delete', { ns: 'common' })}
           </button>
         </div>
 
         {/* Meta info */}
         <div className="pt-4 border-t border-qm-border-subtle space-y-1">
           <p className="text-caption text-qm-text-tertiary">
-            Sessions: {contact.sessionCount}
+            {t('contacts.sessions')} {contact.sessionCount}
           </p>
           {contact.lastSeen && (
             <p className="text-caption text-qm-text-tertiary">
-              Last seen: {new Date(contact.lastSeen).toLocaleDateString()}
+              {t('contacts.lastSeen')} {new Date(contact.lastSeen).toLocaleDateString()}
             </p>
           )}
           <p className="text-caption text-qm-text-tertiary">
-            Created: {new Date(contact.createdAt).toLocaleDateString()}
+            {t('contacts.created')} {new Date(contact.createdAt).toLocaleDateString()}
           </p>
         </div>
       </div>
@@ -174,6 +176,7 @@ function CreateContactForm({
   onBack: () => void
   onCreated: (contact: Contact) => void
 }) {
+  const { t } = useTranslation('dashboard')
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [role, setRole] = useState('')
@@ -210,50 +213,50 @@ function CreateContactForm({
         >
           <ArrowLeft size={16} />
         </button>
-        <h2 className="text-title-sm font-semibold text-qm-text-primary">New Contact</h2>
+        <h2 className="text-title-sm font-semibold text-qm-text-primary">{t('contacts.newContact')}</h2>
       </div>
 
       <div className="space-y-4 max-w-lg">
         <div>
           <label className="block text-caption font-medium text-qm-text-secondary mb-1.5">
-            Name <span className="text-qm-error">*</span>
+            {t('contacts.name')} <span className="text-qm-error">*</span>
           </label>
           <input
             type="text"
             value={name}
             onChange={(e) => setName(e.target.value)}
-            placeholder="Full name"
+            placeholder={t('contacts.fullName')}
             autoFocus
             className="w-full px-3 py-2.5 rounded-qm-md bg-qm-surface-light border border-qm-border-subtle text-body-sm text-qm-text-primary placeholder:text-qm-text-disabled focus:border-qm-accent focus:outline-none"
           />
         </div>
         <div>
-          <label className="block text-caption font-medium text-qm-text-secondary mb-1.5">Email</label>
+          <label className="block text-caption font-medium text-qm-text-secondary mb-1.5">{t('contacts.email')}</label>
           <input
             type="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            placeholder="email@example.com"
+            placeholder={t('contacts.emailPlaceholder')}
             className="w-full px-3 py-2.5 rounded-qm-md bg-qm-surface-light border border-qm-border-subtle text-body-sm text-qm-text-primary placeholder:text-qm-text-disabled focus:border-qm-accent focus:outline-none"
           />
         </div>
         <div>
-          <label className="block text-caption font-medium text-qm-text-secondary mb-1.5">Role</label>
+          <label className="block text-caption font-medium text-qm-text-secondary mb-1.5">{t('contacts.role')}</label>
           <input
             type="text"
             value={role}
             onChange={(e) => setRole(e.target.value)}
-            placeholder="e.g. CTO, Project Manager"
+            placeholder={t('contacts.rolePlaceholder')}
             className="w-full px-3 py-2.5 rounded-qm-md bg-qm-surface-light border border-qm-border-subtle text-body-sm text-qm-text-primary placeholder:text-qm-text-disabled focus:border-qm-accent focus:outline-none"
           />
         </div>
         <div>
-          <label className="block text-caption font-medium text-qm-text-secondary mb-1.5">Company</label>
+          <label className="block text-caption font-medium text-qm-text-secondary mb-1.5">{t('contacts.company')}</label>
           <input
             type="text"
             value={company}
             onChange={(e) => setCompany(e.target.value)}
-            placeholder="e.g. Acme Corp"
+            placeholder={t('contacts.companyPlaceholder')}
             className="w-full px-3 py-2.5 rounded-qm-md bg-qm-surface-light border border-qm-border-subtle text-body-sm text-qm-text-primary placeholder:text-qm-text-disabled focus:border-qm-accent focus:outline-none"
           />
         </div>
@@ -264,7 +267,7 @@ function CreateContactForm({
           className="flex items-center gap-2 px-4 py-2.5 rounded-qm-md bg-gradient-to-r from-qm-gradient-start to-qm-gradient-end text-white text-body-sm font-medium hover:shadow-qm-glow hover-scale transition-all disabled:opacity-50"
         >
           <Plus size={14} />
-          {isSaving ? 'Creating...' : 'Create Contact'}
+          {isSaving ? t('actions.creating', { ns: 'common' }) : t('contacts.createContact')}
         </button>
       </div>
     </div>
@@ -272,6 +275,7 @@ function CreateContactForm({
 }
 
 export function ContactsView() {
+  const { t } = useTranslation('dashboard')
   const contacts = useContactStore((s) => s.contacts)
   const searchQuery = useContactStore((s) => s.searchQuery)
   const setSearchQuery = useContactStore((s) => s.setSearchQuery)
@@ -334,17 +338,17 @@ export function ContactsView() {
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">
           <Users size={22} className="text-qm-accent" />
-          <h2 className="text-title-sm font-semibold text-qm-text-primary">Contacts</h2>
+          <h2 className="text-title-sm font-semibold text-qm-text-primary">{t('contacts.title')}</h2>
         </div>
         <div className="flex items-center gap-3">
           <span className="text-caption text-qm-text-tertiary">
-            {filtered.length} contacts
+            {t('contacts.contactCount', { count: filtered.length })}
           </span>
           <button
             onClick={() => setIsCreating(true)}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-qm-pill bg-gradient-to-r from-qm-gradient-start to-qm-gradient-end text-white text-body-sm font-medium hover:shadow-qm-glow hover-scale transition-all"
           >
-            <Plus size={14} /> New Contact
+            <Plus size={14} /> {t('contacts.newContact')}
           </button>
         </div>
       </div>
@@ -356,7 +360,7 @@ export function ContactsView() {
           type="text"
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          placeholder="Search contacts..."
+          placeholder={t('contacts.searchPlaceholder')}
           className="w-full pl-10 pr-4 py-2.5 rounded-qm-md bg-qm-surface-light border border-qm-border-subtle text-body-sm text-qm-text-primary placeholder:text-qm-text-disabled focus:border-qm-accent focus:outline-none"
         />
       </div>
@@ -365,7 +369,7 @@ export function ContactsView() {
       <div className="flex-1 overflow-y-auto space-y-2">
         {filtered.length === 0 ? (
           <div className="text-center py-12 text-qm-text-tertiary text-body-sm">
-            {searchQuery ? 'No matching contacts' : 'No contacts yet. Start a session or create one manually.'}
+            {searchQuery ? t('contacts.noMatchingContacts') : t('contacts.noContactsYet')}
           </div>
         ) : (
           filtered.map((contact) => (
@@ -387,7 +391,7 @@ export function ContactsView() {
                     {contact.name}
                   </h3>
                   {contact.isSynced && (
-                    <span className="text-[10px] text-green-400 bg-green-400/10 px-1.5 py-0.5 rounded">synced</span>
+                    <span className="text-[10px] text-green-400 bg-green-400/10 px-1.5 py-0.5 rounded">{t('contacts.synced')}</span>
                   )}
                 </div>
                 <div className="flex items-center gap-2 text-caption text-qm-text-tertiary">
@@ -399,7 +403,7 @@ export function ContactsView() {
 
               <div className="text-right flex-shrink-0">
                 <p className="text-caption text-qm-text-tertiary">
-                  {contact.sessionCount} session{contact.sessionCount !== 1 ? 's' : ''}
+                  {t('contacts.sessionCount', { count: contact.sessionCount })}
                 </p>
                 {contact.lastSeen && (
                   <p className="text-caption-sm text-qm-text-tertiary">
@@ -414,7 +418,7 @@ export function ContactsView() {
                   handleDelete(contact.id)
                 }}
                 className="p-1.5 rounded-qm-sm text-qm-text-tertiary hover:text-red-400 hover:bg-red-500/10 opacity-0 group-hover:opacity-100 transition-all"
-                title="Delete"
+                title={t('actions.delete', { ns: 'common' })}
               >
                 <Trash2 size={14} />
               </button>
