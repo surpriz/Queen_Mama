@@ -4359,6 +4359,23 @@
         }
       }
     },
+    "modes.detail.builtInPromptHidden" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The prompt for this built-in mode is proprietary and not displayed."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Le prompt de ce mode intégré est propriétaire et n'est pas affiché."
+          }
+        }
+      }
+    },
     "modes.detail.builtInMode" : {
       "extractionState" : "manual",
       "localizations" : {

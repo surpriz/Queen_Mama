@@ -209,6 +209,26 @@ final class Mode {
             isDefault: true
         )
     }
+
+    var builtInDescription: String? {
+        guard isDefault else { return nil }
+        switch name {
+        case "Default":
+            return "Real-time coaching assistant that guides you through meetings, exams, and workflows with precise, actionable advice."
+        case "Limitless":
+            return "Unlock NZT-level cognitive power: perfect recall, instant pattern recognition, and encyclopedic expertise on any subject."
+        case "Professional":
+            return "Corporate AI advisor for meetings, negotiations, and presentations. Knows law, finance, tech, and industry benchmarks."
+        case "Interview":
+            return "Win job interviews with ready-to-use answers, STAR examples, and anticipation of follow-up questions."
+        case "Sales":
+            return "Close more deals with perfect sales phrases, objection rebuttals, and strategic next-step suggestions."
+        case "Developer Exam":
+            return "Ace coding challenges with complete, copy-paste-ready solutions optimized for time and correctness."
+        default:
+            return nil
+        }
+    }
 }
 
 struct AttachedFile: Codable, Hashable {
