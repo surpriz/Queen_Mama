@@ -456,16 +456,8 @@ struct DisplayMenuItem: View {
     }
 
     private func loadDisplays() {
-        displays = NSScreen.screens.compactMap { screen -> ScreenCaptureService.DisplayInfo? in
-            guard let displayID = screen.deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")] as? CGDirectDisplayID
-            else { return nil }
-            return ScreenCaptureService.DisplayInfo(
-                id: displayID,
-                name: screen.localizedName,
-                width: Int(screen.frame.width),
-                height: Int(screen.frame.height),
-                isBuiltin: CGDisplayIsBuiltin(displayID) != 0
-            )
+        Task {
+            displays = await ScreenCaptureService().getAvailableDisplays()
         }
     }
 
