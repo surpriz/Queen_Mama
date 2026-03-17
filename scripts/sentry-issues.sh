@@ -4,13 +4,14 @@
 #
 # Commands:
 #   list       List unresolved issues
+#   triage     Auto-categorize issues: actionable / watch / noise
 #   diagnose   Detailed diagnosis of an issue
 #   resolve    Resolve an issue (with confirmation)
 #   report     Generate a markdown report
 #   monitor    Continuous surveillance mode
 #
 # Global Options:
-#   -p, --project <slug>   Filter by project (queen-mama-macos | queenmama_landing)
+#   -p, --project <slug>   Filter by project (queen-mama-macos | queenmama-electron | queenmama_landing)
 #   --limit <n>            Number of issues (default: 25)
 #   --no-color             Disable colors
 #   -v, --verbose          Verbose mode
@@ -24,7 +25,7 @@ set -euo pipefail
 
 SENTRY_ORG="cloudwaste"
 SENTRY_API="https://sentry.io/api/0"
-DEFAULT_PROJECTS="queen-mama-macos queenmama_landing"
+DEFAULT_PROJECTS="queen-mama-macos queenmama-electron queenmama_landing"
 DEFAULT_LIMIT=25
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 REPORTS_DIR="${SCRIPT_DIR}/reports"
@@ -332,12 +333,46 @@ issue_row() {
 # Section D: Diagnosis Algorithm
 # ============================================
 
-# Classify severity based on issue data
+# Classify severity based on issue data (project-aware)
 classify_severity() {
     local title="$1"
     local events="$2"
     local users="$3"
     local priority="$4"
+    local project="${5:-}"
+
+    # --- Known noise patterns: downgrade regardless of priority ---
+
+    # Sparkle auto-update modal hangs (macOS) — expected behavior, not a real hang
+    case "$title" in
+        *"App Hanging"*)
+            # Most App Hanging issues on macOS are Sparkle modal dialogs or benign UI waits
+            # Only escalate if high volume AND many users (indicates real perf issue)
+            if [ "$events" -gt 50 ] && [ "$users" -gt 5 ]; then
+                echo "MEDIUM"
+            else
+                echo "LOW"
+            fi
+            return
+            ;;
+    esac
+
+    # Transient network errors — handled by reconnection logic
+    case "$title" in
+        *"NSPOSIXErrorDomain"*|*"Code: 57"*|*"Code: 60"*|*"Socket"*)
+            echo "LOW"
+            return
+            ;;
+        *"WebSocket reconnect"*|*"reconnect limit"*|*"connection_unstable"*)
+            echo "LOW"
+            return
+            ;;
+        *"HTTPClientError"*|*"HTTP Client Error"*)
+            # Auto-captured by Sentry, already handled by app retry logic
+            echo "LOW"
+            return
+            ;;
+    esac
 
     # Priority-based
     if [ "$priority" = "critical" ]; then
@@ -345,22 +380,34 @@ classify_severity() {
         return
     fi
 
-    # Pattern-based
+    # Pattern-based — real issues
     case "$title" in
-        *"App Hanging"*|*"ANR"*|*"Watchdog"*)
-            echo "CRITICAL"
-            return
-            ;;
         *"crash"*|*"SIGABRT"*|*"SIGSEGV"*|*"EXC_BAD_ACCESS"*)
             echo "CRITICAL"
             return
             ;;
-        *"HTTP 5"*|*"502"*|*"503"*|*"504"*)
+        *"ANR"*|*"Watchdog"*)
+            echo "CRITICAL"
+            return
+            ;;
+        *"502"*|*"503"*|*"504"*)
+            echo "HIGH"
+            return
+            ;;
+        *"PrismaClient"*)
             echo "HIGH"
             return
             ;;
         *"timeout"*|*"Timeout"*)
             echo "HIGH"
+            return
+            ;;
+        *"notAuthenticated"*|*"Unauthorized"*)
+            echo "HIGH"
+            return
+            ;;
+        *"ScreenCaptureKit"*|*"SCStream"*)
+            echo "MEDIUM"
             return
             ;;
     esac
@@ -379,46 +426,169 @@ classify_severity() {
     echo "LOW"
 }
 
-# Generate recommendation based on error pattern
+# Generate recommendation based on error pattern (project-aware)
 recommend() {
     local title="$1"
     local exception_type="${2:-}"
     local mechanism="${3:-}"
+    local project="${4:-}"
+
+    # ---- Platform-aware noise detection ----
 
     case "$title" in
-        *"App Hanging"*|*"ANR"*)
-            echo "CAUSE: Main thread blocked for 2+ seconds (likely SwiftData/IO on main thread)"
+        *"App Hanging"*)
+            case "$mechanism" in
+                *"AppHang"*)
+                    echo "CAUSE: Main thread blocked >2s — often Sparkle update dialogs (NSAlert.runModal)"
+                    echo "FIX: Already filtered in CrashReporter.beforeSend (Sparkle frames → drop)"
+                    echo "ACTION: Check if this is a non-Sparkle hang by inspecting the stack trace"
+                    echo "REF: mac_app/Services/CrashReporter.swift — beforeSend filter"
+                    return
+                    ;;
+            esac
+            echo "CAUSE: Main thread blocked for 2+ seconds"
             echo "FIX: Move heavy operations to background with Task { } or actor isolation"
             echo "REF: Use SwiftDataSaveHelper actor pattern for database writes"
             return
             ;;
-        *"502"*|*"HTTP 502"*|*"502 Bad Gateway"*|*"status code: 502"*)
-            echo "CAUSE: Backend server returned 502 (gateway error, server overloaded or down)"
-            echo "FIX: Implement retry with exponential backoff (1s, 2s, 4s)"
-            echo "REF: ProxyAPIClient already has retry logic — verify it covers this path"
+        *"NSPOSIXErrorDomain"*|*"Code: 57"*)
+            echo "CAUSE: POSIX 57 (ENOTCONN) — dead WebSocket detected by keepalive"
+            echo "FIX: Already handled: TranscriptionService reconnection + CrashReporter.beforeSend filter"
+            echo "ACTION: If still appearing, check that enableCaptureFailedRequests=false is deployed"
+            echo "REF: mac_app/Services/TranscriptionService.swift — classifyNetworkError()"
             return
             ;;
-        *"503"*|*"HTTP 503"*|*"503 Service Unavailable"*|*"status code: 503"*)
-            echo "CAUSE: Backend service temporarily unavailable"
-            echo "FIX: Retry with backoff + show user-friendly 'service unavailable' message"
+        *"NSPOSIXErrorDomain"*|*"Code: 60"*)
+            echo "CAUSE: POSIX 60 (ETIMEDOUT) — WebSocket connection timed out"
+            echo "FIX: Transient network issue, handled by reconnection logic"
+            echo "REF: mac_app/Services/TranscriptionService.swift — classifyNetworkError()"
             return
             ;;
-        *"504"*|*"HTTP 504"*|*"504 Gateway Timeout"*|*"status code: 504"*)
-            echo "CAUSE: Backend request timed out at gateway level"
-            echo "FIX: Increase timeout or add retry logic with user notification"
+        *"HTTPClientError"*|*"HTTP Client Error"*)
+            echo "CAUSE: Sentry auto-captured HTTP 5xx — app already retries with backoff"
+            echo "FIX: enableCaptureFailedRequests=false deployed in CrashReporter"
+            echo "ACTION: If still appearing, verify CrashReporter changes are in production"
+            echo "REF: mac_app/Services/Proxy/ProxyAPIClient.swift — retry logic (1s, 2s, 4s)"
             return
             ;;
-        *"PrismaClient"*)
-            echo "CAUSE: Database query/connection error (Prisma ORM)"
-            echo "FIX: Check schema/migration, verify connection pool, review query constraints"
+        *"reconnect limit"*|*"Transcription session reconnect"*)
+            echo "CAUSE: >20 WebSocket reconnections in 10-minute window — unstable network"
+            echo "FIX: Circuit breaker trips, auto-recovery runs every 60s (max 5 attempts)"
+            echo "ACTION: Check user's network conditions; consider reducing noise threshold"
+            echo "REF: mac_app/Services/TranscriptionService.swift — scheduleReconnect()"
             return
             ;;
-        *"ModuleBuildError"*)
-            echo "CAUSE: Build-time module compilation failure"
-            echo "FIX: Check module imports, dependency versions, and build configuration"
+        *"WebSocket reconnected"*|*"connection_unstable"*)
+            echo "CAUSE: HealthCheckService flagged >8 reconnections in session"
+            echo "FIX: Now reports only at exact thresholds (8 and 16), not every reconnect"
+            echo "REF: mac_app/Services/HealthCheckService.swift — recordWebSocketReconnect()"
             return
             ;;
     esac
+
+    # ---- Backend / HTTP errors ----
+
+    case "$title" in
+        *"502"*|*"HTTP 502"*|*"502 Bad Gateway"*|*"status code: 502"*)
+            echo "CAUSE: Backend 502 — server overloaded or down"
+            echo "FIX: Check Vercel/backend logs for the failing endpoint"
+            echo "REF: ProxyAPIClient retries 500-504 with backoff (1s, 2s, 4s, max 3 retries)"
+            return
+            ;;
+        *"503"*|*"HTTP 503"*|*"status code: 503"*)
+            echo "CAUSE: Backend service temporarily unavailable"
+            echo "FIX: Check deployment status and serverless function cold starts"
+            return
+            ;;
+        *"504"*|*"HTTP 504"*|*"status code: 504"*)
+            echo "CAUSE: Backend request timed out at gateway level"
+            echo "FIX: Check Vercel function timeout config and slow queries"
+            return
+            ;;
+        *"status code: 500"*)
+            echo "CAUSE: Internal server error from backend API"
+            echo "FIX: Check Vercel runtime logs for the failing endpoint"
+            echo "REF: landing/app/api/ — check route handlers for unhandled exceptions"
+            return
+            ;;
+    esac
+
+    # ---- macOS-specific ----
+
+    case "$title" in
+        *"ScreenCaptureKit"*|*"SCStream"*)
+            echo "CAUSE: ScreenCaptureKit error — screen recording permission or stream failure"
+            echo "FIX: Check ScreenCaptureService error handling for missing permissions"
+            echo "REF: mac_app/Services/ScreenCaptureService.swift"
+            return
+            ;;
+        *"TranscriptionError"*|*"disconnected"*)
+            echo "CAUSE: WebSocket disconnected during active transcription session"
+            echo "FIX: Handled by reconnection logic with exponential backoff"
+            echo "REF: mac_app/Services/TranscriptionService.swift — handleError()"
+            return
+            ;;
+        *"AIProviderError"*|*"notAuthenticated"*)
+            echo "CAUSE: AI provider rejected request — expired/invalid API key or token"
+            echo "FIX: Check ProxyAPIClient token refresh logic and auth token lifecycle"
+            echo "REF: mac_app/Services/Proxy/ProxyAPIClient.swift — getValidAccessToken()"
+            return
+            ;;
+        *"AIProviderError"*|*"serviceNotAvailable"*)
+            echo "CAUSE: AI provider service is down or rate-limited"
+            echo "FIX: Multi-provider fallback should handle this (OpenAI → Anthropic → Gemini)"
+            echo "REF: mac_app/Services/AIService.swift — provider fallback chain"
+            return
+            ;;
+    esac
+
+    # ---- Electron/Windows-specific ----
+
+    case "$project" in
+        *"electron"*)
+            case "$title" in
+                *"IPC"*|*"ipc"*)
+                    echo "CAUSE: Electron IPC communication failure between main/renderer"
+                    echo "FIX: Check IPC handler registration in electron/ipc/handlers.ts"
+                    echo "REF: win_app_2/electron/ipc/channels.ts — channel definitions"
+                    return
+                    ;;
+                *"EPERM"*|*"EACCES"*)
+                    echo "CAUSE: File system permission error (common on Windows)"
+                    echo "FIX: Check electron-store paths and app data directory access"
+                    return
+                    ;;
+                *"UnhandledPromiseRejection"*|*"unhandledrejection"*)
+                    echo "CAUSE: Unhandled async error in Electron renderer or main process"
+                    echo "FIX: Add try/catch to async operations, check IPC promise chains"
+                    return
+                    ;;
+            esac
+            ;;
+    esac
+
+    # ---- Landing/Next.js-specific ----
+
+    case "$project" in
+        *"landing"*)
+            case "$title" in
+                *"PrismaClient"*)
+                    echo "CAUSE: Database query/connection error (Prisma ORM)"
+                    echo "FIX: Check schema/migration, verify Neon connection pool, review query"
+                    echo "REF: landing/prisma/schema.prisma — check model constraints"
+                    return
+                    ;;
+                *"aborted"*|*"Error: aborted"*)
+                    echo "CAUSE: HTTP request aborted — client disconnected before response"
+                    echo "FIX: Usually harmless (user navigated away). Check if frequent."
+                    echo "ACTION: Consider adding AbortController handling in API routes"
+                    return
+                    ;;
+            esac
+            ;;
+    esac
+
+    # ---- Generic exception type fallbacks ----
 
     case "$exception_type" in
         *"PrismaClient"*)
@@ -671,6 +841,23 @@ cmd_diagnose() {
 
     separator 80
 
+    # Tags
+    local tags_json
+    tags_json=$(echo "$event_json" | jq -c '[.tags[]? | select(.key != "level" and .key != "logger" and .key != "handled" and .key != "mechanism")]' 2>/dev/null || echo "[]")
+    local tags_count
+    tags_count=$(echo "$tags_json" | jq 'length' 2>/dev/null || echo "0")
+
+    if [ "$tags_count" -gt 0 ]; then
+        printf "\n${BOLD}Tags${RESET}\n"
+        echo "$tags_json" | jq -c '.[]' 2>/dev/null | while IFS= read -r tag; do
+            local tag_key tag_value
+            tag_key=$(echo "$tag" | jq -r '.key')
+            tag_value=$(echo "$tag" | jq -r '.value')
+            printf "  ${DIM}%s:${RESET} %s\n" "$tag_key" "$tag_value"
+        done
+        separator 80
+    fi
+
     # Breadcrumbs
     local breadcrumbs_json
     breadcrumbs_json=$(echo "$event_json" | jq '.entries[] | select(.type=="breadcrumbs") | .data.values // empty' 2>/dev/null || echo "")
@@ -695,9 +882,9 @@ cmd_diagnose() {
                 *)       bc_color="$DIM" ;;
             esac
 
-            # Truncate message
-            if [ ${#bc_msg} -gt 80 ]; then
-                bc_msg="${bc_msg:0:77}..."
+            # Truncate message (120 chars for more context)
+            if [ ${#bc_msg} -gt 120 ]; then
+                bc_msg="${bc_msg:0:117}..."
             fi
 
             printf "  ${bc_color}[%s]${RESET} %s: %s\n" "$bc_level" "$bc_cat" "$bc_msg"
@@ -705,22 +892,22 @@ cmd_diagnose() {
         separator 80
     fi
 
-    # Severity classification
+    # Severity classification (project-aware)
     local severity
-    severity=$(classify_severity "$title" "$events" "$users" "$priority")
+    severity=$(classify_severity "$title" "$events" "$users" "$priority" "$project_slug")
 
     printf "\n${BOLD}Diagnosis${RESET}\n\n"
     printf "  Severity: "
     severity_badge "$severity"
     printf "\n\n"
 
-    # Recommendation
+    # Recommendation (project-aware)
     local exc_type_for_rec exc_mechanism_for_rec
     exc_type_for_rec=$(echo "$exception_json" | jq -r '.type // ""' 2>/dev/null || echo "")
     exc_mechanism_for_rec=$(echo "$exception_json" | jq -r '.mechanism.type // ""' 2>/dev/null || echo "")
 
     printf "  ${BOLD}Recommendation:${RESET}\n"
-    recommend "$title" "$exc_type_for_rec" "$exc_mechanism_for_rec" | while IFS= read -r line; do
+    recommend "$title" "$exc_type_for_rec" "$exc_mechanism_for_rec" "$project_slug" | while IFS= read -r line; do
         printf "  %s\n" "$line"
     done
 
@@ -1043,6 +1230,169 @@ cmd_monitor() {
 }
 
 # ============================================
+# Command: triage
+# ============================================
+
+# Classify an issue as actionable, noise, or watch
+triage_classify() {
+    local title="$1"
+    local events="$2"
+    local users="$3"
+    local last_seen="$4"
+
+    # Known noise patterns — already handled in code
+    case "$title" in
+        *"App Hanging"*)
+            echo "noise"
+            return
+            ;;
+        *"NSPOSIXErrorDomain"*|*"Code: 57"*|*"Code: 60"*)
+            echo "noise"
+            return
+            ;;
+        *"HTTPClientError"*|*"HTTP Client Error"*)
+            echo "noise"
+            return
+            ;;
+        *"WebSocket reconnected"*|*"connection_unstable"*|*"reconnect limit"*)
+            echo "noise"
+            return
+            ;;
+        *"aborted"*|*"Error: aborted"*)
+            echo "noise"
+            return
+            ;;
+    esac
+
+    # Actionable: high impact or recent
+    if [ "$users" -gt 3 ] && [ "$events" -gt 10 ]; then
+        echo "actionable"
+        return
+    fi
+
+    # Actionable: crashes and auth errors
+    case "$title" in
+        *"crash"*|*"SIGABRT"*|*"SIGSEGV"*|*"EXC_BAD_ACCESS"*)
+            echo "actionable"
+            return
+            ;;
+        *"notAuthenticated"*|*"serviceNotAvailable"*)
+            echo "actionable"
+            return
+            ;;
+        *"PrismaClient"*)
+            echo "actionable"
+            return
+            ;;
+    esac
+
+    echo "watch"
+}
+
+cmd_triage() {
+    local projects="$FILTER_PROJECTS"
+    local limit="$LIMIT"
+
+    printf "\n${BOLD}${CYAN}Sentry Triage — %s${RESET}\n" "$SENTRY_ORG"
+    separator 95
+    printf "\n"
+
+    local actionable_count=0
+    local noise_count=0
+    local watch_count=0
+    local noise_events=0
+
+    # Collect all issues with triage classification
+    local tmpfile_actionable tmpfile_noise tmpfile_watch
+    tmpfile_actionable=$(mktemp)
+    tmpfile_noise=$(mktemp)
+    tmpfile_watch=$(mktemp)
+
+    for project in $projects; do
+        local issues_json
+        if ! issues_json=$(fetch_issues "$project" "$limit"); then
+            continue
+        fi
+
+        echo "$issues_json" | jq -c '.[]' | while IFS= read -r issue; do
+            local short_id title events users last_seen priority
+            short_id=$(echo "$issue" | jq -r '.shortId')
+            title=$(echo "$issue" | jq -r '.title')
+            events=$(echo "$issue" | jq -r '.count // "0"')
+            users=$(echo "$issue" | jq -r '.userCount // "0"')
+            last_seen=$(echo "$issue" | jq -r '.lastSeen // "unknown"')
+            priority=$(echo "$issue" | jq -r '.priority // "unknown"')
+
+            local category
+            category=$(triage_classify "$title" "$events" "$users" "$last_seen")
+
+            local rel_time
+            rel_time=$(relative_time "$last_seen")
+
+            case "$category" in
+                actionable)
+                    printf "%s|%s|%s|%s|%s|%s\n" "$short_id" "$priority" "$title" "$events" "$users" "$rel_time" >> "$tmpfile_actionable"
+                    ;;
+                noise)
+                    printf "%s|%s|%s|%s|%s|%s\n" "$short_id" "$priority" "$title" "$events" "$users" "$rel_time" >> "$tmpfile_noise"
+                    ;;
+                watch)
+                    printf "%s|%s|%s|%s|%s|%s\n" "$short_id" "$priority" "$title" "$events" "$users" "$rel_time" >> "$tmpfile_watch"
+                    ;;
+            esac
+        done
+    done
+
+    # Display actionable issues
+    actionable_count=$(wc -l < "$tmpfile_actionable" 2>/dev/null | tr -d ' ')
+    if [ "$actionable_count" -gt 0 ]; then
+        printf "${RED}${BOLD}🔴 ACTIONABLE (%s)${RESET} — Fix these\n\n" "$actionable_count"
+        table_header
+        while IFS='|' read -r short_id priority title events users rel_time; do
+            issue_row "$short_id" "$priority" "$title" "$events" "$users" "$rel_time"
+        done < "$tmpfile_actionable"
+        printf "\n"
+    else
+        printf "${GREEN}${BOLD}✅ No actionable issues${RESET}\n\n"
+    fi
+
+    # Display watch issues
+    watch_count=$(wc -l < "$tmpfile_watch" 2>/dev/null | tr -d ' ')
+    if [ "$watch_count" -gt 0 ]; then
+        printf "${YELLOW}${BOLD}👀 WATCH (%s)${RESET} — Monitor these\n\n" "$watch_count"
+        table_header
+        while IFS='|' read -r short_id priority title events users rel_time; do
+            issue_row "$short_id" "$priority" "$title" "$events" "$users" "$rel_time"
+        done < "$tmpfile_watch"
+        printf "\n"
+    fi
+
+    # Display noise summary
+    noise_count=$(wc -l < "$tmpfile_noise" 2>/dev/null | tr -d ' ')
+    if [ "$noise_count" -gt 0 ]; then
+        # Calculate total noise events
+        noise_events=$(awk -F'|' '{sum+=$4} END{print sum}' "$tmpfile_noise" 2>/dev/null || echo "0")
+
+        printf "${DIM}🔇 NOISE (%s issues, %s events)${RESET} — Handled in code, safe to ignore\n\n" "$noise_count" "$noise_events"
+        while IFS='|' read -r short_id priority title events users rel_time; do
+            # Truncate title
+            if [ ${#title} -gt 50 ]; then
+                title="${title:0:47}..."
+            fi
+            printf "  ${DIM}%-14s %s (%s events)${RESET}\n" "$short_id" "$title" "$events"
+        done < "$tmpfile_noise"
+        printf "\n"
+    fi
+
+    # Summary
+    separator 95
+    printf "${BOLD}Triage: %s actionable, %s watch, %s noise${RESET}\n\n" \
+        "$actionable_count" "$watch_count" "$noise_count"
+
+    rm -f "$tmpfile_actionable" "$tmpfile_noise" "$tmpfile_watch"
+}
+
+# ============================================
 # Help
 # ============================================
 
@@ -1052,13 +1402,14 @@ Usage: sentry-issues.sh <command> [options]
 
 Commands:
   list                    List unresolved issues
+  triage                  Auto-categorize issues: actionable / watch / noise
   diagnose <issue-id>     Detailed diagnosis of an issue
   resolve  <issue-id>     Resolve an issue (with confirmation)
   report                  Generate a markdown report
   monitor                 Continuous surveillance mode
 
 Global Options:
-  -p, --project <slug>    Filter by project (queen-mama-macos | queenmama_landing)
+  -p, --project <slug>    Filter by project (queen-mama-macos | queenmama-electron | queenmama_landing)
   --limit <n>             Number of issues (default: 25)
   --no-color              Disable colored output
   -v, --verbose           Verbose/debug output
@@ -1074,7 +1425,9 @@ Monitor Options:
 
 Examples:
   ./scripts/sentry-issues.sh list
-  ./scripts/sentry-issues.sh list -p queen-mama-macos
+  ./scripts/sentry-issues.sh triage
+  ./scripts/sentry-issues.sh triage -p queen-mama-macos
+  ./scripts/sentry-issues.sh list -p queenmama-electron
   ./scripts/sentry-issues.sh diagnose 90912234
   ./scripts/sentry-issues.sh resolve 90912234 -y
   ./scripts/sentry-issues.sh report
@@ -1098,7 +1451,7 @@ MONITOR_NOTIFY=false
 parse_args() {
     while [ $# -gt 0 ]; do
         case "$1" in
-            list|diagnose|resolve|report|monitor)
+            list|diagnose|resolve|report|monitor|triage)
                 COMMAND="$1"
                 shift
                 ;;
@@ -1170,6 +1523,9 @@ main() {
             ;;
         monitor)
             cmd_monitor
+            ;;
+        triage)
+            cmd_triage
             ;;
         "")
             show_help
