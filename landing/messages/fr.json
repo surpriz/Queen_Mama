@@ -794,6 +794,10 @@
         "title": "Prompts de coaching IA affinés",
         "description": "Prompts système réécrits pour tous les modes IA, offrant des réponses de coaching plus naturelles, concises et exploitables"
       },
+      "proactivePatternRecognition": {
+        "title": "Reconnaissance proactive des patterns",
+        "description": "Les modes IA identifient désormais automatiquement les patterns psychologiques et organisationnels dans vos conversations et les relient à des actions concrètes — sans attendre que vous introduisiez le concept"
+      },
       "zombieAuthRecovery": {
         "title": "Récupération auto des sessions expirées",
         "description": "L'app détecte et efface désormais les états d'authentification expirés au lieu d'échouer silencieusement"
