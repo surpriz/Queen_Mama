@@ -12,6 +12,7 @@ export interface AppConfig {
   smartModeEnabled: boolean
   selectedAIProvider: AIProviderType
   primaryLanguage: string
+  uiLanguage: string
 
   // Auto-Answer
   autoAnswerEnabled: boolean
@@ -46,6 +47,7 @@ export const DEFAULT_CONFIG: AppConfig = {
   smartModeEnabled: false,
   selectedAIProvider: 'OpenAI' as AIProviderType,
   primaryLanguage: 'fr',
+  uiLanguage: 'en',
 
   autoAnswerEnabled: false,
   autoAnswerSilenceThreshold: 2.5,

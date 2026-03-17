@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useAuth } from '@/hooks/useAuth'
 import { LoadingSpinner } from '@/components/common/LoadingSpinner'
 import * as authApi from '@/services/auth/authApiClient'
@@ -17,6 +18,7 @@ type ViewState =
   | { type: 'noAccount'; email: string }
 
 export function EmailSignIn({ onBack, onSwitchToGoogle, onSwitchToRegister }: EmailSignInProps) {
+  const { t } = useTranslation()
   const { loginWithCredentials } = useAuth()
   const [viewState, setViewState] = useState<ViewState>({ type: 'enterEmail' })
   const [email, setEmail] = useState('')
@@ -59,7 +61,7 @@ export function EmailSignIn({ onBack, onSwitchToGoogle, onSwitchToRegister }: Em
     try {
       await loginWithCredentials(viewState.email, password)
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Login failed'
+      const message = err instanceof Error ? err.message : t('auth.signInFailed')
       // If error indicates OAuth user, switch to Google view
       if (message.toLowerCase().includes('google') || message.toLowerCase().includes('oauth')) {
         setViewState({ type: 'useGoogle', email: viewState.email })
@@ -92,10 +94,10 @@ export function EmailSignIn({ onBack, onSwitchToGoogle, onSwitchToRegister }: Em
           onClick={onBack}
           className="self-start text-body-sm text-qm-text-secondary hover:text-qm-text-primary transition-colors"
         >
-          &larr; Back
+          &larr; {t('actions.back')}
         </button>
 
-        <h2 className="text-title-sm font-semibold text-qm-text-primary">Sign in with Email</h2>
+        <h2 className="text-title-sm font-semibold text-qm-text-primary">{t('auth.signInWithEmail')}</h2>
 
         {error && (
           <div className="p-3 rounded-qm-md bg-qm-error-light text-qm-error text-body-sm">
@@ -107,7 +109,7 @@ export function EmailSignIn({ onBack, onSwitchToGoogle, onSwitchToRegister }: Em
           type="email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          placeholder="Email address"
+          placeholder={t('auth.emailAddress')}
           required
           autoFocus
           className="px-4 py-3 rounded-qm-md bg-qm-surface-light border border-qm-border-subtle text-qm-text-primary placeholder:text-qm-text-disabled focus:border-qm-accent focus:outline-none"
@@ -118,7 +120,7 @@ export function EmailSignIn({ onBack, onSwitchToGoogle, onSwitchToRegister }: Em
           disabled={isLoading}
           className="px-4 py-3 rounded-qm-lg bg-gradient-to-r from-qm-gradient-start to-qm-gradient-end text-white font-medium disabled:opacity-50 hover:shadow-qm-glow transition-shadow"
         >
-          {isLoading ? <LoadingSpinner size={20} className="mx-auto" /> : 'Continue'}
+          {isLoading ? <LoadingSpinner size={20} className="mx-auto" /> : t('auth.continue')}
         </button>
       </form>
     )
@@ -133,10 +135,10 @@ export function EmailSignIn({ onBack, onSwitchToGoogle, onSwitchToRegister }: Em
           onClick={handleBackToEmail}
           className="self-start text-body-sm text-qm-text-secondary hover:text-qm-text-primary transition-colors"
         >
-          &larr; Back
+          &larr; {t('actions.back')}
         </button>
 
-        <h2 className="text-title-sm font-semibold text-qm-text-primary">Enter your password</h2>
+        <h2 className="text-title-sm font-semibold text-qm-text-primary">{t('auth.enterYourPassword')}</h2>
         <p className="text-body-sm text-qm-text-secondary">{viewState.email}</p>
 
         {error && (
@@ -149,7 +151,7 @@ export function EmailSignIn({ onBack, onSwitchToGoogle, onSwitchToRegister }: Em
           type="password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
-          placeholder="Password"
+          placeholder={t('auth.password')}
           required
           autoFocus
           className="px-4 py-3 rounded-qm-md bg-qm-surface-light border border-qm-border-subtle text-qm-text-primary placeholder:text-qm-text-disabled focus:border-qm-accent focus:outline-none"
@@ -160,7 +162,7 @@ export function EmailSignIn({ onBack, onSwitchToGoogle, onSwitchToRegister }: Em
           disabled={isLoading}
           className="px-4 py-3 rounded-qm-lg bg-gradient-to-r from-qm-gradient-start to-qm-gradient-end text-white font-medium disabled:opacity-50 hover:shadow-qm-glow transition-shadow"
         >
-          {isLoading ? <LoadingSpinner size={20} className="mx-auto" /> : 'Sign In'}
+          {isLoading ? <LoadingSpinner size={20} className="mx-auto" /> : t('auth.signIn')}
         </button>
 
         <button
@@ -168,7 +170,7 @@ export function EmailSignIn({ onBack, onSwitchToGoogle, onSwitchToRegister }: Em
           onClick={handleForgotPassword}
           className="text-body-sm text-qm-accent hover:underline"
         >
-          Forgot password?
+          {t('auth.forgotPassword')}
         </button>
       </form>
     )
@@ -183,7 +185,7 @@ export function EmailSignIn({ onBack, onSwitchToGoogle, onSwitchToRegister }: Em
           onClick={handleBackToEmail}
           className="self-start text-body-sm text-qm-text-secondary hover:text-qm-text-primary transition-colors"
         >
-          &larr; Back
+          &larr; {t('actions.back')}
         </button>
 
         <div className="flex items-center justify-center w-16 h-16 rounded-full bg-blue-500/10">
@@ -196,10 +198,10 @@ export function EmailSignIn({ onBack, onSwitchToGoogle, onSwitchToRegister }: Em
         </div>
 
         <h2 className="text-title-sm font-semibold text-qm-text-primary text-center">
-          This account uses Google
+          {t('auth.googleLinkedTitle')}
         </h2>
         <p className="text-body-sm text-qm-text-secondary text-center">
-          <span className="font-medium text-qm-text-primary">{viewState.email}</span> is linked to Google Sign-In.
+          {t('auth.googleLinkedDescription', { email: viewState.email })}
         </p>
 
         <button
@@ -212,7 +214,7 @@ export function EmailSignIn({ onBack, onSwitchToGoogle, onSwitchToRegister }: Em
             <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" />
             <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
           </svg>
-          Continue with Google
+          {t('auth.continueWithGoogle')}
         </button>
       </div>
     )
@@ -226,7 +228,7 @@ export function EmailSignIn({ onBack, onSwitchToGoogle, onSwitchToRegister }: Em
         onClick={handleBackToEmail}
         className="self-start text-body-sm text-qm-text-secondary hover:text-qm-text-primary transition-colors"
       >
-        &larr; Back
+        &larr; {t('actions.back')}
       </button>
 
       <div className="flex items-center justify-center w-16 h-16 rounded-full bg-amber-500/10">
@@ -236,17 +238,17 @@ export function EmailSignIn({ onBack, onSwitchToGoogle, onSwitchToRegister }: Em
       </div>
 
       <h2 className="text-title-sm font-semibold text-qm-text-primary text-center">
-        No account found
+        {t('auth.noAccountTitle')}
       </h2>
       <p className="text-body-sm text-qm-text-secondary text-center">
-        No account exists for <span className="font-medium text-qm-text-primary">{viewState.type === 'noAccount' ? viewState.email : ''}</span>.
+        {t('auth.noAccountDescription', { email: viewState.type === 'noAccount' ? viewState.email : '' })}
       </p>
 
       <button
         onClick={() => onSwitchToRegister?.()}
         className="w-full px-4 py-3 rounded-qm-lg bg-gradient-to-r from-qm-gradient-start to-qm-gradient-end text-white font-medium hover:shadow-qm-glow transition-shadow"
       >
-        Create Account
+        {t('auth.createAccount')}
       </button>
     </div>
   )

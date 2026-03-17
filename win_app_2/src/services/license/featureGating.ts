@@ -1,5 +1,6 @@
 import { Feature } from '@/types/auth'
 import type { FeatureAccess } from '@/types/auth'
+import i18n from '@/i18n'
 
 export { Feature }
 
@@ -10,15 +11,15 @@ export function isAllowed(access: FeatureAccess): boolean {
 export function getUpgradeMessage(access: FeatureAccess): string | null {
   switch (access.type) {
     case 'requiresPro':
-      return 'Upgrade to Pro to unlock this feature'
+      return i18n.t('license.upgradeToProUnlock')
     case 'requiresEnterprise':
-      return 'Upgrade to Enterprise to unlock this feature'
+      return i18n.t('license.upgradeToEnterpriseUnlock')
     case 'requiresAuth':
-      return 'Sign in to use this feature'
+      return i18n.t('license.signInToUse')
     case 'limitReached':
-      return `Daily limit reached (${access.used}/${access.limit})`
+      return i18n.t('license.dailyLimitReached', { used: access.used, limit: access.limit })
     case 'blocked':
-      return 'This feature is not available'
+      return i18n.t('license.featureNotAvailable')
     case 'allowed':
       return null
     default:

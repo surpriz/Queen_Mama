@@ -1,0 +1,105 @@
+{
+  "tabs": {
+    "assist": "Assistance",
+    "whatToSay": "Quoi dire",
+    "followUp": "Suivi",
+    "recap": "Résumé"
+  },
+  "pillHeader": {
+    "dragToMove": "Glisser pour déplacer",
+    "openDashboard": "Ouvrir le tableau de bord",
+    "hiddenModeOn": "Mode invisible activé - Cliquer pour désactiver",
+    "hiddenModeOff": "Mode invisible désactivé - Cliquer pour activer",
+    "hidden": "Invisible",
+    "smartModeTooltip": "Mode intelligent — Plus lent mais plus précis, utilise un raisonnement avancé",
+    "smart": "Intelligent",
+    "auto": "Auto",
+    "screenCaptureOn": "Capture d'écran activée",
+    "screenCaptureOff": "Capture d'écran désactivée",
+    "summary": "Résumé...",
+    "stopSession": "Arrêter la session",
+    "startSession": "Démarrer la session"
+  },
+  "response": {
+    "justNow": "à l'instant",
+    "secondsAgo": "il y a {{count}}s",
+    "minutesAgo": "il y a {{count}}min",
+    "hoursAgo": "il y a {{count}}h",
+    "daysAgo": "il y a {{count}}j",
+    "copyToClipboard": "Copier dans le presse-papier",
+    "helpful": "Utile",
+    "notHelpful": "Pas utile",
+    "analyzing": "Analyse en cours...",
+    "autoLabel": "AUTO",
+    "streaming": "en cours...",
+    "readyToAssist": "Prêt à vous assister",
+    "typeQuestionOrTab": "Tapez une question ou cliquez sur un onglet"
+  },
+  "inputBar": {
+    "smartModeActivated": "Mode intelligent activé",
+    "smartModeOn": "Mode intelligent activé",
+    "smartModeOff": "Mode intelligent désactivé",
+    "smart": "Intelligent",
+    "placeholder": "Posez une question sur votre écran ou conversation..."
+  },
+  "transcript": {
+    "title": "Transcription",
+    "listening": "Écoute en cours..."
+  },
+  "expandedContent": {
+    "screenOnly": "Écran uniquement",
+    "noInput": "Pas d'entrée"
+  },
+  "popupMenu": {
+    "position": "Position",
+    "positions": {
+      "topLeft": "Haut gauche",
+      "topCenter": "Haut centre",
+      "topRight": "Haut droite",
+      "bottomLeft": "Bas gauche",
+      "bottomCenter": "Bas centre",
+      "bottomRight": "Bas droite"
+    },
+    "mode": "Mode",
+    "default": "Par défaut",
+    "autoAnswer": "Réponse auto",
+    "on": "ON",
+    "off": "OFF",
+    "smartMode": "Mode intelligent",
+    "smartModeDescription": "Plus lent mais plus précis — utilise un raisonnement avancé",
+    "screenCapture": "Capture d'écran",
+    "display": "Écran",
+    "primary": "Principal",
+    "noDisplaysFound": "Aucun écran trouvé",
+    "settings": "Paramètres",
+    "hideWidget": "Masquer le widget",
+    "clearContext": "Effacer le contexte"
+  },
+  "contactPicker": {
+    "whoAreYouTalkingTo": "À qui parlez-vous ?",
+    "newContact": "Nouveau contact",
+    "searchPlaceholder": "Rechercher des contacts...",
+    "noMatchingContacts": "Aucun contact trouvé",
+    "noContactsYet": "Aucun contact",
+    "recent": "Récents",
+    "all": "Tous",
+    "back": "Retour",
+    "createAndStart": "Créer et démarrer",
+    "startSolo": "Démarrer seul",
+    "noDetails": "Aucun détail",
+    "name": "Nom",
+    "fullName": "Nom complet",
+    "email": "E-mail",
+    "role": "Rôle",
+    "company": "Entreprise",
+    "emailPlaceholder": "email@example.com",
+    "rolePlaceholder": "ex. CTO",
+    "companyPlaceholder": "ex. Acme Corp"
+  },
+  "proactive": {
+    "obj": "OBJ",
+    "q": "Q",
+    "hes": "HÉS",
+    "close": "CLOSE"
+  }
+}

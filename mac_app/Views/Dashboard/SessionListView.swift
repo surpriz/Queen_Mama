@@ -599,7 +599,11 @@ struct ModernSessionDetailView: View {
 
                 // Summary Section
                 if let summary = session.summary {
-                    DetailSection(title: String(localized: "sessions.detail.summary"), icon: "doc.text") {
+                    DetailSection(
+                        title: String(localized: "sessions.detail.summary"),
+                        icon: "doc.text",
+                        copyContent: summary
+                    ) {
                         MarkdownText(content: summary)
                     }
                 }
@@ -656,19 +660,23 @@ struct DetailSection<Content: View>: View {
     let title: String
     let icon: String
     var isCollapsible: Bool = false
+    var copyContent: String? = nil
     @Binding var isExpanded: Bool
     @ViewBuilder let content: () -> Content
+    @State private var isCopied = false
 
     init(
         title: String,
         icon: String,
         isCollapsible: Bool = false,
+        copyContent: String? = nil,
         isExpanded: Binding<Bool> = .constant(true),
         @ViewBuilder content: @escaping () -> Content
     ) {
         self.title = title
         self.icon = icon
         self.isCollapsible = isCollapsible
+        self.copyContent = copyContent
         self._isExpanded = isExpanded
         self.content = content
     }
@@ -686,6 +694,21 @@ struct DetailSection<Content: View>: View {
                     .foregroundColor(QMDesign.Colors.textPrimary)
 
                 Spacer()
+
+                if let content = copyContent {
+                    Button(action: {
+                        NSPasteboard.general.clearContents()
+                        NSPasteboard.general.setString(content, forType: .string)
+                        isCopied = true
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 2) { isCopied = false }
+                    }) {
+                        Image(systemName: isCopied ? "checkmark" : "doc.on.doc")
+                            .font(.system(size: 12, weight: .medium))
+                            .foregroundColor(isCopied ? QMDesign.Colors.success : QMDesign.Colors.textTertiary)
+                    }
+                    .buttonStyle(.plain)
+                    .help(String(localized: "modes.button.copy"))
+                }
 
                 if isCollapsible {
                     Button(action: { withAnimation(QMDesign.Animation.quick) { isExpanded.toggle() } }) {

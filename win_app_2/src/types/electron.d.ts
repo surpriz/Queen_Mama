@@ -161,6 +161,9 @@ export interface ElectronAPI {
   // Tray
   updateTrayIcon: (active: boolean) => void
 
+  // i18n
+  notifyLanguageChange: (lang: string, strings: unknown) => void
+
   // Display affinity
   setDisplayAffinity: (exclude: boolean) => void
 

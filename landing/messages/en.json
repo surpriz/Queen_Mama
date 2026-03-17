@@ -794,6 +794,10 @@
         "title": "Refined AI Coaching Prompts",
         "description": "Rewritten system prompts across all AI modes for more natural, concise, and actionable coaching responses"
       },
+      "proactivePatternRecognition": {
+        "title": "Proactive Pattern Recognition",
+        "description": "AI modes now automatically identify psychological and organizational patterns in conversations and connect them to concrete actions — without waiting for you to introduce the concept"
+      },
       "zombieAuthRecovery": {
         "title": "Stale Session Auto-Recovery",
         "description": "The app now detects and clears expired authentication states instead of silently failing"

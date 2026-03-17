@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { ArrowUp, Brain } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { useAppStore } from '@/stores/appStore'
 import { useConfigStore } from '@/stores/configStore'
 import * as aiService from '@/services/ai/aiService'
@@ -8,6 +9,7 @@ import { KeyboardShortcutBadge } from '@/components/common/KeyboardShortcutBadge
 import { cn } from '@/lib/utils'
 
 export function InputBar() {
+  const { t } = useTranslation('overlay')
   const [input, setInput] = useState('')
   const isProcessing = useAppStore((s) => s.isProcessing)
   const currentTranscript = useAppStore((s) => s.currentTranscript)
@@ -62,7 +64,7 @@ export function InputBar() {
         <div className="absolute -top-8 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full bg-purple-500/20 text-purple-300 text-caption-sm font-medium whitespace-nowrap animate-qm-fade-in transition-opacity duration-500"
           style={{ pointerEvents: 'none' }}
         >
-          Smart Mode activated
+          {t('inputBar.smartModeActivated')}
         </div>
       )}
 
@@ -76,10 +78,10 @@ export function InputBar() {
               ? 'bg-purple-500/15 text-purple-400'
               : 'bg-qm-surface-medium text-qm-text-tertiary hover:bg-qm-surface-hover',
           )}
-          title={smartModeEnabled ? 'Smart Mode ON' : 'Smart Mode OFF'}
+          title={smartModeEnabled ? t('inputBar.smartModeOn') : t('inputBar.smartModeOff')}
         >
           <Brain size={12} />
-          <span>Smart</span>
+          <span>{t('inputBar.smart')}</span>
         </button>
 
         {/* Dictation button */}
@@ -90,7 +92,7 @@ export function InputBar() {
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={handleKeyDown}
-          placeholder="Ask about your screen or conversation..."
+          placeholder={t('inputBar.placeholder')}
           disabled={isProcessing}
           className="flex-1 bg-transparent text-body-sm text-qm-text-primary placeholder:text-qm-text-disabled focus:outline-none disabled:opacity-50"
         />

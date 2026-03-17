@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { User, Settings as SettingsIcon, Zap, Volume2, Cloud, Keyboard, Download, MessageSquareText, Crosshair } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { DisplaySelector } from './DisplaySelector'
 import { useConfigStore } from '@/stores/configStore'
 import { useLicenseStore } from '@/stores/licenseStore'
@@ -17,18 +18,8 @@ import {
 
 type SettingsTab = 'account' | 'general' | 'autoAnswer' | 'proactive' | 'audio' | 'sync' | 'shortcuts' | 'updates'
 
-const TABS: { id: SettingsTab; label: string; icon: typeof User }[] = [
-  { id: 'account', label: 'Account', icon: User },
-  { id: 'general', label: 'General', icon: SettingsIcon },
-  { id: 'autoAnswer', label: 'Auto-Answer', icon: Zap },
-  { id: 'proactive', label: 'Proactive', icon: Crosshair },
-  { id: 'audio', label: 'Audio', icon: Volume2 },
-  { id: 'sync', label: 'Sync', icon: Cloud },
-  { id: 'shortcuts', label: 'Shortcuts', icon: Keyboard },
-  { id: 'updates', label: 'Updates', icon: Download },
-]
-
 export function SettingsView() {
+  const { t } = useTranslation('dashboard')
   const config = useConfigStore()
   const license = useLicenseStore()
   const { currentUser, logout } = useAuth()
@@ -39,6 +30,17 @@ export function SettingsView() {
   const [appVersion, setAppVersion] = useState<string>('')
   const [updateStatus, setUpdateStatus] = useState<string>('')
   const [isCheckingUpdate, setIsCheckingUpdate] = useState(false)
+
+  const TABS: { id: SettingsTab; label: string; icon: typeof User }[] = [
+    { id: 'account', label: t('settings.tabs.account'), icon: User },
+    { id: 'general', label: t('settings.tabs.general'), icon: SettingsIcon },
+    { id: 'autoAnswer', label: t('settings.tabs.autoAnswer'), icon: Zap },
+    { id: 'proactive', label: t('settings.tabs.proactive'), icon: Crosshair },
+    { id: 'audio', label: t('settings.tabs.audio'), icon: Volume2 },
+    { id: 'sync', label: t('settings.tabs.sync'), icon: Cloud },
+    { id: 'shortcuts', label: t('settings.tabs.shortcuts'), icon: Keyboard },
+    { id: 'updates', label: t('settings.tabs.updates'), icon: Download },
+  ]
 
   useEffect(() => {
     const api = (window as unknown as { electronAPI: {
@@ -55,26 +57,26 @@ export function SettingsView() {
         setIsCheckingUpdate(false)
         switch (payload.status) {
           case 'checking-for-update':
-            setUpdateStatus('Checking for updates...')
+            setUpdateStatus(t('settings.updates.checkingForUpdate'))
             setIsCheckingUpdate(true)
             break
           case 'update-available':
-            setUpdateStatus('Update available! Downloading...')
+            setUpdateStatus(t('settings.updates.updateAvailable'))
             break
           case 'update-not-available':
-            setUpdateStatus('You are on the latest version.')
+            setUpdateStatus(t('settings.updates.upToDate'))
             break
           case 'download-progress': {
             const progress = payload.data as { percent?: number } | undefined
             const pct = progress?.percent ? Math.round(progress.percent) : 0
-            setUpdateStatus(`Downloading update... ${pct}%`)
+            setUpdateStatus(t('settings.updates.downloadProgress', { percent: pct }))
             break
           }
           case 'update-downloaded':
-            setUpdateStatus('Update downloaded. It will be installed on restart.')
+            setUpdateStatus(t('settings.updates.updateDownloaded'))
             break
           case 'update-error':
-            setUpdateStatus('Update check failed.')
+            setUpdateStatus(t('settings.updates.updateError'))
             break
           default:
             break
@@ -82,7 +84,7 @@ export function SettingsView() {
       })
     }
     return () => cleanup?.()
-  }, [])
+  }, [t])
 
   const handleCheckForUpdates = () => {
     const api = (window as unknown as { electronAPI: {
@@ -90,10 +92,10 @@ export function SettingsView() {
     } }).electronAPI
     if (api?.checkForUpdates) {
       setIsCheckingUpdate(true)
-      setUpdateStatus('Checking for updates...')
+      setUpdateStatus(t('settings.updates.checkingForUpdate'))
       api.checkForUpdates().catch(() => {
         setIsCheckingUpdate(false)
-        setUpdateStatus('Update check failed.')
+        setUpdateStatus(t('settings.updates.updateError'))
       })
     }
   }
@@ -118,22 +120,22 @@ export function SettingsView() {
   const online = isNetworkOnline()
 
   let syncColor = 'bg-gray-500'
-  let syncLabel = 'Not synced'
+  let syncLabel = t('status.notSynced', { ns: 'common' })
   if (online && pendingCount === 0 && lastSync) {
     syncColor = 'bg-green-500'
-    syncLabel = 'Synced'
+    syncLabel = t('status.synced', { ns: 'common' })
   } else if (online && pendingCount > 0) {
     syncColor = 'bg-yellow-500'
-    syncLabel = `${pendingCount} pending`
+    syncLabel = t('status.nPending', { ns: 'common', count: pendingCount })
   } else if (!online) {
-    syncLabel = 'Offline'
+    syncLabel = t('status.offline', { ns: 'common' })
   }
 
   return (
     <div className="flex h-full">
       {/* Left tab sidebar */}
       <div className="w-[200px] flex flex-col border-r border-qm-border-subtle py-4">
-        <h2 className="text-title-sm font-semibold text-qm-text-primary px-4 mb-4">Settings</h2>
+        <h2 className="text-title-sm font-semibold text-qm-text-primary px-4 mb-4">{t('settings.title')}</h2>
         <nav className="flex-1 px-2 space-y-0.5">
           {TABS.map(({ id, label, icon: Icon }) => (
             <button
@@ -162,7 +164,7 @@ export function SettingsView() {
             className="flex items-center gap-1 text-caption-sm text-qm-text-tertiary hover:text-qm-text-secondary transition-colors"
           >
             <MessageSquareText size={10} />
-            Give Feedback
+            {t('giveFeedback', { ns: 'common' })}
           </button>
         </div>
       </div>
@@ -172,7 +174,7 @@ export function SettingsView() {
         <div className="max-w-2xl space-y-6">
           {activeTab === 'account' && (
             <section>
-              <h3 className="text-headline font-semibold text-qm-text-primary mb-4">Account</h3>
+              <h3 className="text-headline font-semibold text-qm-text-primary mb-4">{t('settings.account.title')}</h3>
               {!isAuthenticated ? (
                 showSignIn ? (
                   <div className="p-4 rounded-qm-lg bg-qm-surface-light border border-qm-border-subtle">
@@ -181,31 +183,31 @@ export function SettingsView() {
                 ) : (
                   <div className="p-4 rounded-qm-lg bg-qm-surface-light border border-qm-border-subtle space-y-3">
                     <p className="text-body-sm text-qm-text-secondary">
-                      You are not signed in. Sign in to enable transcription and AI features.
+                      {t('auth.notSignedIn', { ns: 'common' })}
                     </p>
                     <button
                       onClick={() => setShowSignIn(true)}
                       className="w-full px-4 py-2 rounded-qm-md bg-gradient-to-r from-qm-gradient-start to-qm-gradient-end text-white text-body-sm font-medium hover:shadow-qm-glow hover-scale transition-all"
                     >
-                      Sign In
+                      {t('auth.signIn', { ns: 'common' })}
                     </button>
                   </div>
                 )
               ) : (
                 <div className="p-4 rounded-qm-lg bg-qm-surface-light border border-qm-border-subtle space-y-3">
                   <div className="flex justify-between items-center">
-                    <span className="text-body-sm text-qm-text-secondary">Email</span>
+                    <span className="text-body-sm text-qm-text-secondary">{t('auth.email', { ns: 'common' })}</span>
                     <div className="flex items-center gap-2">
                       <span className="text-body-sm text-qm-text-primary">{currentUser?.email}</span>
                       {currentUser?.authMethod && (
                         <span className="text-caption text-qm-text-tertiary px-2 py-0.5 rounded-full bg-qm-surface-medium">
-                          via {currentUser.authMethod === 'google' ? 'Google' : 'Email'}
+                          {t('auth.via', { ns: 'common', method: currentUser.authMethod === 'google' ? 'Google' : 'Email' })}
                         </span>
                       )}
                     </div>
                   </div>
                   <div className="flex justify-between items-center">
-                    <span className="text-body-sm text-qm-text-secondary">Plan</span>
+                    <span className="text-body-sm text-qm-text-secondary">{t('auth.plan', { ns: 'common' })}</span>
                     <span className={cn(
                       "text-body-sm font-medium capitalize",
                       license.isPro() ? "text-qm-warning" : "text-qm-accent"
@@ -217,19 +219,19 @@ export function SettingsView() {
                     onClick={() => logout()}
                     className="w-full mt-2 px-4 py-2 rounded-qm-md bg-qm-surface-medium hover:bg-qm-error-light text-body-sm text-qm-text-secondary hover:text-qm-error transition-colors"
                   >
-                    Sign Out
+                    {t('auth.signOut', { ns: 'common' })}
                   </button>
                 </div>
               )}
 
               {/* Language */}
-              <h3 className="text-headline font-semibold text-qm-text-primary mb-4 mt-8">Language</h3>
+              <h3 className="text-headline font-semibold text-qm-text-primary mb-4 mt-8">{t('settings.language.title')}</h3>
               <div className="p-4 rounded-qm-lg bg-qm-surface-light border border-qm-border-subtle">
                 <div className="flex items-start justify-between gap-4">
                   <div className="flex-1">
-                    <p className="text-body-sm text-qm-text-primary">App Language</p>
+                    <p className="text-body-sm text-qm-text-primary">{t('settings.language.appLanguage')}</p>
                     <p className="text-caption text-qm-text-tertiary">
-                      Language for transcription and AI responses
+                      {t('settings.language.appLanguageDescription')}
                     </p>
                   </div>
                   <select
@@ -250,7 +252,7 @@ export function SettingsView() {
                     <option style={{ backgroundColor: '#1a1a2e', color: '#ffffff' }} value="ko">&#54620;&#44397;&#50612;</option>
                     <option style={{ backgroundColor: '#1a1a2e', color: '#ffffff' }} value="ar">&#1575;&#1604;&#1593;&#1585;&#1576;&#1610;&#1577;</option>
                     <option style={{ backgroundColor: '#1a1a2e', color: '#ffffff' }} value="ru">&#1056;&#1091;&#1089;&#1089;&#1082;&#1080;&#1081;</option>
-                    <option style={{ backgroundColor: '#1a1a2e', color: '#ffffff' }} value="multi">Auto-detect (multilingual)</option>
+                    <option style={{ backgroundColor: '#1a1a2e', color: '#ffffff' }} value="multi">{t('settings.language.autoDetect')}</option>
                   </select>
                 </div>
               </div>
@@ -259,31 +261,31 @@ export function SettingsView() {
 
           {activeTab === 'general' && (
             <section>
-              <h3 className="text-headline font-semibold text-qm-text-primary mb-4">General</h3>
+              <h3 className="text-headline font-semibold text-qm-text-primary mb-4">{t('settings.general.title')}</h3>
               <div className="space-y-3">
                 <ToggleRow
-                  label="Smart Mode"
-                  description="Enhanced AI reasoning (Enterprise)"
+                  label={t('settings.general.smartMode')}
+                  description={t('settings.general.smartModeDescription')}
                   enabled={config.smartModeEnabled}
                   onToggle={(v) => handleToggle('smartModeEnabled', v)}
                 />
                 <ToggleRow
-                  label="Undetectable Overlay"
-                  description="Hide overlay from screen sharing (Enterprise)"
+                  label={t('settings.general.undetectableOverlay')}
+                  description={t('settings.general.undetectableOverlayDescription')}
                   enabled={config.isUndetectabilityEnabled}
                   onToggle={(v) => handleToggle('isUndetectabilityEnabled', v)}
                 />
                 <ToggleRow
-                  label="Auto Screen Capture"
-                  description="Automatically capture screenshots"
+                  label={t('settings.general.autoScreenCapture')}
+                  description={t('settings.general.autoScreenCaptureDescription')}
                   enabled={config.autoScreenCapture}
                   onToggle={(v) => handleToggle('autoScreenCapture', v)}
                 />
                 {config.autoScreenCapture && (
                   <>
                     <SliderRow
-                      label="Capture Interval"
-                      description="Time between automatic screen captures"
+                      label={t('settings.general.captureInterval')}
+                      description={t('settings.general.captureIntervalDescription')}
                       value={config.screenCaptureIntervalSeconds}
                       min={1}
                       max={30}
@@ -300,17 +302,17 @@ export function SettingsView() {
 
           {activeTab === 'autoAnswer' && (
             <section>
-              <h3 className="text-headline font-semibold text-qm-text-primary mb-4">Auto-Answer</h3>
+              <h3 className="text-headline font-semibold text-qm-text-primary mb-4">{t('settings.autoAnswer.title')}</h3>
               <div className="space-y-3">
                 <ToggleRow
-                  label="Enable Auto-Answer"
-                  description="Automatically trigger AI based on conversation flow (Enterprise)"
+                  label={t('settings.autoAnswer.enable')}
+                  description={t('settings.autoAnswer.enableDescription')}
                   enabled={config.autoAnswerEnabled}
                   onToggle={(v) => handleToggle('autoAnswerEnabled', v)}
                 />
                 <SliderRow
-                  label="Silence Threshold"
-                  description="Duration of silence before auto-answer triggers"
+                  label={t('settings.autoAnswer.silenceThreshold')}
+                  description={t('settings.autoAnswer.silenceThresholdDescription')}
                   value={config.autoAnswerSilenceThreshold}
                   min={1.0}
                   max={5.0}
@@ -319,8 +321,8 @@ export function SettingsView() {
                   onChange={(v) => config.updateConfig({ autoAnswerSilenceThreshold: v })}
                 />
                 <SliderRow
-                  label="Cooldown"
-                  description="Minimum time between auto-answer triggers"
+                  label={t('settings.autoAnswer.cooldown')}
+                  description={t('settings.autoAnswer.cooldownDescription')}
                   value={config.autoAnswerCooldown}
                   min={5}
                   max={30}
@@ -330,9 +332,9 @@ export function SettingsView() {
                 />
                 <div className="flex items-start justify-between py-2 gap-4">
                   <div className="flex-1">
-                    <p className="text-body-sm text-qm-text-primary">Response Type</p>
+                    <p className="text-body-sm text-qm-text-primary">{t('settings.autoAnswer.responseType')}</p>
                     <p className="text-caption text-qm-text-tertiary">
-                      Which response type auto-answer triggers
+                      {t('settings.autoAnswer.responseTypeDescription')}
                     </p>
                   </div>
                   <select
@@ -341,9 +343,9 @@ export function SettingsView() {
                     className="text-body-sm rounded-qm-md px-3 py-1.5 border border-qm-border-subtle outline-none focus:border-qm-accent"
                     style={{ backgroundColor: '#1a1a2e', color: '#ffffff' }}
                   >
-                    <option style={{ backgroundColor: '#1a1a2e', color: '#ffffff' }} value="assist">Assist</option>
-                    <option style={{ backgroundColor: '#1a1a2e', color: '#ffffff' }} value="what_should_i_say">What Should I Say</option>
-                    <option style={{ backgroundColor: '#1a1a2e', color: '#ffffff' }} value="follow_up">Follow-up</option>
+                    <option style={{ backgroundColor: '#1a1a2e', color: '#ffffff' }} value="assist">{t('settings.autoAnswer.responseTypes.assist')}</option>
+                    <option style={{ backgroundColor: '#1a1a2e', color: '#ffffff' }} value="what_should_i_say">{t('settings.autoAnswer.responseTypes.whatShouldISay')}</option>
+                    <option style={{ backgroundColor: '#1a1a2e', color: '#ffffff' }} value="follow_up">{t('settings.autoAnswer.responseTypes.followUp')}</option>
                   </select>
                 </div>
               </div>
@@ -353,20 +355,20 @@ export function SettingsView() {
           {activeTab === 'proactive' && (
             <section>
               <h3 className="text-headline font-semibold text-qm-text-primary mb-4">
-                Proactive Suggestions
+                {t('settings.proactive.title')}
               </h3>
               <div className="space-y-3">
                 <ToggleRow
-                  label="Enable Proactive Mode"
-                  description="Detect conversation moments and suggest responses automatically"
+                  label={t('settings.proactive.enable')}
+                  description={t('settings.proactive.enableDescription')}
                   enabled={config.proactiveEnabled}
                   onToggle={(v) => handleToggle('proactiveEnabled', v)}
                 />
                 {config.proactiveEnabled && (
                   <>
                     <SliderRow
-                      label="Detection Sensitivity"
-                      description="How sensitive the proactive detection is"
+                      label={t('settings.proactive.sensitivity')}
+                      description={t('settings.proactive.sensitivityDescription')}
                       value={config.proactiveSensitivity}
                       min={0.5}
                       max={1.0}
@@ -375,8 +377,8 @@ export function SettingsView() {
                       onChange={(v) => config.updateConfig({ proactiveSensitivity: v })}
                     />
                     <SliderRow
-                      label="Cooldown Between Suggestions"
-                      description="Minimum time between proactive suggestions"
+                      label={t('settings.proactive.cooldown')}
+                      description={t('settings.proactive.cooldownDescription')}
                       value={config.proactiveCooldown}
                       min={5}
                       max={60}
@@ -385,26 +387,26 @@ export function SettingsView() {
                       onChange={(v) => config.updateConfig({ proactiveCooldown: v })}
                     />
                     <ToggleRow
-                      label="Objection Detection"
-                      description="Detect sales objections and suggest counter-arguments"
+                      label={t('settings.proactive.objections')}
+                      description={t('settings.proactive.objectionsDescription')}
                       enabled={config.proactiveObjectionsEnabled}
                       onToggle={(v) => handleToggle('proactiveObjectionsEnabled', v)}
                     />
                     <ToggleRow
-                      label="Question Detection"
-                      description="Detect technical/expertise questions"
+                      label={t('settings.proactive.questions')}
+                      description={t('settings.proactive.questionsDescription')}
                       enabled={config.proactiveQuestionsEnabled}
                       onToggle={(v) => handleToggle('proactiveQuestionsEnabled', v)}
                     />
                     <ToggleRow
-                      label="Hesitation Detection"
-                      description="Detect when you hesitate and suggest talking points"
+                      label={t('settings.proactive.hesitations')}
+                      description={t('settings.proactive.hesitationsDescription')}
                       enabled={config.proactiveHesitationsEnabled}
                       onToggle={(v) => handleToggle('proactiveHesitationsEnabled', v)}
                     />
                     <ToggleRow
-                      label="Closing Opportunity"
-                      description="Detect closing signals and suggest next steps"
+                      label={t('settings.proactive.closing')}
+                      description={t('settings.proactive.closingDescription')}
                       enabled={config.proactiveClosingEnabled}
                       onToggle={(v) => handleToggle('proactiveClosingEnabled', v)}
                     />
@@ -416,17 +418,17 @@ export function SettingsView() {
 
           {activeTab === 'audio' && (
             <section>
-              <h3 className="text-headline font-semibold text-qm-text-primary mb-4">Audio</h3>
+              <h3 className="text-headline font-semibold text-qm-text-primary mb-4">{t('settings.audio.title')}</h3>
               <div className="space-y-3">
                 <ToggleRow
-                  label="Capture Microphone"
-                  description="Record your voice during sessions"
+                  label={t('settings.audio.captureMicrophone')}
+                  description={t('settings.audio.captureMicrophoneDescription')}
                   enabled={config.captureMicrophone}
                   onToggle={(v) => handleToggle('captureMicrophone', v)}
                 />
                 <ToggleRow
-                  label="Capture System Audio"
-                  description="Record other participants' audio"
+                  label={t('settings.audio.captureSystemAudio')}
+                  description={t('settings.audio.captureSystemAudioDescription')}
                   enabled={config.captureSystemAudio}
                   onToggle={(v) => handleToggle('captureSystemAudio', v)}
                 />
@@ -437,22 +439,22 @@ export function SettingsView() {
 
           {activeTab === 'sync' && (
             <section>
-              <h3 className="text-headline font-semibold text-qm-text-primary mb-4">Sync</h3>
+              <h3 className="text-headline font-semibold text-qm-text-primary mb-4">{t('settings.sync.title')}</h3>
               <div className="p-4 rounded-qm-lg bg-qm-surface-light border border-qm-border-subtle space-y-3">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <span className={`w-2.5 h-2.5 rounded-full ${syncColor}`} />
-                    <span className="text-body-sm text-qm-text-primary">Cloud Sync</span>
+                    <span className="text-body-sm text-qm-text-primary">{t('settings.sync.cloudSync')}</span>
                   </div>
                   <span className="text-body-sm text-qm-text-secondary">{syncLabel}</span>
                 </div>
                 {lastSync && (
                   <p className="text-caption text-qm-text-tertiary">
-                    Last synced: {new Date(lastSync).toLocaleString()}
+                    {t('settings.sync.lastSynced', { time: new Date(lastSync).toLocaleString() })}
                   </p>
                 )}
                 <p className="text-caption text-qm-text-tertiary">
-                  Sync is available for Pro subscribers
+                  {t('license.proSyncAvailable', { ns: 'common' })}
                 </p>
                 {isAuthenticated && (
                   <button
@@ -460,7 +462,7 @@ export function SettingsView() {
                     disabled={isSyncing}
                     className="w-full px-4 py-2 rounded-qm-md bg-qm-surface-medium hover:bg-qm-surface-pressed text-body-sm text-qm-text-primary transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    {isSyncing ? 'Syncing...' : 'Sync Now'}
+                    {isSyncing ? t('settings.sync.syncing') : t('settings.sync.syncNow')}
                   </button>
                 )}
               </div>
@@ -470,23 +472,23 @@ export function SettingsView() {
           {activeTab === 'shortcuts' && (
             <section>
               <h3 className="text-headline font-semibold text-qm-text-primary mb-4">
-                Keyboard Shortcuts
+                {t('settings.shortcuts.title')}
               </h3>
               <div className="space-y-3">
                 <div className="flex justify-between items-center py-2">
-                  <span className="text-body-sm text-qm-text-secondary">Start/Stop Session</span>
+                  <span className="text-body-sm text-qm-text-secondary">{t('settings.shortcuts.startStop')}</span>
                   <KeyboardShortcutBadge shortcut="Ctrl+Shift+S" />
                 </div>
                 <div className="flex justify-between items-center py-2">
-                  <span className="text-body-sm text-qm-text-secondary">Toggle Widget</span>
+                  <span className="text-body-sm text-qm-text-secondary">{t('settings.shortcuts.toggleWidget')}</span>
                   <KeyboardShortcutBadge shortcut="Ctrl+\\" />
                 </div>
                 <div className="flex justify-between items-center py-2">
-                  <span className="text-body-sm text-qm-text-secondary">Trigger AI Assist</span>
+                  <span className="text-body-sm text-qm-text-secondary">{t('settings.shortcuts.triggerAssist')}</span>
                   <KeyboardShortcutBadge shortcut="Ctrl+Enter" />
                 </div>
                 <div className="flex justify-between items-center py-2">
-                  <span className="text-body-sm text-qm-text-secondary">Clear Context</span>
+                  <span className="text-body-sm text-qm-text-secondary">{t('settings.shortcuts.clearContext')}</span>
                   <KeyboardShortcutBadge shortcut="Ctrl+Shift+R" />
                 </div>
               </div>
@@ -495,12 +497,12 @@ export function SettingsView() {
 
           {activeTab === 'updates' && (
             <section>
-              <h3 className="text-headline font-semibold text-qm-text-primary mb-4">Updates</h3>
+              <h3 className="text-headline font-semibold text-qm-text-primary mb-4">{t('settings.updates.title')}</h3>
               <div className="p-4 rounded-qm-lg bg-qm-surface-light border border-qm-border-subtle space-y-3">
                 <div className="flex items-start justify-between py-2 gap-4">
                   <div className="flex-1">
-                    <p className="text-body-sm text-qm-text-primary">App Version</p>
-                    <p className="text-caption text-qm-text-tertiary">Currently installed version</p>
+                    <p className="text-body-sm text-qm-text-primary">{t('settings.updates.appVersion')}</p>
+                    <p className="text-caption text-qm-text-tertiary">{t('settings.updates.appVersionDescription')}</p>
                   </div>
                   <span className="text-body-sm text-qm-accent font-medium">
                     {appVersion || '...'}
@@ -514,7 +516,7 @@ export function SettingsView() {
                   disabled={isCheckingUpdate}
                   className="w-full px-4 py-2 rounded-qm-md bg-qm-surface-medium hover:bg-qm-surface-pressed text-body-sm text-qm-text-primary transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  {isCheckingUpdate ? 'Checking...' : 'Check for Updates'}
+                  {isCheckingUpdate ? t('settings.updates.checking') : t('settings.updates.checkForUpdates')}
                 </button>
               </div>
             </section>
@@ -607,6 +609,7 @@ const SEGMENT_COLORS = [
 ]
 
 function AudioLevelTest() {
+  const { t } = useTranslation('dashboard')
   const [isTesting, setIsTesting] = useState(false)
   const [level, setLevel] = useState(0)
   const streamRef = useRef<MediaStream | null>(null)
@@ -669,8 +672,8 @@ function AudioLevelTest() {
     <div className="pt-3 border-t border-qm-border-subtle">
       <div className="flex items-center justify-between mb-2">
         <div>
-          <p className="text-body-sm text-qm-text-primary">Audio Level Test</p>
-          <p className="text-caption text-qm-text-tertiary">Check your microphone input</p>
+          <p className="text-body-sm text-qm-text-primary">{t('settings.audio.audioLevelTest')}</p>
+          <p className="text-caption text-qm-text-tertiary">{t('settings.audio.audioLevelTestDescription')}</p>
         </div>
         <button
           onClick={isTesting ? stopTest : startTest}
@@ -680,7 +683,7 @@ function AudioLevelTest() {
               : 'bg-qm-accent/20 text-qm-accent hover:bg-qm-accent/30'
           }`}
         >
-          {isTesting ? 'Stop Test' : 'Start Test'}
+          {isTesting ? t('settings.audio.stopTest') : t('settings.audio.startTest')}
         </button>
       </div>
       <div className="flex items-center gap-0.5">

@@ -1,22 +1,24 @@
 import { Sparkles, MessageSquare, MessageCircleQuestion, RotateCcw } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { useOverlayStore } from '@/stores/overlayStore'
 import { ResponseType } from '@/types/models'
 import { cn } from '@/lib/utils'
-
-const TABS = [
-  { type: ResponseType.Assist, label: 'Assist', icon: Sparkles },
-  { type: ResponseType.WhatToSay, label: 'What to say', icon: MessageSquare },
-  { type: ResponseType.FollowUp, label: 'Follow-up', icon: MessageCircleQuestion },
-  { type: ResponseType.Recap, label: 'Recap', icon: RotateCcw },
-] as const
 
 interface TabBarProps {
   onTabSelected?: (type: ResponseType) => void
 }
 
 export function TabBar({ onTabSelected }: TabBarProps) {
+  const { t } = useTranslation('overlay')
   const selectedTab = useOverlayStore((s) => s.selectedTab)
   const setSelectedTab = useOverlayStore((s) => s.setSelectedTab)
+
+  const TABS = [
+    { type: ResponseType.Assist, label: t('tabs.assist'), icon: Sparkles },
+    { type: ResponseType.WhatToSay, label: t('tabs.whatToSay'), icon: MessageSquare },
+    { type: ResponseType.FollowUp, label: t('tabs.followUp'), icon: MessageCircleQuestion },
+    { type: ResponseType.Recap, label: t('tabs.recap'), icon: RotateCcw },
+  ] as const
 
   return (
     <div className="px-2 pt-1 pb-1.5">

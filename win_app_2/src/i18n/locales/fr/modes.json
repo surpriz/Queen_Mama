@@ -1,0 +1,28 @@
+{
+  "builtIn": {
+    "default": {
+      "name": "Par défaut",
+      "description": "Assistant de coaching en temps réel polyvalent. S'adapte à toute situation — réunions, examens, workflows — avec des conseils concrets et contextuels. Correspond automatiquement à la langue de la conversation."
+    },
+    "limitless": {
+      "name": "Illimité",
+      "description": "Mode cognitif avancé offrant une analyse approfondie, une reconnaissance instantanée des schémas et des connaissances encyclopédiques dans tous les domaines. Anticipe plusieurs étapes et connecte les informations de multiples disciplines."
+    },
+    "professional": {
+      "name": "Professionnel",
+      "description": "Optimisé pour les environnements d'entreprise — réunions, négociations, présentations et sessions stratégiques. Fournit des analyses de niveau dirigeant, un sens des affaires et des conseils en communication professionnelle."
+    },
+    "interview": {
+      "name": "Entretien",
+      "description": "Coaching spécialisé pour les entretiens d'embauche. Aide à formuler des réponses convaincantes et structurées selon des méthodologies éprouvées. S'adapte aux questions techniques, comportementales et situationnelles en temps réel."
+    },
+    "sales": {
+      "name": "Commercial",
+      "description": "Coaching commercial pour conclure des affaires avec confiance. Fournit en temps réel la gestion des objections, des techniques de persuasion et des conseils de négociation stratégique adaptés au flux de la conversation."
+    },
+    "developer_exam": {
+      "name": "Examen développeur",
+      "description": "Compagnon d'évaluation de code pour les examens en ligne (CodinGame, LeetCode, HackerRank, etc.). Fournit les approches algorithmiques optimales, l'analyse de complexité et des conseils d'implémentation propre."
+    }
+  }
+}

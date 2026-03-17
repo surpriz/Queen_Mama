@@ -172,6 +172,11 @@ export const changelogData: ChangelogRelease[] = [
             id: "processingIndicator",
             title: "AI Processing Indicator",
             description: "A visual indicator now shows when the AI is actively generating a response"
+          },
+          {
+            id: "proactivePatternRecognition",
+            title: "Proactive Pattern Recognition",
+            description: "AI modes now automatically identify psychological and organizational patterns in conversations and connect them to concrete actions — without waiting for you to introduce the concept"
           }
         ]
       },

@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { v4 as uuidv4 } from 'uuid'
 import { FileText, Plus, X } from 'lucide-react'
 import type { Mode, AttachedFile } from '@/types/models'
@@ -12,6 +13,7 @@ interface ModeEditorProps {
 }
 
 export function ModeEditor({ mode, onSave, onCancel }: ModeEditorProps) {
+  const { t } = useTranslation('dashboard')
   const [name, setName] = useState(mode?.name || '')
   const [systemPrompt, setSystemPrompt] = useState(mode?.systemPrompt || '')
   const [attachedFiles, setAttachedFiles] = useState<AttachedFile[]>(mode?.attachedFiles || [])
@@ -63,7 +65,7 @@ export function ModeEditor({ mode, onSave, onCancel }: ModeEditorProps) {
     <form onSubmit={handleSubmit} className="flex flex-col h-full p-6">
       <div className="flex items-center justify-between mb-6">
         <h2 className="text-title-sm font-semibold text-qm-text-primary">
-          {mode ? 'Edit Mode' : 'Create Mode'}
+          {mode ? t('modes.editMode') : t('modes.createMode')}
         </h2>
         <div className="flex gap-2">
           <button
@@ -71,25 +73,25 @@ export function ModeEditor({ mode, onSave, onCancel }: ModeEditorProps) {
             onClick={onCancel}
             className="px-4 py-2 rounded-qm-md bg-qm-surface-medium text-qm-text-secondary text-body-sm hover:bg-qm-surface-hover transition-colors"
           >
-            Cancel
+            {t('actions.cancel', { ns: 'common' })}
           </button>
           <button
             type="submit"
             className="px-4 py-2 rounded-qm-md bg-gradient-to-r from-qm-gradient-start to-qm-gradient-end text-white text-body-sm font-medium hover:shadow-qm-glow transition-shadow"
           >
-            Save
+            {t('actions.save', { ns: 'common' })}
           </button>
         </div>
       </div>
 
       <div className="space-y-4">
         <div>
-          <label className="block text-label-md text-qm-text-secondary mb-1.5">Name</label>
+          <label className="block text-label-md text-qm-text-secondary mb-1.5">{t('contacts.name')}</label>
           <input
             type="text"
             value={name}
             onChange={(e) => setName(e.target.value)}
-            placeholder="e.g., Technical Interview"
+            placeholder={t('modes.namePlaceholder')}
             required
             className="w-full px-4 py-2.5 rounded-qm-md bg-qm-surface-light border border-qm-border-subtle text-body-sm text-qm-text-primary placeholder:text-qm-text-disabled focus:border-qm-accent focus:outline-none"
           />
@@ -97,12 +99,12 @@ export function ModeEditor({ mode, onSave, onCancel }: ModeEditorProps) {
 
         <div className="flex-1">
           <label className="block text-label-md text-qm-text-secondary mb-1.5">
-            System Prompt
+            {t('modes.systemPrompt')}
           </label>
           <textarea
             value={systemPrompt}
             onChange={(e) => setSystemPrompt(e.target.value)}
-            placeholder="Describe how the AI should behave in this mode..."
+            placeholder={t('modes.promptPlaceholder')}
             required
             rows={10}
             className="w-full px-4 py-3 rounded-qm-md bg-qm-surface-light border border-qm-border-subtle text-body-sm text-qm-text-primary placeholder:text-qm-text-disabled focus:border-qm-accent focus:outline-none resize-y"
@@ -112,21 +114,21 @@ export function ModeEditor({ mode, onSave, onCancel }: ModeEditorProps) {
         {/* Attached Files */}
         <div>
           <div className="flex items-center justify-between mb-2">
-            <label className="text-label-md text-qm-text-secondary">Attached Files</label>
+            <label className="text-label-md text-qm-text-secondary">{t('modes.attachedFiles')}</label>
             <button
               type="button"
               onClick={handleAddFile}
               className="flex items-center gap-1 px-2.5 py-1 rounded-qm-sm bg-qm-accent/10 text-qm-accent text-caption font-medium hover:bg-qm-accent/20 transition-colors"
             >
               <Plus size={12} />
-              Add File
+              {t('modes.addFile')}
             </button>
           </div>
 
           {attachedFiles.length === 0 ? (
             <div className="rounded-qm-md border border-dashed border-qm-border-subtle p-4 text-center">
               <p className="text-caption text-qm-text-tertiary">
-                No files attached. Add PDF, TXT, or RTF files to include in AI context.
+                {t('modes.noFilesAttached')}
               </p>
             </div>
           ) : (
