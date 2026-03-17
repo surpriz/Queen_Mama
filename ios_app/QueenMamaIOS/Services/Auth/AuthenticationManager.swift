@@ -393,17 +393,21 @@ final class AuthenticationManager: ObservableObject {
 
     // MARK: - Error Classification
 
-    /// Only truly unrecoverable errors should be permanent.
-    /// Everything else → degraded mode (getAccessToken() will retry on next action).
+    /// Errors that indicate the session is gone and the user MUST re-authenticate.
+    /// Transient errors (network, server) → degraded mode with transparent retry.
     private func isPermanentAuthError(_ error: Error) -> Bool {
         if let authError = error as? AuthError {
             switch authError {
             case .accountBlocked, .deviceLimitReached:
                 // Account-level blocks that won't resolve by retrying
                 return true
+            case .invalidToken, .tokenExpired:
+                // Server explicitly rejected the refresh token (401).
+                // The session is gone — retrying will keep failing.
+                return true
             default:
-                // All other auth errors (.invalidToken, .tokenExpired, .serverError,
-                // .networkError, etc.) → allow degraded mode with transparent retry
+                // Network errors, server errors, decoding errors → transient
+                // Allow degraded mode with transparent retry via getAccessToken()
                 return false
             }
         }

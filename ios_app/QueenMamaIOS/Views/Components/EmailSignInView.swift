@@ -392,8 +392,10 @@ struct EmailSignInView: View {
     }
 
     private func forgotPassword() {
-        // Open password reset page in browser
-        if let url = URL(string: "https://www.queenmama.co/forgot-password?email=\(email.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? "")") {
+        // Open password reset page in browser (uses dynamic base URL, not hardcoded prod)
+        let baseURL = AppEnvironment.current.apiBaseURL
+        let encodedEmail = email.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? ""
+        if let url = URL(string: "\(baseURL)/forgot-password?email=\(encodedEmail)") {
             openURL(url)
         }
     }
