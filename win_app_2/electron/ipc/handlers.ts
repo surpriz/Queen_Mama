@@ -20,6 +20,7 @@ import {
 } from '../windows/overlayWindow'
 import { setTrayLanguage } from '../windows/trayManager'
 import { flashDisplay } from '../windows/displayFlash'
+import { hideMeetingNotification } from '../windows/meetingNotificationWindow'
 
 const store = new Store()
 
@@ -336,6 +337,9 @@ export function registerIPCHandlers(): void {
       return null
     }
   })
+
+  // Meeting detection dismiss
+  ipcMain.on(IPC_CHANNELS.MEETING_DISMISS, () => hideMeetingNotification())
 
   // i18n: language changed from renderer
   ipcMain.on(IPC_CHANNELS.I18N_LANGUAGE_CHANGED, (_event, _lang: string, strings: { startSession: string; stopSession: string; showHideWidget: string; openDashboard: string; quit: string }) => {

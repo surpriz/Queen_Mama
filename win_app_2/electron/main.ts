@@ -34,6 +34,8 @@ import { registerGlobalShortcuts } from './services/globalShortcuts'
 import { IPC_CHANNELS } from './ipc/channels'
 import { initializeDatabase, closeDatabase } from './db/database'
 import { safeSendToAllWindows, safeSendToWindow } from './utils/ipcUtils'
+import { startMonitoring, stopMonitoring, setSessionActive, setOnMeetingDetected } from './services/meetingDetectionService'
+import { createMeetingNotificationWindow, showMeetingNotification } from './windows/meetingNotificationWindow'
 
 // Google OAuth client ID - Desktop type for Windows/Electron (supports loopback redirects)
 // This should match the Client ID used in the renderer (googleAuthService.ts)
@@ -159,12 +161,18 @@ if (!gotTheLock) {
     ipcMain.on(IPC_CHANNELS.TRAY_UPDATE_ICON, (_event, active: boolean) => {
       updateTrayIcon(active)
       updateTrayMenu(active)
+      setSessionActive(active)
     })
 
     // Create windows
     const mainWindow = createMainWindow()
     createOverlayWindow()
+    createMeetingNotificationWindow()
     createTray()
+
+    // Start meeting detection
+    setOnMeetingDetected(() => showMeetingNotification())
+    startMonitoring()
 
     // Register global keyboard shortcuts
     registerGlobalShortcuts()
@@ -196,6 +204,7 @@ if (!gotTheLock) {
   // Clean up on quit
   app.on('will-quit', () => {
     globalShortcut.unregisterAll()
+    stopMonitoring()
     closeDatabase()
 
     // In dev mode, kill backend/proxy processes to free all ports

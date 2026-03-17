@@ -144,6 +144,11 @@ const PS_COMMAND = [
 let pollTimer: ReturnType<typeof setInterval> | null = null
 let isMonitoring = false
 let isSessionActive = false
+let onMeetingDetectedCallback: ((appName: string) => void) | null = null
+
+export function setOnMeetingDetected(cb: (appName: string) => void): void {
+  onMeetingDetectedCallback = cb
+}
 
 /** Per-app cooldown map: displayName -> last triggered timestamp */
 const cooldowns = new Map<string, number>()
@@ -244,6 +249,9 @@ function triggerIfEligible(appName: string): void {
   cooldowns.set(appName, now)
 
   console.log(`[MeetingDetection] Triggering reminder for: ${appName}`)
+
+  // Show notification window before IPC arrives at renderer
+  onMeetingDetectedCallback?.(appName)
 
   // Send IPC to all renderer windows
   safeSendToAllWindows(IPC_CHANNELS.MEETING_DETECTED, { appName })
