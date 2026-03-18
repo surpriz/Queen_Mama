@@ -11,7 +11,7 @@
 #   monitor    Continuous surveillance mode
 #
 # Global Options:
-#   -p, --project <slug>   Filter by project (queen-mama-macos | queenmama-electron | queenmama_landing)
+#   -p, --project <slug>   Filter by project (queen-mama-macos | queenmama-ios | queenmama-electron | queenmama_landing)
 #   --limit <n>            Number of issues (default: 25)
 #   --no-color             Disable colors
 #   -v, --verbose          Verbose mode
@@ -25,7 +25,7 @@ set -euo pipefail
 
 SENTRY_ORG="cloudwaste"
 SENTRY_API="https://sentry.io/api/0"
-DEFAULT_PROJECTS="queen-mama-macos queenmama-electron queenmama_landing"
+DEFAULT_PROJECTS="queen-mama-macos queenmama-ios queenmama-electron queenmama_landing"
 DEFAULT_LIMIT=25
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 REPORTS_DIR="${SCRIPT_DIR}/reports"
@@ -542,6 +542,39 @@ recommend() {
             ;;
     esac
 
+    # ---- iOS-specific ----
+
+    case "$project" in
+        *"ios"*)
+            case "$title" in
+                *"AVAudioSession"*|*"audio"*)
+                    echo "CAUSE: iOS audio session error — interruption, route change, or activation failure"
+                    echo "FIX: Check AVAudioSession category/mode and interruption handling"
+                    echo "REF: ios_app/QueenMamaIOS/Services/AudioCaptureService.swift"
+                    return
+                    ;;
+                *"backgroundTask"*|*"Background"*)
+                    echo "CAUSE: iOS background task expired or was terminated by the system"
+                    echo "FIX: Ensure background audio mode is active during recording sessions"
+                    echo "REF: ios_app/QueenMamaIOS/Info.plist — UIBackgroundModes"
+                    return
+                    ;;
+                *"TranscriptionError"*|*"disconnected"*)
+                    echo "CAUSE: WebSocket disconnected during active transcription session"
+                    echo "FIX: Handled by reconnection logic with exponential backoff"
+                    echo "REF: ios_app/QueenMamaIOS/Services/TranscriptionService.swift"
+                    return
+                    ;;
+                *"AIProviderError"*|*"notAuthenticated"*)
+                    echo "CAUSE: AI provider rejected request — expired/invalid token"
+                    echo "FIX: Check ProxyAPIClient token refresh logic"
+                    echo "REF: ios_app/QueenMamaIOS/Services/Proxy/ProxyAPIClient.swift"
+                    return
+                    ;;
+            esac
+            ;;
+    esac
+
     # ---- Electron/Windows-specific ----
 
     case "$project" in
@@ -612,7 +645,7 @@ recommend() {
             return
             ;;
         *"NSError"*|*"Swift"*)
-            echo "CAUSE: Native macOS/Swift error"
+            echo "CAUSE: Native macOS/iOS Swift error"
             echo "FIX: Check error domain and code, handle specific error cases"
             return
             ;;
@@ -1409,7 +1442,7 @@ Commands:
   monitor                 Continuous surveillance mode
 
 Global Options:
-  -p, --project <slug>    Filter by project (queen-mama-macos | queenmama-electron | queenmama_landing)
+  -p, --project <slug>    Filter by project (queen-mama-macos | queenmama-ios | queenmama-electron | queenmama_landing)
   --limit <n>             Number of issues (default: 25)
   --no-color              Disable colored output
   -v, --verbose           Verbose/debug output
@@ -1427,6 +1460,7 @@ Examples:
   ./scripts/sentry-issues.sh list
   ./scripts/sentry-issues.sh triage
   ./scripts/sentry-issues.sh triage -p queen-mama-macos
+  ./scripts/sentry-issues.sh list -p queenmama-ios
   ./scripts/sentry-issues.sh list -p queenmama-electron
   ./scripts/sentry-issues.sh diagnose 90912234
   ./scripts/sentry-issues.sh resolve 90912234 -y

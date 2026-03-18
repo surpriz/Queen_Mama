@@ -68,7 +68,7 @@ struct ActiveSessionView: View {
                     Image(systemName: "mic.fill")
                         .font(.system(size: 10))
                         .foregroundColor(QMDesign.Colors.accent)
-                    AudioLevelBar(level: appState.audioService.microphoneLevel)
+                    AudioLevelBar(level: appState.audioLevel)
                         .frame(width: 60, height: 8)
                 }
 
@@ -85,7 +85,7 @@ struct ActiveSessionView: View {
             ScrollViewReader { proxy in
                 ScrollView {
                     VStack(alignment: .leading, spacing: QMDesign.Spacing.sm) {
-                        if appState.currentTranscript.isEmpty && appState.transcriptionService.interimTranscript.isEmpty {
+                        if appState.currentTranscript.isEmpty && appState.interimTranscript.isEmpty {
                             VStack(spacing: QMDesign.Spacing.md) {
                                 Image(systemName: "waveform")
                                     .font(.system(size: 40))
@@ -105,8 +105,8 @@ struct ActiveSessionView: View {
                             }
 
                             // Interim text
-                            if !appState.transcriptionService.interimTranscript.isEmpty {
-                                Text(appState.transcriptionService.interimTranscript)
+                            if !appState.interimTranscript.isEmpty {
+                                Text(appState.interimTranscript)
                                     .font(QMDesign.Typography.bodyMedium)
                                     .foregroundColor(QMDesign.Colors.textSecondary)
                                     .italic()

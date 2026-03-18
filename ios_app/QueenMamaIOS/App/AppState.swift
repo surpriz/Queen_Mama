@@ -10,6 +10,7 @@ class AppState: ObservableObject {
     @Published var aiResponse = ""
     @Published var isProcessing = false
     @Published var audioLevel: Float = 0.0
+    @Published var interimTranscript = ""
     @Published var selectedMode: Mode? = Mode.defaultMode
     @Published var errorMessage: String?
     @Published var isFinalizingSession = false
@@ -55,6 +56,8 @@ class AppState: ObservableObject {
     /// Memory Palace: Contact to associate with current session
     var currentSessionContact: Contact?
 
+    private var cancellables = Set<AnyCancellable>()
+
     func startSession(contact: Contact? = nil) async {
         let sessionAccess = LicenseManager.shared.canUse(.sessionStart)
         guard sessionAccess.isAllowed else {
@@ -95,6 +98,12 @@ class AppState: ObservableObject {
 
             audioBatchingService.start()
 
+            // Bridge audio level to @Published var for SwiftUI reactivity
+            audioService.$microphoneLevel
+                .receive(on: RunLoop.main)
+                .assign(to: \.audioLevel, on: self)
+                .store(in: &cancellables)
+
             audioService.onAudioBuffer = { [weak self] buffer in
                 self?.audioBatchingService.append(buffer)
                 if self?.dictationService.isRecording == true {
@@ -111,6 +120,13 @@ class AppState: ObservableObject {
             transcriptionService.onTranscript = { [weak self] text in
                 Task { @MainActor in
                     self?.transcriptBuffer.append(text)
+                    self?.interimTranscript = ""
+                }
+            }
+
+            transcriptionService.onInterimTranscript = { [weak self] text in
+                Task { @MainActor in
+                    self?.interimTranscript = text
                 }
             }
 
@@ -163,6 +179,9 @@ class AppState: ObservableObject {
         autoAnswerService.reset()
         autoAnswerService.resetProactiveState()
         dictationService.stopRecording()
+        cancellables.removeAll()
+        audioLevel = 0.0
+        interimTranscript = ""
         isSessionActive = false
 
         guard let manager = sessionManager,

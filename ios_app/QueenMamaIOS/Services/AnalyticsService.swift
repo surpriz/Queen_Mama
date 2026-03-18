@@ -71,7 +71,7 @@ final class AnalyticsService {
         if let plan = plan {
             properties["plan"] = plan
         }
-        properties["platform"] = "macos"
+        properties["platform"] = "ios"
         properties["app_version"] = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "unknown"
 
         PostHogSDK.shared.identify(userId, userProperties: properties)
@@ -89,7 +89,7 @@ final class AnalyticsService {
     /// Track a custom event
     func capture(_ event: String, properties: [String: Any]? = nil) {
         var props = properties ?? [:]
-        props["platform"] = "macos"
+        props["platform"] = "ios"
 
         PostHogSDK.shared.capture(event, properties: props)
 

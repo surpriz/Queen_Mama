@@ -2,6 +2,8 @@ import SwiftUI
 
 struct MainTabView: View {
     @EnvironmentObject var appState: AppState
+    @EnvironmentObject var sessionManager: SessionManager
+    @Environment(\.modelContext) private var modelContext
     @State private var selectedTab = 0
 
     var body: some View {
@@ -45,6 +47,9 @@ struct MainTabView: View {
             .tag(4)
         }
         .tint(QMDesign.Colors.accent)
+        .onAppear {
+            sessionManager.setModelContext(modelContext)
+        }
         .sheet(isPresented: $appState.showOverlaySheet) {
             OverlayBottomSheet()
                 .environmentObject(appState)
