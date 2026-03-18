@@ -10,7 +10,7 @@ class AppState: ObservableObject {
     @Published var aiResponse = ""
     @Published var isProcessing = false
     @Published var audioLevel: Float = 0.0
-    @Published var selectedMode: Mode?
+    @Published var selectedMode: Mode? = Mode.defaultMode
     @Published var errorMessage: String?
     @Published var isFinalizingSession = false
 
