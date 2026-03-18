@@ -157,14 +157,26 @@ struct QueenMamaApp: App {
                 }
             }
             .preferredColorScheme(.dark)
-            // Recovery: if auth succeeds after timeout showed "Session Expired",
-            // automatically transition to dashboard without requiring manual re-login
+            // React to auth state changes for navigation
             .onChange(of: authManager.authState) { _, newState in
-                if launchState == .login, case .authenticated = newState {
-                    if ConfigurationManager.shared.hasCompletedOnboarding {
-                        print("[App] Auth recovered after timeout - switching to dashboard")
-                        launchState = .dashboard
+                switch newState {
+                case .authenticated:
+                    // Recovery: if auth succeeds after timeout showed "Session Expired",
+                    // automatically transition to dashboard without requiring manual re-login
+                    if launchState == .login {
+                        if ConfigurationManager.shared.hasCompletedOnboarding {
+                            print("[App] Auth recovered after timeout - switching to dashboard")
+                            launchState = .dashboard
+                        }
                     }
+                case .unauthenticated:
+                    // Logout: redirect to login screen if user was on dashboard
+                    if launchState == .dashboard {
+                        print("[App] User logged out - switching to login")
+                        launchState = .login
+                    }
+                default:
+                    break
                 }
             }
         }
