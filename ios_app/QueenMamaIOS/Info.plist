@@ -75,5 +75,7 @@
 	<string>499912921957-jskmos4jm1cpfgu6h7pmomeqvtltj9jq.apps.googleusercontent.com</string>
 	<key>ITSAppUsesNonExemptEncryption</key>
 	<false/>
+	<key>SentryDSN</key>
+	<string>$(SENTRY_DSN)</string>
 </dict>
 </plist>

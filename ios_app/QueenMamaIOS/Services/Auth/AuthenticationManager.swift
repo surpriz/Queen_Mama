@@ -287,6 +287,9 @@ final class AuthenticationManager: ObservableObject {
         isAuthenticated = false
         authState = .unauthenticated
 
+        // Clear Sentry user context
+        CrashReporter.shared.clearUser()
+
         // Notify other services
         NotificationCenter.default.post(name: .userDidLogout, object: nil)
     }
@@ -308,6 +311,9 @@ final class AuthenticationManager: ObservableObject {
         currentUser = nil
         isAuthenticated = false
         authState = .unauthenticated
+
+        // Clear Sentry user context
+        CrashReporter.shared.clearUser()
 
         // Notify other services
         NotificationCenter.default.post(name: .userDidLogout, object: nil)

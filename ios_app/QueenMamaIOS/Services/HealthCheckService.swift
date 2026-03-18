@@ -1,5 +1,8 @@
 import Foundation
 import Combine
+#if canImport(Sentry)
+import Sentry
+#endif
 
 /// Proactive health monitoring service
 /// Detects performance issues BEFORE users report them
@@ -391,6 +394,15 @@ extension HealthCheckService {
         case warning = "warning"
         case error = "error"
 
+        #if canImport(Sentry)
+        var crashReporterLevel: SentryLevel {
+            switch self {
+            case .info: return .info
+            case .warning: return .warning
+            case .error: return .error
+            }
+        }
+        #else
         var crashReporterLevel: CrashReporterLevel {
             switch self {
             case .info: return .info
@@ -398,5 +410,6 @@ extension HealthCheckService {
             case .error: return .error
             }
         }
+        #endif
     }
 }
