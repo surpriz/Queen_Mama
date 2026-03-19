@@ -100,6 +100,12 @@ final class ConfigurationManager: ObservableObject {
         didSet { defaults.set(proactiveClosingEnabled, forKey: Keys.proactiveClosing) }
     }
 
+    // MARK: - Buffered Pre-Generation
+
+    @Published var bufferedPreGenEnabled: Bool {
+        didSet { defaults.set(bufferedPreGenEnabled, forKey: Keys.bufferedPreGen) }
+    }
+
     // MARK: - Meeting Detection
 
     @Published var meetingDetectionEnabled: Bool {
@@ -150,6 +156,8 @@ final class ConfigurationManager: ObservableObject {
         static let proactiveClosing = "proactive_closing"
         static let appLanguage = "app_language"
         static let selectedDisplayID = "selected_display_id"
+        // Buffered Pre-Generation
+        static let bufferedPreGen = "buffered_pre_gen_enabled"
         // Meeting Detection
         static let meetingDetection = "meeting_detection_enabled"
     }
@@ -194,6 +202,9 @@ final class ConfigurationManager: ObservableObject {
         self.proactiveQuestionsEnabled = defaults.object(forKey: Keys.proactiveQuestions) as? Bool ?? true
         self.proactiveHesitationsEnabled = defaults.object(forKey: Keys.proactiveHesitations) as? Bool ?? false
         self.proactiveClosingEnabled = defaults.object(forKey: Keys.proactiveClosing) as? Bool ?? true
+
+        // Buffered Pre-Generation
+        self.bufferedPreGenEnabled = defaults.object(forKey: Keys.bufferedPreGen) as? Bool ?? true
 
         // Meeting Detection
         self.meetingDetectionEnabled = defaults.object(forKey: Keys.meetingDetection) as? Bool ?? true
@@ -246,6 +257,8 @@ final class ConfigurationManager: ObservableObject {
         proactiveQuestionsEnabled = true
         proactiveHesitationsEnabled = false
         proactiveClosingEnabled = true
+        // Buffered Pre-Generation
+        bufferedPreGenEnabled = true
         // Meeting Detection
         meetingDetectionEnabled = true
     }

@@ -7253,6 +7253,23 @@
         }
       }
     },
+    "overlay.status.ready" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ready"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Prêt"
+          }
+        }
+      }
+    },
     "overlay.status.smart" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -7674,6 +7691,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Capture d'écran : Désactivé"
+          }
+        }
+      }
+    },
+    "overlay.tooltip.preGenReady" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "AI response pre-generated — press ⌘↵ for instant result"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Réponse AI pré-générée — appuyez ⌘↵ pour un résultat instantané"
           }
         }
       }

@@ -54,6 +54,7 @@ struct OverlayContentView: View {
                 isSessionActive: appState.isSessionActive,
                 isFinalizingSession: appState.isFinalizingSession,
                 detectedMoment: appState.autoAnswerService.lastDetectedMoment,
+                preGenerationService: appState.preGenerationService,
                 transcriptionService: appState.transcriptionService,
                 enableScreenCapture: $enableScreenCapture,
                 isAutoAnswerEnabled: isAutoAnswerEnabled,
@@ -289,12 +290,21 @@ struct OverlayContentView: View {
                     // Standard tab-based requests
                     switch selectedTab {
                     case .assist:
-                        for try await chunk in appState.aiService.assistStreaming(
-                            transcript: transcriptForRequest,
-                            screenshot: screenshot,
-                            mode: appState.selectedMode
-                        ) {
-                            _ = chunk
+                        // Check for pre-generated response (instant path)
+                        if let preGenText = appState.preGenerationService.consumeBuffer() {
+                            appState.aiService.currentResponse = preGenText
+                            appState.aiService.isProcessing = false
+                            print("[Overlay] Instant response from pre-gen buffer (\(preGenText.count) chars)")
+                        } else {
+                            // Cancel any in-flight pre-gen before normal request
+                            appState.preGenerationService.cancelAndReset()
+                            for try await chunk in appState.aiService.assistStreaming(
+                                transcript: transcriptForRequest,
+                                screenshot: screenshot,
+                                mode: appState.selectedMode
+                            ) {
+                                _ = chunk
+                            }
                         }
                     case .whatToSay:
                         let response = try await appState.aiService.whatToSay(
@@ -404,6 +414,7 @@ struct ModernPillHeaderView: View {
     let isSessionActive: Bool
     let isFinalizingSession: Bool
     let detectedMoment: MomentDetectionService.DetectedMoment?
+    @ObservedObject var preGenerationService: PreGenerationService
     @ObservedObject var transcriptionService: TranscriptionService
     @Binding var enableScreenCapture: Bool
     @Binding var isAutoAnswerEnabled: Bool
@@ -426,6 +437,7 @@ struct ModernPillHeaderView: View {
     @State private var isPlayPulsing = false  // Pulsing animation for play button
     @State private var showExpandPreview = false  // Hover preview state
     @State private var isMomentPulsing = false  // Pulsing animation for moment detection
+    @State private var isPreGenPulsing = false  // Pulsing animation for pre-gen ready
     @Environment(\.openWindow) private var openWindow
 
     // Observe ConfigurationManager for undetectability
@@ -596,6 +608,26 @@ struct ModernPillHeaderView: View {
                         isActive: true
                     )
                     .help(String(localized: "overlay.tooltip.smartModeActive"))
+                }
+
+                // Pre-Generation Ready Indicator
+                if case .ready = preGenerationService.state {
+                    StatusBadge(
+                        icon: "bolt.fill",
+                        label: String(localized: "overlay.status.ready"),
+                        color: QMDesign.Colors.success,
+                        isActive: true
+                    )
+                    .help(String(localized: "overlay.tooltip.preGenReady"))
+                } else if case .generating = preGenerationService.state {
+                    // Subtle pulsing dot while generating
+                    Circle()
+                        .fill(QMDesign.Colors.accent)
+                        .frame(width: 5, height: 5)
+                        .opacity(isPreGenPulsing ? 0.3 : 0.9)
+                        .animation(.easeInOut(duration: 0.8).repeatForever(autoreverses: true), value: isPreGenPulsing)
+                        .onAppear { isPreGenPulsing = true }
+                        .onDisappear { isPreGenPulsing = false }
                 }
             }
 
