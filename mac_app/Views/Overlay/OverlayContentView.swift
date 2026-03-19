@@ -292,7 +292,23 @@ struct OverlayContentView: View {
                     case .assist:
                         // Check for pre-generated response (instant path)
                         if let preGenText = appState.preGenerationService.consumeBuffer() {
+                            // Display the pre-generated response
                             appState.aiService.currentResponse = preGenText
+
+                            // Commit as a real AIResponse (same as normal streaming completion)
+                            let response = AIResponse(
+                                type: .assist,
+                                content: preGenText,
+                                provider: appState.aiService.lastProvider ?? .openai
+                            )
+                            appState.aiService.responses.insert(response, at: 0)
+
+                            // Persist to SwiftData
+                            if let ctx = appState.aiService.modelContext {
+                                ctx.insert(response)
+                                try? ctx.save()
+                            }
+
                             appState.aiService.isProcessing = false
                             print("[Overlay] Instant response from pre-gen buffer (\(preGenText.count) chars)")
                         } else {
