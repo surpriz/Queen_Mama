@@ -1,0 +1,54 @@
+name: Tests iOS
+
+on:
+  pull_request:
+    branches: [main, staging]
+    paths:
+      - 'ios_app/**'
+  workflow_dispatch:
+
+concurrency:
+  group: test-ios-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  SCHEME: QueenMamaIOS
+  XCODE_PROJECT: ios_app/QueenMamaIOS.xcodeproj
+
+jobs:
+  test:
+    runs-on: macos-14
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Select Xcode
+        run: sudo xcode-select -s /Applications/Xcode_16.2.app
+
+      - name: Build
+        run: |
+          xcodebuild build \
+            -project $XCODE_PROJECT \
+            -scheme $SCHEME \
+            -destination 'platform=iOS Simulator,name=iPhone 16,OS=latest' \
+            CODE_SIGN_IDENTITY=- \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=NO \
+            -skipPackagePluginValidation \
+            -skipMacroValidation \
+            | tee build-output.log \
+            | tail -50
+
+      - name: Build Summary
+        if: always()
+        run: |
+          echo "## iOS Build Results" >> $GITHUB_STEP_SUMMARY
+          if grep -q "BUILD SUCCEEDED" build-output.log; then
+            echo "✅ **Build succeeded**" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "❌ **Build failed**" >> $GITHUB_STEP_SUMMARY
+          fi
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          grep "Build\|error:\|warning:" build-output.log | tail -20 >> $GITHUB_STEP_SUMMARY || true
+          echo '```' >> $GITHUB_STEP_SUMMARY
