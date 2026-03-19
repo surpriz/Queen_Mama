@@ -51,21 +51,30 @@ final class PreGenerationService: ObservableObject {
     private let silenceThreshold: TimeInterval = 5.0
 
     /// Cooldown between pre-generation triggers (seconds)
-    private let cooldownPeriod: TimeInterval = 8.0
+    private let cooldownPeriod: TimeInterval = 20.0
 
     /// Max transcript change (in characters) before invalidating a ready buffer
-    private let staleThreshold = 300
+    private let staleThreshold = 500
+
+    /// Max time the silence timer runs before auto-stopping (seconds)
+    private let silenceTimerMaxDuration: TimeInterval = 30.0
 
     // MARK: - Internal State
 
     private var generationTask: Task<Void, Never>?
     private var silenceTimer: Timer?
+    private var silenceTimerStartTime: Date?
     private var lastSpeechTime = Date()
     private var sentencesSinceLastTrigger = 0
     private var lastTriggeredTranscriptHash: Int = 0
     private var lastTriggerTime: Date?
     private var transcriptLengthAtTrigger: Int = 0
     private var lastTranscript = ""
+
+    /// Cached regex for sentence detection (avoid recompiling on every call)
+    private static let sentenceEndingRegex: NSRegularExpression? = {
+        try? NSRegularExpression(pattern: #"[.!?](?:\s|$)"#)
+    }()
 
     // MARK: - Initialization
 
@@ -116,8 +125,14 @@ final class PreGenerationService: ObservableObject {
             triggerPreGen(reason: "\(sentencesSinceLastTrigger) sentences")
         }
 
-        // Start/restart silence timer
-        startSilenceTimer()
+        // Only start silence timer if there are sentences to act on
+        // and we're not already in a ready state
+        if sentencesSinceLastTrigger >= 1, case .idle = state {
+            startSilenceTimer()
+        } else if case .ready = state {
+            // Already have a result — no need for silence timer
+            stopSilenceTimer()
+        }
     }
 
     /// Consume the pre-generated response buffer. Returns nil if not ready.
@@ -142,16 +157,14 @@ final class PreGenerationService: ObservableObject {
     /// Cancel any in-flight generation and reset to idle
     func cancelAndReset() {
         cancelGeneration()
-        silenceTimer?.invalidate()
-        silenceTimer = nil
+        stopSilenceTimer()
         state = .idle
     }
 
     /// Full reset (called on session stop)
     func reset() {
         cancelGeneration()
-        silenceTimer?.invalidate()
-        silenceTimer = nil
+        stopSilenceTimer()
         state = .idle
         lastSpeechTime = Date()
         sentencesSinceLastTrigger = 0
@@ -191,8 +204,15 @@ final class PreGenerationService: ObservableObject {
             return
         }
 
+        // Don't trigger if we already have a ready buffer
+        if case .ready = state {
+            print("[PreGen] Skipped — buffer already ready")
+            return
+        }
+
         print("[PreGen] Triggering: \(reason)")
         cancelGeneration()
+        stopSilenceTimer()
 
         lastTriggeredTranscriptHash = currentHash
         lastTriggerTime = Date()
@@ -259,10 +279,19 @@ final class PreGenerationService: ObservableObject {
         }
     }
 
-    private func startSilenceTimer() {
+    private func stopSilenceTimer() {
         silenceTimer?.invalidate()
+        silenceTimer = nil
+        silenceTimerStartTime = nil
+    }
 
-        silenceTimer = Timer.scheduledTimer(withTimeInterval: 0.5, repeats: true) { [weak self] _ in
+    private func startSilenceTimer() {
+        // Don't restart if already running
+        guard silenceTimer == nil else { return }
+
+        silenceTimerStartTime = Date()
+
+        silenceTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] _ in
             guard let self else { return }
             Task { @MainActor [self] in
                 self.checkSilence()
@@ -271,14 +300,23 @@ final class PreGenerationService: ObservableObject {
     }
 
     private func checkSilence() {
-        guard ConfigurationManager.shared.bufferedPreGenEnabled else { return }
+        guard ConfigurationManager.shared.bufferedPreGenEnabled else {
+            stopSilenceTimer()
+            return
+        }
+
+        // Auto-stop timer after max duration to prevent indefinite polling
+        if let startTime = silenceTimerStartTime,
+           Date().timeIntervalSince(startTime) > silenceTimerMaxDuration {
+            print("[PreGen] Silence timer expired after \(Int(silenceTimerMaxDuration))s")
+            stopSilenceTimer()
+            return
+        }
 
         let silenceDuration = Date().timeIntervalSince(lastSpeechTime)
 
         if silenceDuration >= silenceThreshold && sentencesSinceLastTrigger >= 1 {
-            // Stop polling — we'll restart on next transcript update
-            silenceTimer?.invalidate()
-            silenceTimer = nil
+            stopSilenceTimer()
             triggerPreGen(reason: "silence (\(String(format: "%.1f", silenceDuration))s)")
         }
     }
@@ -287,8 +325,7 @@ final class PreGenerationService: ObservableObject {
     /// Only counts . ! ? when followed by whitespace or end of string,
     /// to avoid false positives from numbers (3.5%), abbreviations (M. Dupont), URLs, etc.
     private func countSentenceEndings(in text: String) -> Int {
-        let pattern = #"[.!?](?:\s|$)"#
-        guard let regex = try? NSRegularExpression(pattern: pattern) else { return 0 }
+        guard let regex = Self.sentenceEndingRegex else { return 0 }
         let range = NSRange(text.startIndex..., in: text)
         return regex.numberOfMatches(in: text, range: range)
     }
