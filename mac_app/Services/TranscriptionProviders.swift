@@ -126,8 +126,8 @@ final class DeepgramProvider: TranscriptionProvider {
             URLQueryItem(name: "sample_rate", value: "16000"),
             URLQueryItem(name: "channels", value: "1"),
             // Endpointing configuration for better phrase boundary detection
-            URLQueryItem(name: "endpointing", value: "300"),       // 300ms silence = end of speech
-            URLQueryItem(name: "utterance_end_ms", value: "1000"), // 1s silence = end of utterance
+            URLQueryItem(name: "endpointing", value: "200"),       // 200ms silence = end of speech — reduced from 300ms for faster phrase finalization
+            URLQueryItem(name: "utterance_end_ms", value: "800"), // 800ms silence = end of utterance — reduced from 1000ms for faster turn detection
             URLQueryItem(name: "vad_events", value: "true")        // Voice Activity Detection events
         ]
 
@@ -767,8 +767,8 @@ final class DeepgramFluxProvider: TranscriptionProvider {
             URLQueryItem(name: "sample_rate", value: "16000"),
             URLQueryItem(name: "channels", value: "1"),
             // Endpointing configuration for better phrase boundary detection
-            URLQueryItem(name: "endpointing", value: "300"),       // 300ms silence = end of speech
-            URLQueryItem(name: "utterance_end_ms", value: "1000"), // 1s silence = end of utterance
+            URLQueryItem(name: "endpointing", value: "200"),       // 200ms silence = end of speech — reduced from 300ms for faster phrase finalization
+            URLQueryItem(name: "utterance_end_ms", value: "800"), // 800ms silence = end of utterance — reduced from 1000ms for faster turn detection
             URLQueryItem(name: "vad_events", value: "true")        // Voice Activity Detection events
         ]
 

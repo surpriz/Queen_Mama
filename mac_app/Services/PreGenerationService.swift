@@ -44,14 +44,14 @@ final class PreGenerationService: ObservableObject {
 
     // MARK: - Configuration
 
-    /// Number of final sentences before triggering pre-generation
-    private let sentenceTriggerCount = 3
+    /// Number of new words before triggering pre-generation
+    private let wordTriggerCount = 50
 
-    /// Seconds of silence to trigger pre-generation (with ≥1 sentence)
-    private let silenceThreshold: TimeInterval = 5.0
+    /// Seconds of silence to trigger pre-generation (backup, with ≥1 word)
+    private let silenceThreshold: TimeInterval = 3.0
 
     /// Cooldown between pre-generation triggers (seconds)
-    private let cooldownPeriod: TimeInterval = 20.0
+    private let cooldownPeriod: TimeInterval = 12.0
 
     /// Max transcript change (in characters) before invalidating a ready buffer
     private let staleThreshold = 500
@@ -65,16 +65,14 @@ final class PreGenerationService: ObservableObject {
     private var silenceTimer: Timer?
     private var silenceTimerStartTime: Date?
     private var lastSpeechTime = Date()
-    private var sentencesSinceLastTrigger = 0
+    private var wordsSinceLastTrigger = 0
     private var lastTriggeredTranscriptHash: Int = 0
     private var lastTriggerTime: Date?
     private var transcriptLengthAtTrigger: Int = 0
     private var lastTranscript = ""
 
-    /// Cached regex for sentence detection (avoid recompiling on every call)
-    private static let sentenceEndingRegex: NSRegularExpression? = {
-        try? NSRegularExpression(pattern: #"[.!?](?:\s|$)"#)
-    }()
+    /// Minimum new words during generation to trigger a restart
+    private let restartWordThreshold = 15
 
     // MARK: - Initialization
 
@@ -98,10 +96,10 @@ final class PreGenerationService: ObservableObject {
     func onTranscriptUpdated(_ fullTranscript: String) {
         guard ConfigurationManager.shared.bufferedPreGenEnabled else { return }
 
-        // Count new sentences in the delta
+        // Count new words in the delta
         let delta = String(fullTranscript.dropFirst(lastTranscript.count))
-        let newSentences = countSentenceEndings(in: delta)
-        sentencesSinceLastTrigger += newSentences
+        let newWords = countWords(in: delta)
+        wordsSinceLastTrigger += newWords
         lastSpeechTime = Date()
         lastTranscript = fullTranscript
 
@@ -115,22 +113,20 @@ final class PreGenerationService: ObservableObject {
         }
 
         // Cancel in-flight generation if significant new content arrived
-        if case .generating = state, newSentences > 0 {
-            print("[PreGen] Restarting — new sentence during generation")
+        if case .generating = state, newWords > restartWordThreshold {
+            print("[PreGen] Restarting — \(newWords) new words during generation")
             cancelGeneration()
         }
 
-        // Check sentence trigger
-        if sentencesSinceLastTrigger >= sentenceTriggerCount {
-            triggerPreGen(reason: "\(sentencesSinceLastTrigger) sentences")
+        // Check word count trigger (fires DURING speech)
+        if wordsSinceLastTrigger >= wordTriggerCount {
+            triggerPreGen(reason: "\(wordsSinceLastTrigger) words")
         }
 
-        // Only start silence timer if there are sentences to act on
-        // and we're not already in a ready state
-        if sentencesSinceLastTrigger >= 1, case .idle = state {
+        // Start silence timer if there's new content and we're idle
+        if wordsSinceLastTrigger >= 1, case .idle = state {
             startSilenceTimer()
         } else if case .ready = state {
-            // Already have a result — no need for silence timer
             stopSilenceTimer()
         }
     }
@@ -150,7 +146,7 @@ final class PreGenerationService: ObservableObject {
 
         print("[PreGen] Buffer consumed (\(text.count) chars)")
         state = .idle
-        sentencesSinceLastTrigger = 0
+        wordsSinceLastTrigger = 0
         return text
     }
 
@@ -167,7 +163,7 @@ final class PreGenerationService: ObservableObject {
         stopSilenceTimer()
         state = .idle
         lastSpeechTime = Date()
-        sentencesSinceLastTrigger = 0
+        wordsSinceLastTrigger = 0
         lastTriggeredTranscriptHash = 0
         lastTriggerTime = nil
         transcriptLengthAtTrigger = 0
@@ -217,7 +213,7 @@ final class PreGenerationService: ObservableObject {
         lastTriggeredTranscriptHash = currentHash
         lastTriggerTime = Date()
         transcriptLengthAtTrigger = lastTranscript.count
-        sentencesSinceLastTrigger = 0
+        wordsSinceLastTrigger = 0
         state = .generating
 
         let transcript = AIService.trimTranscript(
@@ -315,18 +311,14 @@ final class PreGenerationService: ObservableObject {
 
         let silenceDuration = Date().timeIntervalSince(lastSpeechTime)
 
-        if silenceDuration >= silenceThreshold && sentencesSinceLastTrigger >= 1 {
+        if silenceDuration >= silenceThreshold && wordsSinceLastTrigger >= 1 {
             stopSilenceTimer()
             triggerPreGen(reason: "silence (\(String(format: "%.1f", silenceDuration))s)")
         }
     }
 
-    /// Count sentence-ending punctuation in a text snippet
-    /// Only counts . ! ? when followed by whitespace or end of string,
-    /// to avoid false positives from numbers (3.5%), abbreviations (M. Dupont), URLs, etc.
-    private func countSentenceEndings(in text: String) -> Int {
-        guard let regex = Self.sentenceEndingRegex else { return 0 }
-        let range = NSRange(text.startIndex..., in: text)
-        return regex.numberOfMatches(in: text, range: range)
+    /// Count words in a text snippet (splits on whitespace)
+    private func countWords(in text: String) -> Int {
+        text.split(whereSeparator: { $0.isWhitespace }).count
     }
 }
