@@ -236,10 +236,11 @@ struct OverlayContentView: View {
 
         Task {
             do {
-                // Only capture screenshot if enabled
-                // Uses pre-capture cache for ~50-150ms latency reduction
-                // Smart content analysis skips low-value screenshots (video call faces, empty screens)
-                let screenshot: Data? = if enableScreenCapture {
+                // Only capture screenshot for modes that benefit from visual context
+                // WhatToSay, FollowUp, and Recap use text-only context — skip capture entirely
+                // Saves ~200-500ms (capture + base64 encoding + vision token processing)
+                let screenshotNeeded = selectedTab == .assist || hasCustomPrompt
+                let screenshot: Data? = if enableScreenCapture && screenshotNeeded {
                     try? await appState.screenService.getScreenshotForAI()
                 } else {
                     nil

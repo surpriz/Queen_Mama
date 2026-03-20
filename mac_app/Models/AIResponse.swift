@@ -578,7 +578,7 @@ SMART MODE ENABLED: Please provide enhanced, thorough analysis:
             case .recap:
                 maxTranscriptLength = 50000  // ~12500 tokens - full 1h meeting coverage
             default:
-                maxTranscriptLength = 20000  // ~5000 tokens - ~25 min of meeting context
+                maxTranscriptLength = 10000  // ~2500 tokens - focused on recent context for speed
             }
 
             let truncatedTranscript: String
