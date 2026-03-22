@@ -99,8 +99,22 @@ jobs:
           npm version "$VERSION" --no-git-tag-version --allow-same-version
           echo "Updated package.json to version $VERSION"
 
+      - name: Check code signing availability
+        id: signing
+        shell: bash
+        run: |
+          if [ -n "$CERTUM_THUMBPRINT" ]; then
+            echo "enabled=true" >> $GITHUB_OUTPUT
+            echo "Code signing is ENABLED"
+          else
+            echo "enabled=false" >> $GITHUB_OUTPUT
+            echo "Code signing is DISABLED (no CERTUM_THUMBPRINT secret)"
+          fi
+        env:
+          CERTUM_THUMBPRINT: ${{ secrets.CERTUM_THUMBPRINT }}
+
       - name: Setup code signing (Certum SimplySign)
-        if: ${{ secrets.CERTUM_OTP_URI != '' }}
+        if: steps.signing.outputs.enabled == 'true'
         shell: powershell
         env:
           CERTUM_OTP_URI: ${{ secrets.CERTUM_OTP_URI }}
@@ -122,7 +136,7 @@ jobs:
           CERTUM_THUMBPRINT: ${{ secrets.CERTUM_THUMBPRINT }}
 
       - name: Verify code signature
-        if: ${{ secrets.CERTUM_THUMBPRINT != '' }}
+        if: steps.signing.outputs.enabled == 'true'
         shell: powershell
         run: |
           $installer = Get-ChildItem -Path release -Filter "*.exe" | Select-Object -First 1
