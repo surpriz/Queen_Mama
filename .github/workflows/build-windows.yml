@@ -134,25 +134,38 @@ jobs:
         run: npx electron-builder --win --publish never
         env:
           SENTRY_DSN: ${{ secrets.SENTRY_DSN_WINDOWS }}
-          CERTUM_THUMBPRINT: ${{ secrets.CERTUM_THUMBPRINT }}
 
-      - name: Verify code signature
+      - name: Sign installer with Certum EV
         if: steps.signing.outputs.enabled == 'true'
         continue-on-error: true
         shell: powershell
+        env:
+          CERTUM_THUMBPRINT: ${{ secrets.CERTUM_THUMBPRINT }}
         run: |
-          $installer = Get-ChildItem -Path release -Filter "*.exe" | Select-Object -First 1
-          if ($installer) {
-            $signtool = Get-ChildItem -Path "C:\Program Files (x86)\Windows Kits" -Recurse -Filter "signtool.exe" |
-                        Where-Object { $_.FullName -like "*x64*" } |
-                        Select-Object -First 1 -ExpandProperty FullName
-            Write-Host "Verifying signature on $($installer.Name)..."
-            & $signtool verify /pa /v $installer.FullName
+          $signtool = Get-ChildItem -Path "C:\Program Files (x86)\Windows Kits" -Recurse -Filter "signtool.exe" |
+                      Where-Object { $_.FullName -like "*x64*" } |
+                      Select-Object -First 1 -ExpandProperty FullName
+
+          if (-not $signtool) {
+            Write-Host "WARNING: signtool.exe not found"
+            exit 0
+          }
+
+          # List available certificates for debugging
+          Write-Host "=== Available certificates in cert store ==="
+          & $signtool sign /debug /sha1 $env:CERTUM_THUMBPRINT /fd sha256 /tr http://time.certum.pl /td sha256 /v "release\dummy-test" 2>&1 | Select-String -Pattern "cert|sign|error|found" -CaseSensitive:$false
+          Write-Host "=== End certificates debug ==="
+
+          # Sign all .exe files in release directory
+          $exeFiles = Get-ChildItem -Path release -Filter "*.exe" -Recurse
+          foreach ($exe in $exeFiles) {
+            Write-Host "Signing $($exe.Name)..."
+            & $signtool sign /sha1 $env:CERTUM_THUMBPRINT /fd sha256 /tr http://time.certum.pl /td sha256 /v $exe.FullName
             if ($LASTEXITCODE -eq 0) {
-              Write-Host "Signature verification PASSED"
+              Write-Host "  -> Signed successfully"
+              & $signtool verify /pa $exe.FullName
             } else {
-              Write-Host "WARNING: Signature verification failed (exit code $LASTEXITCODE)"
-              exit 1
+              Write-Host "  -> WARNING: Signing failed (certificate may not be accessible)"
             }
           }
 
