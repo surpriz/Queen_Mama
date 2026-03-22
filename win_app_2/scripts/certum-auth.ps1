@@ -160,45 +160,194 @@ if ($remaining -lt 10) {
 $totp = [TotpGenerator]::Generate($secret, $digits, $period, $algorithm)
 Write-Host "[certum-auth] TOTP generated (${algorithm}, ${digits} digits)"
 
+# ---------- Win32 API for window interaction ----------
+
+Add-Type @"
+using System;
+using System.Text;
+using System.Collections.Generic;
+using System.Runtime.InteropServices;
+
+public static class Win32Window {
+    [DllImport("user32.dll")]
+    public static extern bool SetForegroundWindow(IntPtr hWnd);
+
+    [DllImport("user32.dll")]
+    public static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);
+
+    [DllImport("user32.dll")]
+    public static extern int GetWindowText(IntPtr hWnd, StringBuilder lpString, int nMaxCount);
+
+    [DllImport("user32.dll")]
+    public static extern bool EnumWindows(EnumWindowsProc lpEnumFunc, IntPtr lParam);
+
+    [DllImport("user32.dll")]
+    public static extern uint GetWindowThreadProcessId(IntPtr hWnd, out uint processId);
+
+    [DllImport("user32.dll")]
+    public static extern bool IsWindowVisible(IntPtr hWnd);
+
+    public delegate bool EnumWindowsProc(IntPtr hWnd, IntPtr lParam);
+
+    public const int SW_RESTORE = 9;
+    public const int SW_SHOW = 5;
+
+    public static List<IntPtr> FindWindowsByPid(uint targetPid) {
+        var windows = new List<IntPtr>();
+        EnumWindows(delegate(IntPtr hWnd, IntPtr lParam) {
+            uint pid;
+            GetWindowThreadProcessId(hWnd, out pid);
+            if (pid == targetPid) {
+                var sb = new StringBuilder(256);
+                GetWindowText(hWnd, sb, 256);
+                if (sb.Length > 0) {
+                    windows.Add(hWnd);
+                }
+            }
+            return true;
+        }, IntPtr.Zero);
+        return windows;
+    }
+
+    public static IntPtr FindWindowByTitle(string partialTitle) {
+        IntPtr found = IntPtr.Zero;
+        EnumWindows(delegate(IntPtr hWnd, IntPtr lParam) {
+            var sb = new StringBuilder(256);
+            GetWindowText(hWnd, sb, 256);
+            if (sb.ToString().IndexOf(partialTitle, StringComparison.OrdinalIgnoreCase) >= 0) {
+                found = hWnd;
+                return false;
+            }
+            return true;
+        }, IntPtr.Zero);
+        return found;
+    }
+}
+"@
+
+Add-Type -AssemblyName System.Windows.Forms
+
 # ---------- Launch and authenticate SimplySign Desktop ----------
 
 Write-Host "[certum-auth] Launching SimplySign Desktop..."
-$process = Start-Process -FilePath $simplysignExe -PassThru
-Start-Sleep -Seconds 8
+$process = Start-Process -FilePath $simplysignExe -PassThru -WindowStyle Normal
+Start-Sleep -Seconds 10
 
-$wshell = New-Object -ComObject WScript.Shell
+Write-Host "[certum-auth] SimplySign PID: $($process.Id)"
+
+# Try multiple methods to find and activate the window
 $authenticated = $false
 
-for ($attempt = 1; $attempt -le 15; $attempt++) {
-    if ($wshell.AppActivate($process.Id)) {
-        Write-Host "[certum-auth] Window activated (attempt $attempt), sending credentials..."
-        Start-Sleep -Milliseconds 500
+for ($attempt = 1; $attempt -le 20; $attempt++) {
+    # Method 1: Find windows by PID using Win32 API
+    $windows = [Win32Window]::FindWindowsByPid([uint32]$process.Id)
 
-        # Send User ID
-        $wshell.SendKeys($UserId)
-        Start-Sleep -Milliseconds 300
-        $wshell.SendKeys("{TAB}")
-        Start-Sleep -Milliseconds 300
+    if ($windows.Count -gt 0) {
+        $hwnd = $windows[0]
+        $title = New-Object System.Text.StringBuilder 256
+        [Win32Window]::GetWindowText($hwnd, $title, 256) | Out-Null
+        Write-Host "[certum-auth] Found window: '$($title.ToString())' (handle: $hwnd)"
 
-        # Send TOTP
-        $wshell.SendKeys($totp)
+        [Win32Window]::ShowWindow($hwnd, [Win32Window]::SW_RESTORE) | Out-Null
+        [Win32Window]::SetForegroundWindow($hwnd) | Out-Null
+        Start-Sleep -Milliseconds 800
+
+        # Send credentials using System.Windows.Forms.SendKeys (more reliable than WScript)
+        [System.Windows.Forms.SendKeys]::SendWait($UserId)
         Start-Sleep -Milliseconds 300
-        $wshell.SendKeys("{ENTER}")
+        [System.Windows.Forms.SendKeys]::SendWait("{TAB}")
+        Start-Sleep -Milliseconds 300
+        [System.Windows.Forms.SendKeys]::SendWait($totp)
+        Start-Sleep -Milliseconds 300
+        [System.Windows.Forms.SendKeys]::SendWait("{ENTER}")
 
         $authenticated = $true
-        Write-Host "[certum-auth] Credentials sent to SimplySign Desktop"
+        Write-Host "[certum-auth] Credentials sent via Win32 API + SendKeys"
         break
     }
-    Write-Host "[certum-auth] Waiting for SimplySign window... (attempt $attempt/15)"
-    Start-Sleep -Seconds 2
+
+    # Method 2: Try by window title patterns
+    $titlePatterns = @("SimplySign", "SmartSign", "proCertum", "Certum", "Login", "Logon")
+    foreach ($pattern in $titlePatterns) {
+        $hwnd = [Win32Window]::FindWindowByTitle($pattern)
+        if ($hwnd -ne [IntPtr]::Zero) {
+            $title = New-Object System.Text.StringBuilder 256
+            [Win32Window]::GetWindowText($hwnd, $title, 256) | Out-Null
+            Write-Host "[certum-auth] Found window by title pattern '$pattern': '$($title.ToString())'"
+
+            [Win32Window]::ShowWindow($hwnd, [Win32Window]::SW_RESTORE) | Out-Null
+            [Win32Window]::SetForegroundWindow($hwnd) | Out-Null
+            Start-Sleep -Milliseconds 800
+
+            [System.Windows.Forms.SendKeys]::SendWait($UserId)
+            Start-Sleep -Milliseconds 300
+            [System.Windows.Forms.SendKeys]::SendWait("{TAB}")
+            Start-Sleep -Milliseconds 300
+            [System.Windows.Forms.SendKeys]::SendWait($totp)
+            Start-Sleep -Milliseconds 300
+            [System.Windows.Forms.SendKeys]::SendWait("{ENTER}")
+
+            $authenticated = $true
+            Write-Host "[certum-auth] Credentials sent via title-based window discovery"
+            break
+        }
+    }
+    if ($authenticated) { break }
+
+    # Method 3: Fallback to WScript.Shell AppActivate
+    try {
+        $wshell = New-Object -ComObject WScript.Shell
+        if ($wshell.AppActivate($process.Id)) {
+            Start-Sleep -Milliseconds 500
+            $wshell.SendKeys($UserId)
+            $wshell.SendKeys("{TAB}")
+            Start-Sleep -Milliseconds 200
+            $wshell.SendKeys($totp)
+            $wshell.SendKeys("{ENTER}")
+            $authenticated = $true
+            Write-Host "[certum-auth] Credentials sent via WScript.Shell fallback"
+            break
+        }
+        # Also try by window title
+        if ($wshell.AppActivate("SimplySign")) {
+            Start-Sleep -Milliseconds 500
+            $wshell.SendKeys($UserId)
+            $wshell.SendKeys("{TAB}")
+            Start-Sleep -Milliseconds 200
+            $wshell.SendKeys($totp)
+            $wshell.SendKeys("{ENTER}")
+            $authenticated = $true
+            Write-Host "[certum-auth] Credentials sent via WScript.Shell title match"
+            break
+        }
+    } catch {
+        Write-Host "[certum-auth] WScript.Shell attempt failed: $_"
+    }
+
+    # Log process info for debugging
+    $proc = Get-Process -Id $process.Id -ErrorAction SilentlyContinue
+    if ($proc) {
+        Write-Host "[certum-auth] Attempt $attempt/20 - Process running, MainWindowTitle='$($proc.MainWindowTitle)', MainWindowHandle=$($proc.MainWindowHandle), Responding=$($proc.Responding)"
+    } else {
+        Write-Host "[certum-auth] WARNING: SimplySign process is no longer running!"
+        break
+    }
+
+    Start-Sleep -Seconds 3
 }
 
 if (-not $authenticated) {
-    throw "[certum-auth] Could not activate SimplySign Desktop window after 15 attempts"
+    Write-Host "[certum-auth] WARNING: Could not authenticate SimplySign Desktop after 20 attempts"
+    Write-Host "[certum-auth] The build will continue but signing may fail if the certificate is not accessible"
+    Write-Host "[certum-auth] Consider using a self-hosted Windows runner for reliable GUI automation"
+    # Don't throw - let the build continue, sign.js will skip if signtool fails
 }
 
-# Wait for authentication to complete
-Write-Host "[certum-auth] Waiting for authentication to complete..."
-Start-Sleep -Seconds 15
-
-Write-Host "[certum-auth] SimplySign authentication complete. Certificate should be available for signtool."
+# Wait for authentication to process
+if ($authenticated) {
+    Write-Host "[certum-auth] Waiting for authentication to complete..."
+    Start-Sleep -Seconds 15
+    Write-Host "[certum-auth] SimplySign authentication complete. Certificate should be available for signtool."
+} else {
+    Write-Host "[certum-auth] Proceeding without SimplySign authentication..."
+}

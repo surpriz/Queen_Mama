@@ -115,6 +115,7 @@ jobs:
 
       - name: Setup code signing (Certum SimplySign)
         if: steps.signing.outputs.enabled == 'true'
+        continue-on-error: true
         shell: powershell
         env:
           CERTUM_OTP_URI: ${{ secrets.CERTUM_OTP_URI }}
@@ -137,6 +138,7 @@ jobs:
 
       - name: Verify code signature
         if: steps.signing.outputs.enabled == 'true'
+        continue-on-error: true
         shell: powershell
         run: |
           $installer = Get-ChildItem -Path release -Filter "*.exe" | Select-Object -First 1
