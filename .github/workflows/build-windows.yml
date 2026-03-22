@@ -252,7 +252,7 @@ jobs:
           $totp = [TotpGen]::Gen($secret, $digits, $period, $algo)
           Write-Host "TOTP generated ($algo)"
 
-          # Check if SimplySign is already running and authenticated
+          # Check if SimplySign is already running
           $simplysign = Get-Process -Name "SimplySignDesktop" -ErrorAction SilentlyContinue
           if (-not $simplysign) {
             Write-Host "Starting SimplySign Desktop..."
@@ -262,10 +262,21 @@ jobs:
             Write-Host "SimplySign Desktop already running (PID: $($simplysign.Id))"
           }
 
-          # Try to authenticate via SendKeys (self-hosted runner has real desktop)
+          # Quick check: try signtool to see if cert is already accessible (already authenticated)
+          $signtool = Get-ChildItem -Path "C:\Program Files (x86)\Windows Kits" -Recurse -Filter "signtool.exe" -ErrorAction SilentlyContinue |
+                      Where-Object { $_.FullName -like "*x64*" } |
+                      Select-Object -First 1 -ExpandProperty FullName
+          $certCheck = & certutil -user -store My 2>&1 | Select-String "JAAP"
+          if ($certCheck) {
+            Write-Host "SimplySign already authenticated - certificate found in store"
+            exit 0
+          }
+
+          Write-Host "Certificate not in store yet, sending credentials..."
           Add-Type -AssemblyName System.Windows.Forms
           $wshell = New-Object -ComObject WScript.Shell
 
+          $authenticated = $false
           for ($i = 1; $i -le 10; $i++) {
             if ($wshell.AppActivate("SimplySign")) {
               Start-Sleep -Milliseconds 500
@@ -275,14 +286,19 @@ jobs:
               $wshell.SendKeys($totp)
               $wshell.SendKeys("{ENTER}")
               Write-Host "Credentials sent to SimplySign"
+              $authenticated = $true
               break
             }
             Write-Host "Waiting for SimplySign window (attempt $i/10)..."
             Start-Sleep -Seconds 3
           }
 
-          Start-Sleep -Seconds 15
-          Write-Host "SimplySign authentication complete"
+          if ($authenticated) {
+            Start-Sleep -Seconds 15
+            Write-Host "SimplySign authentication complete"
+          } else {
+            Write-Host "WARNING: Could not find SimplySign login window (may already be authenticated)"
+          }
 
       - name: Sign installer with Certum EV
         shell: powershell
