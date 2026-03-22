@@ -13,9 +13,10 @@ win:
       arch:
         - x64
   icon: resources/icon.ico
-  sign: scripts/sign.js
-  signingHashAlgorithms:
-    - sha256
+  signtoolOptions:
+    sign: scripts/sign.js
+    signingHashAlgorithms:
+      - sha256
 nsis:
   oneClick: false
   allowToChangeInstallationDirectory: true
