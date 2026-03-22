@@ -188,7 +188,7 @@ jobs:
 
   sign:
     needs: [build]
-    runs-on: [self-hosted, windows-signing]
+    runs-on: [self-hosted, Windows]
     timeout-minutes: 15
     defaults:
       run:
