@@ -257,25 +257,13 @@ jobs:
           $totp = [TotpGen]::Gen($secret, $digits, $period, $algo)
           Write-Host "TOTP generated ($algo)"
 
-          # Check if SimplySign is already running
-          $simplysign = Get-Process -Name "SimplySignDesktop" -ErrorAction SilentlyContinue
-          if (-not $simplysign) {
-            Write-Host "Starting SimplySign Desktop..."
-            Start-Process "C:\Program Files\Certum\SimplySign Desktop\SimplySignDesktop.exe"
-            Start-Sleep -Seconds 10
-          } else {
-            Write-Host "SimplySign Desktop already running (PID: $($simplysign.Id))"
-          }
-
-          # Quick check: try signtool to see if cert is already accessible (already authenticated)
-          $signtool = Get-ChildItem -Path "C:\Program Files (x86)\Windows Kits" -Recurse -Filter "signtool.exe" -ErrorAction SilentlyContinue |
-                      Where-Object { $_.FullName -like "*x64*" } |
-                      Select-Object -First 1 -ExpandProperty FullName
-          $certCheck = & certutil -user -store My 2>&1 | Select-String "JAAP"
-          if ($certCheck) {
-            Write-Host "SimplySign already authenticated - certificate found in store"
-            exit 0
-          }
+          # Kill and restart SimplySign to get a fresh login dialog
+          # (CSP sessions expire after ~2h, stale sessions cause signing failures)
+          Write-Host "Restarting SimplySign Desktop for fresh authentication..."
+          Get-Process -Name "SimplySignDesktop" -ErrorAction SilentlyContinue | Stop-Process -Force
+          Start-Sleep -Seconds 3
+          Start-Process "C:\Program Files\Certum\SimplySign Desktop\SimplySignDesktop.exe"
+          Start-Sleep -Seconds 10
 
           Write-Host "Certificate not in store yet, sending credentials..."
           Add-Type -AssemblyName System.Windows.Forms
