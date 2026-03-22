@@ -196,6 +196,11 @@ jobs:
     permissions:
       contents: write
     steps:
+      - name: Clean workspace
+        shell: powershell
+        run: |
+          if (Test-Path unsigned) { Remove-Item unsigned -Recurse -Force }
+
       - name: Download unsigned installer
         uses: actions/download-artifact@v4
         with:
