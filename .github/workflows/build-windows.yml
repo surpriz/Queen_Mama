@@ -188,6 +188,9 @@ jobs:
     needs: [build]
     runs-on: [self-hosted, windows-signing]
     timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: .
     permissions:
       contents: write
     steps:
@@ -337,6 +340,9 @@ jobs:
   release:
     needs: [build, sign]
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: .
     permissions:
       contents: write
     steps:
