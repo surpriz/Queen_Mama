@@ -147,10 +147,12 @@ jobs:
 
       - name: Upload latest.yml
         uses: actions/upload-artifact@v4
+        continue-on-error: true
         with:
           name: latest-yml
           path: win_app_2/release/latest.yml
           retention-days: 1
+          if-no-files-found: warn
 
       - name: Upload Sentry release
         if: ${{ vars.SENTRY_ORG != '' && vars.SENTRY_PROJECT_WINDOWS != '' }}
@@ -354,6 +356,7 @@ jobs:
 
       - name: Download latest.yml
         uses: actions/download-artifact@v4
+        continue-on-error: true
         with:
           name: latest-yml
           path: release
@@ -363,7 +366,6 @@ jobs:
         with:
           files: |
             release/${{ needs.build.outputs.installer_name }}
-            release/latest.yml
           prerelease: ${{ needs.build.outputs.is_prerelease }}
           tag_name: ${{ github.ref_name }}
           name: "Queen Mama Windows ${{ needs.build.outputs.tag_name }}"
