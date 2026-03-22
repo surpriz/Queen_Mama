@@ -100,18 +100,38 @@ $simplysignMsi = "$env:TEMP\SimplySign.msi"
 
 if (-not (Test-Path $simplysignExe)) {
     Write-Host "[certum-auth] Installing SimplySign Desktop..."
-    $msiUrl = "https://www.files.certum.eu/software/SimplySignDesktop/SimplySignDesktop-x64.msi"
-    Invoke-WebRequest -Uri $msiUrl -OutFile $simplysignMsi -UseBasicParsing
-    Start-Process msiexec -ArgumentList "/i `"$simplysignMsi`" /qn /norestart" -Wait -NoNewWindow
+
+    # Try winget first (version-independent)
+    $wingetInstalled = $false
+    try {
+        $wingetResult = winget install -e --id Certum.SmartSignSimplySignDesktop --silent --accept-source-agreements --accept-package-agreements 2>&1
+        Write-Host $wingetResult
+        $wingetInstalled = $true
+    } catch {
+        Write-Host "[certum-auth] winget install failed, falling back to MSI download..."
+    }
+
+    if (-not $wingetInstalled) {
+        # Fallback: direct MSI download
+        $msiUrl = "https://files.certum.eu/software/SimplySignDesktop/Windows/9.3.4.72/SimplySignDesktop-9.3.4.72-64-bit-en.msi"
+        Invoke-WebRequest -Uri $msiUrl -OutFile $simplysignMsi -UseBasicParsing
+        Start-Process msiexec -ArgumentList "/i `"$simplysignMsi`" /qn /norestart" -Wait -NoNewWindow
+    }
+
     Start-Sleep -Seconds 5
 
     if (-not (Test-Path $simplysignExe)) {
-        # Try alternative install path
-        $altPath = "C:\Program Files (x86)\Certum\SimplySign Desktop\SimplySignDesktop.exe"
-        if (Test-Path $altPath) {
-            $simplysignExe = $altPath
-        } else {
-            # Search for it
+        # Search common install paths
+        $searchPaths = @(
+            "C:\Program Files\Certum\SimplySign Desktop\SimplySignDesktop.exe",
+            "C:\Program Files (x86)\Certum\SimplySign Desktop\SimplySignDesktop.exe",
+            "C:\Program Files\proCertum\SmartSign\SimplySignDesktop.exe",
+            "C:\Program Files (x86)\proCertum\SmartSign\SimplySignDesktop.exe"
+        )
+        foreach ($p in $searchPaths) {
+            if (Test-Path $p) { $simplysignExe = $p; break }
+        }
+        if (-not (Test-Path $simplysignExe)) {
             $found = Get-ChildItem -Path "C:\Program Files*" -Recurse -Filter "SimplySignDesktop.exe" -ErrorAction SilentlyContinue | Select-Object -First 1
             if ($found) {
                 $simplysignExe = $found.FullName
