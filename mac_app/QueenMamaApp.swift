@@ -75,8 +75,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                 // This eliminates 200-400ms delay when user clicks "Start Recording"
                 ProxyAPIClient.shared.prefetchTranscriptionToken()
 
-                // Perform initial sync (upload unsynced + reconcile remote deletions)
-                // Note: Sessions will be passed from SessionListView once it loads
+                // Delay initial sync to let SwiftUI @Query views settle first
+                // Immediate writes during layout registration can cause infinite recursion
+                try? await Task.sleep(nanoseconds: 2_000_000_000)
                 await SyncManager.shared.reconcileRemoteDeletions()
             }
         }
@@ -117,8 +118,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     func applicationDidBecomeActive(_ notification: Notification) {
-        // Revalidate license when app becomes active (user returns to app)
+        // Delay revalidation to avoid re-render storm during SwiftUI layout pass
+        // The 1s delay lets @Query views settle before @Published mutations fire
         Task { @MainActor in
+            try? await Task.sleep(nanoseconds: 1_000_000_000)
             await LicenseManager.shared.revalidate()
         }
     }

@@ -266,6 +266,21 @@ final class AuthenticationManager: ObservableObject {
         }
     }
 
+    // MARK: - Token Refresh Failure
+
+    /// Called when token refresh fails permanently (2 attempts exhausted).
+    /// Transitions to unauthenticated state so the user sees the sign-in UI
+    /// instead of silently failing on every API call.
+    func handleTokenRefreshFailure() {
+        guard isAuthenticated else { return }
+        print("[Auth] Token refresh permanently failed — clearing auth state")
+        tokenStore.clearAll()
+        currentUser = nil
+        isAuthenticated = false
+        authState = .unauthenticated
+        NotificationCenter.default.post(name: .userDidLogout, object: nil)
+    }
+
     // MARK: - Logout
 
     /// Logout from current device

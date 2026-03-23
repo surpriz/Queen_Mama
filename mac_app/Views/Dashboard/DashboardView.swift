@@ -12,7 +12,7 @@ struct DashboardView: View {
     @EnvironmentObject var appState: AppState
     @EnvironmentObject var sessionManager: SessionManager
     @Environment(\.modelContext) private var modelContext
-    @StateObject private var authManager = AuthenticationManager.shared
+    @ObservedObject private var authManager = AuthenticationManager.shared
 
     @State private var selectedSection: DashboardSection = .sessions
     @State private var searchText = ""
@@ -298,8 +298,8 @@ struct ModernSidebarView: View {
     @EnvironmentObject var appState: AppState
     @EnvironmentObject var sessionManager: SessionManager
     @ObservedObject var audioService: AudioCaptureService
-    @StateObject private var licenseManager = LicenseManager.shared
-    @StateObject private var authManager = AuthenticationManager.shared
+    @ObservedObject private var licenseManager = LicenseManager.shared
+    @ObservedObject private var authManager = AuthenticationManager.shared
     @State private var showTourSheet = false
 
     var body: some View {
