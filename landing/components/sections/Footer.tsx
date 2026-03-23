@@ -20,7 +20,7 @@ export function Footer() {
     ],
     resources: [
       { label: t("featuresGuide"), href: "/features-guide" },
-      { label: t("windowsWaitlist"), href: "/windows-waitlist" },
+      { label: t("windowsWaitlist"), href: "/download" },
       { label: t("contact"), href: "/#contact" },
       { label: t("feedback"), href: "https://queenmama.featurebase.app", external: true },
       { label: t("subprocessors"), href: "/subprocessors" },
@@ -159,7 +159,7 @@ export function Footer() {
           </p>
           <p className="text-sm text-[var(--qm-text-tertiary)]">
             {t.rich("madeWith", {
-              heart: () => <span className="text-[var(--qm-error)]">&hearts;</span>,
+              heart: (chunks) => <span className="text-[var(--qm-error)]">{chunks}</span>,
             })}
           </p>
         </div>

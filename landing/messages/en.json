@@ -85,7 +85,7 @@
     "download": "Download",
     "manifesto": "Manifesto",
     "featuresGuide": "Features Guide",
-    "windowsWaitlist": "Windows Waitlist",
+    "windowsWaitlist": "Download for Windows",
     "contact": "Contact",
     "feedback": "Feedback",
     "subprocessors": "Subprocessors",
@@ -93,17 +93,17 @@
     "termsOfService": "Terms of Service",
     "dpa": "DPA",
     "copyright": "© {year} Queen Mama. All rights reserved.",
-    "madeWith": "Made with <heart /> for professionals"
+    "madeWith": "Made with <heart>♥</heart> for professionals"
   },
   "Hero": {
     "badgeMacOS": "Available for macOS",
-    "badgeWindows": "Windows coming soon",
+    "badgeWindows": "Available for Windows",
     "headline": "Your Secret Weapon for <highlight>High-Stakes Conversations</highlight>",
     "subheadline": "AI coaching that stays invisible. Get real-time suggestions during interviews, sales calls, and meetings — <bold>completely undetectable on video calls.</bold>",
     "pillInvisible": "Invisible to Screen Share",
     "pillRealTimeAI": "Real-time AI",
     "pillTranscription": "Live Transcription",
-    "ctaDownload": "Download for macOS",
+    "ctaDownload": "Download — macOS & Windows",
     "ctaHowItWorks": "See How It Works",
     "widgetAsk": "Ask",
     "widgetHidden": "Hidden",
@@ -121,7 +121,7 @@
     "invisibleTitle": "Invisible to Screen Sharing",
     "invisibleDesc": "Stay confident knowing your AI assistant remains completely hidden during video calls and screen recordings. Critical for interviews and confidential meetings.",
     "aiSuggestionsTitle": "Real-time AI Suggestions",
-    "aiSuggestionsDesc": "Powered by GPT-4, Claude, and Gemini with automatic fallback. Get instant, contextual suggestions as the conversation flows.",
+    "aiSuggestionsDesc": "Powered by Claude Sonnet, xAI Grok, GPT-4o and Gemini with automatic fallback across 4+ providers. Get instant, contextual suggestions as the conversation flows.",
     "smartModeTitle": "Smart Mode",
     "smartModeDesc": "Activate enhanced reasoning for complex situations. Get deeper analysis, multiple perspectives, and more thoughtful recommendations.",
     "autoAnswerTitle": "Auto-Answer",
@@ -171,6 +171,22 @@
       "feature2": "Strategic recommendations",
       "feature3": "Clear, structured responses",
       "example": "For maximum impact, I recommend structuring your response around three key pillars: strategic alignment, operational efficiency, and measurable outcomes..."
+    },
+    "limitless": {
+      "name": "Limitless",
+      "description": "Superhuman reasoning with total recall",
+      "feature1": "Anticipates objections before they arise",
+      "feature2": "Connects patterns across the conversation",
+      "feature3": "Strategic thinking at executive level",
+      "example": "I'm detecting a pivot in their priorities. Counter with the long-term cost of inaction — the ROI argument won't land here, but urgency will. Shift to: 'What happens to this project if Q3 passes without a decision?'"
+    },
+    "developerExam": {
+      "name": "Dev Exam",
+      "description": "Ace coding challenges and technical interviews",
+      "feature1": "Complete, runnable solutions ready to copy",
+      "feature2": "Supports LeetCode, HackerRank, CodinGame",
+      "feature3": "Explains reasoning step by step",
+      "example": "Optimal O(n log n) solution using a monotonic stack. Here's the full implementation in Python/TypeScript — copy and submit directly."
     }
   },
   "HowItWorks": {
@@ -264,7 +280,8 @@
       "feature5": "Proactive suggestions",
       "feature6": "Extended transcript storage",
       "feature7": "Knowledge Base AI",
-      "feature8": "Dedicated support"
+      "feature8": "Instant responses (pre-generated)",
+      "feature9": "Dedicated support"
     },
     "gdpr": "Data stored securely in Europe (GDPR compliant)",
     "cancelAnytime": "Cancel anytime. No questions asked."
@@ -313,8 +330,8 @@
     "title": "Never Be <highlight>Caught Off-Guard</highlight> Again",
     "subtitle": "Join professionals who have transformed their high-stakes conversations with AI-powered real-time coaching. Download Queen Mama today.",
     "downloadMac": "Download for macOS",
-    "windowsSoon": "Windows Coming Soon",
-    "trustNote": "macOS 14+ required. Windows version coming soon.",
+    "downloadWindows": "Download for Windows",
+    "trustNote": "macOS 14.2+ and Windows 10+ supported. Free to start.",
     "statProviders": "AI Providers",
     "statModes": "Built-in Modes",
     "statUndetectable": "Undetectable",

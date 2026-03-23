@@ -85,7 +85,7 @@
     "download": "Télécharger",
     "manifesto": "Manifeste",
     "featuresGuide": "Guide des fonctionnalités",
-    "windowsWaitlist": "Liste d'attente Windows",
+    "windowsWaitlist": "Télécharger pour Windows",
     "contact": "Contact",
     "feedback": "Retours",
     "subprocessors": "Sous-traitants",
@@ -93,17 +93,17 @@
     "termsOfService": "Conditions d'utilisation",
     "dpa": "DPA",
     "copyright": "© {year} Queen Mama. Tous droits réservés.",
-    "madeWith": "Fait avec <heart /> pour les professionnels"
+    "madeWith": "Fait avec <heart>♥</heart> pour les professionnels"
   },
   "Hero": {
     "badgeMacOS": "Disponible sur macOS",
-    "badgeWindows": "Windows bientôt disponible",
+    "badgeWindows": "Disponible sur Windows",
     "headline": "Votre arme secrète pour les <highlight>conversations à enjeux</highlight>",
     "subheadline": "Un coaching IA qui reste invisible. Recevez des suggestions en temps réel lors d'entretiens, d'appels commerciaux et de réunions — <bold>totalement indétectable en visioconférence.</bold>",
     "pillInvisible": "Invisible en partage d'écran",
     "pillRealTimeAI": "IA en temps réel",
     "pillTranscription": "Transcription en direct",
-    "ctaDownload": "Télécharger pour macOS",
+    "ctaDownload": "Télécharger — macOS & Windows",
     "ctaHowItWorks": "Voir comment ça marche",
     "widgetAsk": "Demander",
     "widgetHidden": "Caché",
@@ -121,7 +121,7 @@
     "invisibleTitle": "Invisible en partage d'écran",
     "invisibleDesc": "Restez serein en sachant que votre assistant IA reste totalement caché pendant les appels vidéo et les enregistrements d'écran. Essentiel pour les entretiens et les réunions confidentielles.",
     "aiSuggestionsTitle": "Suggestions IA en temps réel",
-    "aiSuggestionsDesc": "Propulsé par GPT-4, Claude et Gemini avec basculement automatique. Obtenez des suggestions instantanées et contextuelles au fil de la conversation.",
+    "aiSuggestionsDesc": "Propulsé par Claude Sonnet, xAI Grok, GPT-4o et Gemini avec basculement automatique sur 4+ fournisseurs. Obtenez des suggestions instantanées et contextuelles au fil de la conversation.",
     "smartModeTitle": "Mode Smart",
     "smartModeDesc": "Activez le raisonnement avancé pour les situations complexes. Obtenez des analyses approfondies, des perspectives multiples et des recommandations plus réfléchies.",
     "autoAnswerTitle": "Réponse automatique",
@@ -171,6 +171,22 @@
       "feature2": "Recommandations stratégiques",
       "feature3": "Réponses claires et structurées",
       "example": "Pour un impact maximal, je recommande de structurer votre réponse autour de trois piliers : alignement stratégique, efficacité opérationnelle et résultats mesurables..."
+    },
+    "limitless": {
+      "name": "Limitless",
+      "description": "Raisonnement surhumain avec mémoire totale",
+      "feature1": "Anticipe les objections avant qu'elles surgissent",
+      "feature2": "Connecte les patterns tout au long de la conversation",
+      "feature3": "Pensée stratégique de niveau exécutif",
+      "example": "Je détecte un changement de priorités. Contrez avec le coût à long terme de l'inaction — l'argument ROI ne passera pas ici, mais l'urgence oui. Passez à : 'Que se passe-t-il pour ce projet si le T3 passe sans décision ?'"
+    },
+    "developerExam": {
+      "name": "Dev Exam",
+      "description": "Réussissez vos coding challenges et entretiens techniques",
+      "feature1": "Solutions complètes et fonctionnelles prêtes à copier",
+      "feature2": "LeetCode, HackerRank, CodinGame et examens techniques",
+      "feature3": "Explique le raisonnement étape par étape",
+      "example": "Solution optimale en O(n log n) avec une pile monotone. Voici l'implémentation complète en Python/TypeScript — copiez et soumettez directement."
     }
   },
   "HowItWorks": {
@@ -264,7 +280,8 @@
       "feature5": "Suggestions proactives",
       "feature6": "Stockage étendu des transcriptions",
       "feature7": "Knowledge Base IA",
-      "feature8": "Support dédié"
+      "feature8": "Réponses instantanées (pré-générées)",
+      "feature9": "Support dédié"
     },
     "gdpr": "Données stockées en Europe de manière sécurisée (conforme RGPD)",
     "cancelAnytime": "Résiliez à tout moment. Sans condition."
@@ -313,8 +330,8 @@
     "title": "Ne soyez plus jamais <highlight>pris au dépourvu</highlight>",
     "subtitle": "Rejoignez les professionnels qui ont transformé leurs conversations à enjeux avec un coaching IA en temps réel. Téléchargez Queen Mama aujourd'hui.",
     "downloadMac": "Télécharger pour macOS",
-    "windowsSoon": "Windows bientôt disponible",
-    "trustNote": "macOS 14+ requis. Version Windows bientôt disponible.",
+    "downloadWindows": "Télécharger pour Windows",
+    "trustNote": "macOS 14.2+ et Windows 10+ pris en charge. Gratuit pour commencer.",
     "statProviders": "Fournisseurs IA",
     "statModes": "Modes intégrés",
     "statUndetectable": "Indétectable",

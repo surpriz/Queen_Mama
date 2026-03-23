@@ -47,10 +47,8 @@ export function Hero() {
                 <span className="w-2 h-2 rounded-full bg-[var(--qm-success)] animate-pulse" />
                 {t("badgeMacOS")}
               </Badge>
-              <Badge variant="default" size="md">
-                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
+              <Badge variant="success" size="md">
+                <span className="w-2 h-2 rounded-full bg-[var(--qm-success)] animate-pulse" />
                 {t("badgeWindows")}
               </Badge>
             </motion.div>

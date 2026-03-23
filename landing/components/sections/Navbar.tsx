@@ -16,11 +16,11 @@ export function Navbar() {
   const t = useTranslations("Navigation");
 
   const navLinks = [
-    { href: "#features", label: t("features") },
+    { href: "/#features", label: t("features") },
     { href: "/use-cases", label: t("useCases") },
-    { href: "#how-it-works", label: t("howItWorks") },
-    { href: "#pricing", label: t("pricing") },
-    { href: "#faq", label: t("faq") },
+    { href: "/#how-it-works", label: t("howItWorks") },
+    { href: "/#pricing", label: t("pricing") },
+    { href: "/#faq", label: t("faq") },
   ];
 
   useEffect(() => {

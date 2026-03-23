@@ -55,7 +55,7 @@ export function CTA() {
                 {t("downloadMac")}
               </GradientButton>
             </Link>
-            <Link href="/windows-waitlist">
+            <Link href="/download">
               <GradientButton size="lg" variant="secondary">
                 <svg
                   className="w-5 h-5"
@@ -63,9 +63,9 @@ export function CTA() {
                   viewBox="0 0 24 24"
                   stroke="currentColor"
                 >
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                 </svg>
-                {t("windowsSoon")}
+                {t("downloadWindows")}
               </GradientButton>
             </Link>
           </div>
@@ -84,11 +84,11 @@ export function CTA() {
             className="flex flex-wrap justify-center gap-8 sm:gap-16 mt-12 pt-12 border-t border-[var(--qm-border-subtle)]"
           >
             <div className="text-center">
-              <p className="text-3xl font-bold gradient-text">3+</p>
+              <p className="text-3xl font-bold gradient-text">4+</p>
               <p className="text-sm text-[var(--qm-text-tertiary)]">{t("statProviders")}</p>
             </div>
             <div className="text-center">
-              <p className="text-3xl font-bold gradient-text">4</p>
+              <p className="text-3xl font-bold gradient-text">6</p>
               <p className="text-sm text-[var(--qm-text-tertiary)]">{t("statModes")}</p>
             </div>
             <div className="text-center">
