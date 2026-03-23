@@ -23,6 +23,8 @@ const PLAN_FEATURES = {
     undetectableEnabled: false, // Enterprise only
     screenshotEnabled: false, // Screenshot requires PRO or higher
     knowledgeBaseEnabled: false, // Enterprise only
+    proactiveSuggestionsEnabled: false, // Enterprise only — must be present for HMAC consistency
+    bufferedPreGenEnabled: false, // Enterprise only
   },
   PRO: {
     smartModeEnabled: false, // Smart Mode is Enterprise only
@@ -37,6 +39,8 @@ const PLAN_FEATURES = {
     undetectableEnabled: false, // Enterprise only
     screenshotEnabled: true,
     knowledgeBaseEnabled: false, // Enterprise only
+    proactiveSuggestionsEnabled: false, // Enterprise only — must be present for HMAC consistency
+    bufferedPreGenEnabled: false, // Enterprise only
   },
   ENTERPRISE: {
     smartModeEnabled: true,
@@ -52,6 +56,7 @@ const PLAN_FEATURES = {
     screenshotEnabled: true,
     knowledgeBaseEnabled: true, // Context Intelligence enabled
     proactiveSuggestionsEnabled: true,
+    bufferedPreGenEnabled: true, // Instant AI responses via pre-generation
   },
 } as const;
 

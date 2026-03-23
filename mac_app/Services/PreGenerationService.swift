@@ -36,25 +36,34 @@ final class PreGenerationService: ObservableObject {
         return false
     }
 
+    // MARK: - License + Preference Gate
+
+    /// Pre-generation requires both Enterprise license AND user toggle enabled
+    private var isPreGenAvailable: Bool {
+        LicenseManager.shared.isFeatureAvailable(.bufferedPreGen) &&
+        ConfigurationManager.shared.bufferedPreGenEnabled
+    }
+
     // MARK: - Dependencies (injected via configure())
 
     private weak var aiService: AIService?
     private weak var screenService: ScreenCaptureService?
     private var modeProvider: (() -> Mode?)?
 
-    // MARK: - Configuration
+    // MARK: - Configuration (Enterprise-optimized)
 
     /// Number of new words before triggering pre-generation
-    private let wordTriggerCount = 50
+    private let wordTriggerCount = 40
 
     /// Seconds of silence to trigger pre-generation (backup, with ≥1 word)
     private let silenceThreshold: TimeInterval = 3.0
 
     /// Cooldown between pre-generation triggers (seconds)
-    private let cooldownPeriod: TimeInterval = 12.0
+    private let cooldownPeriod: TimeInterval = 10.0
 
     /// Max transcript change (in characters) before invalidating a ready buffer
-    private let staleThreshold = 500
+    /// 200 chars ≈ 30-35 words ≈ ~12s of speech — keeps buffer fresh
+    private let staleThreshold = 200
 
     /// Max time the silence timer runs before auto-stopping (seconds)
     private let silenceTimerMaxDuration: TimeInterval = 30.0
@@ -72,7 +81,7 @@ final class PreGenerationService: ObservableObject {
     private var lastTranscript = ""
 
     /// Minimum new words during generation to trigger a restart
-    private let restartWordThreshold = 15
+    private let restartWordThreshold = 10
 
     // MARK: - Initialization
 
@@ -94,7 +103,7 @@ final class PreGenerationService: ObservableObject {
 
     /// Called on every transcript buffer flush with the full accumulated transcript
     func onTranscriptUpdated(_ fullTranscript: String) {
-        guard ConfigurationManager.shared.bufferedPreGenEnabled else { return }
+        guard isPreGenAvailable else { return }
 
         // Count new words in the delta
         let delta = String(fullTranscript.dropFirst(lastTranscript.count))
@@ -131,9 +140,14 @@ final class PreGenerationService: ObservableObject {
         }
     }
 
-    /// Consume the pre-generated response buffer. Returns nil if not ready.
+    /// Consume the pre-generated response buffer. Returns nil if not ready or not available.
     /// Resets state to .idle after consumption.
     func consumeBuffer() -> String? {
+        guard isPreGenAvailable else {
+            // License revoked mid-session — discard stale buffer
+            if case .ready = state { state = .idle }
+            return nil
+        }
         guard case .ready(let text) = state else { return nil }
 
         // Check staleness one more time
@@ -174,7 +188,7 @@ final class PreGenerationService: ObservableObject {
     // MARK: - Private Methods
 
     private func triggerPreGen(reason: String) {
-        guard ConfigurationManager.shared.bufferedPreGenEnabled else { return }
+        guard isPreGenAvailable else { return }
         guard let aiService = aiService else { return }
         guard !lastTranscript.isEmpty else { return }
 
@@ -296,7 +310,7 @@ final class PreGenerationService: ObservableObject {
     }
 
     private func checkSilence() {
-        guard ConfigurationManager.shared.bufferedPreGenEnabled else {
+        guard isPreGenAvailable else {
             stopSilenceTimer()
             return
         }

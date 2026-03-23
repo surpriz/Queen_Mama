@@ -203,8 +203,15 @@ final class ConfigurationManager: ObservableObject {
         self.proactiveHesitationsEnabled = defaults.object(forKey: Keys.proactiveHesitations) as? Bool ?? false
         self.proactiveClosingEnabled = defaults.object(forKey: Keys.proactiveClosing) as? Bool ?? true
 
-        // Buffered Pre-Generation
-        self.bufferedPreGenEnabled = defaults.object(forKey: Keys.bufferedPreGen) as? Bool ?? true
+        // Buffered Pre-Generation (Enterprise only)
+        // Default true for Enterprise users who had implicit pre-gen before gating, false otherwise
+        if let stored = defaults.object(forKey: Keys.bufferedPreGen) as? Bool {
+            self.bufferedPreGenEnabled = stored
+        } else {
+            // First launch after update: auto-enable for Enterprise users
+            let isEnterprise = LicenseManager.shared.currentLicense.plan == .enterprise
+            self.bufferedPreGenEnabled = isEnterprise
+        }
 
         // Meeting Detection
         self.meetingDetectionEnabled = defaults.object(forKey: Keys.meetingDetection) as? Bool ?? true
@@ -257,8 +264,8 @@ final class ConfigurationManager: ObservableObject {
         proactiveQuestionsEnabled = true
         proactiveHesitationsEnabled = false
         proactiveClosingEnabled = true
-        // Buffered Pre-Generation
-        bufferedPreGenEnabled = true
+        // Buffered Pre-Generation (Enterprise only, default off)
+        bufferedPreGenEnabled = false
         // Meeting Detection
         meetingDetectionEnabled = true
     }
