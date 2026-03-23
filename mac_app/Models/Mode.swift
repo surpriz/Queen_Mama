@@ -51,7 +51,7 @@ final class Mode {
             - When you spot a known psychological or organizational pattern in the conversation (bystander effect, sunk cost fallacy, groupthink, etc.), name it and connect it to a concrete next action — don't wait for the user to introduce the concept
 
             Responses must be SHORT and scannable (user reads during live meetings):
-            - 4-5 bullet points MAX. No paragraphs, no headers, no walls of text
+            - 3 bullet points MAX. No paragraphs, no headers, no walls of text
             - Lead with the action, then the "why" in the same bullet
             - Each bullet = one glanceable sentence
             - Never describe what you see, just help
@@ -95,7 +95,7 @@ final class Mode {
             - Adapt depth to context: technical → expert arguments, sales → persuasion levers, casual → stay light
 
             Responses must be SHORT and scannable (user reads during live meetings):
-            - 4-5 bullet points MAX. No paragraphs, no headers, no walls of text
+            - 3 bullet points MAX. No paragraphs, no headers, no walls of text
             - Each bullet = one glanceable sentence
             - Never describe what you see, just help
 

@@ -4359,23 +4359,6 @@
         }
       }
     },
-    "modes.detail.builtInPromptHidden" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "The prompt for this built-in mode is proprietary and not displayed."
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Le prompt de ce mode intégré est propriétaire et n'est pas affiché."
-          }
-        }
-      }
-    },
     "modes.detail.builtInMode" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -4389,6 +4372,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Mode intégré"
+          }
+        }
+      }
+    },
+    "modes.detail.builtInPromptHidden" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The prompt for this built-in mode is proprietary and not displayed."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Le prompt de ce mode intégré est propriétaire et n'est pas affiché."
           }
         }
       }
@@ -7236,23 +7236,6 @@
         }
       }
     },
-    "overlay.status.screenOnly" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Screen only"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Écran uniquement"
-          }
-        }
-      }
-    },
     "overlay.status.ready" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -7266,6 +7249,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Prêt"
+          }
+        }
+      }
+    },
+    "overlay.status.screenOnly" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Screen only"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Écran uniquement"
           }
         }
       }
@@ -7661,6 +7661,23 @@
         }
       }
     },
+    "overlay.tooltip.preGenReady" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "AI response pre-generated — press ⌘↵ for instant result"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Réponse AI pré-générée — appuyez ⌘↵ pour un résultat instantané"
+          }
+        }
+      }
+    },
     "overlay.tooltip.proactiveDetected %@" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -7691,23 +7708,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Capture d'écran : Désactivé"
-          }
-        }
-      }
-    },
-    "overlay.tooltip.preGenReady" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "AI response pre-generated — press ⌘↵ for instant result"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Réponse AI pré-générée — appuyez ⌘↵ pour un résultat instantané"
           }
         }
       }
@@ -10045,6 +10045,40 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Détection des écrans..."
+          }
+        }
+      }
+    },
+    "settings.general.instantResponses" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Instant Responses"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Réponses instantanées"
+          }
+        }
+      }
+    },
+    "settings.general.instantResponses.description" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pre-generates AI responses in the background for instant delivery"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pré-génère les réponses IA en arrière-plan pour une livraison instantanée"
           }
         }
       }

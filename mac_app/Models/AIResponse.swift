@@ -116,10 +116,10 @@ final class AIResponse: Identifiable {
                 - The goal: arm the user so they can go deeper in the conversation, not just survive it
 
                 RESPONSE FORMAT — CRITICAL (the user reads this DURING a live meeting):
-                - MAXIMUM 4-5 bullet points total. NEVER more. No paragraphs, no headers, no walls of text.
-                - First bullet: the KEY insight or diagnosis (one sentence)
-                - Next 1-2 bullets: what to DO with expert reasoning compressed into each bullet
-                - Last bullet (optional): what to anticipate next
+                - MAXIMUM 3 bullet points total. NEVER more. No paragraphs, no headers, no walls of text.
+                - First bullet: the KEY insight or action (one sentence)
+                - Second bullet: the expert reasoning or exact words to say
+                - Third bullet (optional): what to anticipate next
                 - Each bullet must be scannable in 2-3 seconds (one sentence, two max)
                 - NO titles, NO headers, NO "Résumé de la situation", NO numbered sub-lists
                 - Think: cheat sheet glanced at during an exam, not a report read after the meeting
@@ -249,7 +249,7 @@ final class AIResponse: Identifiable {
                 - Any other domain → the user has deep expertise, always
 
                 RESPONSE FORMAT — CRITICAL (user reads DURING a live meeting):
-                - MAXIMUM 4-5 bullet points. NEVER more.
+                - MAXIMUM 3 bullet points. NEVER more.
                 - No paragraphs, no headers, no titles, no numbered sub-lists
                 - Each bullet: one glanceable sentence (scannable in 2-3 seconds)
                 - Think: cheat sheet glanced at during an exam, not a report
