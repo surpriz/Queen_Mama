@@ -50,10 +50,10 @@ export class DeepgramFluxProvider implements TranscriptionProvider {
     log.info(`Connecting to Deepgram (lang: ${lang})...`)
 
     return new Promise<void>((resolve, reject) => {
-      // Try URL parameter auth first (works with JWT tokens from grant API)
-      // Fallback to subprotocol if tokenType is 'token' (raw API key)
-      const authUrl = `${url}&token=${encodeURIComponent(this.token!)}`
-      const ws = new WebSocket(authUrl)
+      // Browser WebSocket doesn't support custom headers (Authorization).
+      // Use Deepgram's subprotocol-based auth: ['token', apiKey]
+      // This is equivalent to macOS's `Authorization: Token <key>` header.
+      const ws = new WebSocket(url, ['token', this.token!])
       this.ws = ws
 
       this.ws.onopen = () => {
