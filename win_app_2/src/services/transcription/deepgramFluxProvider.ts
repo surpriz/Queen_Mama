@@ -1,6 +1,7 @@
 import type { TranscriptionProvider } from './types'
 import { getTranscriptionToken } from '../proxy/proxyApiClient'
 import { createLogger } from '@/lib/logger'
+import { captureError, addBreadcrumb } from '../crash/crashReporter'
 
 const log = createLogger('DeepgramFlux')
 
@@ -20,9 +21,20 @@ export class DeepgramFluxProvider implements TranscriptionProvider {
   }
 
   async connect(): Promise<void> {
-    const tokenResponse = await getTranscriptionToken('deepgram')
-    this.token = tokenResponse.token
-    log.info('Token received')
+    let tokenResponse
+    try {
+      tokenResponse = await getTranscriptionToken('deepgram')
+      this.token = tokenResponse.token
+      log.info(`Token received (length: ${this.token?.length ?? 0}, type: ${tokenResponse.tokenType ?? 'unknown'})`)
+      addBreadcrumb('transcription', `DeepgramFlux token received (len=${this.token?.length})`, 'info')
+    } catch (error) {
+      log.error('Token fetch failed:', error)
+      captureError(error instanceof Error ? error : new Error(String(error)), {
+        provider: 'deepgram-flux',
+        phase: 'token_fetch',
+      })
+      throw error
+    }
 
     const lang = this.language || 'fr'
     let url =
@@ -46,6 +58,7 @@ export class DeepgramFluxProvider implements TranscriptionProvider {
 
       this.ws.onopen = () => {
         log.info('Connected')
+        addBreadcrumb('transcription', 'DeepgramFlux WebSocket connected', 'info')
         this.startKeepalive()
         resolve()
       }
@@ -62,6 +75,15 @@ export class DeepgramFluxProvider implements TranscriptionProvider {
                 this.onInterimTranscript?.(transcript)
               }
             }
+          } else if (data.type === 'Metadata') {
+            log.info(`Metadata received: model=${data.model_info?.name}, request_id=${data.request_id}`)
+          } else if (data.type === 'Error' || data.type === 'error') {
+            log.error(`Deepgram server error: ${JSON.stringify(data)}`)
+            captureError(new Error(`Deepgram server error: ${data.message || JSON.stringify(data)}`), {
+              provider: 'deepgram-flux',
+              phase: 'server_error',
+              errorData: data,
+            })
           }
         } catch (error) {
           log.error('Parse error', error)
@@ -71,6 +93,10 @@ export class DeepgramFluxProvider implements TranscriptionProvider {
       this.ws.onerror = (event) => {
         const errEvent = event as ErrorEvent
         log.error(`WebSocket error: ${errEvent.message || 'unknown'}`)
+        captureError(new Error(`Deepgram Flux connection failed: ${errEvent.message || 'unknown'}`), {
+          provider: 'deepgram-flux',
+          phase: 'ws_error',
+        })
         reject(new Error(`Deepgram Flux connection failed: ${errEvent.message || 'unknown'}`))
       }
 
@@ -78,7 +104,15 @@ export class DeepgramFluxProvider implements TranscriptionProvider {
         log.info(`Disconnected (code: ${event.code}, reason: "${event.reason}", clean: ${event.wasClean})`)
         this.stopKeepalive()
         if (event.code !== 1000) {
-          this.onError?.(new Error(`Deepgram Flux disconnected: code=${event.code} reason="${event.reason}"`))
+          const err = new Error(`Deepgram Flux disconnected: code=${event.code} reason="${event.reason}"`)
+          captureError(err, {
+            provider: 'deepgram-flux',
+            phase: 'ws_close',
+            closeCode: event.code,
+            closeReason: event.reason,
+            wasClean: event.wasClean,
+          })
+          this.onError?.(err)
         }
       }
     })

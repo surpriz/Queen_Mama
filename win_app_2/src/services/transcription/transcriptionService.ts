@@ -5,6 +5,7 @@ import { AssemblyAIProvider } from './assemblyAIProvider'
 import { DeepgramFluxProvider } from './deepgramFluxProvider'
 import { sleep } from '@/lib/utils'
 import { useConfigStore } from '@/stores/configStore'
+import { captureError, addBreadcrumb } from '../crash/crashReporter'
 
 const log = createLogger('Transcription')
 
@@ -34,6 +35,11 @@ let batchBuffer: ArrayBuffer[] = []
 let batchBufferSize = 0
 let batchTimer: ReturnType<typeof setInterval> | null = null
 
+// Diagnostic counters
+let audioChunksReceived = 0
+let audioBytesSent = 0
+let lastDiagnosticLog = 0
+
 let onTranscript: ((text: string) => void) | null = null
 let onInterimTranscript: ((text: string) => void) | null = null
 let onError: ((error: Error) => void) | null = null
@@ -58,6 +64,7 @@ function setupProviderCallbacks(provider: TranscriptionProvider): void {
   }
   provider.onError = (error) => {
     log.error(`Provider error: ${error.message}`)
+    addBreadcrumb('transcription', `Provider ${provider.name} error: ${error.message}`, 'error')
     isConnected = false
     onConnectionChanged?.(false, null)
     onError?.(error)
@@ -96,6 +103,9 @@ export async function connect(): Promise<void> {
   }
 
   log.info('Connecting to transcription service...')
+  audioChunksReceived = 0
+  audioBytesSent = 0
+  lastDiagnosticLog = Date.now()
 
   if (currentProvider) {
     currentProvider.disconnect()
@@ -113,6 +123,8 @@ export async function connect(): Promise<void> {
   log.info(`Language set to: ${language}`)
 
   const configuredProviders = providers.filter((p) => p.isConfigured && !unavailableProviders.has(p.name))
+  const skippedProviders = providers.filter((p) => !p.isConfigured || unavailableProviders.has(p.name))
+  log.info(`Available providers: [${configuredProviders.map(p => p.name).join(', ')}] | Skipped: [${skippedProviders.map(p => `${p.name}(configured=${p.isConfigured},unavail=${unavailableProviders.has(p.name)})`).join(', ')}]`)
   let lastError: Error | null = null
 
   for (const provider of configuredProviders) {
@@ -150,7 +162,13 @@ export async function connect(): Promise<void> {
 
   isConnected = false
   onConnectionChanged?.(false, null)
-  throw lastError || new Error('All transcription providers failed')
+  const finalError = lastError || new Error('All transcription providers failed')
+  captureError(finalError, {
+    service: 'transcription',
+    phase: 'all_providers_failed',
+    unavailable: Array.from(unavailableProviders),
+  })
+  throw finalError
 }
 
 export function disconnect(): void {
@@ -190,6 +208,14 @@ function flushBatch(): void {
   batchBufferSize = 0
 
   currentProvider.sendAudio(merged.buffer)
+  audioBytesSent += totalSize
+
+  // Log diagnostics every 5 seconds
+  const now = Date.now()
+  if (now - lastDiagnosticLog > 5000) {
+    log.info(`[Diag] chunks=${audioChunksReceived}, bytesSent=${audioBytesSent}, provider=${currentProvider?.name}, connected=${isConnected}`)
+    lastDiagnosticLog = now
+  }
 }
 
 function startBatchTimer(): void {
@@ -209,6 +235,7 @@ function stopBatchTimer(): void {
 export function sendAudio(data: ArrayBuffer): void {
   if (!isConnected || !currentProvider) return
 
+  audioChunksReceived++
   batchBuffer.push(data)
   batchBufferSize += data.byteLength
 

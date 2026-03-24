@@ -1,5 +1,6 @@
 import { createLogger } from '@/lib/logger'
 import { useConfigStore } from '@/stores/configStore'
+import { addBreadcrumb } from '../crash/crashReporter'
 
 const log = createLogger('AudioCapture')
 
@@ -147,6 +148,7 @@ export async function startCapture(): Promise<void> {
 
   isCapturing = true
   log.info(`Audio capture started (mic: ${!!micStream}, system: ${!!systemStream})`)
+  addBreadcrumb('audio', `Capture started (mic=${!!micStream}, system=${!!systemStream}, sampleRate=${audioContext?.sampleRate})`, 'info')
 }
 
 function startWithWorklet(): void {

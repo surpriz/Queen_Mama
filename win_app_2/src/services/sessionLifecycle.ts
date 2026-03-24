@@ -145,9 +145,14 @@ export async function startSession(mode?: Mode | null, contact?: Contact | null)
           sessionStartedAt: currentStore.sessionStartedAt,
         })
       },
-      onError: (error: Error) => {
+      onError: async (error: Error) => {
         console.error('[SessionLifecycle] Transcription error:', error.message)
         useAppStore.getState().setErrorMessage(error.message)
+        // Report to Sentry so we have visibility on transcription failures
+        try {
+          const { captureError } = await import('@/services/crash/crashReporter')
+          captureError(error, { service: 'transcription', sessionId: currentSessionId })
+        } catch { /* noop */ }
       },
       onConnectionChanged: (connected: boolean, provider: string | null) => {
         console.log('[SessionLifecycle] Transcription connected:', connected, provider)

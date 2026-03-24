@@ -143,7 +143,7 @@ jobs:
         with:
           name: unsigned-installer
           path: win_app_2/release/${{ steps.installer.outputs.installer_name }}
-          retention-days: 1
+          retention-days: 7
 
       - name: Upload latest.yml
         uses: actions/upload-artifact@v4
