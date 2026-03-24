@@ -83,19 +83,21 @@ export interface AIContextParams {
 export function buildSystemPrompt(params: AIContextParams): string {
   const { mode, responseType, smartMode } = params
 
+  // Inject current date so models never confuse training cutoff with today
+  const today = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })
+  let prompt = `Today's date is ${today}. Use this as the current date for any temporal reasoning.\n\n`
+
   const isCustomMode = mode
     ? !BUILT_IN_MODE_NAMES.includes(mode.name as (typeof BUILT_IN_MODE_NAMES)[number])
     : false
 
-  let prompt: string
-
   if (isCustomMode && mode) {
     // Custom modes: ONLY the mode's prompt + language instruction
-    prompt = mode.systemPrompt
+    prompt += mode.systemPrompt
     prompt += getLanguageInstruction()
   } else {
     // Built-in modes: mode prompt + responseType additions
-    prompt = mode?.systemPrompt || getDefaultSystemPrompt()
+    prompt += mode?.systemPrompt || getDefaultSystemPrompt()
 
     // Developer Exam has its own complete prompt — skip responseType addition
     if (mode?.name !== 'Developer Exam') {

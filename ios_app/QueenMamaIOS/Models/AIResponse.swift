@@ -243,7 +243,12 @@ struct AIContext: @unchecked Sendable {
     }
 
     var systemPrompt: String {
-        var prompt = ""
+        // Inject current date so models never confuse training cutoff with today
+        let dateFormatter = DateFormatter()
+        dateFormatter.dateStyle = .long
+        dateFormatter.timeStyle = .none
+        let todayString = dateFormatter.string(from: Date())
+        var prompt = "Today's date is \(todayString). Use this as the current date for any temporal reasoning.\n\n"
 
         // Check if this is a custom mode (not one of the built-in modes)
         let isCustomMode: Bool
@@ -260,7 +265,7 @@ struct AIContext: @unchecked Sendable {
         if isCustomMode {
             // For custom modes, use ONLY the mode's system prompt
             // This allows users to have full control over AI behavior
-            prompt = mode?.systemPrompt ?? Mode.defaultMode.systemPrompt
+            prompt += mode?.systemPrompt ?? Mode.defaultMode.systemPrompt
             print("[AIContext] Using CUSTOM mode logic - no responseType additions")
 
             // Add explicit instructions
@@ -274,7 +279,7 @@ struct AIContext: @unchecked Sendable {
                 """
         } else {
             // For built-in modes, use the traditional combination
-            prompt = mode?.systemPrompt ?? Mode.defaultMode.systemPrompt
+            prompt += mode?.systemPrompt ?? Mode.defaultMode.systemPrompt
             // Developer Exam has its own complete prompt — skip responseType addition
             // to avoid conflicting instructions (e.g. .assist adding "1-2 sentences max")
             if mode?.name != "Developer Exam" {
