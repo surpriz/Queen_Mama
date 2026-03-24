@@ -329,6 +329,17 @@ SMART MODE ENABLED: Please provide enhanced, thorough analysis:
             prompt += "\nUse this context to provide more personalized and relevant responses."
         }
 
+        // Speaker identification unavailable — applies to ALL modes
+        prompt += """
+
+
+SPEAKER IDENTIFICATION — CRITICAL RULE:
+The transcript does NOT include speaker identification. You do NOT know who said what.
+NEVER attribute a statement, decision, or action item to a specific person by name.
+Use generic references only: "a participant mentioned", "someone raised", "it was said", "the team discussed".
+BAD: "Denis should send the report" → GOOD: "Someone should send the report" or "The report needs to be sent".
+"""
+
         return prompt
     }
 

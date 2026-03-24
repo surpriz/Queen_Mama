@@ -135,6 +135,13 @@ export function buildSystemPrompt(params: AIContextParams): string {
     prompt += cachedContactsContext
   }
 
+  // Speaker identification unavailable — applies to ALL modes
+  prompt += `\n\nSPEAKER IDENTIFICATION — CRITICAL RULE:
+The transcript does NOT include speaker identification. You do NOT know who said what.
+NEVER attribute a statement, decision, or action item to a specific person by name.
+Use generic references only: "a participant mentioned", "someone raised", "it was said", "the team discussed".
+BAD: "Denis should send the report" → GOOD: "Someone should send the report" or "The report needs to be sent".`
+
   return prompt
 }
 
