@@ -367,18 +367,21 @@ BAD: "Denis should send the report" → GOOD: "Someone should send the report" o
         }
 
         if !transcript.isEmpty {
-            // Limit transcript to ~8000 chars (~2000 tokens) for cost optimization
-            let maxTranscriptLength = 8000
-            let truncatedTranscript: String
+            // Split into background + current discussion
+            // Recent (~1-2 min) = priority. Background = available context if relevant.
+            let recentLength = 2500
+            let backgroundMaxLength = 5500
 
-            if transcript.count > maxTranscriptLength {
-                truncatedTranscript = "[...conversation précédente tronquée...]\n\n" +
-                    String(transcript.suffix(maxTranscriptLength))
+            if transcript.count <= recentLength {
+                message += "## Transcript:\n\(transcript)\n\n"
             } else {
-                truncatedTranscript = transcript
+                let recentPart = String(transcript.suffix(recentLength))
+                let olderPart = String(transcript.dropLast(recentLength))
+                let backgroundPart = olderPart.count > backgroundMaxLength
+                    ? "[...conversation précédente tronquée...]\n\n" + String(olderPart.suffix(backgroundMaxLength))
+                    : olderPart
+                message += "## Contexte de réunion (plus tôt dans la discussion) :\n\(backgroundPart)\n\n## Discussion en cours (priorité ici) :\n\(recentPart)\n\n"
             }
-
-            message += "## Transcript:\n\(truncatedTranscript)\n\n"
         }
 
         if screenshot != nil {

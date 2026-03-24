@@ -573,26 +573,31 @@ BAD: "Denis should send the report" → GOOD: "Someone should send the report" o
         }
 
         if !transcript.isEmpty {
-            // Recap and session summaries need much more context for comprehensive coverage
-            // Other tabs (Assist, WhatToSay, FollowUp) use a smaller window for speed
-            let maxTranscriptLength: Int
             switch responseType {
             case .recap:
-                maxTranscriptLength = 50000  // ~12500 tokens - full 1h meeting coverage
+                // Full history for recap — needs complete meeting coverage
+                let maxLength = 50000
+                let full = transcript.count > maxLength
+                    ? "[...conversation précédente tronquée...]\n\n" + String(transcript.suffix(maxLength))
+                    : transcript
+                message += "## Transcript:\n\(full)\n\n"
             default:
-                maxTranscriptLength = 10000  // ~2500 tokens - focused on recent context for speed
+                // Split into background + current discussion
+                // Recent (~1-2 min) = priority. Background = available context if relevant.
+                let recentLength = 3000
+                let backgroundMaxLength = 7000
+
+                if transcript.count <= recentLength {
+                    message += "## Transcript:\n\(transcript)\n\n"
+                } else {
+                    let recentPart = String(transcript.suffix(recentLength))
+                    let olderPart = String(transcript.dropLast(recentLength))
+                    let backgroundPart = olderPart.count > backgroundMaxLength
+                        ? "[...conversation précédente tronquée...]\n\n" + String(olderPart.suffix(backgroundMaxLength))
+                        : olderPart
+                    message += "## Contexte de réunion (plus tôt dans la discussion) :\n\(backgroundPart)\n\n## Discussion en cours (priorité ici) :\n\(recentPart)\n\n"
+                }
             }
-
-            let truncatedTranscript: String
-
-            if transcript.count > maxTranscriptLength {
-                truncatedTranscript = "[...conversation précédente tronquée...]\n\n" +
-                    String(transcript.suffix(maxTranscriptLength))
-            } else {
-                truncatedTranscript = transcript
-            }
-
-            message += "## Transcript:\n\(truncatedTranscript)\n\n"
         }
 
         if screenshot != nil {

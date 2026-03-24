@@ -155,14 +155,29 @@ export function buildUserMessage(params: AIContextParams): AIMessage[] {
   let textContent = ''
 
   if (transcript.trim()) {
-    const maxLen = responseType === ResponseType.Recap ? MAX_TRANSCRIPT_LENGTH_RECAP : MAX_TRANSCRIPT_LENGTH
-    const truncated =
-      transcript.length > maxLen
-        ? '[...previous conversation truncated...]\n\n' +
-          transcript.slice(-maxLen)
+    if (responseType === ResponseType.Recap) {
+      // Full history for recap — needs complete meeting coverage
+      const truncated = transcript.length > MAX_TRANSCRIPT_LENGTH_RECAP
+        ? '[...previous conversation truncated...]\n\n' + transcript.slice(-MAX_TRANSCRIPT_LENGTH_RECAP)
         : transcript
+      textContent += `## Transcript:\n${truncated}\n\n`
+    } else {
+      // Split into background + current discussion
+      // Recent (~1-2 min) = priority. Background = available context if relevant.
+      const recentLength = 3000
+      const backgroundMaxLength = MAX_TRANSCRIPT_LENGTH - recentLength
 
-    textContent += `## Transcript:\n${truncated}\n\n`
+      if (transcript.length <= recentLength) {
+        textContent += `## Transcript:\n${transcript}\n\n`
+      } else {
+        const recentPart = transcript.slice(-recentLength)
+        const olderPart = transcript.slice(0, -recentLength)
+        const backgroundPart = olderPart.length > backgroundMaxLength
+          ? '[...previous conversation truncated...]\n\n' + olderPart.slice(-backgroundMaxLength)
+          : olderPart
+        textContent += `## Contexte de réunion (plus tôt dans la discussion) :\n${backgroundPart}\n\n## Discussion en cours (priorité ici) :\n${recentPart}\n\n`
+      }
+    }
   }
 
   if (screenshot) {
