@@ -81,15 +81,29 @@ final class CrashReporter {
             // Set release and dist
             if let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String,
                let build = Bundle.main.infoDictionary?["CFBundleVersion"] as? String {
-                options.releaseName = "com.queenmama.app@\(version)+\(build)"
+                options.releaseName = "com.queenmama.ios@\(version)+\(build)"
                 options.dist = build
             }
 
-            // Before send callback - can be used to scrub sensitive data
+            // Disable automatic HTTP failure capture — the app handles HTTP errors
+            // with retry logic (ProxyAPIClient) and reports manually after max retries.
+            options.enableCaptureFailedRequests = false
+
+            // Before send callback - filter noise + scrub sensitive data
             options.beforeSend = { event in
-                // Remove any sensitive data from breadcrumbs
+                // --- Filter: Drop transient socket errors ---
+                // NSPOSIXErrorDomain Code 57 (ENOTCONN) and Code 60 (ETIMEDOUT) are
+                // transient WebSocket errors handled by TranscriptionService reconnection.
+                if let exceptions = event.exceptions,
+                   exceptions.contains(where: {
+                       $0.type == "NSPOSIXErrorDomain" &&
+                       ($0.value.contains("Code: 57") || $0.value.contains("Code: 60"))
+                   }) {
+                    return nil
+                }
+
+                // --- Scrub sensitive data from breadcrumbs ---
                 event.breadcrumbs = event.breadcrumbs?.map { breadcrumb in
-                    // Scrub API keys from breadcrumb messages
                     if let message = breadcrumb.message {
                         let scrubbed = Breadcrumb(level: breadcrumb.level, category: breadcrumb.category)
                         scrubbed.message = self.scrubSensitiveData(message)

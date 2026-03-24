@@ -165,13 +165,14 @@ struct LicenseFeatures: Codable, Equatable {
     let screenshotEnabled: Bool
     let knowledgeBaseEnabled: Bool  // Context Intelligence (Enterprise)
     let proactiveSuggestionsEnabled: Bool  // Proactive AI suggestions (Enterprise)
+    let bufferedPreGenEnabled: Bool  // Instant AI responses via pre-generation (Enterprise)
 
     // Custom decoding to handle servers that don't send new fields yet
     enum CodingKeys: String, CodingKey {
         case smartModeEnabled, smartModeLimit, customModesEnabled, exportFormats
         case autoAnswerEnabled, sessionSyncEnabled, dailyAiRequestLimit
         case maxSyncedSessions, maxTranscriptSize, undetectableEnabled, screenshotEnabled
-        case knowledgeBaseEnabled, proactiveSuggestionsEnabled
+        case knowledgeBaseEnabled, proactiveSuggestionsEnabled, bufferedPreGenEnabled
     }
 
     init(from decoder: Decoder) throws {
@@ -190,6 +191,7 @@ struct LicenseFeatures: Codable, Equatable {
         screenshotEnabled = try container.decodeIfPresent(Bool.self, forKey: .screenshotEnabled) ?? true
         knowledgeBaseEnabled = try container.decodeIfPresent(Bool.self, forKey: .knowledgeBaseEnabled) ?? false
         proactiveSuggestionsEnabled = try container.decodeIfPresent(Bool.self, forKey: .proactiveSuggestionsEnabled) ?? false
+        bufferedPreGenEnabled = try container.decodeIfPresent(Bool.self, forKey: .bufferedPreGenEnabled) ?? false
     }
 
     init(
@@ -205,7 +207,8 @@ struct LicenseFeatures: Codable, Equatable {
         undetectableEnabled: Bool = false,
         screenshotEnabled: Bool = true,
         knowledgeBaseEnabled: Bool = false,
-        proactiveSuggestionsEnabled: Bool = false
+        proactiveSuggestionsEnabled: Bool = false,
+        bufferedPreGenEnabled: Bool = false
     ) {
         self.smartModeEnabled = smartModeEnabled
         self.smartModeLimit = smartModeLimit
@@ -220,6 +223,7 @@ struct LicenseFeatures: Codable, Equatable {
         self.screenshotEnabled = screenshotEnabled
         self.knowledgeBaseEnabled = knowledgeBaseEnabled
         self.proactiveSuggestionsEnabled = proactiveSuggestionsEnabled
+        self.bufferedPreGenEnabled = bufferedPreGenEnabled
     }
 
     // 4-tier model: Free users get basic features only
@@ -236,7 +240,8 @@ struct LicenseFeatures: Codable, Equatable {
         undetectableEnabled: false, // Enterprise only
         screenshotEnabled: true,
         knowledgeBaseEnabled: false, // Enterprise only
-        proactiveSuggestionsEnabled: false // Enterprise only
+        proactiveSuggestionsEnabled: false, // Enterprise only
+        bufferedPreGenEnabled: false // Enterprise only
     )
 
     // PRO tier: Unlimited standard AI, sync, custom modes - but no premium features
@@ -253,7 +258,8 @@ struct LicenseFeatures: Codable, Equatable {
         undetectableEnabled: false, // Enterprise only
         screenshotEnabled: true,
         knowledgeBaseEnabled: false, // Enterprise only
-        proactiveSuggestionsEnabled: false // Enterprise only
+        proactiveSuggestionsEnabled: false, // Enterprise only
+        bufferedPreGenEnabled: false // Enterprise only
     )
 
     // Enterprise tier: All features unlocked
@@ -270,7 +276,8 @@ struct LicenseFeatures: Codable, Equatable {
         undetectableEnabled: true,
         screenshotEnabled: true,
         knowledgeBaseEnabled: true, // Context Intelligence enabled
-        proactiveSuggestionsEnabled: true // Proactive suggestions enabled
+        proactiveSuggestionsEnabled: true, // Proactive suggestions enabled
+        bufferedPreGenEnabled: true // Instant AI responses via pre-generation
     )
 }
 
@@ -300,6 +307,7 @@ enum Feature {
     case sessionStart
     case knowledgeBase  // Context Intelligence feedback (Enterprise)
     case proactiveSuggestions  // Proactive AI suggestions (Enterprise)
+    case bufferedPreGen  // Instant AI responses via pre-generation (Enterprise)
 }
 
 enum FeatureAccess: Equatable {

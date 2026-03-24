@@ -141,6 +141,7 @@ export async function POST(request: Request) {
       });
 
       console.log("[Transcription Token] Returning Deepgram API key for WebSocket streaming");
+      console.log(`[Transcription Token] Key prefix: ${adminApiKey.substring(0, 10)}... (length: ${adminApiKey.length})`);
 
       return NextResponse.json(
         {

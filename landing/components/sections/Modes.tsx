@@ -74,6 +74,38 @@ export function Modes() {
       ],
       example: t("professional.example"),
     },
+    {
+      id: "limitless",
+      name: t("limitless.name"),
+      icon: (
+        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+        </svg>
+      ),
+      description: t("limitless.description"),
+      features: [
+        t("limitless.feature1"),
+        t("limitless.feature2"),
+        t("limitless.feature3"),
+      ],
+      example: t("limitless.example"),
+    },
+    {
+      id: "developerExam",
+      name: t("developerExam.name"),
+      icon: (
+        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
+        </svg>
+      ),
+      description: t("developerExam.description"),
+      features: [
+        t("developerExam.feature1"),
+        t("developerExam.feature2"),
+        t("developerExam.feature3"),
+      ],
+      example: t("developerExam.example"),
+    },
   ];
 
   const currentMode = modes.find((m) => m.id === activeMode) || modes[0];

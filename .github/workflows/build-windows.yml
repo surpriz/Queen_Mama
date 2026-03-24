@@ -52,6 +52,12 @@ jobs:
     timeout-minutes: 30
     permissions:
       contents: write
+    outputs:
+      tag_name: ${{ steps.release_type.outputs.tag_name }}
+      is_prerelease: ${{ steps.release_type.outputs.is_prerelease }}
+      installer_name: ${{ steps.installer.outputs.installer_name }}
+      version: ${{ steps.installer.outputs.version }}
+      build_number: ${{ steps.build_number.outputs.next_build }}
     steps:
       - uses: actions/checkout@v4
 
@@ -132,6 +138,22 @@ jobs:
           echo "version=$VERSION" >> $GITHUB_OUTPUT
           echo "Installer: QueenMama-Setup-${VERSION}.exe"
 
+      - name: Upload unsigned installer
+        uses: actions/upload-artifact@v4
+        with:
+          name: unsigned-installer
+          path: win_app_2/release/${{ steps.installer.outputs.installer_name }}
+          retention-days: 7
+
+      - name: Upload latest.yml
+        uses: actions/upload-artifact@v4
+        continue-on-error: true
+        with:
+          name: latest-yml
+          path: win_app_2/release/latest.yml
+          retention-days: 1
+          if-no-files-found: warn
+
       - name: Upload Sentry release
         if: ${{ vars.SENTRY_ORG != '' && vars.SENTRY_PROJECT_WINDOWS != '' }}
         continue-on-error: true
@@ -164,20 +186,204 @@ jobs:
             sentry-cli releases deploys "${VERSION}+${BUILD_NUMBER}" new -e production
           fi
 
+  sign:
+    needs: [build]
+    runs-on: [self-hosted, Windows]
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: .
+    permissions:
+      contents: write
+    steps:
+      - name: Clean workspace
+        shell: powershell
+        run: |
+          if (Test-Path unsigned) { Remove-Item unsigned -Recurse -Force }
+
+      - name: Download unsigned installer
+        uses: actions/download-artifact@v4
+        with:
+          name: unsigned-installer
+          path: unsigned
+
+      - name: Authenticate SimplySign
+        shell: powershell
+        env:
+          CERTUM_OTP_URI: ${{ secrets.CERTUM_OTP_URI }}
+          CERTUM_USERID: ${{ secrets.CERTUM_USERID }}
+        run: |
+          Add-Type -Language CSharp @"
+          using System;
+          using System.Security.Cryptography;
+          public static class TotpGen {
+              private static byte[] Base32Decode(string b32) {
+                  b32 = b32.TrimEnd('=').ToUpperInvariant();
+                  int bc = b32.Length * 5 / 8;
+                  byte[] r = new byte[bc]; byte cb = 0; int br = 8; int ai = 0;
+                  const string a = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
+                  foreach (char c in b32) {
+                      int v = a.IndexOf(c); if (v < 0) throw new ArgumentException("Bad char");
+                      if (br > 5) { cb = (byte)(cb | (v << (br - 5))); br -= 5; }
+                      else { cb = (byte)(cb | (v >> (5 - br))); r[ai++] = cb; cb = (byte)((v << (3 + br)) & 0xFF); br += 3; }
+                  }
+                  if (ai < bc) r[ai] = cb; return r;
+              }
+              public static string Gen(string secret, int digits, int period, string algo) {
+                  byte[] key = Base32Decode(secret);
+                  long ctr = (long)(DateTime.UtcNow - new DateTime(1970,1,1,0,0,0,DateTimeKind.Utc)).TotalSeconds / period;
+                  byte[] cb = BitConverter.GetBytes(ctr);
+                  if (BitConverter.IsLittleEndian) Array.Reverse(cb);
+                  byte[] h;
+                  if (algo == "SHA256") { using (var hm = new HMACSHA256(key)) { h = hm.ComputeHash(cb); } }
+                  else { using (var hm = new HMACSHA1(key)) { h = hm.ComputeHash(cb); } }
+                  int o = h[h.Length-1] & 0x0F;
+                  int bin = ((h[o]&0x7F)<<24)|((h[o+1]&0xFF)<<16)|((h[o+2]&0xFF)<<8)|(h[o+3]&0xFF);
+                  return (bin % (int)Math.Pow(10, digits)).ToString().PadLeft(digits, '0');
+              }
+          }
+          "@
+
+          # Parse OTP URI
+          $secret = [regex]::Match($env:CERTUM_OTP_URI, 'secret=([A-Z2-7=]+)').Groups[1].Value
+          $algo = if ([regex]::Match($env:CERTUM_OTP_URI, 'algorithm=(\w+)').Success) { [regex]::Match($env:CERTUM_OTP_URI, 'algorithm=(\w+)').Groups[1].Value } else { "SHA1" }
+          $digits = if ([regex]::Match($env:CERTUM_OTP_URI, 'digits=(\d+)').Success) { [int][regex]::Match($env:CERTUM_OTP_URI, 'digits=(\d+)').Groups[1].Value } else { 6 }
+          $period = if ([regex]::Match($env:CERTUM_OTP_URI, 'period=(\d+)').Success) { [int][regex]::Match($env:CERTUM_OTP_URI, 'period=(\d+)').Groups[1].Value } else { 30 }
+
+          # Wait for good TOTP window
+          $remaining = $period - ([DateTimeOffset]::UtcNow.ToUnixTimeSeconds() % $period)
+          if ($remaining -lt 10) { Start-Sleep -Seconds ($remaining + 1) }
+
+          $totp = [TotpGen]::Gen($secret, $digits, $period, $algo)
+          Write-Host "TOTP generated ($algo)"
+
+          # Kill and restart SimplySign to get a fresh login dialog
+          # (CSP sessions expire after ~2h, stale sessions cause signing failures)
+          Write-Host "Restarting SimplySign Desktop for fresh authentication..."
+          Get-Process -Name "SimplySignDesktop" -ErrorAction SilentlyContinue | Stop-Process -Force
+          Start-Sleep -Seconds 3
+          Start-Process "C:\Program Files\Certum\SimplySign Desktop\SimplySignDesktop.exe"
+          Start-Sleep -Seconds 10
+
+          Write-Host "Certificate not in store yet, sending credentials..."
+          Add-Type -AssemblyName System.Windows.Forms
+          $wshell = New-Object -ComObject WScript.Shell
+
+          $authenticated = $false
+          for ($i = 1; $i -le 10; $i++) {
+            if ($wshell.AppActivate("SimplySign")) {
+              Start-Sleep -Milliseconds 500
+              $wshell.SendKeys($env:CERTUM_USERID)
+              $wshell.SendKeys("{TAB}")
+              Start-Sleep -Milliseconds 200
+              $wshell.SendKeys($totp)
+              $wshell.SendKeys("{ENTER}")
+              Write-Host "Credentials sent to SimplySign"
+              $authenticated = $true
+              break
+            }
+            Write-Host "Waiting for SimplySign window (attempt $i/10)..."
+            Start-Sleep -Seconds 3
+          }
+
+          if ($authenticated) {
+            Start-Sleep -Seconds 15
+            Write-Host "SimplySign authentication complete"
+          } else {
+            Write-Host "WARNING: Could not find SimplySign login window (may already be authenticated)"
+          }
+
+      - name: Sign installer with Certum EV
+        shell: powershell
+        env:
+          CERTUM_THUMBPRINT: ${{ secrets.CERTUM_THUMBPRINT }}
+        run: |
+          # Find signtool
+          $signtool = Get-ChildItem -Path "C:\Program Files (x86)\Windows Kits" -Recurse -Filter "signtool.exe" -ErrorAction SilentlyContinue |
+                      Where-Object { $_.FullName -like "*x64*" } |
+                      Select-Object -First 1 -ExpandProperty FullName
+
+          if (-not $signtool) {
+            # Try common Windows SDK paths
+            $paths = @(
+              "C:\Program Files (x86)\Windows Kits\10\bin\10.0.19041.0\x64\signtool.exe",
+              "C:\Program Files (x86)\Windows Kits\10\bin\x64\signtool.exe"
+            )
+            foreach ($p in $paths) { if (Test-Path $p) { $signtool = $p; break } }
+          }
+
+          if (-not $signtool) {
+            Write-Host "ERROR: signtool.exe not found. Install Windows SDK on the runner."
+            Write-Host "Run: winget install -e --id Microsoft.WindowsSDK.10.0.22621"
+            exit 1
+          }
+
+          Write-Host "Using signtool: $signtool"
+
+          # Sign the installer
+          $installer = Get-ChildItem -Path unsigned -Filter "*.exe" | Select-Object -First 1
+          if (-not $installer) {
+            Write-Host "ERROR: No .exe found in unsigned/"
+            exit 1
+          }
+
+          Write-Host "Signing $($installer.Name)..."
+          & $signtool sign /sha1 $env:CERTUM_THUMBPRINT /fd sha256 /tr http://time.certum.pl /td sha256 /v $installer.FullName
+
+          if ($LASTEXITCODE -ne 0) {
+            Write-Host "ERROR: Signing failed"
+            Write-Host "Debug: listing certificates..."
+            & $signtool sign /debug /sha1 $env:CERTUM_THUMBPRINT /fd sha256 /v $installer.FullName 2>&1
+            exit 1
+          }
+
+          Write-Host "Verifying signature..."
+          & $signtool verify /pa /v $installer.FullName
+          Write-Host "Signature verified successfully!"
+
+      - name: Upload signed installer
+        uses: actions/upload-artifact@v4
+        with:
+          name: signed-installer
+          path: unsigned/
+          retention-days: 1
+
+  release:
+    needs: [build, sign]
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: .
+    permissions:
+      contents: write
+    steps:
+      - name: Download signed installer
+        uses: actions/download-artifact@v4
+        with:
+          name: signed-installer
+          path: release
+
+      - name: Download latest.yml
+        uses: actions/download-artifact@v4
+        continue-on-error: true
+        with:
+          name: latest-yml
+          path: release
+
       - name: Create Release
         uses: softprops/action-gh-release@v1
         with:
           files: |
-            win_app_2/release/${{ steps.installer.outputs.installer_name }}
-            win_app_2/release/latest.yml
-          prerelease: ${{ steps.release_type.outputs.is_prerelease }}
+            release/${{ needs.build.outputs.installer_name }}
+          prerelease: ${{ needs.build.outputs.is_prerelease }}
           tag_name: ${{ github.ref_name }}
-          name: "Queen Mama Windows ${{ steps.release_type.outputs.tag_name }}"
+          name: "Queen Mama Windows ${{ needs.build.outputs.tag_name }}"
           body: |
-            ## Queen Mama Windows ${{ steps.release_type.outputs.tag_name }}
+            ## Queen Mama Windows ${{ needs.build.outputs.tag_name }}
 
-            ${{ steps.release_type.outputs.is_prerelease == 'true' && '**PRE-RELEASE** - Pour tests uniquement (staging.queenmama.co)' || '**PRODUCTION RELEASE** - Version stable (queenmama.co)' }}
+            ${{ needs.build.outputs.is_prerelease == 'true' && '**PRE-RELEASE** - Pour tests uniquement (staging.queenmama.co)' || '**PRODUCTION RELEASE** - Version stable (queenmama.co)' }}
 
+            **Signature:** EV Code Signing (JAAP v2 - Certum)
             **Installation:** Lancer l'installateur, suivre l'assistant.
             **Requis:** Windows 10+ (64-bit)
         env:

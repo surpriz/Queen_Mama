@@ -1,0 +1,366 @@
+name: Build iOS App
+
+on:
+  push:
+    tags:
+      - 'ios/v*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version (e.g., 1.0.0 or 1.0.0-beta.1)'
+        required: true
+        default: '1.0.0'
+      prerelease:
+        description: 'Pre-release (for TestFlight beta)'
+        type: boolean
+        default: false
+
+concurrency:
+  group: build-ios-${{ github.ref }}
+  cancel-in-progress: false  # Never cancel in-progress builds
+
+env:
+  SCHEME: QueenMamaIOS
+  XCODE_PROJECT: ios_app/QueenMamaIOS.xcodeproj
+  TEAM_ID: WNNDDTBPGK
+
+jobs:
+  test:
+    runs-on: macos-14
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Select Xcode
+        run: sudo xcode-select -s /Applications/Xcode_16.2.app
+
+      - name: Build
+        run: |
+          xcodebuild build \
+            -project $XCODE_PROJECT \
+            -scheme $SCHEME \
+            -destination 'platform=iOS Simulator,name=iPhone 16,OS=latest' \
+            CODE_SIGN_IDENTITY=- \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=NO \
+            -skipPackagePluginValidation \
+            -skipMacroValidation \
+            | tee build-output.log \
+            | tail -50
+
+      - name: Build Summary
+        if: always()
+        run: |
+          echo "## iOS Build Results" >> $GITHUB_STEP_SUMMARY
+          if grep -q "BUILD SUCCEEDED" build-output.log; then
+            echo "✅ **Build succeeded**" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "❌ **Build failed**" >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+            grep "error:" build-output.log | tail -20 >> $GITHUB_STEP_SUMMARY || true
+            echo '```' >> $GITHUB_STEP_SUMMARY
+          fi
+
+  build:
+    needs: [test]
+    runs-on: macos-14
+    timeout-minutes: 30
+    permissions:
+      contents: write  # Required for creating releases
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Determine release type
+        id: release_type
+        run: |
+          RAW_TAG="${GITHUB_REF_NAME:-${{ github.event.inputs.version }}}"
+          # Strip platform prefix (ios/v1.0.0 → v1.0.0)
+          TAG_NAME="${RAW_TAG#ios/}"
+          echo "tag_name=$TAG_NAME" >> $GITHUB_OUTPUT
+
+          # Check if it's a pre-release (contains -beta, -rc, -alpha, etc.)
+          if [[ "$TAG_NAME" =~ -(beta|rc|alpha|dev) ]] || [[ "${{ github.event.inputs.prerelease }}" == "true" ]]; then
+            echo "is_prerelease=true" >> $GITHUB_OUTPUT
+            echo "📦 Building PRE-RELEASE (TestFlight): $TAG_NAME"
+          else
+            echo "is_prerelease=false" >> $GITHUB_OUTPUT
+            echo "🚀 Building PRODUCTION RELEASE (App Store): $TAG_NAME"
+          fi
+
+      - name: Calculate build number
+        id: build_number
+        run: |
+          # Offset by 100 to avoid any collision with macOS build numbers
+          NEXT_BUILD=$(( ${{ github.run_number }} + 100 ))
+          echo "next_build=$NEXT_BUILD" >> $GITHUB_OUTPUT
+          echo "📊 Build number: $NEXT_BUILD (from run_number ${{ github.run_number }})"
+
+      - name: Update Info.plist
+        run: |
+          RAW_TAG="${GITHUB_REF_NAME:-${{ github.event.inputs.version }}}"
+          TAG_NAME="${RAW_TAG#ios/}"
+          VERSION="${TAG_NAME#v}"
+          BUILD_NUMBER="${{ steps.build_number.outputs.next_build }}"
+
+          # Set environment based on release type
+          if [[ "${{ steps.release_type.outputs.is_prerelease }}" == "true" ]]; then
+            APP_ENV="staging"
+          else
+            APP_ENV="production"
+          fi
+
+          PLIST_PATH="ios_app/QueenMamaIOS/Info.plist"
+
+          # Update version and build number
+          /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString $VERSION" "$PLIST_PATH"
+          /usr/libexec/PlistBuddy -c "Set :CFBundleVersion $BUILD_NUMBER" "$PLIST_PATH"
+
+          # Remove ATS exception for production builds
+          /usr/libexec/PlistBuddy -c "Delete :NSAppTransportSecurity:NSAllowsArbitraryLoads" "$PLIST_PATH" 2>/dev/null || true
+
+          echo "📝 Updated Info.plist: Version=$VERSION, Build=$BUILD_NUMBER, Env=$APP_ENV"
+
+          # Verify
+          echo "Verification:"
+          /usr/libexec/PlistBuddy -c "Print :CFBundleShortVersionString" "$PLIST_PATH"
+          /usr/libexec/PlistBuddy -c "Print :CFBundleVersion" "$PLIST_PATH"
+
+      - name: Select Xcode
+        run: sudo xcode-select -s /Applications/Xcode_16.2.app
+
+      - name: Install Certificate and Provisioning Profile
+        env:
+          IOS_DISTRIBUTION_CERTIFICATE: ${{ secrets.IOS_DISTRIBUTION_CERTIFICATE }}
+          IOS_DISTRIBUTION_CERTIFICATE_PASSWORD: ${{ secrets.IOS_DISTRIBUTION_CERTIFICATE_PASSWORD }}
+          KEYCHAIN_PASSWORD: ${{ secrets.KEYCHAIN_PASSWORD }}
+          IOS_PROVISIONING_PROFILE: ${{ secrets.IOS_PROVISIONING_PROFILE }}
+        run: |
+          # --- Certificate ---
+          KEYCHAIN_PATH=$RUNNER_TEMP/app-signing.keychain-db
+
+          # Create temporary keychain
+          security create-keychain -p "$KEYCHAIN_PASSWORD" $KEYCHAIN_PATH
+          security set-keychain-settings -lut 21600 $KEYCHAIN_PATH
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" $KEYCHAIN_PATH
+
+          # Import certificate
+          echo -n "$IOS_DISTRIBUTION_CERTIFICATE" | base64 --decode -o $RUNNER_TEMP/certificate.p12
+          security import $RUNNER_TEMP/certificate.p12 \
+            -P "$IOS_DISTRIBUTION_CERTIFICATE_PASSWORD" \
+            -A \
+            -t cert \
+            -f pkcs12 \
+            -k $KEYCHAIN_PATH
+
+          # Add to keychain search list and set as default
+          security list-keychain -d user -s $KEYCHAIN_PATH $(security list-keychains -d user | sed 's/"//g')
+          security default-keychain -s $KEYCHAIN_PATH
+
+          # Set partition list
+          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$KEYCHAIN_PASSWORD" $KEYCHAIN_PATH
+
+          # Verify certificate is available
+          echo "Available signing identities:"
+          security find-identity -v -p codesigning $KEYCHAIN_PATH
+
+          # --- Provisioning Profile ---
+          mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
+          echo -n "$IOS_PROVISIONING_PROFILE" | base64 --decode -o $RUNNER_TEMP/profile.mobileprovision
+
+          # Extract UUID from provisioning profile and install
+          PROFILE_UUID=$(/usr/libexec/PlistBuddy -c "Print :UUID" /dev/stdin <<< $(/usr/bin/security cms -D -i $RUNNER_TEMP/profile.mobileprovision))
+          cp $RUNNER_TEMP/profile.mobileprovision ~/Library/MobileDevice/Provisioning\ Profiles/$PROFILE_UUID.mobileprovision
+
+          echo "📱 Provisioning profile installed: $PROFILE_UUID"
+
+          # Extract profile name for later use
+          PROFILE_NAME=$(/usr/libexec/PlistBuddy -c "Print :Name" /dev/stdin <<< $(/usr/bin/security cms -D -i $RUNNER_TEMP/profile.mobileprovision))
+          echo "profile_name=$PROFILE_NAME" >> $GITHUB_ENV
+          echo "📱 Profile name: $PROFILE_NAME"
+
+          # Validate profile name matches ExportOptions.plist
+          EXPECTED_NAME=$(/usr/libexec/PlistBuddy -c "Print :provisioningProfiles:com.queenmama.ios" ios_app/ExportOptions.plist)
+          if [[ "$PROFILE_NAME" != "$EXPECTED_NAME" ]]; then
+            echo "❌ ERROR: Profile name mismatch!"
+            echo "   Installed profile: '$PROFILE_NAME'"
+            echo "   ExportOptions.plist expects: '$EXPECTED_NAME'"
+            echo "   Update ExportOptions.plist to match, or recreate the profile with the expected name."
+            exit 1
+          fi
+          echo "✅ Profile name matches ExportOptions.plist"
+
+      - name: Build Archive
+        run: |
+          # Set environment based on release type
+          if [[ "${{ steps.release_type.outputs.is_prerelease }}" == "true" ]]; then
+            APP_ENV="staging"
+          else
+            APP_ENV="production"
+          fi
+          echo "🌐 App environment: $APP_ENV"
+
+          xcodebuild archive \
+            -project $XCODE_PROJECT \
+            -scheme $SCHEME \
+            -destination 'generic/platform=iOS' \
+            -configuration Release \
+            -archivePath $RUNNER_TEMP/QueenMamaIOS.xcarchive \
+            CODE_SIGN_STYLE=Manual \
+            CODE_SIGN_IDENTITY="Apple Distribution" \
+            PROVISIONING_PROFILE_SPECIFIER="${profile_name}" \
+            DEVELOPMENT_TEAM=$TEAM_ID \
+            APP_ENVIRONMENT=$APP_ENV \
+            -skipPackagePluginValidation \
+            -skipMacroValidation
+
+      - name: Upload dSYMs to Sentry
+        if: ${{ vars.SENTRY_ORG != '' }}
+        env:
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+          SENTRY_ORG: ${{ vars.SENTRY_ORG }}
+          SENTRY_PROJECT: ${{ vars.SENTRY_PROJECT_IOS }}
+        run: |
+          TAG_NAME="${{ steps.release_type.outputs.tag_name }}"
+          VERSION="${TAG_NAME#v}"
+          BUILD_NUMBER="${{ steps.build_number.outputs.next_build }}"
+
+          echo "📤 Installing sentry-cli..."
+          curl -sL https://sentry.io/get-cli/ | bash
+
+          echo "📤 Creating Sentry release ${VERSION}+${BUILD_NUMBER}..."
+          sentry-cli releases new "${VERSION}+${BUILD_NUMBER}"
+
+          echo "📤 Associating commits..."
+          sentry-cli releases set-commits "${VERSION}+${BUILD_NUMBER}" --auto --ignore-missing
+
+          echo "📤 Uploading dSYMs from archive..."
+          sentry-cli debug-files upload --include-sources \
+            "$RUNNER_TEMP/QueenMamaIOS.xcarchive/dSYMs"
+
+          echo "✅ dSYMs uploaded to Sentry"
+
+      - name: Export IPA
+        run: |
+          xcodebuild -exportArchive \
+            -archivePath $RUNNER_TEMP/QueenMamaIOS.xcarchive \
+            -exportOptionsPlist ios_app/ExportOptions.plist \
+            -exportPath $RUNNER_TEMP/export
+
+          echo "📦 IPA exported:"
+          ls -lh $RUNNER_TEMP/export/*.ipa
+
+      - name: Upload to App Store Connect
+        timeout-minutes: 15
+        env:
+          APP_STORE_CONNECT_API_KEY_ID: ${{ secrets.APP_STORE_CONNECT_API_KEY_ID }}
+          APP_STORE_CONNECT_API_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_API_ISSUER_ID }}
+          APP_STORE_CONNECT_API_KEY_BASE64: ${{ secrets.APP_STORE_CONNECT_API_KEY_BASE64 }}
+        run: |
+          # Install the API key
+          mkdir -p ~/.private_keys
+          echo -n "$APP_STORE_CONNECT_API_KEY_BASE64" | base64 --decode > ~/.private_keys/AuthKey_${APP_STORE_CONNECT_API_KEY_ID}.p8
+
+          echo "📤 Uploading to App Store Connect..."
+
+          # Use xcodebuild -exportArchive with destination=upload (Xcode 15+ recommended approach)
+          # This re-exports from the archive and uploads in a single step
+          cat > $RUNNER_TEMP/UploadOptions.plist << EOF
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+            <key>method</key>
+            <string>app-store</string>
+            <key>destination</key>
+            <string>upload</string>
+            <key>teamID</key>
+            <string>$TEAM_ID</string>
+            <key>signingStyle</key>
+            <string>manual</string>
+            <key>uploadSymbols</key>
+            <false/>
+            <key>provisioningProfiles</key>
+            <dict>
+              <key>com.queenmama.ios</key>
+              <string>${profile_name}</string>
+            </dict>
+          </dict>
+          </plist>
+          EOF
+
+          xcodebuild -exportArchive \
+            -archivePath $RUNNER_TEMP/QueenMamaIOS.xcarchive \
+            -exportOptionsPlist $RUNNER_TEMP/UploadOptions.plist \
+            -exportPath $RUNNER_TEMP/upload \
+            -authenticationKeyPath ~/.private_keys/AuthKey_${APP_STORE_CONNECT_API_KEY_ID}.p8 \
+            -authenticationKeyID "$APP_STORE_CONNECT_API_KEY_ID" \
+            -authenticationKeyIssuerID "$APP_STORE_CONNECT_API_ISSUER_ID"
+
+          echo "✅ IPA uploaded to App Store Connect (TestFlight)"
+
+          # Cleanup API key
+          rm -rf ~/.private_keys
+
+      - name: Get version info
+        id: version_info
+        run: |
+          TAG_NAME="${{ steps.release_type.outputs.tag_name }}"
+          VERSION="${TAG_NAME#v}"
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+          BUILD_NUMBER="${{ steps.build_number.outputs.next_build }}"
+          echo "build_number=$BUILD_NUMBER" >> $GITHUB_OUTPUT
+
+          echo "📦 Version: $VERSION, Build: $BUILD_NUMBER"
+
+      - name: Rename IPA with version
+        run: |
+          VERSION="${{ steps.version_info.outputs.version }}"
+          IPA_PATH=$(find $RUNNER_TEMP/export -name "*.ipa" | head -1)
+          mv "$IPA_PATH" "$RUNNER_TEMP/export/QueenMamaIOS-${VERSION}.ipa"
+          echo "📦 IPA renamed to: QueenMamaIOS-${VERSION}.ipa"
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: ${{ runner.temp }}/export/QueenMamaIOS-${{ steps.version_info.outputs.version }}.ipa
+          prerelease: ${{ steps.release_type.outputs.is_prerelease }}
+          body: |
+            ## Queen Mama iOS ${{ steps.release_type.outputs.tag_name }}
+
+            ${{ steps.release_type.outputs.is_prerelease == 'true' && '⚠️ **PRE-RELEASE** - TestFlight beta' || '🚀 **PRODUCTION RELEASE** - App Store' }}
+
+            **Distribution:** App Store Connect (TestFlight)
+            **Requis:** iOS 17.0+
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Finalize Sentry Release
+        if: ${{ vars.SENTRY_ORG != '' }}
+        env:
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+          SENTRY_ORG: ${{ vars.SENTRY_ORG }}
+          SENTRY_PROJECT: ${{ vars.SENTRY_PROJECT_IOS }}
+        run: |
+          VERSION="${{ steps.version_info.outputs.version }}"
+          BUILD_NUMBER="${{ steps.version_info.outputs.build_number }}"
+
+          echo "🚀 Finalizing Sentry release ${VERSION}+${BUILD_NUMBER}..."
+          sentry-cli releases finalize "${VERSION}+${BUILD_NUMBER}"
+
+          # Mark as deployed for the appropriate environment
+          if [[ "${{ steps.release_type.outputs.is_prerelease }}" == "true" ]]; then
+            sentry-cli releases deploys "${VERSION}+${BUILD_NUMBER}" new -e staging
+            echo "✅ Marked as deployed to staging"
+          else
+            sentry-cli releases deploys "${VERSION}+${BUILD_NUMBER}" new -e production
+            echo "✅ Marked as deployed to production"
+          fi
+
+      - name: Cleanup
+        if: always()
+        run: |
+          security delete-keychain $RUNNER_TEMP/app-signing.keychain-db || true
+          rm -f $RUNNER_TEMP/certificate.p12 || true
+          rm -f $RUNNER_TEMP/profile.mobileprovision || true
+          rm -rf ~/.private_keys || true

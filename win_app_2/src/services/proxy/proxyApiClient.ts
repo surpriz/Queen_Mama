@@ -84,7 +84,11 @@ export async function getTranscriptionToken(provider: string): Promise<Transcrip
     method: 'POST',
     body: JSON.stringify({ provider }),
   })
-  if (!response.ok) throw new Error(`Token fetch failed: ${response.status}`)
+  if (!response.ok) {
+    const errorBody = await response.text().catch(() => '')
+    log.error(`Token fetch failed for ${provider}: ${response.status} - ${errorBody}`)
+    throw new Error(`Token fetch failed: ${response.status} (${provider}) ${errorBody}`)
+  }
   return response.json()
 }
 

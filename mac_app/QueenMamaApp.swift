@@ -75,8 +75,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                 // This eliminates 200-400ms delay when user clicks "Start Recording"
                 ProxyAPIClient.shared.prefetchTranscriptionToken()
 
-                // Perform initial sync (upload unsynced + reconcile remote deletions)
-                // Note: Sessions will be passed from SessionListView once it loads
+                // Delay initial sync to let SwiftUI @Query views settle first
+                // Immediate writes during layout registration can cause infinite recursion
+                try? await Task.sleep(nanoseconds: 2_000_000_000)
                 await SyncManager.shared.reconcileRemoteDeletions()
             }
         }
@@ -117,8 +118,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     func applicationDidBecomeActive(_ notification: Notification) {
-        // Revalidate license when app becomes active (user returns to app)
+        // Delay revalidation to avoid re-render storm during SwiftUI layout pass
+        // The 1s delay lets @Query views settle before @Published mutations fire
         Task { @MainActor in
+            try? await Task.sleep(nanoseconds: 1_000_000_000)
             await LicenseManager.shared.revalidate()
         }
     }
@@ -386,6 +389,7 @@ class AppState: ObservableObject {
     let systemAudioBatchingService = AudioBatchingService()  // Separate batching for system audio
     let transcriptBuffer = TranscriptBuffer()
     let dictationService = DictationService()
+    let preGenerationService = PreGenerationService()
     let meetingDetectionService = MeetingDetectionService()
 
     // System Audio Service for speaker separation ("Moi" vs "Interlocuteur")
@@ -486,6 +490,13 @@ class AppState: ObservableObject {
                 self?.transcriptionService.sendAudio(batch)
             }
 
+            // Configure Buffered Pre-Generation (before callback wiring)
+            preGenerationService.configure(
+                aiService: aiService,
+                screenService: screenService,
+                modeProvider: { [weak self] in self?.selectedMode }
+            )
+
             // Start transcript buffer for batched UI/SwiftData updates
             transcriptBuffer.start()
 
@@ -517,6 +528,9 @@ class AppState: ObservableObject {
 
                 // Feed transcript to AutoAnswerService
                 self.autoAnswerService.onTranscriptReceived(self.currentTranscript)
+
+                // Feed transcript to PreGenerationService (Buffered Pre-Generation)
+                self.preGenerationService.onTranscriptUpdated(self.currentTranscript)
             }
 
             // Wire up AutoAnswerService trigger
@@ -566,6 +580,7 @@ class AppState: ObservableObject {
         systemAudioService.reset()  // Reset system audio service
         autoAnswerService.reset()  // Reset auto-answer state
         autoAnswerService.resetProactiveState()  // Reset proactive state
+        preGenerationService.reset()  // Reset pre-generation buffer
         dictationService.stopRecording()  // Stop dictation if active
         isSessionActive = false
 
@@ -655,6 +670,7 @@ class AppState: ObservableObject {
         currentTranscript = ""
         aiResponse = ""
         aiService.clearHistory()
+        preGenerationService.cancelAndReset()
     }
 
     // MARK: - Auto Answer

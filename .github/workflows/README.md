@@ -17,6 +17,7 @@ Ce document explique le fonctionnement complet du pipeline CI/CD pour Queen Mama
 │                         WORKFLOWS                                   │
 ├─────────────────────────────────────────────────────────────────────┤
 │  build-macos.yml     │  Build, sign, notarize et publier l'app     │
+│  build-ios.yml       │  Build, sign et publier sur App Store       │
 │  deploy-web.yml      │  Valider le code web (lint, types, build)   │
 └─────────────────────────────────────────────────────────────────────┘
 
@@ -58,7 +59,29 @@ Ce document explique le fonctionnement complet du pipeline CI/CD pour Queen Mama
 | `v1.0.0-alpha.1` | Pre-release | staging.queenmama.co | `/releases` |
 | `v1.0.0-dev.1` | Pre-release | staging.queenmama.co | `/releases` |
 
-### 2. `deploy-web.yml` - Validation Web App
+### 2. `build-ios.yml` - Build Application iOS (App Store)
+
+**Déclenchement :**
+- Push d'un tag `ios/v*` (ex: `ios/v1.0.0`, `ios/v1.0.0-beta.1`)
+- Manuellement via Actions → "Run workflow"
+
+**Processus :**
+1. **Build de vérification** - Compilation sur simulateur iOS
+2. **Installation certificat + provisioning** - Apple Distribution + App Store profile
+3. **Build de l'archive** - `xcodebuild archive` signé pour iOS
+4. **Upload dSYMs** - Symboles de crash vers Sentry
+5. **Export IPA** - `xcodebuild -exportArchive` avec ExportOptions.plist
+6. **Upload App Store Connect** - Via API Key (TestFlight automatique)
+7. **Publication** - GitHub Release avec l'IPA attaché
+
+**Types de releases :**
+
+| Pattern du tag | Type | Distribution |
+|----------------|------|-------------|
+| `ios/v1.0.0` | Production | App Store Connect (soumission manuelle) |
+| `ios/v1.0.0-beta.1` | Pre-release | TestFlight |
+
+### 3. `deploy-web.yml` - Validation Web App
 
 **Déclenchement :**
 - Push sur `main` ou `staging` (fichiers dans `landing/`)
@@ -146,6 +169,23 @@ git push origin v1.0.7
 | `APPLE_APP_SPECIFIC_PASSWORD` | Mot de passe d'application Apple pour notarisation |
 | `SPARKLE_PRIVATE_KEY` | Clé privée EdDSA pour signer les updates Sparkle (optionnel mais requis pour auto-update) |
 
+### Secrets iOS (App Store)
+
+| Secret | Description |
+|--------|-------------|
+| `IOS_DISTRIBUTION_CERTIFICATE` | Certificat Apple Distribution (.p12) encodé en base64 |
+| `IOS_DISTRIBUTION_CERTIFICATE_PASSWORD` | Mot de passe du fichier .p12 |
+| `IOS_PROVISIONING_PROFILE` | Provisioning profile App Store (.mobileprovision) encodé en base64 |
+| `APP_STORE_CONNECT_API_KEY_ID` | Key ID de l'API Key App Store Connect |
+| `APP_STORE_CONNECT_API_ISSUER_ID` | Issuer ID de l'API Key App Store Connect |
+| `APP_STORE_CONNECT_API_KEY_BASE64` | Fichier .p8 de l'API Key encodé en base64 |
+
+### Variables iOS
+
+| Variable | Description |
+|----------|-------------|
+| `SENTRY_PROJECT_IOS` | Nom du projet Sentry iOS (ex: `queenmama-ios`) |
+
 ### Générer/Mettre à jour les secrets
 
 ```bash
@@ -159,6 +199,25 @@ openssl rand -base64 32
 # 1. Aller sur https://appleid.apple.com/account/manage
 # 2. Section "Mots de passe d'application"
 # 3. Générer un nouveau mot de passe
+```
+
+### Configurer les secrets iOS
+
+```bash
+# Encoder le certificat Apple Distribution en base64
+base64 -i AppleDistribution.p12 | pbcopy
+# → Coller dans le secret IOS_DISTRIBUTION_CERTIFICATE
+
+# Encoder le provisioning profile en base64
+base64 -i "Queen Mama iOS App Store.mobileprovision" | pbcopy
+# → Coller dans le secret IOS_PROVISIONING_PROFILE
+
+# Encoder l'API Key en base64
+base64 -i AuthKey_XXXXXXXX.p8 | pbcopy
+# → Coller dans le secret APP_STORE_CONNECT_API_KEY_BASE64
+
+# Key ID et Issuer ID sont visibles sur
+# App Store Connect → Users and Access → Integrations → App Store Connect API
 ```
 
 ### Configurer Sparkle pour les mises à jour automatiques
@@ -305,7 +364,16 @@ Vérifier que le tag est bien poussé et que la GitHub Release existe.
 └──────────────────┬──────────────────────────────────────┘
                    ↓
 ┌─────────────────────────────────────────────────────────┐
-│ 3. Pour tester l'app macOS, créer un tag beta          │
+│ 3. Pour tester l'app, créer un tag beta                 │
+│                                                          │
+│    macOS:                                                │
+│    git tag -a mac/v1.0.X-beta.Y -m "Beta macOS"         │
+│    git push origin mac/v1.0.X-beta.Y                    │
+│                                                          │
+│    iOS:                                                  │
+│    git tag -a ios/v1.0.X-beta.Y -m "Beta iOS"           │
+│    git push origin ios/v1.0.X-beta.Y                    │
+│    → Upload TestFlight automatique                       │
 │    git tag -a v1.0.X-beta.Y -m "Test release"          │
 │    git push origin v1.0.X-beta.Y                       │
 │    → GitHub Actions 🔨 Build + Notarize                │
@@ -328,8 +396,10 @@ Vérifier que le tag est bien poussé et que la GitHub Release existe.
 ## Checklist de Santé CI/CD
 
 - [x] GitHub Actions deploy-web.yml configuré (main + staging)
-- [x] GitHub Actions build-macos.yml configuré (tags v*)
-- [x] Secrets GitHub configurés (6 secrets)
+- [x] GitHub Actions build-macos.yml configuré (tags mac/v*)
+- [x] GitHub Actions build-ios.yml configuré (tags ios/v*)
+- [x] Secrets GitHub macOS configurés (6 secrets)
+- [ ] Secrets GitHub iOS configurés (6 secrets + 1 variable)
 - [x] Certificat Developer ID Application installé
 - [x] Vercel production auto-deploy activé
 - [x] Vercel staging auto-deploy activé

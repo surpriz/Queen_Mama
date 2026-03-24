@@ -1,6 +1,7 @@
 import type { TranscriptionProvider } from './types'
 import { getTranscriptionToken } from '../proxy/proxyApiClient'
 import { createLogger } from '@/lib/logger'
+import { captureError, addBreadcrumb } from '../crash/crashReporter'
 
 const log = createLogger('AssemblyAI')
 
@@ -18,16 +19,28 @@ export class AssemblyAIProvider implements TranscriptionProvider {
   }
 
   async connect(): Promise<void> {
-    const tokenResponse = await getTranscriptionToken('assemblyai')
-    this.token = tokenResponse.token
+    try {
+      const tokenResponse = await getTranscriptionToken('assemblyai')
+      this.token = tokenResponse.token
+      log.info(`Token received (length: ${this.token?.length ?? 0})`)
+      addBreadcrumb('transcription', `AssemblyAI token received (len=${this.token?.length})`, 'info')
+    } catch (error) {
+      log.error('Token fetch failed:', error)
+      captureError(error instanceof Error ? error : new Error(String(error)), {
+        provider: 'assemblyai',
+        phase: 'token_fetch',
+      })
+      throw error
+    }
 
-    const url = `wss://api.assemblyai.com/v2/realtime/ws?sample_rate=16000&token=${this.token}`
+    const url = `wss://api.assemblyai.com/v2/realtime/ws?sample_rate=16000&token=${encodeURIComponent(this.token!)}`
 
     return new Promise<void>((resolve, reject) => {
       this.ws = new WebSocket(url)
 
       this.ws.onopen = () => {
         log.info('Connected')
+        addBreadcrumb('transcription', 'AssemblyAI WebSocket connected', 'info')
       }
 
       this.ws.onmessage = (event) => {
@@ -37,6 +50,11 @@ export class AssemblyAIProvider implements TranscriptionProvider {
           if (data.message_type === 'SessionBegins') {
             log.info(`Session started: ${data.session_id}`)
             resolve()
+            return
+          }
+
+          if (data.message_type === 'SessionTerminated') {
+            log.warn(`Session terminated by server: ${JSON.stringify(data)}`)
             return
           }
 
@@ -54,13 +72,25 @@ export class AssemblyAIProvider implements TranscriptionProvider {
 
       this.ws.onerror = (event) => {
         log.error('WebSocket error', event)
+        captureError(new Error('AssemblyAI connection failed'), {
+          provider: 'assemblyai',
+          phase: 'ws_error',
+        })
         reject(new Error('AssemblyAI connection failed'))
       }
 
       this.ws.onclose = (event) => {
-        log.info(`Disconnected (code: ${event.code})`)
+        log.info(`Disconnected (code: ${event.code}, reason: "${event.reason}", clean: ${event.wasClean})`)
         if (event.code !== 1000) {
-          this.onError?.(new Error(`AssemblyAI disconnected: ${event.reason || event.code}`))
+          const err = new Error(`AssemblyAI disconnected: code=${event.code} reason="${event.reason}"`)
+          captureError(err, {
+            provider: 'assemblyai',
+            phase: 'ws_close',
+            closeCode: event.code,
+            closeReason: event.reason,
+            wasClean: event.wasClean,
+          })
+          this.onError?.(err)
         }
       }
     })

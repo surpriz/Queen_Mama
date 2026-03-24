@@ -139,6 +139,9 @@ export function MeetingReminder() {
       dismissTimerRef.current = null
     }
 
+    // Tell main process to hide the notification window
+    window.electronAPI?.meetingDismiss('')
+
     // Start exit animation
     setIsExiting(true)
 

@@ -606,6 +606,55 @@ final class AIService: ObservableObject {
         )
     }
 
+    // MARK: - Pre-Generation (Buffered)
+
+    /// Generate an assist response for pre-generation buffer.
+    /// Bypasses usage recording (dailyAiRequestLimit) — the pre-gen is "free".
+    /// Does NOT modify isProcessing or currentResponse — caller manages state.
+    func generatePreGenStreamingResponse(
+        transcript: String,
+        screenshot: Data?,
+        mode: Mode?
+    ) -> AsyncThrowingStream<String, Error> {
+        AsyncThrowingStream { continuation in
+            Task {
+                // Only check authentication — skip usage limits
+                let isAuthenticated = await MainActor.run {
+                    AuthenticationManager.shared.isAuthenticated
+                }
+                guard isAuthenticated else {
+                    continuation.finish()
+                    return
+                }
+
+                // Early cancellation check before network call
+                guard !Task.isCancelled else {
+                    continuation.finish()
+                    return
+                }
+
+                let context = AIContext(
+                    transcript: transcript,
+                    screenshot: screenshot,
+                    mode: mode,
+                    responseType: .assist,
+                    customPrompt: nil,
+                    smartMode: false  // Standard mode for speed
+                )
+
+                do {
+                    for try await chunk in self.proxyProvider.generateStreamingResponse(context: context) {
+                        try Task.checkCancellation()
+                        continuation.yield(chunk)
+                    }
+                    continuation.finish()
+                } catch {
+                    continuation.finish(throwing: error)
+                }
+            }
+        }
+    }
+
     // MARK: - Streaming Convenience Methods
 
     func assistStreaming(transcript: String, screenshot: Data?, mode: Mode?) -> AsyncThrowingStream<String, Error> {

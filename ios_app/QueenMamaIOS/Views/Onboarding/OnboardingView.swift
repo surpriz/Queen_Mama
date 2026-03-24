@@ -13,6 +13,7 @@ import AVFoundation
 
 struct OnboardingView: View {
     @StateObject private var config = ConfigurationManager.shared
+    @StateObject private var authManager = AuthenticationManager.shared
     @State private var currentStep: OnboardingStep = .welcome
     @State private var isAnimating = false
 
@@ -63,8 +64,13 @@ struct OnboardingView: View {
     }
 
     private func goToStep(_ step: OnboardingStep) {
+        var targetStep = step
+        // Skip the account step if already authenticated (Keychain persisted after app deletion)
+        if step == .account && authManager.isAuthenticated {
+            targetStep = .quickTour
+        }
         withAnimation(QMDesign.Animation.smooth) {
-            currentStep = step
+            currentStep = targetStep
         }
     }
 

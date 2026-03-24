@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { DashboardPage } from './pages/DashboardPage'
 import { OverlayPage } from './pages/OverlayPage'
 import { OnboardingPage } from './pages/OnboardingPage'
+import { NotificationPage } from './pages/NotificationPage'
 import { ReauthenticationView } from './components/auth/ReauthenticationView'
 import { ErrorBoundary } from './components/common/ErrorBoundary'
 import { LoadingSpinner } from './components/common/LoadingSpinner'
@@ -87,6 +88,7 @@ function AppContent() {
         }
       />
       <Route path="/overlay" element={<OverlayPage />} />
+      <Route path="/notification" element={<NotificationPage />} />
     </Routes>
   )
 }

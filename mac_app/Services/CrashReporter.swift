@@ -85,11 +85,49 @@ final class CrashReporter {
                 options.dist = build
             }
 
-            // Before send callback - can be used to scrub sensitive data
+            // Disable automatic HTTP failure capture — the app handles HTTP errors
+            // with retry logic (ProxyAPIClient) and reports manually after max retries.
+            // Auto-capture creates duplicate events (SENTRY: QUEEN-MAMA-MACOS-4).
+            options.enableCaptureFailedRequests = false
+
+            // Before send callback - filter noise + scrub sensitive data
             options.beforeSend = { event in
-                // Remove any sensitive data from breadcrumbs
+                // --- Filter 1: Drop Sparkle-related App Hangs ---
+                // Sparkle uses NSAlert.runModal for "no update found" dialogs,
+                // which legitimately blocks the main thread. These are expected
+                // modal interactions, not performance issues.
+                // (SENTRY: QUEEN-MAMA-MACOS-A, 58 events)
+                if let exceptions = event.exceptions,
+                   exceptions.contains(where: { $0.mechanism?.type == "AppHang" }) {
+                    let allFrames = exceptions.flatMap { $0.stacktrace?.frames ?? [] }
+                    let hasSparkleFrames = allFrames.contains { frame in
+                        let module = frame.module ?? ""
+                        let package = frame.package ?? ""
+                        let function = frame.function ?? ""
+                        return module == "Sparkle" ||
+                               package.contains("Sparkle") ||
+                               function.hasPrefix("-[SPU") ||
+                               function.hasPrefix("-[SU")
+                    }
+                    if hasSparkleFrames {
+                        return nil
+                    }
+                }
+
+                // --- Filter 2: Drop transient socket errors ---
+                // NSPOSIXErrorDomain Code 57 (ENOTCONN) and Code 60 (ETIMEDOUT) are
+                // transient WebSocket errors handled by TranscriptionService reconnection.
+                // (SENTRY: QUEEN-MAMA-MACOS-B, 709 events)
+                if let exceptions = event.exceptions,
+                   exceptions.contains(where: {
+                       $0.type == "NSPOSIXErrorDomain" &&
+                       ($0.value.contains("Code: 57") || $0.value.contains("Code: 60"))
+                   }) {
+                    return nil
+                }
+
+                // --- Scrub sensitive data from breadcrumbs ---
                 event.breadcrumbs = event.breadcrumbs?.map { breadcrumb in
-                    // Scrub API keys from breadcrumb messages
                     if let message = breadcrumb.message {
                         let scrubbed = Breadcrumb(level: breadcrumb.level, category: breadcrumb.category)
                         scrubbed.message = self.scrubSensitiveData(message)

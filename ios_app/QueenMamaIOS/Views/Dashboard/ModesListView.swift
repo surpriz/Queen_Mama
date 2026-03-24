@@ -7,10 +7,12 @@ struct ModesListView: View {
     @Query(sort: \Mode.createdAt, order: .reverse) private var modes: [Mode]
 
     @State private var showingNewMode = false
+    @State private var selectedBuiltInMode: Mode?
 
     // Built-in modes
     private let builtInModes: [Mode] = [
         Mode.defaultMode,
+        Mode.limitlessMode,
         Mode.professionalMode,
         Mode.interviewMode,
         Mode.salesMode,
@@ -22,11 +24,14 @@ struct ModesListView: View {
             // Built-in Modes
             Section("Built-in Modes") {
                 ForEach(builtInModes, id: \.name) { mode in
-                    ModeRowView(
-                        mode: mode,
-                        isActive: appState.selectedMode?.name == mode.name,
-                        onActivate: { appState.selectedMode = mode }
-                    )
+                    Button(action: { selectedBuiltInMode = mode }) {
+                        ModeRowView(
+                            mode: mode,
+                            isActive: appState.selectedMode?.name == mode.name,
+                            onActivate: { appState.selectedMode = mode }
+                        )
+                    }
+                    .buttonStyle(.plain)
                 }
             }
 
@@ -75,6 +80,16 @@ struct ModesListView: View {
         .sheet(isPresented: $showingNewMode) {
             NewModeSheet()
         }
+        .sheet(item: $selectedBuiltInMode) { mode in
+            BuiltInModeDetailView(
+                mode: mode,
+                isActive: appState.selectedMode?.name == mode.name,
+                onActivate: {
+                    appState.selectedMode = mode
+                    selectedBuiltInMode = nil
+                }
+            )
+        }
     }
 }
 
@@ -113,7 +128,7 @@ struct ModeRowView: View {
                     }
                 }
 
-                Text(mode.systemPrompt.prefix(80) + (mode.systemPrompt.count > 80 ? "..." : ""))
+                Text(mode.builtInDescription ?? String(mode.systemPrompt.prefix(80)) + (mode.systemPrompt.count > 80 ? "..." : ""))
                     .font(QMDesign.Typography.caption)
                     .foregroundColor(QMDesign.Colors.textTertiary)
                     .lineLimit(2)
@@ -135,6 +150,7 @@ struct ModeRowView: View {
     private var modeIcon: String {
         switch mode.name {
         case "Default": return "sparkles"
+        case "Limitless": return "brain"
         case "Professional": return "briefcase.fill"
         case "Interview": return "person.2.fill"
         case "Sales": return "chart.line.uptrend.xyaxis"
@@ -144,7 +160,44 @@ struct ModeRowView: View {
     }
 }
 
-// MARK: - Mode Detail View
+// MARK: - Built-in Mode Detail View (read-only)
+
+struct BuiltInModeDetailView: View {
+    let mode: Mode
+    let isActive: Bool
+    let onActivate: () -> Void
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        NavigationStack {
+            List {
+                if let description = mode.builtInDescription {
+                    Section("About this mode") {
+                        Text(description)
+                            .font(QMDesign.Typography.bodyMedium)
+                            .foregroundColor(QMDesign.Colors.textPrimary)
+                    }
+                }
+            }
+            .navigationTitle(mode.name)
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Close") { dismiss() }
+                }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button(isActive ? "Active" : "Activate") {
+                        onActivate()
+                    }
+                    .disabled(isActive)
+                    .foregroundColor(isActive ? QMDesign.Colors.textTertiary : QMDesign.Colors.accent)
+                }
+            }
+        }
+    }
+}
+
+// MARK: - Mode Detail View (editable, custom modes)
 
 struct ModeDetailView: View {
     @Bindable var mode: Mode

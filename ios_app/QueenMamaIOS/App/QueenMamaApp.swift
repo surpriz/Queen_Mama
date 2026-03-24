@@ -157,6 +157,28 @@ struct QueenMamaApp: App {
                 }
             }
             .preferredColorScheme(.dark)
+            // React to auth state changes for navigation
+            .onChange(of: authManager.authState) { _, newState in
+                switch newState {
+                case .authenticated:
+                    // Recovery: if auth succeeds after timeout showed "Session Expired",
+                    // automatically transition to dashboard without requiring manual re-login
+                    if launchState == .login {
+                        if ConfigurationManager.shared.hasCompletedOnboarding {
+                            print("[App] Auth recovered after timeout - switching to dashboard")
+                            launchState = .dashboard
+                        }
+                    }
+                case .unauthenticated:
+                    // Logout: redirect to login screen if user was on dashboard
+                    if launchState == .dashboard {
+                        print("[App] User logged out - switching to login")
+                        launchState = .login
+                    }
+                default:
+                    break
+                }
+            }
         }
         .modelContainer(sharedModelContainer)
         .onChange(of: scenePhase) { _, newPhase in
@@ -171,7 +193,7 @@ struct QueenMamaApp: App {
     private func checkAuthAndSetLaunchState() {
         Task { @MainActor in
             var attempts = 0
-            let maxAttempts = 20
+            let maxAttempts = 100 // Max 10 seconds wait (handles slow networks and Vercel cold starts)
 
             while attempts < maxAttempts {
                 switch authManager.authState {

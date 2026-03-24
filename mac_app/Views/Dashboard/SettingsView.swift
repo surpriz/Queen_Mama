@@ -350,6 +350,19 @@ struct ModernGeneralSettingsView: View {
                         feature: .smartMode,
                         requiredTier: "Enterprise"
                     )
+
+                    Divider()
+                        .background(QMDesign.Colors.borderSubtle)
+
+                    // Instant Responses / Buffered Pre-Generation (Enterprise only)
+                    LicenseGatedToggleRow(
+                        title: String(localized: "settings.general.instantResponses"),
+                        description: String(localized: "settings.general.instantResponses.description"),
+                        isOn: $config.bufferedPreGenEnabled,
+                        icon: "bolt.fill",
+                        feature: .bufferedPreGen,
+                        requiredTier: "Enterprise"
+                    )
                 }
             }
 

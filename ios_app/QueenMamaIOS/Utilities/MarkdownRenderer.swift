@@ -159,11 +159,14 @@ extension String {
 // MARK: - SwiftUI Markdown View
 
 struct MarkdownText: View {
-    let content: String
+    private let blocks: [MarkdownBlock]
+
+    init(content: String) {
+        self.blocks = MarkdownParser.parse(content)
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            let blocks = MarkdownParser.parse(content)
             ForEach(Array(blocks.enumerated()), id: \.offset) { _, block in
                 switch block {
                 case .header1(let text):

@@ -91,7 +91,7 @@ struct ModeMenuItem: View {
     @Binding var isExpanded: Bool
     let onSelect: (Mode) -> Void
 
-    private let builtInModes: [Mode] = [.defaultMode, .professionalMode, .interviewMode, .salesMode, .developerExamMode]
+    private let builtInModes: [Mode] = [.defaultMode, .limitlessMode, .professionalMode, .interviewMode, .salesMode, .developerExamMode]
 
     var body: some View {
         VStack(spacing: 0) {

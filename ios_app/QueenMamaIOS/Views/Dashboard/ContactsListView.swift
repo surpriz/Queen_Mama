@@ -57,6 +57,26 @@ struct ContactsListView: View {
         .sheet(isPresented: $showingNewContact) {
             NewContactSheet()
         }
+        .onAppear {
+            // Wire import callback to SwiftData
+            ContactSyncManager.shared.onContactsImported = { importedContacts in
+                for contact in importedContacts {
+                    modelContext.insert(contact)
+                }
+                try? modelContext.save()
+                print("[ContactsListView] Imported \(importedContacts.count) contacts into SwiftData")
+            }
+
+            // Pull contacts from server (skip already-local ones)
+            let localRemoteIds = Set(contacts.compactMap { $0.remoteId })
+            let localEmails = Set(contacts.compactMap { $0.email?.lowercased() })
+            Task {
+                await ContactSyncManager.shared.pullRemoteContacts(
+                    localContactIds: localRemoteIds,
+                    localContactEmails: localEmails
+                )
+            }
+        }
     }
 }
 

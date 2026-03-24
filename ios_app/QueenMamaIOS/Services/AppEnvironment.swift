@@ -38,7 +38,7 @@ enum AppEnvironment: String, CaseIterable {
             #if targetEnvironment(simulator)
             return "http://localhost:3000"
             #else
-            return "http://192.168.1.39:3000"
+            return "http://192.168.1.197:3000"
             #endif
         case .staging:
             return "https://staging.queenmama.co"

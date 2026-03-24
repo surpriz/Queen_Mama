@@ -59,6 +59,7 @@ export function Pricing() {
         { text: t("enterprise.feature6"), included: true },
         { text: t("enterprise.feature7"), included: true },
         { text: t("enterprise.feature8"), included: true },
+        { text: t("enterprise.feature9"), included: true },
       ],
       cta: t("enterprise.cta"),
       popular: false,

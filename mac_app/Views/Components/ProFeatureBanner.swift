@@ -288,6 +288,8 @@ private struct FeatureGatedModifier: ViewModifier {
         case .screenshot: return String(localized: "pro.feature.screenshot")
         case .sessionStart: return String(localized: "pro.feature.sessionStart")
         case .knowledgeBase: return String(localized: "pro.feature.knowledgeBase")
+        case .proactiveSuggestions: return String(localized: "pro.feature.proactiveSuggestions")
+        case .bufferedPreGen: return String(localized: "pro.feature.instantResponses")
         }
     }
 }

@@ -352,6 +352,8 @@ temp/
 certificate/*.certSigningRequest
 certificate/*.p12
 certificate/*.mobileprovision
+certificate_windows/
+certificate_apple/
 bin/*.pem
 bin/*.key
 

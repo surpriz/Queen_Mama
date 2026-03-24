@@ -126,7 +126,7 @@ final class DeepgramProvider: TranscriptionProvider {
             URLQueryItem(name: "sample_rate", value: "16000"),
             URLQueryItem(name: "channels", value: "1"),
             // Endpointing configuration for better phrase boundary detection
-            URLQueryItem(name: "endpointing", value: "300"),       // 300ms silence = end of speech
+            URLQueryItem(name: "endpointing", value: "300"),       // 300ms silence = end of speech (Deepgram minimum on Pay As You Go)
             URLQueryItem(name: "utterance_end_ms", value: "1000"), // 1s silence = end of utterance
             URLQueryItem(name: "vad_events", value: "true")        // Voice Activity Detection events
         ]
@@ -136,10 +136,9 @@ final class DeepgramProvider: TranscriptionProvider {
         }
 
         var request = URLRequest(url: url)
-        // Use Bearer for JWT tokens (from grant API), Token for legacy API keys
         let authScheme = token.tokenType == "bearer" ? "Bearer" : "Token"
         request.setValue("\(authScheme) \(token.token)", forHTTPHeaderField: "Authorization")
-        print("[Deepgram] Using \(authScheme) authorization scheme")
+        print("[Deepgram] Using \(authScheme) authorization header")
 
         // Invalidate previous URLSession to prevent leaks
         urlSession?.invalidateAndCancel()
@@ -767,7 +766,7 @@ final class DeepgramFluxProvider: TranscriptionProvider {
             URLQueryItem(name: "sample_rate", value: "16000"),
             URLQueryItem(name: "channels", value: "1"),
             // Endpointing configuration for better phrase boundary detection
-            URLQueryItem(name: "endpointing", value: "300"),       // 300ms silence = end of speech
+            URLQueryItem(name: "endpointing", value: "300"),       // 300ms silence = end of speech (Deepgram minimum on Pay As You Go)
             URLQueryItem(name: "utterance_end_ms", value: "1000"), // 1s silence = end of utterance
             URLQueryItem(name: "vad_events", value: "true")        // Voice Activity Detection events
         ]
@@ -777,10 +776,9 @@ final class DeepgramFluxProvider: TranscriptionProvider {
         }
 
         var request = URLRequest(url: url)
-        // Use Bearer for JWT tokens (from grant API), Token for legacy API keys
         let authScheme = token.tokenType == "bearer" ? "Bearer" : "Token"
         request.setValue("\(authScheme) \(token.token)", forHTTPHeaderField: "Authorization")
-        print("[Deepgram Flux] Using \(authScheme) authorization scheme")
+        print("[Deepgram Flux] Using \(authScheme) authorization header")
 
         // Invalidate previous URLSession to prevent leaks
         urlSession?.invalidateAndCancel()

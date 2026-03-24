@@ -121,11 +121,14 @@ final class HealthCheckService: ObservableObject {
     func recordWebSocketReconnect() {
         webSocketReconnectCount += 1
 
-        if webSocketReconnectCount >= Thresholds.maxWebSocketReconnects {
+        // Report anomaly only at exact threshold crossings to avoid flooding
+        // breadcrumbs/analytics on every subsequent reconnect
+        if webSocketReconnectCount == Thresholds.maxWebSocketReconnects ||
+           webSocketReconnectCount == Thresholds.maxWebSocketReconnects * 2 {
             reportAnomaly(
                 type: .connectionUnstable,
                 message: "WebSocket reconnected \(webSocketReconnectCount) times this session",
-                severity: .warning,
+                severity: webSocketReconnectCount >= Thresholds.maxWebSocketReconnects * 2 ? .error : .warning,
                 extras: ["reconnect_count": webSocketReconnectCount]
             )
         }

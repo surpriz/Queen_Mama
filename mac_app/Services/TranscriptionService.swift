@@ -116,8 +116,8 @@ final class TranscriptionService: ObservableObject {
 
     private var audioBatchBuffer = Data()
     private var audioBatchTimer: Timer?
-    private let batchIntervalMs: Int = 400      // Max time before flushing batch (ms)
-    private let maxBatchSize: Int = 32000       // ~1 second of 16kHz mono audio
+    private let batchIntervalMs: Int = 150      // Max time before flushing batch (ms) — reduced from 400ms for lower transcript latency
+    private let maxBatchSize: Int = 16000       // ~0.5 second of 16kHz mono audio — reduced from 32KB for more frequent flushes
 
     // MARK: - Initialization
 

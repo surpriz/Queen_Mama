@@ -12,7 +12,7 @@ struct SessionListView: View {
     @Binding var searchText: String
     @EnvironmentObject var sessionManager: SessionManager
     @Environment(\.modelContext) private var modelContext
-    @StateObject private var syncManager = SyncManager.shared
+    @ObservedObject private var syncManager = SyncManager.shared
 
     @Query(sort: \Session.startTime, order: .reverse)
     private var sessions: [Session]

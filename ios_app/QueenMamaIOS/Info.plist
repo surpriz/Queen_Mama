@@ -66,14 +66,12 @@
 	<dict>
 		<key>NSAllowsLocalNetworking</key>
 		<true/>
-		<key>NSAllowsArbitraryLoads</key>
-		<true/>
 	</dict>
-	<key>NSLocalNetworkUsageDescription</key>
-	<string>Queen Mama needs local network access to connect to the development server.</string>
 	<key>GOOGLE_CLIENT_ID</key>
 	<string>499912921957-jskmos4jm1cpfgu6h7pmomeqvtltj9jq.apps.googleusercontent.com</string>
 	<key>ITSAppUsesNonExemptEncryption</key>
 	<false/>
+	<key>SentryDSN</key>
+	<string>$(SENTRY_DSN)</string>
 </dict>
 </plist>

@@ -530,6 +530,12 @@ final class ProxyAPIClient: @unchecked Sendable {
                             message: "Token refresh failed after 2 attempts: \(error.localizedDescription)",
                             level: .warning
                         )
+                        // Clear zombie auth state proactively instead of waiting for the next API call
+                        // This prevents the app from appearing authenticated with no usable token
+                        if AuthenticationManager.shared.isAuthenticated {
+                            print("[ProxyAPI] Clearing zombie auth state — token refresh permanently failed")
+                            AuthenticationManager.shared.handleTokenRefreshFailure()
+                        }
                     }
                 }
             }
