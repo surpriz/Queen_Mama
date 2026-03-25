@@ -511,6 +511,26 @@
         "title": "AI Processing Indicator",
         "description": "A visual indicator now shows when the AI is actively generating a response"
       },
+      "freeTierUpgradeUX": {
+        "title": "FREE Plan Upgrade Prompts (Windows)",
+        "description": "Clear upgrade prompts with pricing comparison when FREE plan limits are reached, including dashboard banner and overlay counter"
+      },
+      "prioritizedTranscriptContext": {
+        "title": "Smarter Transcript Context",
+        "description": "AI now prioritizes recent conversation over older background, ensuring responses reference what's being discussed right now"
+      },
+      "speakerAttributionFix": {
+        "title": "Accurate Speaker References",
+        "description": "AI no longer incorrectly attributes statements to named individuals — responses now use generic references unless attribution is certain"
+      },
+      "temporalReasoning": {
+        "title": "Date-Aware AI Responses",
+        "description": "AI now knows the current date, enabling accurate temporal reasoning for scheduling and deadline discussions"
+      },
+      "winAutoUpdateFix": {
+        "title": "Windows Auto-Update Fix",
+        "description": "Fixed an issue where the Windows app always reported 'up to date' even when newer versions were available"
+      },
       "winScreenCaptureCache": {
         "title": "Screen Capture Refresh Fix (Windows)",
         "description": "Fixed a deduplication issue preventing fresh screenshots from being analyzed in Screen-Only AI mode"

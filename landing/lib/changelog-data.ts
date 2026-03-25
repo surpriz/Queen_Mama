@@ -134,6 +134,21 @@ export const changelogData: ChangelogRelease[] = [
             description: "Assist responses during live sessions now use a concise bullet-point format for quick scanning"
           },
           {
+            id: "prioritizedTranscriptContext",
+            title: "Smarter Transcript Context",
+            description: "AI now prioritizes recent conversation over older background, ensuring responses reference what's being discussed right now"
+          },
+          {
+            id: "speakerAttributionFix",
+            title: "Accurate Speaker References",
+            description: "AI no longer incorrectly attributes statements to named individuals — responses now use generic references unless attribution is certain"
+          },
+          {
+            id: "temporalReasoning",
+            title: "Date-Aware AI Responses",
+            description: "AI now knows the current date, enabling accurate temporal reasoning for scheduling and deadline discussions"
+          },
+          {
             id: "pricingPlanAlignment",
             title: "Accurate Plan Features",
             description: "All three subscription plans now accurately reflect the features available in the apps, including screenshot capture for Pro and proactive suggestions for Enterprise"
@@ -157,6 +172,11 @@ export const changelogData: ChangelogRelease[] = [
             id: "winSmartModeUX",
             title: "Smart Mode Context (Windows)",
             description: "Smart Mode now displays an explanatory tooltip clarifying its slower-but-more-accurate advanced reasoning behavior"
+          },
+          {
+            id: "freeTierUpgradeUX",
+            title: "FREE Plan Upgrade Prompts (Windows)",
+            description: "Clear upgrade prompts with pricing comparison when FREE plan limits are reached, including dashboard banner and overlay counter"
           },
           {
             id: "truthFirstCoaching",
@@ -183,6 +203,11 @@ export const changelogData: ChangelogRelease[] = [
       {
         category: "fixes",
         changes: [
+          {
+            id: "winAutoUpdateFix",
+            title: "Windows Auto-Update Fix",
+            description: "Fixed an issue where the Windows app always reported 'up to date' even when newer versions were available"
+          },
           {
             id: "privacyProtectionUx",
             title: "Privacy Protection Messaging",

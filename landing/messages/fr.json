@@ -511,6 +511,26 @@
         "title": "Indicateur de traitement IA",
         "description": "Un indicateur visuel s'affiche désormais pendant que l'IA génère une réponse"
       },
+      "freeTierUpgradeUX": {
+        "title": "Invitations de mise à niveau FREE (Windows)",
+        "description": "Des invitations claires avec comparaison des tarifs lorsque les limites du plan FREE sont atteintes, incluant bannière tableau de bord et compteur overlay"
+      },
+      "prioritizedTranscriptContext": {
+        "title": "Contexte de transcription intelligent",
+        "description": "L'IA priorise désormais la conversation récente sur le contexte ancien, garantissant des réponses basées sur ce qui est discuté en temps réel"
+      },
+      "speakerAttributionFix": {
+        "title": "Références d'interlocuteurs précises",
+        "description": "L'IA n'attribue plus incorrectement des propos à des personnes nommées — les réponses utilisent des références génériques sauf attribution certaine"
+      },
+      "temporalReasoning": {
+        "title": "Réponses IA contextualisées dans le temps",
+        "description": "L'IA connaît désormais la date du jour, permettant un raisonnement temporel précis pour la planification et les échéances"
+      },
+      "winAutoUpdateFix": {
+        "title": "Correctif mise à jour automatique Windows",
+        "description": "Correction d'un problème où l'application Windows affichait toujours « à jour » même lorsqu'une nouvelle version était disponible"
+      },
       "winScreenCaptureCache": {
         "title": "Correctif capture d'écran (Windows)",
         "description": "Correction d'un problème de déduplication empêchant les nouvelles captures d'écran d'être analysées en mode IA Écran uniquement"
