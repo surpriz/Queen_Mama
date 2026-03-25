@@ -7,7 +7,7 @@ import * as fs from 'fs'
 import Store from 'electron-store'
 import { executeQuery, executeQueryGet, executeQueryAll, walCheckpoint } from '../db/database'
 import { startOAuthServer, stopOAuthServer } from '../services/oauthServer'
-import { checkForUpdates } from '../services/updater'
+import { checkForUpdates, quitAndInstall } from '../services/updater'
 import { safeSendToWindow, safeSendToOverlayWindows, safeSendToMainWindow } from '../utils/ipcUtils'
 import {
   toggleOverlay,
@@ -311,6 +311,11 @@ export function registerIPCHandlers(): void {
   // Updater
   ipcMain.handle(IPC_CHANNELS.UPDATER_CHECK, () => {
     checkForUpdates()
+    return true
+  })
+
+  ipcMain.handle(IPC_CHANNELS.UPDATER_INSTALL, () => {
+    quitAndInstall()
     return true
   })
 

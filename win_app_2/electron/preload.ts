@@ -90,6 +90,7 @@ const electronAPI = {
 
   // Updater
   checkForUpdates: () => ipcRenderer.invoke(IPC_CHANNELS.UPDATER_CHECK),
+  installUpdate: () => ipcRenderer.invoke(IPC_CHANNELS.UPDATER_INSTALL),
   onUpdaterStatus: (callback: (payload: { status: string; data?: unknown }) => void) => {
     const handler = (_event: Electron.IpcRendererEvent, payload: { status: string; data?: unknown }) =>
       callback(payload)

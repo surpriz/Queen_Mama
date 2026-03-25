@@ -176,8 +176,9 @@
       "updateAvailable": "Mise à jour disponible ! Téléchargement...",
       "upToDate": "Vous êtes à jour.",
       "downloadProgress": "Téléchargement de la mise à jour... {{percent}}%",
-      "updateDownloaded": "Mise à jour téléchargée. Elle sera installée au redémarrage.",
-      "updateError": "Échec de la vérification des mises à jour."
+      "updateDownloaded": "Mise à jour téléchargée. Prête à installer !",
+      "updateError": "Échec de la vérification des mises à jour.",
+      "restartAndUpdate": "Redémarrer et mettre à jour"
     }
   },
   "contacts": {

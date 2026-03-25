@@ -30,6 +30,7 @@ export function SettingsView() {
   const [appVersion, setAppVersion] = useState<string>('')
   const [updateStatus, setUpdateStatus] = useState<string>('')
   const [isCheckingUpdate, setIsCheckingUpdate] = useState(false)
+  const [updateReady, setUpdateReady] = useState(false)
 
   const TABS: { id: SettingsTab; label: string; icon: typeof User }[] = [
     { id: 'account', label: t('settings.tabs.account'), icon: User },
@@ -74,6 +75,7 @@ export function SettingsView() {
           }
           case 'update-downloaded':
             setUpdateStatus(t('settings.updates.updateDownloaded'))
+            setUpdateReady(true)
             break
           case 'update-error':
             setUpdateStatus(t('settings.updates.updateError'))
@@ -511,13 +513,25 @@ export function SettingsView() {
                 {updateStatus && (
                   <p className="text-caption text-qm-text-tertiary">{updateStatus}</p>
                 )}
-                <button
-                  onClick={handleCheckForUpdates}
-                  disabled={isCheckingUpdate}
-                  className="w-full px-4 py-2 rounded-qm-md bg-qm-surface-medium hover:bg-qm-surface-pressed text-body-sm text-qm-text-primary transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {isCheckingUpdate ? t('settings.updates.checking') : t('settings.updates.checkForUpdates')}
-                </button>
+                {updateReady ? (
+                  <button
+                    onClick={() => {
+                      const api = (window as unknown as { electronAPI: { installUpdate: () => Promise<boolean> } }).electronAPI
+                      api?.installUpdate?.()
+                    }}
+                    className="w-full px-4 py-2 rounded-qm-md bg-qm-accent hover:bg-qm-accent/80 text-body-sm text-white font-medium transition-colors"
+                  >
+                    {t('settings.updates.restartAndUpdate')}
+                  </button>
+                ) : (
+                  <button
+                    onClick={handleCheckForUpdates}
+                    disabled={isCheckingUpdate}
+                    className="w-full px-4 py-2 rounded-qm-md bg-qm-surface-medium hover:bg-qm-surface-pressed text-body-sm text-qm-text-primary transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {isCheckingUpdate ? t('settings.updates.checking') : t('settings.updates.checkForUpdates')}
+                  </button>
+                )}
               </div>
             </section>
           )}
