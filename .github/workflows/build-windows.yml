@@ -370,6 +370,43 @@ jobs:
           name: latest-yml
           path: release
 
+      - name: Regenerate latest.yml with signed installer hash
+        shell: bash
+        run: |
+          INSTALLER="release/${{ needs.build.outputs.installer_name }}"
+          if [ ! -f "$INSTALLER" ]; then
+            echo "ERROR: Signed installer not found"
+            exit 1
+          fi
+
+          # Compute sha512 of the SIGNED installer
+          SHA512=$(sha512sum "$INSTALLER" | awk '{print $1}' | xxd -r -p | base64 -w 0)
+          SIZE=$(stat --format=%s "$INSTALLER")
+          VERSION="${{ needs.build.outputs.version }}"
+          DATE=$(date -u +"%Y-%m-%dT%H:%M:%S.000Z")
+
+          echo "Signed installer: $INSTALLER"
+          echo "SHA512: $SHA512"
+          echo "Size: $SIZE (was $(grep -oP 'size: \K\d+' release/latest.yml 2>/dev/null || echo 'unknown') before signing)"
+
+          # Regenerate latest.yml with correct hash for the signed binary
+          cat > release/latest.yml << YAML
+          version: ${VERSION}
+          files:
+            - url: ${{ needs.build.outputs.installer_name }}
+              sha512: ${SHA512}
+              size: ${SIZE}
+          path: ${{ needs.build.outputs.installer_name }}
+          sha512: ${SHA512}
+          releaseDate: '${DATE}'
+          YAML
+
+          # Remove leading whitespace (heredoc indentation)
+          sed -i 's/^          //' release/latest.yml
+
+          echo "--- Generated latest.yml ---"
+          cat release/latest.yml
+
       - name: Create Release
         uses: softprops/action-gh-release@v1
         with:
