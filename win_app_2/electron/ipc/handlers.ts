@@ -343,6 +343,27 @@ export function registerIPCHandlers(): void {
     }
   })
 
+  // Save text to file (for session export)
+  ipcMain.handle(IPC_CHANNELS.FILE_SAVE_TEXT, async (event, defaultFileName: string, content: string) => {
+    const win = BrowserWindow.fromWebContents(event.sender)
+    if (!win) return { canceled: true }
+    const result = await dialog.showSaveDialog(win, {
+      defaultPath: defaultFileName,
+      filters: [
+        { name: 'Markdown', extensions: ['md'] },
+        { name: 'Text', extensions: ['txt'] },
+      ],
+    })
+    if (result.canceled || !result.filePath) return { canceled: true }
+    try {
+      fs.writeFileSync(result.filePath, content, 'utf-8')
+      return { canceled: false, filePath: result.filePath }
+    } catch (error) {
+      console.error('[IPC] File save failed:', error)
+      return { canceled: true }
+    }
+  })
+
   // Meeting detection dismiss
   ipcMain.on(IPC_CHANNELS.MEETING_DISMISS, () => hideMeetingNotification())
 

@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next'
 import { TabBar } from './TabBar'
 import { TranscriptPanel } from './TranscriptPanel'
 import { ResponseDisplay } from './ResponseDisplay'
+import { ActionBar } from './ActionBar'
 import { InputBar } from './InputBar'
 import { useConfigStore } from '@/stores/configStore'
 import { useAppStore } from '@/stores/appStore'
@@ -38,6 +39,8 @@ export function ExpandedContent() {
       <ResponseDisplay />
 
       <TabBar onTabSelected={handleTabSelected} />
+
+      <ActionBar />
 
       {/* Input state badge when session is not active */}
       {!isSessionActive && (

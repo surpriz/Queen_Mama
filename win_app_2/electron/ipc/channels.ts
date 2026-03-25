@@ -89,6 +89,7 @@ export const IPC_CHANNELS = {
   // Dialog / file operations
   DIALOG_OPEN_FILE: 'dialog:open-file',
   FILE_READ_TEXT: 'file:read-text',
+  FILE_SAVE_TEXT: 'file:save-text',
 
   // Meeting detection (main → renderer)
   MEETING_DETECTED: 'meeting:detected',

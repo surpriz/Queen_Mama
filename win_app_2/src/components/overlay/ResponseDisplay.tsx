@@ -1,4 +1,6 @@
 import { useRef, useEffect, useState, useCallback } from 'react'
+import type { ComponentPropsWithoutRef } from 'react'
+import React from 'react'
 import { Copy, Check, Sparkles, ThumbsUp, ThumbsDown, AlertCircle } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { useOverlayStore } from '@/stores/overlayStore'
@@ -52,6 +54,41 @@ function CopyButton({ text }: { text: string }) {
     >
       {copied ? <Check size={12} className="text-qm-success" /> : <Copy size={12} />}
     </button>
+  )
+}
+
+// ── Code block with copy button ─────────────────────────────────────
+
+function CodeBlockWrapper({ children, ...props }: ComponentPropsWithoutRef<'pre'>) {
+  const [copied, setCopied] = useState(false)
+
+  const getCodeText = () => {
+    const codeEl = React.Children.toArray(children).find(
+      (child) => React.isValidElement(child) && (child as React.ReactElement).type === 'code',
+    )
+    if (React.isValidElement(codeEl)) {
+      return String((codeEl as React.ReactElement<{ children?: React.ReactNode }>).props.children ?? '').replace(/\n$/, '')
+    }
+    return ''
+  }
+
+  const handleCopy = () => {
+    navigator.clipboard.writeText(getCodeText())
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
+  }
+
+  return (
+    <div className="relative group">
+      <pre {...props}>{children}</pre>
+      <button
+        onClick={handleCopy}
+        className="absolute top-2 right-2 p-1 rounded opacity-0 group-hover:opacity-100 transition-opacity bg-qm-surface-hover text-qm-text-tertiary hover:text-qm-text-secondary"
+        title="Copier le code"
+      >
+        {copied ? <Check size={11} className="text-qm-success" /> : <Copy size={11} />}
+      </button>
+    </div>
   )
 }
 
@@ -212,7 +249,7 @@ export function ResponseDisplay() {
 
                 {/* Markdown body */}
                 <div className="prose prose-invert prose-sm max-w-none text-body-sm leading-relaxed pr-16">
-                  <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                  <ReactMarkdown remarkPlugins={[remarkGfm]} components={{ pre: CodeBlockWrapper }}>
                     {entry.content}
                   </ReactMarkdown>
                 </div>
@@ -250,7 +287,7 @@ export function ResponseDisplay() {
                       <span className="inline-block w-1.5 h-4 bg-qm-accent animate-pulse ml-0.5" />
                     </p>
                   ) : (
-                    <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                    <ReactMarkdown remarkPlugins={[remarkGfm]} components={{ pre: CodeBlockWrapper }}>
                       {streamingContent}
                     </ReactMarkdown>
                   )}

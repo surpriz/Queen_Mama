@@ -36,7 +36,7 @@
     "typeQuestionOrTab": "Tapez une question ou cliquez sur un onglet"
   },
   "inputBar": {
-    "smartModeActivated": "Mode intelligent activé",
+    "smartModeActivated": "Smart mode activé — Meilleurs résultats, mais plus lent",
     "smartModeOn": "Mode intelligent activé",
     "smartModeOff": "Mode intelligent désactivé",
     "smart": "Intelligent",
@@ -49,6 +49,12 @@
   "expandedContent": {
     "screenOnly": "Écran uniquement",
     "noInput": "Pas d'entrée"
+  },
+  "actionBar": {
+    "export": "Exporter",
+    "exported": "Exporté !",
+    "clear": "Effacer",
+    "clearConfirm": "Confirmer ?"
   },
   "popupMenu": {
     "position": "Position",
