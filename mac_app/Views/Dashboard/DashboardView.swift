@@ -13,6 +13,7 @@ struct DashboardView: View {
     @EnvironmentObject var sessionManager: SessionManager
     @Environment(\.modelContext) private var modelContext
     @ObservedObject private var authManager = AuthenticationManager.shared
+    @ObservedObject private var licenseManager = LicenseManager.shared
 
     @State private var selectedSection: DashboardSection = .sessions
     @State private var searchText = ""
@@ -28,6 +29,13 @@ struct DashboardView: View {
     @State private var extractedContact: ContactExtractionService.ExtractedContact?
     @State private var extractionSession: Session?
 
+    // FREE plan upgrade triggers
+    @AppStorage("freeUpgradeLaunchShown") private var freeUpgradeLaunchShown = false
+    @AppStorage("freeSessionsCompleted") private var freeSessionsCompleted = 0
+    @AppStorage("freeSessionUpgradeShown") private var freeSessionUpgradeShown = false
+    @State private var showPricingSheet = false
+    @State private var pricingContextMessage: String?
+
     var body: some View {
         NavigationSplitView(columnVisibility: $columnVisibility) {
             // Modern Sidebar
@@ -42,6 +50,11 @@ struct DashboardView: View {
                 // Authentication warning banner
                 if !authManager.isAuthenticated {
                     AuthWarningBanner(onSignIn: { selectedSection = .settings })
+                }
+
+                // FREE plan upgrade banner (hidden during license validation to avoid flash)
+                if authManager.isAuthenticated && !licenseManager.isPro && !licenseManager.isValidating {
+                    FreeWelcomeBannerView()
                 }
 
                 Group {
@@ -189,6 +202,34 @@ struct DashboardView: View {
             // Ensures token is ready when user clicks "Start Recording"
             if authManager.isAuthenticated {
                 ProxyAPIClient.shared.prefetchTranscriptionToken()
+            }
+
+            // First-launch upgrade prompt for FREE users
+            // Delayed check: license revalidation may still be in progress at onAppear time
+            if authManager.isAuthenticated && !freeUpgradeLaunchShown {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
+                    // Re-check after revalidation has had time to complete
+                    if !licenseManager.isPro && !freeUpgradeLaunchShown {
+                        freeUpgradeLaunchShown = true
+                        showPricingSheet = true
+                    }
+                }
+            }
+        }
+        .sheet(isPresented: $showPricingSheet) {
+            PricingView(contextMessage: pricingContextMessage)
+        }
+        .onChange(of: appState.isFinalizingSession) { _, isNowFinalizing in
+            // Track completed sessions for FREE users (triggers upgrade after 3 sessions)
+            if !isNowFinalizing && !licenseManager.isPro {
+                freeSessionsCompleted += 1
+                if freeSessionsCompleted >= 3 && !freeSessionUpgradeShown {
+                    freeSessionUpgradeShown = true
+                    pricingContextMessage = String(localized: "pricing.trigger.afterSession")
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+                        showPricingSheet = true
+                    }
+                }
             }
         }
         .onChange(of: appState.shouldShowContactPicker) { _, newValue in
@@ -578,9 +619,16 @@ struct LicenseStatusBadge: View {
     let onTap: () -> Void
 
     @State private var isHovered = false
+    @State private var showPricingSheet = false
 
     var body: some View {
-        Button(action: onTap) {
+        Button(action: {
+            if authManager.isAuthenticated && !licenseManager.isPro {
+                showPricingSheet = true
+            } else {
+                onTap()
+            }
+        }) {
             HStack(spacing: QMDesign.Spacing.sm) {
                 // Icon
                 Image(systemName: iconName)
@@ -621,6 +669,9 @@ struct LicenseStatusBadge: View {
         .buttonStyle(.plain)
         .onHover { isHovered = $0 }
         .animation(QMDesign.Animation.quick, value: isHovered)
+        .sheet(isPresented: $showPricingSheet) {
+            PricingView()
+        }
     }
 
     // MARK: - Computed Properties
@@ -667,7 +718,9 @@ struct LicenseStatusBadge: View {
             }
             return String(localized: "dashboard.license.allFeaturesUnlocked")
         } else {
-            return String(localized: "dashboard.license.upgradeForMore")
+            let remaining = licenseManager.remainingUses(for: .aiRequest) ?? 0
+            let limit = licenseManager.currentLicense.features.dailyAiRequestLimit ?? 1
+            return String(localized: "dashboard.license.freeStatus \(remaining) \(limit)")
         }
     }
 
