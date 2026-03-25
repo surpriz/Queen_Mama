@@ -15,6 +15,7 @@ interface AppState {
   errorMessage: string | null
   isFinalizingSession: boolean
   sessionJustFinalized: boolean
+  showUpgradePricing: boolean
 
   // Actions
   setSessionActive: (active: boolean) => void
@@ -29,6 +30,7 @@ interface AppState {
   setErrorMessage: (message: string | null) => void
   setFinalizingSession: (finalizing: boolean) => void
   setSessionJustFinalized: (finalized: boolean) => void
+  setShowUpgradePricing: (show: boolean) => void
   clearContext: () => void
   toggleOverlay: () => void
 }
@@ -46,6 +48,7 @@ export const useAppStore = create<AppState>((set) => ({
   errorMessage: null,
   isFinalizingSession: false,
   sessionJustFinalized: false,
+  showUpgradePricing: false,
 
   setSessionActive: (active) => {
     set({ isSessionActive: active, sessionStartedAt: active ? Date.now() : null })
@@ -64,6 +67,7 @@ export const useAppStore = create<AppState>((set) => ({
   setErrorMessage: (message) => set({ errorMessage: message }),
   setFinalizingSession: (finalizing) => set({ isFinalizingSession: finalizing }),
   setSessionJustFinalized: (finalized) => set({ sessionJustFinalized: finalized }),
+  setShowUpgradePricing: (show) => set({ showUpgradePricing: show }),
   clearContext: () =>
     set({
       currentTranscript: '',

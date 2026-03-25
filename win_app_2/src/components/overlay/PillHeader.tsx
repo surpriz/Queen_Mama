@@ -22,6 +22,7 @@ import {
   type MomentType,
 } from '@/services/detection/momentDetectionService'
 import { PopupMenu } from './PopupMenu'
+import { FreeRequestCounter } from './FreeRequestCounter'
 import { cn } from '@/lib/utils'
 
 const MOMENT_COLORS: Record<MomentType, string> = {
@@ -198,7 +199,10 @@ export function PillHeader() {
         </button>
       </div>
 
-      {/* 4. Spacer / drag region */}
+      {/* 4. FREE request counter */}
+      <FreeRequestCounter />
+
+      {/* 5. Spacer / drag region */}
       <div className="flex-1 min-w-2 titlebar-drag" />
 
       {/* Right-side controls */}

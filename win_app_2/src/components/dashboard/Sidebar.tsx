@@ -8,6 +8,7 @@ import { StatusIndicator, type StatusType } from '@/components/common/StatusIndi
 import { useAppStore } from '@/stores/appStore'
 import { useAuthStore } from '@/stores/authStore'
 import { useLicenseStore } from '@/stores/licenseStore'
+import { PricingModal } from '@/components/license/PricingModal'
 import type { NavItem } from './DashboardLayout'
 
 interface SidebarProps {
@@ -39,6 +40,9 @@ function LicenseBadge() {
   const plan = useLicenseStore((s) => s.currentLicense.plan)
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated)
   const isPro = useLicenseStore((s) => s.isPro)
+  const dailyLimit = useLicenseStore((s) => s.currentLicense.features.dailyAiRequestLimit)
+  const aiRequestsToday = useLicenseStore((s) => s.aiRequestsToday)
+  const [showPricing, setShowPricing] = useState(false)
 
   if (!isAuthenticated) {
     return (
@@ -57,13 +61,24 @@ function LicenseBadge() {
     )
   }
 
+  const remaining = dailyLimit ? Math.max(0, dailyLimit - aiRequestsToday) : 0
+  const limit = dailyLimit || 1
+
   return (
-    <div className="px-3 py-2 rounded-qm-md bg-qm-surface-light">
-      <div className="flex items-center justify-between">
-        <span className="text-caption font-semibold text-qm-accent">{t('license.free')}</span>
-        <span className="text-caption-sm text-qm-text-tertiary">{t('license.upgradeForMore')}</span>
-      </div>
-    </div>
+    <>
+      <button
+        onClick={() => setShowPricing(true)}
+        className="w-full px-3 py-2 rounded-qm-md bg-qm-surface-light hover:bg-qm-surface-hover transition-colors text-left"
+      >
+        <div className="flex items-center justify-between">
+          <span className="text-caption font-semibold text-qm-accent">{t('license.free')}</span>
+          <span className="text-caption-sm text-qm-text-tertiary">
+            {remaining}/{limit} req · {t('pricing.upgrade')}
+          </span>
+        </div>
+      </button>
+      <PricingModal isOpen={showPricing} onClose={() => setShowPricing(false)} />
+    </>
   )
 }
 

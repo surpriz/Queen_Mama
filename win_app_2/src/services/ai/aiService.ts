@@ -55,7 +55,7 @@ export async function generateStreamingResponse(params: AIContextParams, options
   if (access.type !== 'allowed') {
     log.warn('AI request not allowed', access)
     if (access.type === 'limitReached') {
-      useAppStore.getState().setErrorMessage('Daily AI request limit reached')
+      useAppStore.getState().setShowUpgradePricing(true)
     } else {
       useAppStore.getState().setErrorMessage('AI request not available on your plan')
     }

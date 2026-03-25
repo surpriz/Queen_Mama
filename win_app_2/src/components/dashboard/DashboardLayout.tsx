@@ -1,19 +1,64 @@
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Loader2, CheckCircle2 } from 'lucide-react'
 import { useAppStore } from '@/stores/appStore'
+import { useLicenseStore } from '@/stores/licenseStore'
+import { useAuthStore } from '@/stores/authStore'
 import { Sidebar } from './Sidebar'
 import { LiveSessionView } from './LiveSessionView'
 import { SessionsView } from './SessionsView'
 import { ModesListView } from './ModesListView'
 import { ContactsView } from './ContactsView'
 import { SettingsView } from './SettingsView'
+import { FreeWelcomeBanner } from '@/components/license/FreeWelcomeBanner'
+import { PricingModal } from '@/components/license/PricingModal'
 
 export type NavItem = 'sessions' | 'live' | 'modes' | 'contacts' | 'settings'
+
+const LAUNCH_SHOWN_KEY = 'freeUpgradeLaunchShown'
+const SESSIONS_KEY = 'freeSessionsCompleted'
+const SESSION_UPGRADE_KEY = 'freeSessionUpgradeShown'
 
 export function DashboardLayout() {
   const [activeNav, setActiveNav] = useState<NavItem>('live')
   const isFinalizingSession = useAppStore((s) => s.isFinalizingSession)
   const sessionJustFinalized = useAppStore((s) => s.sessionJustFinalized)
+  const isPro = useLicenseStore((s) => s.isPro)
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated)
+
+  // Pricing modal state
+  const [showPricing, setShowPricing] = useState(false)
+  const [pricingContext, setPricingContext] = useState<string | undefined>()
+  const prevFinalizing = useRef(isFinalizingSession)
+
+  // First-launch upgrade prompt (delayed to wait for license revalidation)
+  useEffect(() => {
+    if (!isAuthenticated) return
+    const alreadyShown = localStorage.getItem(LAUNCH_SHOWN_KEY) === 'true'
+    if (alreadyShown) return
+
+    const timer = setTimeout(() => {
+      if (!isPro()) {
+        localStorage.setItem(LAUNCH_SHOWN_KEY, 'true')
+        setShowPricing(true)
+      }
+    }, 2000)
+
+    return () => clearTimeout(timer)
+  }, [isAuthenticated]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // After 3 completed sessions, show upgrade prompt once
+  useEffect(() => {
+    if (prevFinalizing.current && !isFinalizingSession && !isPro()) {
+      const count = parseInt(localStorage.getItem(SESSIONS_KEY) || '0', 10) + 1
+      localStorage.setItem(SESSIONS_KEY, String(count))
+      if (count >= 3 && localStorage.getItem(SESSION_UPGRADE_KEY) !== 'true') {
+        localStorage.setItem(SESSION_UPGRADE_KEY, 'true')
+        setPricingContext('pricing.triggerAfterSession')
+        setTimeout(() => setShowPricing(true), 1000)
+      }
+    }
+    prevFinalizing.current = isFinalizingSession
+  }, [isFinalizingSession]) // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <div className="flex h-screen bg-qm-bg-primary">
@@ -25,6 +70,9 @@ export function DashboardLayout() {
 
       {/* Main content */}
       <div className="flex-1 overflow-y-auto overflow-x-hidden pt-9 relative">
+        {/* FREE plan banner */}
+        {isAuthenticated && <FreeWelcomeBanner />}
+
         {activeNav === 'live' && <LiveSessionView />}
         {activeNav === 'sessions' && <SessionsView />}
         {activeNav === 'modes' && <ModesListView />}
@@ -55,6 +103,12 @@ export function DashboardLayout() {
           </div>
         )}
       </div>
+
+      <PricingModal
+        isOpen={showPricing}
+        onClose={() => { setShowPricing(false); setPricingContext(undefined) }}
+        contextMessage={pricingContext}
+      />
     </div>
   )
 }
