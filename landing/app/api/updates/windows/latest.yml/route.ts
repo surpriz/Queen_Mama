@@ -111,10 +111,15 @@ export async function GET() {
     ? "https://staging.queenmama.co"
     : "https://www.queenmama.co";
 
-  // Replace relative .exe URLs with absolute proxy URLs
+  // Rewrite .exe URLs to a clean relative filename (no absolute URLs!)
+  // electron-updater uses the URL as a temp filename on Windows — colons and
+  // query params in absolute URLs cause ENOENT errors on Windows filesystems.
+  // electron-updater appends this filename to the feed base URL, so the final
+  // download URL becomes: <baseUrl>/api/updates/windows/QueenMama-Setup-<ver>.exe
+  const installerName = `QueenMama-Setup-${version}.exe`;
   yamlContent = yamlContent.replace(
     /url:\s*(.+\.exe)/g,
-    `url: ${baseUrl}/api/download/${version}?platform=windows${staging ? "&prerelease=true" : ""}`
+    `url: ${installerName}`
   );
 
   return new NextResponse(yamlContent, {
