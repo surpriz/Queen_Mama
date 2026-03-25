@@ -36,11 +36,12 @@ export class DeepgramFluxProvider implements TranscriptionProvider {
       throw error
     }
 
-    const lang = this.language || 'fr'
+    const lang = this.language || 'multi'
+    const langParam = lang === 'multi' ? 'detect_language=true' : `language=${lang}`
     let url =
       'wss://api.deepgram.com/v1/listen?' +
       `model=nova-3&` +
-      `language=${lang}&` +
+      `${langParam}&` +
       'smart_format=true&' +
       'interim_results=true&' +
       'encoding=linear16&' +

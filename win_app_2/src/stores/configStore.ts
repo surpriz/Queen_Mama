@@ -48,6 +48,11 @@ export const useConfigStore = create<ConfigStoreState>()(subscribeWithSelector((
       loaded.uiLanguage = detected
       window.electronAPI?.store.set('config.uiLanguage', detected)
     }
+    // Migration: force auto-detect for all users (replaces fixed language setting)
+    if (loaded.primaryLanguage && loaded.primaryLanguage !== 'multi') {
+      loaded.primaryLanguage = 'multi'
+      window.electronAPI?.store.set('config.primaryLanguage', 'multi')
+    }
     if (Object.keys(loaded).length > 0) {
       set(loaded)
       // Restore content protection state on startup

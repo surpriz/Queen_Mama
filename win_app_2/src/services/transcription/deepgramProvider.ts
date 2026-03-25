@@ -37,8 +37,9 @@ export class DeepgramProvider implements TranscriptionProvider {
     const host = url.hostname
 
     // Build the proxy URL with proper protocol
-    const lang = this.language || 'fr'
-    const proxyUrl = `${wsProtocol}//${host}:${PROXY_PORT}?token=${encodeURIComponent(authToken)}&language=${lang}&model=nova-3`
+    const lang = this.language || 'multi'
+    const langParam = lang === 'multi' ? 'detect_language=true' : `language=${lang}`
+    const proxyUrl = `${wsProtocol}//${host}:${PROXY_PORT}?token=${encodeURIComponent(authToken)}&${langParam}&model=nova-3`
 
     log.info(`Connecting to transcription proxy at ${wsProtocol}//${host}:${PROXY_PORT}...`)
 
