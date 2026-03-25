@@ -64,6 +64,39 @@
     "dailyLimitReached": "Limite quotidienne atteinte ({{used}}/{{limit}})",
     "featureNotAvailable": "Cette fonctionnalité n'est pas disponible"
   },
+  "pricing": {
+    "title": "Choisissez votre offre",
+    "subtitle": "Libérez tout votre potentiel",
+    "recommended": "RECOMMANDÉ",
+    "currentPlan": "Plan actuel",
+    "planFree": "Gratuit",
+    "planPro": "PRO",
+    "planEnterprise": "Entreprise",
+    "perMonth": "/mois",
+    "upgradePro": "Passer à PRO",
+    "upgradeEnterprise": "Passer Entreprise",
+    "upgrade": "Passer PRO",
+    "maybeLater": "Peut-être plus tard",
+    "opening": "Ouverture...",
+    "seePlans": "Voir les offres",
+    "feature": {
+      "aiRequests": "Requêtes IA",
+      "aiRequestsFree": "1 par jour",
+      "unlimited": "Illimité",
+      "customModes": "Modes personnalisés",
+      "cloudSync": "Synchronisation cloud",
+      "export": "Export (MD, JSON)",
+      "smartMode": "Mode intelligent",
+      "autoAnswer": "Réponse automatique",
+      "undetectable": "Overlay indétectable",
+      "contextIntel": "Intelligence contextuelle"
+    },
+    "limitReached": "Vous avez atteint votre limite quotidienne de requêtes IA",
+    "triggerAfterSession": "Queen Mama vous aide — débloquez plus de fonctionnalités",
+    "freeBannerTitle": "Vous êtes sur le plan Gratuit",
+    "freeBannerSubtitle": "1 requête IA par jour. Passez à la version supérieure pour un accès illimité.",
+    "counterTooltip": "Requêtes IA quotidiennes restantes. Cliquez pour passer à la version supérieure."
+  },
   "error": {
     "somethingWentWrong": "Une erreur est survenue",
     "unexpectedError": "Une erreur inattendue s'est produite"

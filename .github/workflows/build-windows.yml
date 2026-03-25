@@ -375,6 +375,7 @@ jobs:
         with:
           files: |
             release/${{ needs.build.outputs.installer_name }}
+            release/latest.yml
           prerelease: ${{ needs.build.outputs.is_prerelease }}
           tag_name: ${{ github.ref_name }}
           name: "Queen Mama Windows ${{ needs.build.outputs.tag_name }}"

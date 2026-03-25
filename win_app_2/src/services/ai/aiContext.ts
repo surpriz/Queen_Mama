@@ -83,19 +83,21 @@ export interface AIContextParams {
 export function buildSystemPrompt(params: AIContextParams): string {
   const { mode, responseType, smartMode } = params
 
+  // Inject current date so models never confuse training cutoff with today
+  const today = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })
+  let prompt = `Today's date is ${today}. Use this as the current date for any temporal reasoning.\n\n`
+
   const isCustomMode = mode
     ? !BUILT_IN_MODE_NAMES.includes(mode.name as (typeof BUILT_IN_MODE_NAMES)[number])
     : false
 
-  let prompt: string
-
   if (isCustomMode && mode) {
     // Custom modes: ONLY the mode's prompt + language instruction
-    prompt = mode.systemPrompt
+    prompt += mode.systemPrompt
     prompt += getLanguageInstruction()
   } else {
     // Built-in modes: mode prompt + responseType additions
-    prompt = mode?.systemPrompt || getDefaultSystemPrompt()
+    prompt += mode?.systemPrompt || getDefaultSystemPrompt()
 
     // Developer Exam has its own complete prompt — skip responseType addition
     if (mode?.name !== 'Developer Exam') {
@@ -133,6 +135,13 @@ export function buildSystemPrompt(params: AIContextParams): string {
     prompt += cachedContactsContext
   }
 
+  // Speaker identification unavailable — applies to ALL modes
+  prompt += `\n\nSPEAKER IDENTIFICATION — CRITICAL RULE:
+The transcript does NOT include speaker identification. You do NOT know who said what.
+NEVER attribute a statement, decision, or action item to a specific person by name.
+Use generic references only: "a participant mentioned", "someone raised", "it was said", "the team discussed".
+BAD: "Denis should send the report" → GOOD: "Someone should send the report" or "The report needs to be sent".`
+
   return prompt
 }
 
@@ -146,14 +155,29 @@ export function buildUserMessage(params: AIContextParams): AIMessage[] {
   let textContent = ''
 
   if (transcript.trim()) {
-    const maxLen = responseType === ResponseType.Recap ? MAX_TRANSCRIPT_LENGTH_RECAP : MAX_TRANSCRIPT_LENGTH
-    const truncated =
-      transcript.length > maxLen
-        ? '[...previous conversation truncated...]\n\n' +
-          transcript.slice(-maxLen)
+    if (responseType === ResponseType.Recap) {
+      // Full history for recap — needs complete meeting coverage
+      const truncated = transcript.length > MAX_TRANSCRIPT_LENGTH_RECAP
+        ? '[...previous conversation truncated...]\n\n' + transcript.slice(-MAX_TRANSCRIPT_LENGTH_RECAP)
         : transcript
+      textContent += `## Transcript:\n${truncated}\n\n`
+    } else {
+      // Split into background + current discussion
+      // Recent (~1-2 min) = priority. Background = available context if relevant.
+      const recentLength = 3000
+      const backgroundMaxLength = MAX_TRANSCRIPT_LENGTH - recentLength
 
-    textContent += `## Transcript:\n${truncated}\n\n`
+      if (transcript.length <= recentLength) {
+        textContent += `## Transcript:\n${transcript}\n\n`
+      } else {
+        const recentPart = transcript.slice(-recentLength)
+        const olderPart = transcript.slice(0, -recentLength)
+        const backgroundPart = olderPart.length > backgroundMaxLength
+          ? '[...previous conversation truncated...]\n\n' + olderPart.slice(-backgroundMaxLength)
+          : olderPart
+        textContent += `## Contexte de réunion (plus tôt dans la discussion) :\n${backgroundPart}\n\n## Discussion en cours (priorité ici) :\n${recentPart}\n\n`
+      }
+    }
   }
 
   if (screenshot) {

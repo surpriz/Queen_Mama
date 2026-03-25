@@ -167,7 +167,7 @@ export const FREE_LICENSE: License = {
     exportFormats: ['text'],
     autoAnswerEnabled: false,
     sessionSyncEnabled: false,
-    dailyAiRequestLimit: 10,
+    dailyAiRequestLimit: 1,
     maxSyncedSessions: null,
     maxTranscriptSize: null,
     undetectableEnabled: false,

@@ -25,6 +25,7 @@ struct OverlayContentView: View {
     @State private var currentDisplayName = String(localized: "overlay.display.primary")
     @AppStorage("enableScreenCapture") private var enableScreenCapture = true
     @AppStorage("hasSeenSmartModeHint") private var hasSeenSmartModeHint = false
+    @State private var showLimitPricingSheet = false
 
     // Memory Palace: Contact picker state
     @State private var showingContactPicker = false
@@ -172,6 +173,9 @@ struct OverlayContentView: View {
                 }
             }
         }
+        .sheet(isPresented: $showLimitPricingSheet) {
+            PricingView(contextMessage: String(localized: "pricing.trigger.limitReached"))
+        }
     }
 
     private func updateDisplayName() async {
@@ -217,7 +221,11 @@ struct OverlayContentView: View {
         let aiAccess = licenseManager.canUse(.aiRequest)
 
         guard aiAccess.isAllowed else {
-            appState.errorMessage = aiAccess.errorMessage
+            if case .limitReached = aiAccess {
+                showLimitPricingSheet = true
+            } else {
+                appState.errorMessage = aiAccess.errorMessage
+            }
             return
         }
 
@@ -424,6 +432,42 @@ struct StatusBadge: View {
     }
 }
 
+// MARK: - Free Request Counter
+
+private struct FreeRequestCounter: View {
+    @ObservedObject private var licenseManager = LicenseManager.shared
+    @State private var showPricingSheet = false
+
+    private var remaining: Int {
+        licenseManager.remainingUses(for: .aiRequest) ?? 0
+    }
+
+    private var limit: Int {
+        licenseManager.currentLicense.features.dailyAiRequestLimit ?? 1
+    }
+
+    private var isExhausted: Bool { remaining == 0 }
+
+    var body: some View {
+        Button(action: { showPricingSheet = true }) {
+            Text("\(remaining)/\(limit)")
+                .font(.system(size: 10, weight: .bold, design: .monospaced))
+                .padding(.horizontal, 6)
+                .padding(.vertical, 3)
+                .background(
+                    Capsule()
+                        .fill(isExhausted ? QMDesign.Colors.warning.opacity(0.25) : QMDesign.Colors.surfaceLight)
+                )
+                .foregroundColor(isExhausted ? QMDesign.Colors.warning : QMDesign.Colors.textTertiary)
+        }
+        .buttonStyle(.plain)
+        .help(String(localized: "overlay.counter.tooltip"))
+        .sheet(isPresented: $showPricingSheet) {
+            PricingView(contextMessage: isExhausted ? String(localized: "pricing.trigger.limitReached") : nil)
+        }
+    }
+}
+
 // MARK: - Modern Pill Header View
 
 struct ModernPillHeaderView: View {
@@ -561,6 +605,11 @@ struct ModernPillHeaderView: View {
                         Task { try? await transcriptionService.connect() }
                     }
                 )
+            }
+
+            // FREE plan request counter
+            if !LicenseManager.shared.isPro {
+                FreeRequestCounter()
             }
 
             Spacer()

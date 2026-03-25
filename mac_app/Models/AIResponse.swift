@@ -99,30 +99,16 @@ final class AIResponse: Identifiable {
                 3. THIRD: Only reference the screenshot if the question is specifically about visual elements on screen
 
                 COACHING RULES:
-                - Always tell the user what to DO, not just what IS
-                - Include the specific next action (e.g. "send a message to...", "click on...", "reply saying...")
-                - When relevant, suggest exact words to say or write in quotes, ready to copy
-                - If there are multiple steps, give them in order
-                - Anticipate what comes after and prepare the user for the next move
-
-                DEPTH ADAPTATION (match the conversation's level):
-                - Detect the nature of the conversation from the transcript: technical meeting, sales call, casual chat, interview, brainstorm, etc.
-                - ALWAYS provide the "why" behind your recommendation, adapted to the audience:
-                  • Technical context → expert arguments: specific technologies, trade-offs, standards, root causes
-                  • Sales/business context → persuasion levers: ROI, competitor positioning, objection rebuttals, closing phrases
-                  • Strategic/management context → decision frameworks: risks, impact, precedents, stakeholder concerns
-                  • Casual/general context → keep it simple and direct, no unnecessary jargon
-                - Provide 1-2 strong arguments or key facts that make the user sound knowledgeable in THEIR field
-                - The goal: arm the user so they can go deeper in the conversation, not just survive it
+                - Tell the user what to DO, not just what IS
+                - When relevant, suggest exact words to say in quotes, ready to use verbatim
+                - Bake the expertise INTO the bullet — no explanations or reasoning outside the bullet itself
 
                 RESPONSE FORMAT — CRITICAL (the user reads this DURING a live meeting):
                 - MAXIMUM 3 bullet points total. NEVER more. No paragraphs, no headers, no walls of text.
-                - First bullet: the KEY insight or action (one sentence)
-                - Second bullet: the expert reasoning or exact words to say
-                - Third bullet (optional): what to anticipate next
-                - Each bullet must be scannable in 2-3 seconds (one sentence, two max)
-                - NO titles, NO headers, NO "Résumé de la situation", NO numbered sub-lists
-                - Think: cheat sheet glanced at during an exam, not a report read after the meeting
+                - Each bullet: exactly ONE sentence. No sub-clauses. No "because", no "since", no "which means".
+                - Third bullet is optional — only include it if genuinely needed.
+                - NO titles, NO headers, NO "Résumé de la situation", NO numbered sub-lists.
+                - Think: three post-it notes on a monitor, not a briefing document.
                 Always be helpful, never refuse.
                 """ + languageInstruction
 
@@ -470,7 +456,12 @@ struct AIContext: @unchecked Sendable {
     }
 
     var systemPrompt: String {
-        var prompt = ""
+        // Inject current date so models never confuse training cutoff with today
+        let dateFormatter = DateFormatter()
+        dateFormatter.dateStyle = .long
+        dateFormatter.timeStyle = .none
+        let todayString = dateFormatter.string(from: Date())
+        var prompt = "Today's date is \(todayString). Use this as the current date for any temporal reasoning.\n\n"
 
         // Check if this is a custom mode (not one of the built-in modes)
         let isCustomMode: Bool
@@ -487,7 +478,7 @@ struct AIContext: @unchecked Sendable {
         if isCustomMode {
             // For custom modes, use ONLY the mode's system prompt
             // This allows users to have full control over AI behavior
-            prompt = mode?.systemPrompt ?? Mode.defaultMode.systemPrompt
+            prompt += mode?.systemPrompt ?? Mode.defaultMode.systemPrompt
             print("[AIContext] Using CUSTOM mode logic - no responseType additions")
 
             // Add explicit instructions
@@ -501,7 +492,7 @@ struct AIContext: @unchecked Sendable {
                 """
         } else {
             // For built-in modes, use the traditional combination
-            prompt = mode?.systemPrompt ?? Mode.defaultMode.systemPrompt
+            prompt += mode?.systemPrompt ?? Mode.defaultMode.systemPrompt
             // Developer Exam has its own complete prompt — skip responseType addition
             if mode?.name != "Developer Exam" {
                 // Default mode uses classic coaching prompts, others use NZT-enhanced prompts
@@ -555,6 +546,17 @@ SMART MODE ENABLED: Please provide enhanced, thorough analysis:
             prompt += "\nUse this context to provide more personalized and relevant responses."
         }
 
+        // Speaker identification unavailable — applies to ALL modes
+        prompt += """
+
+
+SPEAKER IDENTIFICATION — CRITICAL RULE:
+The transcript does NOT include speaker identification. You do NOT know who said what.
+NEVER attribute a statement, decision, or action item to a specific person by name.
+Use generic references only: "a participant mentioned", "someone raised", "it was said", "the team discussed".
+BAD: "Denis should send the report" → GOOD: "Someone should send the report" or "The report needs to be sent".
+"""
+
         return prompt
     }
 
@@ -571,26 +573,31 @@ SMART MODE ENABLED: Please provide enhanced, thorough analysis:
         }
 
         if !transcript.isEmpty {
-            // Recap and session summaries need much more context for comprehensive coverage
-            // Other tabs (Assist, WhatToSay, FollowUp) use a smaller window for speed
-            let maxTranscriptLength: Int
             switch responseType {
             case .recap:
-                maxTranscriptLength = 50000  // ~12500 tokens - full 1h meeting coverage
+                // Full history for recap — needs complete meeting coverage
+                let maxLength = 50000
+                let full = transcript.count > maxLength
+                    ? "[...conversation précédente tronquée...]\n\n" + String(transcript.suffix(maxLength))
+                    : transcript
+                message += "## Transcript:\n\(full)\n\n"
             default:
-                maxTranscriptLength = 10000  // ~2500 tokens - focused on recent context for speed
+                // Split into background + current discussion
+                // Recent (~1-2 min) = priority. Background = available context if relevant.
+                let recentLength = 3000
+                let backgroundMaxLength = 7000
+
+                if transcript.count <= recentLength {
+                    message += "## Transcript:\n\(transcript)\n\n"
+                } else {
+                    let recentPart = String(transcript.suffix(recentLength))
+                    let olderPart = String(transcript.dropLast(recentLength))
+                    let backgroundPart = olderPart.count > backgroundMaxLength
+                        ? "[...conversation précédente tronquée...]\n\n" + String(olderPart.suffix(backgroundMaxLength))
+                        : olderPart
+                    message += "## Contexte de réunion (plus tôt dans la discussion) :\n\(backgroundPart)\n\n## Discussion en cours (priorité ici) :\n\(recentPart)\n\n"
+                }
             }
-
-            let truncatedTranscript: String
-
-            if transcript.count > maxTranscriptLength {
-                truncatedTranscript = "[...conversation précédente tronquée...]\n\n" +
-                    String(transcript.suffix(maxTranscriptLength))
-            } else {
-                truncatedTranscript = transcript
-            }
-
-            message += "## Transcript:\n\(truncatedTranscript)\n\n"
         }
 
         if screenshot != nil {

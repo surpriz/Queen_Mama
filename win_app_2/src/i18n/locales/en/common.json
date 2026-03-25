@@ -64,6 +64,39 @@
     "dailyLimitReached": "Daily limit reached ({{used}}/{{limit}})",
     "featureNotAvailable": "This feature is not available"
   },
+  "pricing": {
+    "title": "Choose Your Plan",
+    "subtitle": "Unlock your full potential",
+    "recommended": "RECOMMENDED",
+    "currentPlan": "Current Plan",
+    "planFree": "Free",
+    "planPro": "PRO",
+    "planEnterprise": "Enterprise",
+    "perMonth": "/month",
+    "upgradePro": "Upgrade to PRO",
+    "upgradeEnterprise": "Go Enterprise",
+    "upgrade": "Upgrade",
+    "maybeLater": "Maybe Later",
+    "opening": "Opening...",
+    "seePlans": "See Plans",
+    "feature": {
+      "aiRequests": "AI Requests",
+      "aiRequestsFree": "1 per day",
+      "unlimited": "Unlimited",
+      "customModes": "Custom Modes",
+      "cloudSync": "Cloud Sync",
+      "export": "Export (MD, JSON)",
+      "smartMode": "Smart Mode",
+      "autoAnswer": "Auto-Answer",
+      "undetectable": "Undetectable Overlay",
+      "contextIntel": "Context Intelligence"
+    },
+    "limitReached": "You've reached your daily AI request limit",
+    "triggerAfterSession": "You're getting value from Queen Mama — unlock more",
+    "freeBannerTitle": "You're on the Free plan",
+    "freeBannerSubtitle": "1 AI request per day. Upgrade for unlimited access.",
+    "counterTooltip": "Daily AI requests remaining. Click to upgrade."
+  },
   "error": {
     "somethingWentWrong": "Something went wrong",
     "unexpectedError": "An unexpected error occurred"

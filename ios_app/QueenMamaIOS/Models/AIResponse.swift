@@ -77,12 +77,23 @@ final class AIResponse: Identifiable {
             switch self {
             case .assist:
                 return """
-                You are a helpful productivity assistant. The user needs help during a meeting or work session.
+                You are a coaching assistant whispering actionable advice. The user needs help RIGHT NOW.
                 PRIORITY ORDER for providing help:
                 1. FIRST: Answer based on the TRANSCRIPT/CONVERSATION if the question relates to what was discussed
                 2. SECOND: Use your general knowledge to answer questions (like explaining terms, concepts, etc.)
                 3. THIRD: Only reference the screenshot if the question is specifically about visual elements on screen
-                Keep responses concise: 1-2 sentences, bullets only if needed. Always be helpful - never refuse.
+
+                COACHING RULES:
+                - Tell the user what to DO, not just what IS
+                - When relevant, suggest exact words to say in quotes, ready to use verbatim
+                - Bake the expertise INTO the bullet — no explanations outside the bullet itself
+
+                RESPONSE FORMAT — CRITICAL (user reads DURING a live meeting):
+                - MAXIMUM 3 bullet points total. NEVER more.
+                - Each bullet: exactly ONE sentence. No sub-clauses. No "because", no "since".
+                - Third bullet is optional — only include if genuinely needed.
+                - NO titles, NO headers, NO numbered sub-lists.
+                Always be helpful, never refuse.
                 """ + languageInstruction
 
             case .whatToSay:
@@ -243,7 +254,12 @@ struct AIContext: @unchecked Sendable {
     }
 
     var systemPrompt: String {
-        var prompt = ""
+        // Inject current date so models never confuse training cutoff with today
+        let dateFormatter = DateFormatter()
+        dateFormatter.dateStyle = .long
+        dateFormatter.timeStyle = .none
+        let todayString = dateFormatter.string(from: Date())
+        var prompt = "Today's date is \(todayString). Use this as the current date for any temporal reasoning.\n\n"
 
         // Check if this is a custom mode (not one of the built-in modes)
         let isCustomMode: Bool
@@ -260,7 +276,7 @@ struct AIContext: @unchecked Sendable {
         if isCustomMode {
             // For custom modes, use ONLY the mode's system prompt
             // This allows users to have full control over AI behavior
-            prompt = mode?.systemPrompt ?? Mode.defaultMode.systemPrompt
+            prompt += mode?.systemPrompt ?? Mode.defaultMode.systemPrompt
             print("[AIContext] Using CUSTOM mode logic - no responseType additions")
 
             // Add explicit instructions
@@ -274,7 +290,7 @@ struct AIContext: @unchecked Sendable {
                 """
         } else {
             // For built-in modes, use the traditional combination
-            prompt = mode?.systemPrompt ?? Mode.defaultMode.systemPrompt
+            prompt += mode?.systemPrompt ?? Mode.defaultMode.systemPrompt
             // Developer Exam has its own complete prompt — skip responseType addition
             // to avoid conflicting instructions (e.g. .assist adding "1-2 sentences max")
             if mode?.name != "Developer Exam" {
@@ -324,6 +340,17 @@ SMART MODE ENABLED: Please provide enhanced, thorough analysis:
             prompt += "\nUse this context to provide more personalized and relevant responses."
         }
 
+        // Speaker identification unavailable — applies to ALL modes
+        prompt += """
+
+
+SPEAKER IDENTIFICATION — CRITICAL RULE:
+The transcript does NOT include speaker identification. You do NOT know who said what.
+NEVER attribute a statement, decision, or action item to a specific person by name.
+Use generic references only: "a participant mentioned", "someone raised", "it was said", "the team discussed".
+BAD: "Denis should send the report" → GOOD: "Someone should send the report" or "The report needs to be sent".
+"""
+
         return prompt
     }
 
@@ -340,18 +367,21 @@ SMART MODE ENABLED: Please provide enhanced, thorough analysis:
         }
 
         if !transcript.isEmpty {
-            // Limit transcript to ~8000 chars (~2000 tokens) for cost optimization
-            let maxTranscriptLength = 8000
-            let truncatedTranscript: String
+            // Split into background + current discussion
+            // Recent (~1-2 min) = priority. Background = available context if relevant.
+            let recentLength = 2500
+            let backgroundMaxLength = 5500
 
-            if transcript.count > maxTranscriptLength {
-                truncatedTranscript = "[...conversation précédente tronquée...]\n\n" +
-                    String(transcript.suffix(maxTranscriptLength))
+            if transcript.count <= recentLength {
+                message += "## Transcript:\n\(transcript)\n\n"
             } else {
-                truncatedTranscript = transcript
+                let recentPart = String(transcript.suffix(recentLength))
+                let olderPart = String(transcript.dropLast(recentLength))
+                let backgroundPart = olderPart.count > backgroundMaxLength
+                    ? "[...conversation précédente tronquée...]\n\n" + String(olderPart.suffix(backgroundMaxLength))
+                    : olderPart
+                message += "## Contexte de réunion (plus tôt dans la discussion) :\n\(backgroundPart)\n\n## Discussion en cours (priorité ici) :\n\(recentPart)\n\n"
             }
-
-            message += "## Transcript:\n\(truncatedTranscript)\n\n"
         }
 
         if screenshot != nil {
