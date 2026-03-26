@@ -5,6 +5,7 @@
  * startSession → audioCapture + transcription + screenCapture → AI → stopSession → title/summary → sync
  */
 
+import { captureError, addBreadcrumb } from '@/services/crash/crashReporter'
 import { useAppStore } from '@/stores/appStore'
 import { useOverlayStore, setOverlaySessionId } from '@/stores/overlayStore'
 import * as audioCapture from '@/services/audio/audioCaptureService'
@@ -39,6 +40,7 @@ export async function startSession(mode?: Mode | null, contact?: Contact | null)
 
   try {
     store.setSessionActive(true)
+    addBreadcrumb('session', 'Session started', 'info')
     store.setErrorMessage(null)
     store.setCurrentTranscript('')
     fullTranscript = ''
@@ -235,6 +237,10 @@ export async function startSession(mode?: Mode | null, contact?: Contact | null)
     analytics.trackSessionStarted()
   } catch (error) {
     console.error('[SessionLifecycle] Failed to start session:', error)
+    captureError(
+      error instanceof Error ? error : new Error('Failed to start session'),
+      { service: 'session', operation: 'start' },
+    )
     store.setErrorMessage(error instanceof Error ? error.message : 'Failed to start session')
     store.setSessionActive(false)
     cleanup()
@@ -246,6 +252,7 @@ export async function stopSession(): Promise<void> {
   if (!store.isSessionActive) return
 
   store.setFinalizingSession(true)
+  addBreadcrumb('session', `Session stopped (transcript: ${fullTranscript.length} chars)`, 'info')
 
   try {
     // Stop all services
@@ -282,6 +289,10 @@ export async function stopSession(): Promise<void> {
           console.log(`[SessionLifecycle] Title generated: "${generatedTitle}"`)
         } catch (titleErr) {
           console.error('[SessionLifecycle] Title generation failed:', titleErr)
+          captureError(
+            titleErr instanceof Error ? titleErr : new Error('Session title generation failed'),
+            { service: 'session', operation: 'generateTitle', sessionId: currentSessionId },
+          )
         }
 
         try {
@@ -292,6 +303,10 @@ export async function stopSession(): Promise<void> {
           console.log(`[SessionLifecycle] AI Summary: ${generatedSummary ? generatedSummary.length + ' chars' : 'null'}`)
         } catch (summaryErr) {
           console.error('[SessionLifecycle] Summary generation failed:', summaryErr)
+          captureError(
+            summaryErr instanceof Error ? summaryErr : new Error('Session summary generation failed'),
+            { service: 'session', operation: 'generateSummary', sessionId: currentSessionId },
+          )
         }
       }
 
@@ -330,6 +345,10 @@ export async function stopSession(): Promise<void> {
         }
       } catch (err) {
         console.error('[SessionLifecycle] Contact extraction failed:', err)
+        captureError(
+          err instanceof Error ? err : new Error('Contact extraction failed'),
+          { service: 'session', operation: 'contactExtraction', sessionId: currentSessionId },
+        )
       }
 
       // Finalize: write transcript + title + summary + endTime to DB in one awaited call

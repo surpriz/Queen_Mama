@@ -23,6 +23,13 @@ export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoun
 
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo): void {
     console.error('[ErrorBoundary] Caught error:', error, errorInfo)
+    // Report to Sentry so React render crashes are visible
+    import('@/services/crash/crashReporter').then(({ captureError }) => {
+      captureError(error, {
+        componentStack: errorInfo.componentStack ?? undefined,
+        service: 'react-error-boundary',
+      })
+    }).catch(() => { /* noop */ })
   }
 
   render(): React.ReactNode {

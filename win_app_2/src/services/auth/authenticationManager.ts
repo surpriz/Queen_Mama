@@ -1,4 +1,5 @@
 import { createLogger } from '@/lib/logger'
+import { captureError, addBreadcrumb, setUser as setSentryUser, clearUser as clearSentryUser } from '@/services/crash/crashReporter'
 import { useAuthStore } from '@/stores/authStore'
 import * as authApi from './authApiClient'
 import { setOnSessionExpired } from './authApiClient'
@@ -80,6 +81,8 @@ export async function checkExistingAuth(): Promise<void> {
     await window.electronAPI?.secureStore.set('refresh_token', response.refreshToken)
 
     store.setAuthenticated(user)
+    setSentryUser(user.id, user.email)
+    addBreadcrumb('auth', 'Authentication restored from stored credentials', 'info')
     log.info(`Authentication restored for: ${user.email}`)
 
     // Revalidate license after restoring auth
@@ -99,6 +102,10 @@ export async function checkExistingAuth(): Promise<void> {
 
     if (isPermanent) {
       log.warn('Permanent auth error, forcing logout:', errorStr)
+      captureError(
+        error instanceof Error ? error : new Error('Permanent auth error'),
+        { service: 'auth', errorCode, reason: 'permanent' },
+      )
       await clearCredentials()
       store.setUnauthenticated()
       return
@@ -113,6 +120,10 @@ export async function checkExistingAuth(): Promise<void> {
 
     if (isAuthRejection) {
       log.warn('Server rejected credentials, session expired')
+      captureError(
+        error instanceof Error ? error : new Error('Auth session expired'),
+        { service: 'auth', reason: 'session_expired' },
+      )
       await clearCredentials()
       store.setSessionExpired()
     } else {
@@ -120,6 +131,7 @@ export async function checkExistingAuth(): Promise<void> {
       // (matches macOS pattern: transparent retry on next action)
       log.warn('Transient error during auth check, entering degraded mode:', errorStr)
       store.setAuthenticated(user)
+      setSentryUser(user.id, user.email)
     }
   }
 }
@@ -134,12 +146,18 @@ export async function loginWithCredentials(email: string, password: string): Pro
 
     await storeTokens(response.accessToken, response.refreshToken, response.expiresIn, response.user)
     store.setAuthenticated(response.user)
+    setSentryUser(response.user.id, response.user.email)
+    addBreadcrumb('auth', 'User logged in with credentials', 'info')
 
     // Revalidate license after login
     licenseManager.revalidate().catch((err) => {
       log.warn('License revalidation failed:', err)
     })
   } catch (error) {
+    captureError(
+      error instanceof Error ? error : new Error('Login failed'),
+      { service: 'auth', method: 'credentials' },
+    )
     store.setError(error instanceof Error ? error.message : 'Login failed')
     throw error
   }
@@ -159,12 +177,18 @@ export async function registerWithCredentials(
 
     await storeTokens(response.accessToken, response.refreshToken, response.expiresIn, response.user)
     store.setAuthenticated(response.user)
+    setSentryUser(response.user.id, response.user.email)
+    addBreadcrumb('auth', 'User registered with credentials', 'info')
 
     // Revalidate license after registration
     licenseManager.revalidate().catch((err) => {
       log.warn('License revalidation failed:', err)
     })
   } catch (error) {
+    captureError(
+      error instanceof Error ? error : new Error('Registration failed'),
+      { service: 'auth', method: 'register' },
+    )
     store.setError(error instanceof Error ? error.message : 'Registration failed')
     throw error
   }
@@ -204,6 +228,10 @@ export async function startDeviceCodeFlow(): Promise<{
     }
   } catch (error) {
     log.error('Device code flow failed:', error)
+    captureError(
+      error instanceof Error ? error : new Error('Device code flow failed'),
+      { service: 'auth', method: 'device_code' },
+    )
     store.setError(error instanceof Error ? error.message : 'Device code flow failed')
     throw error
   }
@@ -238,6 +266,8 @@ function startPolling(deviceCode: string, expiresIn: number): void {
           response.user,
         )
         useAuthStore.getState().setAuthenticated(response.user)
+        setSentryUser(response.user.id, response.user.email)
+        addBreadcrumb('auth', 'User authenticated via device code flow', 'info')
 
         // Revalidate license after device code auth
         licenseManager.revalidate().catch((err) => {
@@ -298,6 +328,8 @@ export async function loginWithGoogle(): Promise<void> {
       log.info('Google sign-in successful')
       await storeTokens(response.accessToken, response.refreshToken, response.expiresIn, response.user)
       store.setAuthenticated(response.user)
+      setSentryUser(response.user.id, response.user.email)
+      addBreadcrumb('auth', 'User logged in via Google OAuth', 'info')
 
       // Revalidate license after Google sign-in
       licenseManager.revalidate().catch((err) => {
@@ -310,6 +342,10 @@ export async function loginWithGoogle(): Promise<void> {
     }
   } catch (error) {
     log.error('Google sign-in failed:', error)
+    captureError(
+      error instanceof Error ? error : new Error('Google sign-in failed'),
+      { service: 'auth', method: 'google' },
+    )
     store.setError(error instanceof Error ? error.message : 'Google sign-in failed')
     throw error
   }
@@ -327,6 +363,8 @@ export async function logoutUser(allDevices: boolean = false): Promise<void> {
   }
 
   await clearCredentials()
+  clearSentryUser()
+  addBreadcrumb('auth', 'User logged out', 'info')
   store.logout()
 }
 

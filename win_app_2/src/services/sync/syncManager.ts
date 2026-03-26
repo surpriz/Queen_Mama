@@ -1,4 +1,5 @@
 import { createLogger } from '@/lib/logger'
+import { captureError } from '@/services/crash/crashReporter'
 import { getAccessToken, getDeviceId as getAuthDeviceId } from '../auth/authenticationManager'
 import { getApiBaseUrl } from '../config/appEnvironment'
 import { useSessionStore } from '@/stores/sessionStore'
@@ -166,6 +167,8 @@ export async function uploadPendingSessions(): Promise<{ uploaded: number; faile
             // Put back in queue on failure
             syncQueue.sessions.unshift(...batch)
             failed += batch.length
+            const error = new Error(`Sync upload failed: HTTP ${response.status}`)
+            captureError(error, { service: 'sync', operation: 'upload', status: response.status, batchSize: batch.length })
             log.error(`Upload failed: ${response.status}`)
             break
           }
@@ -181,6 +184,10 @@ export async function uploadPendingSessions(): Promise<{ uploaded: number; faile
       } catch (error) {
         syncQueue.sessions.unshift(...batch)
         failed += batch.length
+        captureError(
+          error instanceof Error ? error : new Error('Sync upload network error'),
+          { service: 'sync', operation: 'upload', batchSize: batch.length },
+        )
         log.error('Upload error', error)
         break
       }
@@ -190,6 +197,10 @@ export async function uploadPendingSessions(): Promise<{ uploaded: number; faile
     saveQueue()
   } catch (error) {
     log.error('Auth error during sync', error)
+    captureError(
+      error instanceof Error ? error : new Error('Sync auth error'),
+      { service: 'sync', operation: 'auth' },
+    )
     failed = syncQueue.sessions.length
   } finally {
     isSyncing = false
@@ -257,6 +268,7 @@ export async function pullRemoteSessions(): Promise<RemoteSession[]> {
     })
 
     if (!response.ok) {
+      captureError(new Error(`Sync pull failed: HTTP ${response.status}`), { service: 'sync', operation: 'pull', status: response.status })
       log.error(`Pull failed: ${response.status}`)
       return []
     }
@@ -264,6 +276,7 @@ export async function pullRemoteSessions(): Promise<RemoteSession[]> {
     const data = await response.json()
     return data.sessions || []
   } catch (error) {
+    captureError(error instanceof Error ? error : new Error('Sync pull error'), { service: 'sync', operation: 'pull' })
     log.error('Pull error', error)
     return []
   }
@@ -331,9 +344,11 @@ export async function deleteRemoteSession(sessionId: string): Promise<void> {
     } else if (response.status === 404) {
       log.info(`Remote session not found (already deleted): ${sessionId}`)
     } else {
+      captureError(new Error(`Sync delete failed: HTTP ${response.status}`), { service: 'sync', operation: 'delete', sessionId, status: response.status })
       log.error(`Failed to delete remote session: ${response.status}`)
     }
   } catch (error) {
+    captureError(error instanceof Error ? error : new Error('Sync delete error'), { service: 'sync', operation: 'delete', sessionId })
     log.error('Remote session delete error', error)
   }
 }
