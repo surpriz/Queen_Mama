@@ -244,6 +244,12 @@ export async function startSession(mode?: Mode | null, contact?: Contact | null)
     store.setErrorMessage(error instanceof Error ? error.message : 'Failed to start session')
     store.setSessionActive(false)
     cleanup()
+
+    // Broadcast failure to all windows so dashboard exits "Live Session" state
+    window.electronAPI?.relay?.broadcast('relay:session-state', {
+      isSessionActive: false,
+      sessionStartedAt: null,
+    })
   }
 }
 
