@@ -389,6 +389,7 @@ final class LicenseManager: ObservableObject {
 
         } catch {
             print("[License] Validation failed: \(error)")
+            CrashReporter.shared.captureError(error, extras: ["service": "license", "operation": "revalidate"])
             isOffline = true
 
             // Use cached license with grace period

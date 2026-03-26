@@ -79,6 +79,7 @@ final class AuthenticationManager: ObservableObject {
             if isPermanentAuthError(error) {
                 // Permanent error (account blocked, device limit) - force re-login
                 print("[Auth] Permanent auth error - user must re-authenticate")
+                CrashReporter.shared.captureError(error, extras: ["service": "auth", "reason": "permanent_auth_error"])
                 currentUser = nil
                 isAuthenticated = false
                 authState = .unauthenticated
@@ -125,6 +126,7 @@ final class AuthenticationManager: ObservableObject {
             NotificationCenter.default.post(name: .userDidAuthenticate, object: nil)
 
         } catch {
+            CrashReporter.shared.captureError(error, extras: ["service": "auth", "method": "credentials"])
             authState = .error(message: AuthError.friendlyMessage(from: error))
             throw error
         }
@@ -161,6 +163,7 @@ final class AuthenticationManager: ObservableObject {
             NotificationCenter.default.post(name: .userDidAuthenticate, object: nil)
 
         } catch {
+            CrashReporter.shared.captureError(error, extras: ["service": "auth", "method": "register"])
             authState = .error(message: AuthError.friendlyMessage(from: error))
             throw error
         }
@@ -188,6 +191,7 @@ final class AuthenticationManager: ObservableObject {
             return response
 
         } catch {
+            CrashReporter.shared.captureError(error, extras: ["service": "auth", "method": "device_code"])
             authState = .error(message: AuthError.friendlyMessage(from: error))
             throw error
         }
@@ -274,10 +278,15 @@ final class AuthenticationManager: ObservableObject {
     func handleTokenRefreshFailure() {
         guard isAuthenticated else { return }
         print("[Auth] Token refresh permanently failed — clearing auth state")
+        CrashReporter.shared.captureError(
+            AuthError.tokenExpired,
+            extras: ["service": "auth", "reason": "token_refresh_permanently_failed"]
+        )
         tokenStore.clearAll()
         currentUser = nil
         isAuthenticated = false
         authState = .unauthenticated
+        CrashReporter.shared.clearUser()
         NotificationCenter.default.post(name: .userDidLogout, object: nil)
     }
 
@@ -301,6 +310,8 @@ final class AuthenticationManager: ObservableObject {
         currentUser = nil
         isAuthenticated = false
         authState = .unauthenticated
+        CrashReporter.shared.clearUser()
+        CrashReporter.shared.addBreadcrumb(category: "auth", message: "User logged out")
 
         // Notify other services
         NotificationCenter.default.post(name: .userDidLogout, object: nil)
@@ -323,6 +334,8 @@ final class AuthenticationManager: ObservableObject {
         currentUser = nil
         isAuthenticated = false
         authState = .unauthenticated
+        CrashReporter.shared.clearUser()
+        CrashReporter.shared.addBreadcrumb(category: "auth", message: "User logged out (all devices)")
 
         // Notify other services
         NotificationCenter.default.post(name: .userDidLogout, object: nil)
@@ -394,6 +407,7 @@ final class AuthenticationManager: ObservableObject {
             throw error
 
         } catch {
+            CrashReporter.shared.captureError(error, extras: ["service": "auth", "method": "google"])
             authState = .error(message: AuthError.friendlyMessage(from: error))
             throw error
         }

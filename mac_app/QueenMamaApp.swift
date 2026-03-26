@@ -156,6 +156,7 @@ struct QueenMamaApp: App {
         } catch {
             // Attempt to delete corrupted store and recreate
             print("[App] CRITICAL: ModelContainer creation failed: \(error)")
+            CrashReporter.shared.captureError(error, extras: ["service": "swiftdata", "operation": "modelcontainer_init"])
             print("[App] Attempting to delete corrupted store and recreate...")
 
             let url = modelConfiguration.url
@@ -175,6 +176,7 @@ struct QueenMamaApp: App {
                 do {
                     return try ModelContainer(for: schema, configurations: [inMemoryConfig])
                 } catch {
+                    CrashReporter.shared.captureError(error, extras: ["service": "swiftdata", "operation": "modelcontainer_inmemory_fallback"])
                     fatalError("Could not create even in-memory ModelContainer: \(error)")
                 }
             }
@@ -429,6 +431,7 @@ class AppState: ObservableObject {
 
         errorMessage = nil
         currentSessionContact = contact
+        CrashReporter.shared.addBreadcrumb(category: "session", message: "Session started")
 
         // Record session start usage
         LicenseManager.shared.recordUsage(.sessionStart)
@@ -555,6 +558,7 @@ class AppState: ObservableObject {
         } catch {
             // Service startup failed — clean up without creating a ghost session
             print("[AppState] Session start failed: \(error.localizedDescription)")
+            CrashReporter.shared.captureError(error, extras: ["service": "session", "operation": "start"])
             errorMessage = error.localizedDescription
             HealthCheckService.shared.stopMonitoring()
             audioService.stopCapture()
@@ -566,6 +570,8 @@ class AppState: ObservableObject {
     }
 
     func stopSession() async {
+        CrashReporter.shared.addBreadcrumb(category: "session", message: "Session stopped (transcript: \(currentTranscript.count) chars)")
+
         // 0. Stop health monitoring and report summary
         HealthCheckService.shared.stopMonitoring()
 

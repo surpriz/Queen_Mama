@@ -196,6 +196,7 @@ final class ContactSyncManager: ObservableObject {
 
         } catch {
             lastError = error.localizedDescription
+            CrashReporter.shared.captureError(error, extras: ["service": "contact_sync", "operation": "upload"])
             print("[ContactSync] Sync failed: \(error)")
         }
     }
@@ -272,6 +273,7 @@ final class ContactSyncManager: ObservableObject {
 
         } catch {
             print("[ContactSync] Pull failed: \(error)")
+            CrashReporter.shared.captureError(error, extras: ["service": "contact_sync", "operation": "pull"])
             lastError = error.localizedDescription
             return 0
         }

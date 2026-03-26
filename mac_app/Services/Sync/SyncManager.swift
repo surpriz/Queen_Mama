@@ -236,6 +236,7 @@ final class SyncManager: ObservableObject {
 
         } catch {
             print("[Sync] Failed to reconcile remote deletions: \(error)")
+            CrashReporter.shared.captureError(error, extras: ["service": "sync", "operation": "reconcile"])
         }
     }
 
@@ -339,6 +340,7 @@ final class SyncManager: ObservableObject {
 
         } catch {
             print("[Sync] Pull failed: \(error)")
+            CrashReporter.shared.captureError(error, extras: ["service": "sync", "operation": "pull"])
             lastError = error.localizedDescription
             return 0
         }
@@ -404,6 +406,7 @@ final class SyncManager: ObservableObject {
             print("[Sync] Successfully deleted session \(idString) from server")
         } catch {
             print("[Sync] Failed to delete session remotely: \(error)")
+            CrashReporter.shared.captureError(error, extras: ["service": "sync", "operation": "delete", "sessionId": idString])
             // Session will still be deleted locally, but remain on server
             // User can manually delete from web if needed
         }
@@ -496,6 +499,7 @@ final class SyncManager: ObservableObject {
 
         } catch {
             print("[Sync] Error: \(error)")
+            CrashReporter.shared.captureError(error, extras: ["service": "sync", "operation": "upload"])
             lastError = error.localizedDescription
 
             // Check if it's a network error to set offline status
