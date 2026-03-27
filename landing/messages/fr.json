@@ -539,6 +539,30 @@
         "title": "Correctif requêtes IA manuelles (Windows)",
         "description": "Les requêtes IA manuelles ne sont plus bloquées par le minuteur de cooldown des réponses automatiques"
       },
+      "liveTranscriptOverlay": {
+        "title": "Transcription en direct dans l'overlay (macOS)",
+        "description": "Visualisez votre transcription de réunion en temps réel directement dans le widget overlay — le texte récent défile automatiquement au fil de votre discours"
+      },
+      "fileSaveElectron": {
+        "title": "Enregistrer la transcription (Windows)",
+        "description": "Exportez votre transcription de session sous forme de fichier texte directement depuis l'application Windows"
+      },
+      "restartUpdateButton": {
+        "title": "Installation instantanée des mises à jour (Windows)",
+        "description": "Un bouton Redémarrer et mettre à jour apparaît dans l'overlay dès qu'une nouvelle version est téléchargée, sans quitter votre session"
+      },
+      "autoDetectLanguage": {
+        "title": "Détection automatique de la langue",
+        "description": "Le moteur de transcription détecte désormais automatiquement votre langue — aucune sélection manuelle requise"
+      },
+      "winTranscriptDisplay": {
+        "title": "Affichage de transcription épuré (Windows)",
+        "description": "Le panneau de transcription dans l'overlay n'affiche plus que les dernières lignes pour une expérience plus claire et lisible"
+      },
+      "windowsAutoUpdaterFix": {
+        "title": "Fiabilité du gestionnaire de mises à jour (Windows)",
+        "description": "Résolution d'un problème où le gestionnaire de mises à jour Windows ne détectait pas les nouvelles versions disponibles en raison d'une gestion incorrecte des chemins de fichiers après la signature du code"
+      },
       "voiceDictation": {
         "title": "Mode dictée vocale",
         "description": "Dictée vocale autonome pour des requêtes IA rapides sans démarrer une session complète"
