@@ -30,6 +30,7 @@ export function SettingsView() {
   const [appVersion, setAppVersion] = useState<string>('')
   const [updateStatus, setUpdateStatus] = useState<string>('')
   const [isCheckingUpdate, setIsCheckingUpdate] = useState(false)
+  const [updateReady, setUpdateReady] = useState(false)
 
   const TABS: { id: SettingsTab; label: string; icon: typeof User }[] = [
     { id: 'account', label: t('settings.tabs.account'), icon: User },
@@ -74,6 +75,7 @@ export function SettingsView() {
           }
           case 'update-downloaded':
             setUpdateStatus(t('settings.updates.updateDownloaded'))
+            setUpdateReady(true)
             break
           case 'update-error':
             setUpdateStatus(t('settings.updates.updateError'))
@@ -224,38 +226,6 @@ export function SettingsView() {
                 </div>
               )}
 
-              {/* Language */}
-              <h3 className="text-headline font-semibold text-qm-text-primary mb-4 mt-8">{t('settings.language.title')}</h3>
-              <div className="p-4 rounded-qm-lg bg-qm-surface-light border border-qm-border-subtle">
-                <div className="flex items-start justify-between gap-4">
-                  <div className="flex-1">
-                    <p className="text-body-sm text-qm-text-primary">{t('settings.language.appLanguage')}</p>
-                    <p className="text-caption text-qm-text-tertiary">
-                      {t('settings.language.appLanguageDescription')}
-                    </p>
-                  </div>
-                  <select
-                    value={config.primaryLanguage}
-                    onChange={(e) => config.updateConfig({ primaryLanguage: e.target.value })}
-                    className="text-body-sm rounded-qm-md px-3 py-1.5 border border-qm-border-subtle outline-none focus:border-qm-accent"
-                    style={{ backgroundColor: '#1a1a2e', color: '#ffffff' }}
-                  >
-                    <option style={{ backgroundColor: '#1a1a2e', color: '#ffffff' }} value="fr">Fran&#231;ais</option>
-                    <option style={{ backgroundColor: '#1a1a2e', color: '#ffffff' }} value="en">English</option>
-                    <option style={{ backgroundColor: '#1a1a2e', color: '#ffffff' }} value="es">Espa&#241;ol</option>
-                    <option style={{ backgroundColor: '#1a1a2e', color: '#ffffff' }} value="de">Deutsch</option>
-                    <option style={{ backgroundColor: '#1a1a2e', color: '#ffffff' }} value="it">Italiano</option>
-                    <option style={{ backgroundColor: '#1a1a2e', color: '#ffffff' }} value="pt">Portugu&#234;s</option>
-                    <option style={{ backgroundColor: '#1a1a2e', color: '#ffffff' }} value="nl">Nederlands</option>
-                    <option style={{ backgroundColor: '#1a1a2e', color: '#ffffff' }} value="ja">&#26085;&#26412;&#35486;</option>
-                    <option style={{ backgroundColor: '#1a1a2e', color: '#ffffff' }} value="zh">&#20013;&#25991;</option>
-                    <option style={{ backgroundColor: '#1a1a2e', color: '#ffffff' }} value="ko">&#54620;&#44397;&#50612;</option>
-                    <option style={{ backgroundColor: '#1a1a2e', color: '#ffffff' }} value="ar">&#1575;&#1604;&#1593;&#1585;&#1576;&#1610;&#1577;</option>
-                    <option style={{ backgroundColor: '#1a1a2e', color: '#ffffff' }} value="ru">&#1056;&#1091;&#1089;&#1089;&#1082;&#1080;&#1081;</option>
-                    <option style={{ backgroundColor: '#1a1a2e', color: '#ffffff' }} value="multi">{t('settings.language.autoDetect')}</option>
-                  </select>
-                </div>
-              </div>
             </section>
           )}
 
@@ -511,13 +481,25 @@ export function SettingsView() {
                 {updateStatus && (
                   <p className="text-caption text-qm-text-tertiary">{updateStatus}</p>
                 )}
-                <button
-                  onClick={handleCheckForUpdates}
-                  disabled={isCheckingUpdate}
-                  className="w-full px-4 py-2 rounded-qm-md bg-qm-surface-medium hover:bg-qm-surface-pressed text-body-sm text-qm-text-primary transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {isCheckingUpdate ? t('settings.updates.checking') : t('settings.updates.checkForUpdates')}
-                </button>
+                {updateReady ? (
+                  <button
+                    onClick={() => {
+                      const api = (window as unknown as { electronAPI: { installUpdate: () => Promise<boolean> } }).electronAPI
+                      api?.installUpdate?.()
+                    }}
+                    className="w-full px-4 py-2 rounded-qm-md bg-qm-accent hover:bg-qm-accent/80 text-body-sm text-white font-medium transition-colors"
+                  >
+                    {t('settings.updates.restartAndUpdate')}
+                  </button>
+                ) : (
+                  <button
+                    onClick={handleCheckForUpdates}
+                    disabled={isCheckingUpdate}
+                    className="w-full px-4 py-2 rounded-qm-md bg-qm-surface-medium hover:bg-qm-surface-pressed text-body-sm text-qm-text-primary transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {isCheckingUpdate ? t('settings.updates.checking') : t('settings.updates.checkForUpdates')}
+                  </button>
+                )}
               </div>
             </section>
           )}

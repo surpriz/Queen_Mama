@@ -36,7 +36,7 @@
     "typeQuestionOrTab": "Type a question or click a tab"
   },
   "inputBar": {
-    "smartModeActivated": "Smart Mode activated",
+    "smartModeActivated": "Smart mode on — Better results, but slower",
     "smartModeOn": "Smart Mode ON",
     "smartModeOff": "Smart Mode OFF",
     "smart": "Smart",
@@ -49,6 +49,12 @@
   "expandedContent": {
     "screenOnly": "Screen only",
     "noInput": "No input"
+  },
+  "actionBar": {
+    "export": "Export",
+    "exported": "Exported!",
+    "clear": "Clear",
+    "clearConfirm": "Confirm?"
   },
   "popupMenu": {
     "position": "Position",

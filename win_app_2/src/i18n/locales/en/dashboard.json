@@ -176,8 +176,9 @@
       "updateAvailable": "Update available! Downloading...",
       "upToDate": "You are on the latest version.",
       "downloadProgress": "Downloading update... {{percent}}%",
-      "updateDownloaded": "Update downloaded. It will be installed on restart.",
-      "updateError": "Update check failed."
+      "updateDownloaded": "Update downloaded. Ready to install!",
+      "updateError": "Update check failed.",
+      "restartAndUpdate": "Restart & Update Now"
     }
   },
   "contacts": {

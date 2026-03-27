@@ -1,96 +1,110 @@
-import { Monitor, Upload, Trash2 } from 'lucide-react'
+import { useState } from 'react'
+import { Download, Trash2, Check } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { useOverlayStore } from '@/stores/overlayStore'
-import { useConfigStore } from '@/stores/configStore'
 import { cn } from '@/lib/utils'
 
 export function ActionBar() {
+  const { t } = useTranslation('overlay')
   const responseHistory = useOverlayStore((s) => s.responseHistory)
   const clearHistory = useOverlayStore((s) => s.clearHistory)
   const streamingContent = useOverlayStore((s) => s.streamingContent)
 
-  // Screen only mode - when enabled, AI only uses screen content (no audio)
-  const captureSystemAudio = useConfigStore((s) => s.captureSystemAudio)
-  const captureMicrophone = useConfigStore((s) => s.captureMicrophone)
-  const updateConfig = useConfigStore((s) => s.updateConfig)
+  const [confirmClear, setConfirmClear] = useState(false)
+  const [exportDone, setExportDone] = useState(false)
 
-  const isScreenOnly = !captureSystemAudio && !captureMicrophone
+  const responseCount = streamingContent ? responseHistory.length + 1 : responseHistory.length
 
-  const handleToggleScreenOnly = () => {
-    if (isScreenOnly) {
-      // Enable audio capture
-      updateConfig({ captureSystemAudio: true, captureMicrophone: true })
-    } else {
-      // Disable audio capture (screen only)
-      updateConfig({ captureSystemAudio: false, captureMicrophone: false })
-    }
-  }
+  const handleExport = async () => {
+    if (!responseHistory.length) return
 
-  const handleExport = () => {
-    // Export response history as text
-    const content = responseHistory
-      .map((r) => `[${new Date(r.timestamp).toLocaleTimeString()}] ${r.content}`)
-      .join('\n\n')
+    const date = new Date()
+    const dateStr = date.toLocaleDateString(undefined, {
+      day: '2-digit', month: '2-digit', year: 'numeric',
+    })
+    const timeStr = date.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })
 
-    if (content) {
-      navigator.clipboard.writeText(content)
-      // Could also trigger a file download
+    const lines: string[] = [
+      `# Queen Mama — Session Export`,
+      ``,
+      `*${dateStr} ${timeStr}*`,
+      ``,
+      `---`,
+      ``,
+    ]
+
+    ;[...responseHistory].reverse().forEach((entry, idx) => {
+      const ts = new Date(entry.timestamp).toLocaleTimeString(undefined, {
+        hour: '2-digit', minute: '2-digit', second: '2-digit',
+      })
+      lines.push(`## Response ${idx + 1}  ·  ${ts}`)
+      if (entry.provider) lines.push(`*${entry.provider}*`)
+      lines.push(``)
+      lines.push(entry.content)
+      lines.push(``)
+      lines.push(`---`)
+      lines.push(``)
+    })
+
+    const content = lines.join('\n')
+    const defaultFileName = `queen-mama-export-${date.toISOString().slice(0, 10)}.md`
+
+    const result = await window.electronAPI?.file?.saveText(defaultFileName, content)
+
+    if (result && !result.canceled) {
+      setExportDone(true)
+      setTimeout(() => setExportDone(false), 2000)
     }
   }
 
   const handleClear = () => {
+    if (!confirmClear) {
+      setConfirmClear(true)
+      setTimeout(() => setConfirmClear(false), 3000)
+      return
+    }
     clearHistory()
+    setConfirmClear(false)
   }
 
-  const responseCount = streamingContent ? responseHistory.length + 1 : responseHistory.length
+  if (responseCount === 0) return null
 
   return (
-    <div className="flex items-center justify-between px-3 py-2 border-t border-qm-border-subtle">
-      {/* Left side - Screen only toggle */}
+    <div className="flex items-center justify-end gap-2 px-3 py-1.5 border-t border-qm-border-subtle">
+      {/* Export button */}
       <button
-        onClick={handleToggleScreenOnly}
+        onClick={handleExport}
         className={cn(
-          'flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-medium transition-colors',
-          isScreenOnly
-            ? 'bg-qm-accent/15 text-qm-accent'
-            : 'text-qm-text-tertiary hover:text-qm-text-secondary hover:bg-qm-surface-light',
+          'flex items-center gap-1 px-2 py-1 text-[11px] transition-colors',
+          exportDone
+            ? 'text-qm-success'
+            : 'text-qm-text-tertiary hover:text-qm-text-secondary',
         )}
-        title="Screen only mode - Disable audio capture"
+        title={t('actionBar.export')}
       >
-        <Monitor size={12} />
-        Screen only
+        {exportDone ? <Check size={12} /> : <Download size={12} />}
+        {exportDone ? t('actionBar.exported') : t('actionBar.export')}
       </button>
 
-      {/* Right side - Export, Clear, Counter */}
-      <div className="flex items-center gap-2">
-        {/* Export button */}
-        <button
-          onClick={handleExport}
-          disabled={responseCount === 0}
-          className="flex items-center gap-1 px-2 py-1 text-[11px] text-qm-text-tertiary hover:text-qm-text-secondary disabled:opacity-30 transition-colors"
-          title="Export responses to clipboard"
-        >
-          <Upload size={12} />
-          Export
-        </button>
-
-        {/* Clear button */}
-        <button
-          onClick={handleClear}
-          disabled={responseCount === 0}
-          className="flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-medium text-qm-error bg-qm-error/10 hover:bg-qm-error/20 disabled:opacity-30 transition-colors"
-          title="Clear all responses"
-        >
-          <Trash2 size={12} />
-          Clear
-        </button>
-
-        {/* Response counter */}
-        {responseCount > 0 && (
-          <span className="text-[11px] text-qm-text-disabled tabular-nums">
-            {responseCount}
-          </span>
+      {/* Clear button — 2-step confirm */}
+      <button
+        onClick={handleClear}
+        className={cn(
+          'flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-medium transition-all',
+          confirmClear
+            ? 'bg-qm-error text-white animate-pulse'
+            : 'text-qm-error bg-qm-error/10 hover:bg-qm-error/20',
         )}
-      </div>
+        title={confirmClear ? t('actionBar.clearConfirm') : t('actionBar.clear')}
+      >
+        <Trash2 size={12} />
+        {confirmClear ? t('actionBar.clearConfirm') : t('actionBar.clear')}
+      </button>
+
+      {/* Response counter */}
+      <span className="text-[11px] text-qm-text-disabled tabular-nums">
+        {responseCount}
+      </span>
     </div>
   )
 }

@@ -105,6 +105,7 @@ export interface DialogAPI {
 export interface FileAPI {
   readText: (filePath: string) => Promise<string | null>
   writeFile: (filePath: string, content: string) => Promise<void>
+  saveText: (defaultFileName: string, content: string) => Promise<{ canceled: boolean; filePath?: string }>
 }
 
 export interface ElectronAPI {

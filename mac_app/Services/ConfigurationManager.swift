@@ -112,6 +112,12 @@ final class ConfigurationManager: ObservableObject {
         didSet { defaults.set(meetingDetectionEnabled, forKey: Keys.meetingDetection) }
     }
 
+    // MARK: - Overlay Transcript
+
+    @Published var showTranscriptInOverlay: Bool {
+        didSet { defaults.set(showTranscriptInOverlay, forKey: Keys.showTranscriptInOverlay) }
+    }
+
     // MARK: - Keyboard Shortcuts
 
     @Published var shortcutToggleWidget: String {
@@ -160,6 +166,8 @@ final class ConfigurationManager: ObservableObject {
         static let bufferedPreGen = "buffered_pre_gen_enabled"
         // Meeting Detection
         static let meetingDetection = "meeting_detection_enabled"
+        // Overlay Transcript
+        static let showTranscriptInOverlay = "show_transcript_in_overlay"
     }
 
     // MARK: - Initialization
@@ -208,13 +216,14 @@ final class ConfigurationManager: ObservableObject {
         if let stored = defaults.object(forKey: Keys.bufferedPreGen) as? Bool {
             self.bufferedPreGenEnabled = stored
         } else {
-            // First launch after update: auto-enable for Enterprise users
-            let isEnterprise = LicenseManager.shared.currentLicense.plan == .enterprise
-            self.bufferedPreGenEnabled = isEnterprise
+            // Default on for all users
+            self.bufferedPreGenEnabled = true
         }
 
         // Meeting Detection
         self.meetingDetectionEnabled = defaults.object(forKey: Keys.meetingDetection) as? Bool ?? true
+        // Overlay Transcript
+        self.showTranscriptInOverlay = defaults.object(forKey: Keys.showTranscriptInOverlay) as? Bool ?? true
     }
 
     // MARK: - Onboarding
@@ -268,6 +277,8 @@ final class ConfigurationManager: ObservableObject {
         bufferedPreGenEnabled = false
         // Meeting Detection
         meetingDetectionEnabled = true
+        // Overlay Transcript
+        showTranscriptInOverlay = true
     }
 
     // MARK: - Language Override

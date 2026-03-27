@@ -46,7 +46,7 @@ export const DEFAULT_CONFIG: AppConfig = {
   screenCaptureIntervalSeconds: 5.0,
   smartModeEnabled: false,
   selectedAIProvider: 'OpenAI' as AIProviderType,
-  primaryLanguage: 'fr',
+  primaryLanguage: 'multi',
   uiLanguage: 'en',
 
   autoAnswerEnabled: false,

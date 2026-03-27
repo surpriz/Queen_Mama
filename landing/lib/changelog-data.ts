@@ -67,6 +67,21 @@ export const changelogData: ChangelogRelease[] = [
             id: "electronMacDownload",
             title: "Electron macOS App",
             description: "A new macOS version is now available as a universal Electron DMG on the download page"
+          },
+          {
+            id: "liveTranscriptOverlay",
+            title: "Live Transcript in Overlay (macOS)",
+            description: "See your meeting transcript in real time directly in the overlay widget — recent spoken text scrolls automatically as you speak"
+          },
+          {
+            id: "fileSaveElectron",
+            title: "Save Transcript to File (Windows)",
+            description: "Export your session transcript as a text file directly from the Windows app"
+          },
+          {
+            id: "restartUpdateButton",
+            title: "Instant Update Installation (Windows)",
+            description: "A Restart & Update button now appears in the overlay as soon as a new version is downloaded, so you can update without leaving your session"
           }
         ]
       },
@@ -197,6 +212,16 @@ export const changelogData: ChangelogRelease[] = [
             id: "proactivePatternRecognition",
             title: "Proactive Pattern Recognition",
             description: "AI modes now automatically identify psychological and organizational patterns in conversations and connect them to concrete actions — without waiting for you to introduce the concept"
+          },
+          {
+            id: "autoDetectLanguage",
+            title: "Auto-Detect Transcription Language",
+            description: "The transcription engine now automatically detects your spoken language — no manual language selection required"
+          },
+          {
+            id: "winTranscriptDisplay",
+            title: "Cleaner Transcript Display (Windows)",
+            description: "The overlay transcript panel now shows only the most recent lines for a less cluttered, easier-to-read experience"
           }
         ]
       },
@@ -277,6 +302,11 @@ export const changelogData: ChangelogRelease[] = [
             id: "winAiCooldownFix",
             title: "Manual AI Request Fix (Windows)",
             description: "Manual AI requests are no longer blocked by the auto-response cooldown timer"
+          },
+          {
+            id: "windowsAutoUpdaterFix",
+            title: "Windows Auto-Updater Reliability",
+            description: "Resolved an issue where the Windows updater sometimes failed to detect available updates due to incorrect file path handling after code signing"
           }
         ]
       },

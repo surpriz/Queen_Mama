@@ -500,6 +500,7 @@ async function streamOpenAICompatible(
     async start(controller) {
       try {
         let chunkCount = 0;
+        let lineBuffer = ""; // Buffer for partial SSE lines split across TCP chunks
         while (true) {
           if (++chunkCount > MAX_CHUNKS) {
             console.warn(`[${provider}] Stream exceeded ${MAX_CHUNKS} chunks, closing`);
@@ -510,9 +511,12 @@ async function streamOpenAICompatible(
           if (done) break;
 
           const chunk = decoder.decode(value, { stream: true });
-          const lines = chunk.split("\n").filter((line) => line.startsWith("data: "));
+          lineBuffer += chunk;
+          const segments = lineBuffer.split("\n");
+          lineBuffer = segments.pop() || ""; // Keep last (potentially incomplete) segment
 
-          for (const line of lines) {
+          for (const line of segments) {
+            if (!line.startsWith("data: ")) continue;
             const jsonStr = line.slice(6);
             if (jsonStr === "[DONE]") continue;
 
@@ -632,6 +636,7 @@ async function streamAnthropic(
     async start(controller) {
       try {
         let chunkCount = 0;
+        let lineBuffer = ""; // Buffer for partial SSE lines split across TCP chunks
         while (true) {
           if (++chunkCount > MAX_CHUNKS) {
             console.warn("[Anthropic] Stream exceeded max chunks, closing");
@@ -642,9 +647,12 @@ async function streamAnthropic(
           if (done) break;
 
           const chunk = decoder.decode(value, { stream: true });
-          const lines = chunk.split("\n").filter((line) => line.startsWith("data: "));
+          lineBuffer += chunk;
+          const segments = lineBuffer.split("\n");
+          lineBuffer = segments.pop() || ""; // Keep last (potentially incomplete) segment
 
-          for (const line of lines) {
+          for (const line of segments) {
+            if (!line.startsWith("data: ")) continue;
             const jsonStr = line.slice(6);
             try {
               const data = JSON.parse(jsonStr);

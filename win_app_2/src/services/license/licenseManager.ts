@@ -1,4 +1,5 @@
 import { createLogger } from '@/lib/logger'
+import { captureError } from '@/services/crash/crashReporter'
 import { useLicenseStore } from '@/stores/licenseStore'
 import { useAuthStore } from '@/stores/authStore'
 import * as authApi from '../auth/authApiClient'
@@ -50,6 +51,10 @@ export async function revalidate(): Promise<void> {
     log.info(`License validated: ${license.plan} (${license.status})`)
   } catch (error) {
     log.error('Validation failed', error)
+    captureError(
+      error instanceof Error ? error : new Error('License validation failed'),
+      { service: 'license' },
+    )
     licenseStore.setOffline(true)
 
     // Use cached license

@@ -36,23 +36,23 @@ export class DeepgramFluxProvider implements TranscriptionProvider {
       throw error
     }
 
-    const lang = this.language || 'fr'
+    const lang = this.language || 'multi'
+    const langParam = `language=${lang}`
     let url =
       'wss://api.deepgram.com/v1/listen?' +
       `model=nova-3&` +
-      `language=${lang}&` +
+      `${langParam}&` +
       'smart_format=true&' +
       'interim_results=true&' +
       'encoding=linear16&' +
       'sample_rate=16000&' +
       'channels=1'
 
-    log.info(`Connecting to Deepgram (lang: ${lang})...`)
+    log.info(`Connecting to Deepgram (lang: ${lang}, tokenLen: ${this.token!.length})...`)
 
     return new Promise<void>((resolve, reject) => {
-      // Browser WebSocket doesn't support custom headers (Authorization).
-      // Use Deepgram's subprotocol-based auth: ['token', apiKey]
-      // This is equivalent to macOS's `Authorization: Token <key>` header.
+      // Deepgram browser auth: Sec-WebSocket-Protocol subprotocol
+      // See: https://developers.deepgram.com/docs/using-the-sec-websocket-protocol
       const ws = new WebSocket(url, ['token', this.token!])
       this.ws = ws
 

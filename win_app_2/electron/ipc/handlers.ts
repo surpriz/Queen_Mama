@@ -1,4 +1,5 @@
 import { ipcMain, app, shell, safeStorage, BrowserWindow, desktopCapturer, dialog, screen, systemPreferences } from 'electron'
+import * as Sentry from '@sentry/electron/main'
 import { IPC_CHANNELS } from './channels'
 import { v4 as uuidv4 } from 'uuid'
 import * as os from 'os'
@@ -7,7 +8,7 @@ import * as fs from 'fs'
 import Store from 'electron-store'
 import { executeQuery, executeQueryGet, executeQueryAll, walCheckpoint } from '../db/database'
 import { startOAuthServer, stopOAuthServer } from '../services/oauthServer'
-import { checkForUpdates } from '../services/updater'
+import { checkForUpdates, quitAndInstall } from '../services/updater'
 import { safeSendToWindow, safeSendToOverlayWindows, safeSendToMainWindow } from '../utils/ipcUtils'
 import {
   toggleOverlay,
@@ -217,6 +218,7 @@ export function registerIPCHandlers(): void {
       return selectedSource.thumbnail.toDataURL('image/jpeg', 0.5)
     } catch (error) {
       console.error('[IPC] Screen capture failed:', error)
+      Sentry.captureException(error, { extra: { ipc: 'screen-capture' } })
       return null
     }
   })
@@ -270,6 +272,7 @@ export function registerIPCHandlers(): void {
       }))
     } catch (error) {
       console.error('[IPC] Screen get displays failed:', error)
+      Sentry.captureException(error, { extra: { ipc: 'screen-get-displays' } })
       return []
     }
   })
@@ -314,6 +317,11 @@ export function registerIPCHandlers(): void {
     return true
   })
 
+  ipcMain.handle(IPC_CHANNELS.UPDATER_INSTALL, () => {
+    quitAndInstall()
+    return true
+  })
+
   // File dialog (for mode file attachments)
   ipcMain.handle(IPC_CHANNELS.DIALOG_OPEN_FILE, async (event) => {
     const win = BrowserWindow.fromWebContents(event.sender)
@@ -334,7 +342,30 @@ export function registerIPCHandlers(): void {
       return fs.readFileSync(filePath, 'utf-8')
     } catch (error) {
       console.error('[IPC] File read failed:', error)
+      Sentry.captureException(error, { extra: { ipc: 'file-read', filePath } })
       return null
+    }
+  })
+
+  // Save text to file (for session export)
+  ipcMain.handle(IPC_CHANNELS.FILE_SAVE_TEXT, async (event, defaultFileName: string, content: string) => {
+    const win = BrowserWindow.fromWebContents(event.sender)
+    if (!win) return { canceled: true }
+    const result = await dialog.showSaveDialog(win, {
+      defaultPath: defaultFileName,
+      filters: [
+        { name: 'Markdown', extensions: ['md'] },
+        { name: 'Text', extensions: ['txt'] },
+      ],
+    })
+    if (result.canceled || !result.filePath) return { canceled: true }
+    try {
+      fs.writeFileSync(result.filePath, content, 'utf-8')
+      return { canceled: false, filePath: result.filePath }
+    } catch (error) {
+      console.error('[IPC] File save failed:', error)
+      Sentry.captureException(error, { extra: { ipc: 'file-save' } })
+      return { canceled: true }
     }
   })
 
@@ -364,6 +395,7 @@ export function registerIPCHandlers(): void {
       return executeQuery(sql, params)
     } catch (error) {
       console.error('[IPC] DB query failed:', error)
+      Sentry.captureException(error, { extra: { ipc: 'db-query', sql } })
       throw error
     }
   })
@@ -373,6 +405,7 @@ export function registerIPCHandlers(): void {
       return executeQueryGet(sql, params)
     } catch (error) {
       console.error('[IPC] DB query get failed:', error)
+      Sentry.captureException(error, { extra: { ipc: 'db-query-get', sql } })
       throw error
     }
   })
@@ -382,6 +415,7 @@ export function registerIPCHandlers(): void {
       return executeQueryAll(sql, params)
     } catch (error) {
       console.error('[IPC] DB query all failed:', error)
+      Sentry.captureException(error, { extra: { ipc: 'db-query-all', sql } })
       throw error
     }
   })
@@ -397,6 +431,7 @@ export function registerIPCHandlers(): void {
         return executeQuery(sql, values)
       } catch (error) {
         console.error('[IPC] DB insert failed:', error)
+        Sentry.captureException(error, { extra: { ipc: 'db-insert', table } })
         throw error
       }
     }
@@ -420,6 +455,7 @@ export function registerIPCHandlers(): void {
         return executeQuery(sql, values)
       } catch (error) {
         console.error('[IPC] DB update failed:', error)
+        Sentry.captureException(error, { extra: { ipc: 'db-update', table, where } })
         throw error
       }
     }
@@ -433,6 +469,7 @@ export function registerIPCHandlers(): void {
         return executeQuery(sql, whereParams)
       } catch (error) {
         console.error('[IPC] DB delete failed:', error)
+        Sentry.captureException(error, { extra: { ipc: 'db-delete', table, where } })
         throw error
       }
     }
@@ -444,6 +481,7 @@ export function registerIPCHandlers(): void {
       return { success: true }
     } catch (error) {
       console.error('[IPC] WAL checkpoint failed:', error)
+      Sentry.captureException(error, { extra: { ipc: 'db-wal-checkpoint' } })
       throw error
     }
   })
@@ -455,6 +493,7 @@ export function registerIPCHandlers(): void {
       return { success: true, port }
     } catch (error) {
       console.error('[IPC] OAuth server start failed:', error)
+      Sentry.captureException(error, { extra: { ipc: 'oauth-server-start' } })
       return { success: false, error: String(error) }
     }
   })

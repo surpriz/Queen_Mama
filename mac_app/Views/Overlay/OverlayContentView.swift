@@ -206,6 +206,12 @@ struct OverlayContentView: View {
     }
 
     private func handleSubmit() {
+        // Guard against double-fire (TabBar + InputBar both calling onSubmit)
+        guard !appState.aiService.isProcessing else {
+            print("[Overlay] Skipping submit — already processing")
+            return
+        }
+
         print("[Overlay] Submitting request for tab: \(selectedTab.rawValue)")
 
         // Capture user's custom prompt before clearing
@@ -957,6 +963,8 @@ struct ModernExpandedContentView: View {
     let enableScreenCapture: Bool
     let onSubmit: () -> Void
 
+    @ObservedObject private var config = ConfigurationManager.shared
+
     /// Tabs to display - includes Briefing only if contact is associated
     private var visibleTabs: [TabItem] {
         if appState.currentSessionContact != nil {
@@ -1019,6 +1027,12 @@ struct ModernExpandedContentView: View {
                     }
                 }
                 .animation(QMDesign.Animation.smooth, value: appState.errorMessage)
+            }
+
+            // Live Transcript Strip
+            if appState.isSessionActive && config.showTranscriptInOverlay {
+                OverlayTranscriptStripView(transcriptionService: appState.transcriptionService)
+                    .transition(.opacity.combined(with: .move(edge: .top)))
             }
 
             // Content Area - switches based on selected tab
@@ -1281,7 +1295,7 @@ struct ModernResponseHistoryView: View {
                         }
 
                         // History (reversed - oldest first, newest at bottom)
-                        ForEach(responses.reversed()) { response in
+                        ForEach(responses.filter { !$0.content.isEmpty }.reversed()) { response in
                             ModernResponseItemView(
                                 type: response.type,
                                 content: response.content,
@@ -2209,6 +2223,68 @@ struct AIErrorToast: View {
                         .stroke(QMDesign.Colors.error.opacity(0.3), lineWidth: 1)
                 )
         )
+    }
+}
+
+// MARK: - Overlay Transcript Strip
+
+struct OverlayTranscriptStripView: View {
+    @ObservedObject var transcriptionService: TranscriptionService
+
+    private static let tailChars = 150
+
+    private var tail: String {
+        let full = transcriptionService.currentTranscript
+        guard full.count > Self.tailChars else { return full }
+        let slice = full.suffix(Self.tailChars)
+        if let space = slice.firstIndex(of: " ") {
+            return "…" + String(slice[slice.index(after: space)...])
+        }
+        return "…" + String(slice)
+    }
+
+    private var isTruncated: Bool {
+        transcriptionService.currentTranscript.count > Self.tailChars
+    }
+
+    var body: some View {
+        let interim = transcriptionService.interimTranscript
+        let t = tail
+
+        textContent(tail: t, interim: interim)
+            .font(.system(size: 10.5, weight: .regular))
+            .lineLimit(3)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.horizontal, QMDesign.Spacing.sm)
+            .padding(.vertical, QMDesign.Spacing.xs)
+            .background(QMDesign.Colors.surfaceLight.opacity(0.5))
+            .clipShape(RoundedRectangle(cornerRadius: QMDesign.Radius.sm))
+            .overlay(alignment: .top) {
+                if isTruncated {
+                    LinearGradient(
+                        colors: [QMDesign.Colors.backgroundSecondary.opacity(0.9), Color.clear],
+                        startPoint: .top,
+                        endPoint: .bottom
+                    )
+                    .frame(height: 14)
+                    .clipShape(RoundedRectangle(cornerRadius: QMDesign.Radius.sm))
+                    .allowsHitTesting(false)
+                }
+            }
+    }
+
+    @ViewBuilder
+    private func textContent(tail: String, interim: String) -> some View {
+        if tail.isEmpty && interim.isEmpty {
+            Text(String(localized: "overlay.transcript.listening"))
+                .foregroundColor(QMDesign.Colors.textTertiary)
+                .italic()
+        } else {
+            Text(tail).foregroundColor(QMDesign.Colors.textSecondary) +
+            Text(interim.isEmpty ? "" : " " + interim)
+                .foregroundColor(QMDesign.Colors.textTertiary)
+                .italic()
+        }
     }
 }
 

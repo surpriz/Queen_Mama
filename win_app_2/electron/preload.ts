@@ -90,6 +90,7 @@ const electronAPI = {
 
   // Updater
   checkForUpdates: () => ipcRenderer.invoke(IPC_CHANNELS.UPDATER_CHECK),
+  installUpdate: () => ipcRenderer.invoke(IPC_CHANNELS.UPDATER_INSTALL),
   onUpdaterStatus: (callback: (payload: { status: string; data?: unknown }) => void) => {
     const handler = (_event: Electron.IpcRendererEvent, payload: { status: string; data?: unknown }) =>
       callback(payload)
@@ -103,6 +104,8 @@ const electronAPI = {
   },
   file: {
     readText: (filePath: string) => ipcRenderer.invoke(IPC_CHANNELS.FILE_READ_TEXT, filePath),
+    saveText: (defaultFileName: string, content: string) =>
+      ipcRenderer.invoke(IPC_CHANNELS.FILE_SAVE_TEXT, defaultFileName, content),
   },
 
   // Database operations

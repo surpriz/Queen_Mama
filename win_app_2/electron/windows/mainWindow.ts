@@ -1,9 +1,13 @@
-import { BrowserWindow, shell, app } from 'electron'
+import { BrowserWindow, shell, app, nativeImage } from 'electron'
 import { join } from 'path'
+import { existsSync } from 'fs'
 
 let mainWindow: BrowserWindow | null = null
 
 export function createMainWindow(): BrowserWindow {
+  const iconPath = join(__dirname, '../../resources/icon.ico')
+  const icon = existsSync(iconPath) ? nativeImage.createFromPath(iconPath) : undefined
+
   mainWindow = new BrowserWindow({
     width: 900,
     height: 700,
@@ -16,6 +20,7 @@ export function createMainWindow(): BrowserWindow {
       symbolColor: '#ffffff',
       height: 36,
     },
+    icon,
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),
       sandbox: false,

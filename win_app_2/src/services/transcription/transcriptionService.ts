@@ -116,7 +116,7 @@ export async function connect(): Promise<void> {
   stopAutoRecovery()
 
   // Set language from user config on all providers
-  const language = useConfigStore.getState().primaryLanguage || 'fr'
+  const language = useConfigStore.getState().primaryLanguage || 'multi'
   for (const p of providers) {
     p.language = language
   }

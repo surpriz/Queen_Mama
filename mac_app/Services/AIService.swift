@@ -510,7 +510,17 @@ final class AIService: ObservableObject {
                             licenseManager.recordUsage(.smartMode, provider: providerType.rawValue)
                         }
 
-                        // Save completed response
+                        // Save completed response (skip empty streams — surface error to caller)
+                        guard !accumulatedResponse.isEmpty else {
+                            print("[AIService] Empty stream response — backend returned no content")
+                            self.isProcessing = false
+                            continuation.finish(throwing: NSError(
+                                domain: "AIService",
+                                code: -2,
+                                userInfo: [NSLocalizedDescriptionKey: String(localized: "error.emptyResponse")]
+                            ))
+                            return
+                        }
                         let response = AIResponse(
                             type: type,
                             content: accumulatedResponse,

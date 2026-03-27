@@ -1,4 +1,5 @@
 import { createLogger } from '@/lib/logger'
+import { captureError, addBreadcrumb } from '@/services/crash/crashReporter'
 import { useAppStore } from '@/stores/appStore'
 import { useOverlayStore } from '@/stores/overlayStore'
 import { useLicenseStore } from '@/stores/licenseStore'
@@ -121,6 +122,8 @@ export async function generateStreamingResponse(params: AIContextParams, options
   // Token limits matching macOS: 1000 default, 3000 for recap
   const maxTokens = params.responseType === 'Recap' ? 3000 : 1000
 
+  addBreadcrumb('ai', `AI streaming request: ${params.responseType}`, 'info')
+
   try {
     const stream = proxyApi.streamAIResponse({
       model: 'auto',
@@ -185,6 +188,10 @@ export async function generateStreamingResponse(params: AIContextParams, options
     log.info(`Response generated (${fullContent.length} chars)`)
   } catch (error) {
     log.error('Streaming error', error)
+    captureError(
+      error instanceof Error ? error : new Error('AI streaming request failed'),
+      { service: 'ai', responseType: params.responseType },
+    )
     useAppStore.getState().setErrorMessage(
       error instanceof Error ? error.message : 'AI request failed',
     )
@@ -286,6 +293,10 @@ export async function generateSessionTitle(transcript: string): Promise<string> 
     return title.trim().replace(/^["']|["']$/g, '') || 'Untitled Session'
   } catch (error) {
     log.error('Title generation failed', error)
+    captureError(
+      error instanceof Error ? error : new Error('Title generation failed'),
+      { service: 'ai', operation: 'generateTitle' },
+    )
     return 'Untitled Session'
   }
 }
@@ -303,6 +314,10 @@ export async function generateSessionSummary(transcript: string): Promise<string
     return summary.trim() || null
   } catch (error) {
     log.error('Summary generation failed', error)
+    captureError(
+      error instanceof Error ? error : new Error('Summary generation failed'),
+      { service: 'ai', operation: 'generateSummary' },
+    )
     return null
   }
 }

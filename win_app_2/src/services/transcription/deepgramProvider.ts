@@ -2,6 +2,7 @@ import type { TranscriptionProvider } from './types'
 import { getAccessToken } from '../auth/authenticationManager'
 import { getApiBaseUrl } from '../config/appEnvironment'
 import { createLogger } from '@/lib/logger'
+import { captureError, addBreadcrumb } from '@/services/crash/crashReporter'
 
 const log = createLogger('Deepgram')
 
@@ -37,8 +38,9 @@ export class DeepgramProvider implements TranscriptionProvider {
     const host = url.hostname
 
     // Build the proxy URL with proper protocol
-    const lang = this.language || 'fr'
-    const proxyUrl = `${wsProtocol}//${host}:${PROXY_PORT}?token=${encodeURIComponent(authToken)}&language=${lang}&model=nova-3`
+    const lang = this.language || 'multi'
+    const langParam = `language=${lang}`
+    const proxyUrl = `${wsProtocol}//${host}:${PROXY_PORT}?token=${encodeURIComponent(authToken)}&${langParam}&model=nova-3`
 
     log.info(`Connecting to transcription proxy at ${wsProtocol}//${host}:${PROXY_PORT}...`)
 
@@ -48,6 +50,7 @@ export class DeepgramProvider implements TranscriptionProvider {
 
       this.ws.onopen = () => {
         log.info('Connected')
+        addBreadcrumb('transcription', 'DeepgramProvider connected to proxy', 'info')
         this.startKeepalive()
         resolve()
       }
@@ -71,6 +74,7 @@ export class DeepgramProvider implements TranscriptionProvider {
           }
           if (data.type === 'error') {
             log.error('Proxy error:', data.message)
+            captureError(new Error(`DeepgramProvider proxy error: ${data.message}`), { provider: 'deepgram-proxy' })
             this.onError?.(new Error(data.message))
             return
           }
@@ -88,12 +92,15 @@ export class DeepgramProvider implements TranscriptionProvider {
           }
         } catch (error) {
           log.error('Parse error', error)
+          captureError(error instanceof Error ? error : new Error('DeepgramProvider parse error'), { provider: 'deepgram-proxy' })
         }
       }
 
       this.ws.onerror = (event: Event) => {
         const wsEvent = event as ErrorEvent
         log.error('WebSocket error:', wsEvent.message || 'Unknown error')
+        const error = new Error(`DeepgramProvider WebSocket error: ${wsEvent.message || 'Unknown error'}`)
+        captureError(error, { provider: 'deepgram-proxy' })
         reject(new Error('Transcription proxy connection failed'))
       }
 
@@ -101,6 +108,8 @@ export class DeepgramProvider implements TranscriptionProvider {
         log.info(`Disconnected - code: ${event.code}, reason: "${event.reason}", wasClean: ${event.wasClean}`)
         this.stopKeepalive()
         if (event.code !== 1000) {
+          const error = new Error(`DeepgramProvider disconnected: code=${event.code} reason="${event.reason}"`)
+          captureError(error, { provider: 'deepgram-proxy', code: event.code, wasClean: event.wasClean })
           this.onError?.(new Error(`Transcription disconnected: ${event.reason || event.code}`))
         }
       }
