@@ -363,6 +363,17 @@ struct ModernGeneralSettingsView: View {
                         feature: .bufferedPreGen,
                         requiredTier: "Enterprise"
                     )
+
+                    Divider()
+                        .background(QMDesign.Colors.borderSubtle)
+
+                    // Live Transcript in Overlay
+                    ModernToggleRow(
+                        title: String(localized: "settings.general.showTranscriptInOverlay"),
+                        description: String(localized: "settings.general.showTranscriptInOverlay.description"),
+                        isOn: $config.showTranscriptInOverlay,
+                        icon: "text.bubble"
+                    )
                 }
             }
 
