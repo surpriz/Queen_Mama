@@ -4,8 +4,8 @@ import type { AIMessage } from '@/types/api'
 import { useConfigStore } from '@/stores/configStore'
 import * as contactDb from '@/services/contacts/contactDb'
 
-// Match macOS transcript limits: 20000 standard (~25 min), 50000 recap (~1h)
-const MAX_TRANSCRIPT_LENGTH = 20000
+// Match macOS transcript limits: 10000 standard (~12 min), 50000 recap (~1h)
+const MAX_TRANSCRIPT_LENGTH = 10000
 const MAX_TRANSCRIPT_LENGTH_RECAP = 50000
 
 let cachedContactsContext = ''
