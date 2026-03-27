@@ -1,16 +1,15 @@
 /**
  * TranscriptBuffer - Batches transcript updates to reduce UI redraws
  *
- * Accumulates transcript text and flushes every 500ms,
- * reducing SwiftUI-equivalent re-renders by ~3-5x.
- * Matches macOS TranscriptBuffer behavior.
+ * Accumulates transcript text and flushes every 250ms,
+ * reducing UI re-renders while keeping overlay responsive.
  */
 
 import { createLogger } from '@/lib/logger'
 
 const log = createLogger('TranscriptBuffer')
 
-const FLUSH_INTERVAL = 500 // ms - matches macOS
+const FLUSH_INTERVAL = 250 // ms (reduced from 500ms for faster overlay updates)
 
 export class TranscriptBuffer {
   private pendingText = ''

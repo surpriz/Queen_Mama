@@ -19,7 +19,7 @@ const log = createLogger('AIService')
 let isProcessing = false
 let lastResponseTime = 0
 const UI_BATCH_INTERVAL = 16 // ms - ~60fps for smooth streaming
-const RELAY_INTERVAL = 100 // ms - less frequent IPC relay to reduce overhead
+const RELAY_INTERVAL = 50 // ms (reduced from 100ms, ~20fps overlay streaming)
 const MIN_RESPONSE_COOLDOWN = 2000 // 2 seconds between auto-responses
 
 export interface StreamingOptions {
@@ -119,8 +119,8 @@ export async function generateStreamingResponse(params: AIContextParams, options
     batchTimer = null
   }
 
-  // Token limits matching macOS: 1000 default, 3000 for recap
-  const maxTokens = params.responseType === 'Recap' ? 3000 : 1000
+  // Token limits aligned with macOS: 600 default (concise responses), 3000 for recap
+  const maxTokens = params.responseType === 'Recap' ? 3000 : 600
 
   addBreadcrumb('ai', `AI streaming request: ${params.responseType}`, 'info')
 
@@ -138,7 +138,7 @@ export async function generateStreamingResponse(params: AIContextParams, options
       fullContent += chunk.content
       batchedContent = fullContent
 
-      // Batch UI updates to 50ms
+      // Batch UI updates to ~60fps
       if (!batchTimer) {
         batchTimer = setTimeout(flushBatch, UI_BATCH_INTERVAL)
       }
@@ -236,30 +236,27 @@ export async function assist(
 }
 
 export async function whatToSay(transcript: string, mode: Mode | null): Promise<string> {
-  const screenshot = await getScreenshotIfEnabled()
+  // No screenshot for WhatToSay — text context is sufficient (aligned with macOS)
   return generateStreamingResponse({
     transcript,
-    screenshot,
     mode,
     responseType: 'What should I say?' as ResponseType,
   }, { manualTrigger: true })
 }
 
 export async function followUp(transcript: string, mode: Mode | null): Promise<string> {
-  const screenshot = await getScreenshotIfEnabled()
+  // No screenshot for FollowUp — text context is sufficient (aligned with macOS)
   return generateStreamingResponse({
     transcript,
-    screenshot,
     mode,
     responseType: 'Follow-up' as ResponseType,
   }, { manualTrigger: true })
 }
 
 export async function recap(transcript: string, mode: Mode | null): Promise<string> {
-  const screenshot = await getScreenshotIfEnabled()
+  // No screenshot for Recap — full transcript is the primary input (aligned with macOS)
   return generateStreamingResponse({
     transcript,
-    screenshot,
     mode,
     responseType: 'Recap' as ResponseType,
   }, { manualTrigger: true })

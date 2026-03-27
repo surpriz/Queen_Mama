@@ -16,9 +16,9 @@ const MAX_RECONNECTS_IN_WINDOW = 20
 const RECONNECT_WINDOW_DURATION = 600000 // 10 minutes in ms
 const AUTO_RECOVERY_INTERVAL = 60000 // 60 seconds
 
-// Audio batching config
-const BATCH_INTERVAL = 400 // ms
-const MAX_BATCH_SIZE = 32000 // bytes (~1s at 16kHz mono)
+// Audio batching config (aligned with macOS 2026-03-23 optimizations)
+const BATCH_INTERVAL = 150 // ms (reduced from 400ms)
+const MAX_BATCH_SIZE = 16000 // bytes (~0.5s at 16kHz mono, reduced from 32KB)
 
 let currentProvider: TranscriptionProvider | null = null
 let currentProviderType: TranscriptionProviderType | null = null

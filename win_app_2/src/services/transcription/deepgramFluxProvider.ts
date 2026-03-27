@@ -138,7 +138,7 @@ export class DeepgramFluxProvider implements TranscriptionProvider {
       if (this.ws?.readyState === WebSocket.OPEN) {
         this.ws.send(JSON.stringify({ type: 'KeepAlive' }))
       }
-    }, 8000)
+    }, 5000)
   }
 
   private stopKeepalive(): void {
