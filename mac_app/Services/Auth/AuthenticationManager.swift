@@ -275,13 +275,38 @@ final class AuthenticationManager: ObservableObject {
     /// Called when token refresh fails permanently (2 attempts exhausted).
     /// Transitions to unauthenticated state so the user sees the sign-in UI
     /// instead of silently failing on every API call.
-    func handleTokenRefreshFailure() {
+    ///
+    /// - Parameter underlyingError: The last error that caused the refresh failure.
+    ///   If this is an offline/network error (-1009), the Sentry event is demoted to a
+    ///   breadcrumb — the session expiry is expected and not actionable in that case.
+    ///   (Sentry: QUEEN-MAMA-MACOS-1D)
+    func handleTokenRefreshFailure(underlyingError: Error? = nil) {
         guard isAuthenticated else { return }
         print("[Auth] Token refresh permanently failed — clearing auth state")
-        CrashReporter.shared.captureError(
-            AuthError.tokenExpired,
-            extras: ["service": "auth", "reason": "token_refresh_permanently_failed"]
-        )
+
+        let isOffline: Bool
+        if let urlError = underlyingError as? URLError {
+            isOffline = urlError.code == .notConnectedToInternet || urlError.code == .networkConnectionLost
+        } else if let underlying = underlyingError {
+            let code = (underlying as NSError).code
+            isOffline = code == NSURLErrorNotConnectedToInternet || code == NSURLErrorNetworkConnectionLost
+        } else {
+            isOffline = false
+        }
+
+        if isOffline {
+            CrashReporter.shared.addBreadcrumb(
+                category: "auth",
+                message: "Token refresh failed (offline): \(underlyingError?.localizedDescription ?? "no internet")",
+                level: .warning
+            )
+        } else {
+            CrashReporter.shared.captureError(
+                AuthError.tokenExpired,
+                extras: ["service": "auth", "reason": "token_refresh_permanently_failed"]
+            )
+        }
+
         tokenStore.clearAll()
         currentUser = nil
         isAuthenticated = false

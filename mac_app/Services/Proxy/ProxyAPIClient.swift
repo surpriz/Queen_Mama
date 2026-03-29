@@ -19,6 +19,13 @@ final class ProxyAPIClient: @unchecked Sendable {
     private let streamProviderLock = NSLock()
     private var _lastStreamProvider: String?
 
+    // Deduplication of concurrent token refresh operations.
+    // Without this, concurrent AI requests all try to refresh simultaneously and use the same
+    // refresh token — causing the second caller to fail because the first one already rotated it
+    // (Sentry: QUEEN-MAMA-MACOS-M). Callers join the in-flight task instead of starting a new one.
+    private let refreshTaskLock = NSLock()
+    private var activeRefreshTask: Task<String?, Never>?
+
     /// The actual provider name returned by the backend during the last streaming request
     var lastStreamProvider: String? {
         streamProviderLock.lock()
@@ -504,43 +511,58 @@ final class ProxyAPIClient: @unchecked Sendable {
         }
         if let cachedToken { return cachedToken }
 
-        // Try to refresh with retry (2 attempts with 2s delay)
-        // Reduces forced logouts from transient network errors (Sentry: MACOS-M, 12 events)
-        guard let refreshToken = await MainActor.run(body: { tokenStore.refreshToken }) else {
-            return nil
+        // Deduplicate concurrent refreshes: if one is already in-flight, join it.
+        // This prevents multiple callers from each using the same refresh token — after the first
+        // call rotates it, subsequent calls with the old token would fail (Sentry: QUEEN-MAMA-MACOS-M).
+        // No suspension point between the check and the set, so this is safe under Swift cooperative threading.
+        let existingTask: Task<String?, Never>? = refreshTaskLock.withLock { activeRefreshTask }
+        if let existingTask {
+            return await existingTask.value
         }
 
-        for attempt in 1...2 {
-            do {
-                let response = try await AuthAPIClient.shared.refreshTokens(refreshToken)
-                await MainActor.run {
-                    tokenStore.accessToken = response.accessToken
-                    tokenStore.accessTokenExpiry = Date().addingTimeInterval(TimeInterval(response.expiresIn))
-                    tokenStore.refreshToken = response.refreshToken
-                }
-                return response.accessToken
-            } catch {
-                print("[ProxyAPI] Token refresh failed (attempt \(attempt)/2): \(error)")
-                if attempt < 2 {
-                    try? await Task.sleep(nanoseconds: 2_000_000_000) // 2s before retry
-                } else {
+        let task = Task<String?, Never> {
+            defer {
+                refreshTaskLock.withLock { activeRefreshTask = nil }
+            }
+
+            guard let refreshToken = await MainActor.run(body: { tokenStore.refreshToken }) else {
+                return nil
+            }
+
+            for attempt in 1...2 {
+                do {
+                    let response = try await AuthAPIClient.shared.refreshTokens(refreshToken)
                     await MainActor.run {
-                        CrashReporter.shared.addBreadcrumb(
-                            category: "proxy_auth",
-                            message: "Token refresh failed after 2 attempts: \(error.localizedDescription)",
-                            level: .warning
-                        )
-                        // Clear zombie auth state proactively instead of waiting for the next API call
-                        // This prevents the app from appearing authenticated with no usable token
-                        if AuthenticationManager.shared.isAuthenticated {
-                            print("[ProxyAPI] Clearing zombie auth state — token refresh permanently failed")
-                            AuthenticationManager.shared.handleTokenRefreshFailure()
+                        tokenStore.accessToken = response.accessToken
+                        tokenStore.accessTokenExpiry = Date().addingTimeInterval(TimeInterval(response.expiresIn))
+                        tokenStore.refreshToken = response.refreshToken
+                    }
+                    return response.accessToken
+                } catch {
+                    print("[ProxyAPI] Token refresh failed (attempt \(attempt)/2): \(error)")
+                    if attempt < 2 {
+                        try? await Task.sleep(nanoseconds: 2_000_000_000) // 2s before retry
+                    } else {
+                        await MainActor.run {
+                            CrashReporter.shared.addBreadcrumb(
+                                category: "proxy_auth",
+                                message: "Token refresh failed after 2 attempts: \(error.localizedDescription)",
+                                level: .warning
+                            )
+                            // Clear zombie auth state proactively instead of waiting for the next API call
+                            // This prevents the app from appearing authenticated with no usable token
+                            if AuthenticationManager.shared.isAuthenticated {
+                                print("[ProxyAPI] Clearing zombie auth state — token refresh permanently failed")
+                                AuthenticationManager.shared.handleTokenRefreshFailure(underlyingError: error)
+                            }
                         }
                     }
                 }
             }
+            return nil
         }
-        return nil
+        refreshTaskLock.withLock { activeRefreshTask = task }
+        return await task.value
     }
 }
 
