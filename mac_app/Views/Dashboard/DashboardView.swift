@@ -71,6 +71,11 @@ struct DashboardView: View {
                         SettingsView()
                     }
                 }
+                // Disable NavigationSplitView's implicit MoveTransition when switching sections.
+                // On macOS 26 beta, the transition's layout pass overlaps @Query observation
+                // registration, causing infinite recursion in the SwiftData layout engine.
+                // (Sentry: QUEEN-MAMA-MACOS-19)
+                .animation(.none, value: selectedSection)
                 .frame(minWidth: QMDesign.Dimensions.Dashboard.detailMinWidth)
             }
         }

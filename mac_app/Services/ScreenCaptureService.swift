@@ -540,11 +540,22 @@ extension ScreenCaptureService: SCStreamDelegate {
             self.isCapturing = false
             self.errorMessage = error.localizedDescription
 
-            CrashReporter.shared.captureError(error, extras: [
-                "context": "screen_capture_stream",
-                "selected_display_id": self.config.selectedDisplayID,
-                "error_code": nsError.code
-            ])
+            // SCStream -3815 is a hardware event (display disconnected/reconfigured).
+            // After exhausting recovery attempts, report as a warning message rather than
+            // a code error — it's not actionable and would otherwise flood Sentry.
+            // (Sentry: QUEEN-MAMA-MACOS-T)
+            if nsError.code == -3815 {
+                CrashReporter.shared.captureMessage(
+                    "SCStream -3815: display reconfiguration, recovery exhausted after \(self.maxStreamRecoveryAttempts) attempts",
+                    level: .warning
+                )
+            } else {
+                CrashReporter.shared.captureError(error, extras: [
+                    "context": "screen_capture_stream",
+                    "selected_display_id": self.config.selectedDisplayID,
+                    "error_code": nsError.code
+                ])
+            }
             AnalyticsService.shared.capture("screen_capture_error", properties: [
                 "error": error.localizedDescription,
                 "error_code": nsError.code

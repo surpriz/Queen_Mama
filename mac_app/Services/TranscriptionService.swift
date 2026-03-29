@@ -286,6 +286,19 @@ final class TranscriptionService: ObservableObject {
 
         let nsError = error as NSError
 
+        // Swift Error enums are bridged to NSError when crossing Obj-C callback boundaries
+        // (e.g. URLSessionWebSocketTask's receive/send completion handlers).
+        // The Swift cast above fails in that case, so we match the bridged domain explicitly.
+        // Enum case codes are 0-indexed: noAPIKey=0, notAuthenticated=1, connectionFailed=2,
+        // invalidResponse=3, disconnected=4, allProvidersFailed=5, tokenExpired=6
+        // (Sentry: QUEEN-MAMA-MACOS-F — disconnected reported as permanent due to bridging)
+        if nsError.domain == "QueenMama.TranscriptionError" {
+            switch nsError.code {
+            case 4, 6: return .transient  // .disconnected, .tokenExpired
+            default:   return .permanent
+            }
+        }
+
         // NSPOSIXErrorDomain errors
         if nsError.domain == NSPOSIXErrorDomain {
             switch nsError.code {

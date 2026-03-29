@@ -37,6 +37,10 @@ final class HealthCheckService: ObservableObject {
     private var webSocketReconnectCount: Int = 0
     private var sessionStartTime: Date?
     private var wordsTranscribed: Int = 0
+    /// Tracks when we last sent a memory-critical Sentry event to avoid flooding.
+    /// Reports at most once per 10 minutes (Sentry: QUEEN-MAMA-MACOS-1A)
+    private var lastMemoryCriticalReportDate: Date?
+    private let memoryCriticalReportInterval: TimeInterval = 600 // 10 minutes
 
     private let maxSamples = 10  // Keep last 10 samples for averaging
 
@@ -54,6 +58,7 @@ final class HealthCheckService: ObservableObject {
         sessionStartTime = Date()
         wordsTranscribed = 0
         webSocketReconnectCount = 0
+        lastMemoryCriticalReportDate = nil
 
         // Run initial check
         Task {
@@ -190,12 +195,17 @@ final class HealthCheckService: ObservableObject {
 
         if memoryMB > Thresholds.maxMemoryMB * 1.5 {
             status = .critical
-            reportAnomaly(
-                type: .highMemory,
-                message: "Memory usage critical: \(Int(memoryMB))MB",
-                severity: .error,
-                extras: ["memory_mb": memoryMB, "threshold_mb": Thresholds.maxMemoryMB]
-            )
+            let now = Date()
+            let shouldReport = lastMemoryCriticalReportDate.map { now.timeIntervalSince($0) >= memoryCriticalReportInterval } ?? true
+            if shouldReport {
+                lastMemoryCriticalReportDate = now
+                reportAnomaly(
+                    type: .highMemory,
+                    message: "Memory usage critical: \(Int(memoryMB))MB",
+                    severity: .error,
+                    extras: ["memory_mb": memoryMB, "threshold_mb": Thresholds.maxMemoryMB]
+                )
+            }
         } else if memoryMB > Thresholds.maxMemoryMB {
             status = .warning
         } else {
