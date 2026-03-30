@@ -77,7 +77,7 @@ export default async function middleware(request: NextRequest) {
   }
 
   // Skip i18n for standalone pages (no locale prefix)
-  if (pathname === "/get" || pathname.startsWith("/get/")) {
+  if (pathname === "/get" || pathname.startsWith("/get/") || pathname.startsWith("/internal/")) {
     return NextResponse.next();
   }
 
