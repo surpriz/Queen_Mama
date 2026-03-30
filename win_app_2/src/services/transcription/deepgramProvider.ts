@@ -99,8 +99,6 @@ export class DeepgramProvider implements TranscriptionProvider {
       this.ws.onerror = (event: Event) => {
         const wsEvent = event as ErrorEvent
         log.error('WebSocket error:', wsEvent.message || 'Unknown error')
-        const error = new Error(`DeepgramProvider WebSocket error: ${wsEvent.message || 'Unknown error'}`)
-        captureError(error, { provider: 'deepgram-proxy' })
         reject(new Error('Transcription proxy connection failed'))
       }
 
@@ -108,8 +106,6 @@ export class DeepgramProvider implements TranscriptionProvider {
         log.info(`Disconnected - code: ${event.code}, reason: "${event.reason}", wasClean: ${event.wasClean}`)
         this.stopKeepalive()
         if (event.code !== 1000) {
-          const error = new Error(`DeepgramProvider disconnected: code=${event.code} reason="${event.reason}"`)
-          captureError(error, { provider: 'deepgram-proxy', code: event.code, wasClean: event.wasClean })
           this.onError?.(new Error(`Transcription disconnected: ${event.reason || event.code}`))
         }
       }

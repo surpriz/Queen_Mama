@@ -22,6 +22,38 @@ function scrubPII(text: string): string {
   return scrubbed
 }
 
+// Patterns for expected errors that should NOT be sent to Sentry.
+// These are transient/user-facing errors handled by reconnection logic or UI validation.
+const IGNORED_ERROR_PATTERNS = [
+  // WebSocket disconnects — handled by reconnection with exponential backoff
+  /disconnected: code=100[0-6]/i,
+  /disconnected: code=1011/i,
+  /connection failed/i,
+  // Transcription provider not available for plan (403) — expected for free-tier users
+  /provider_not_available/i,
+  /not available for your plan/i,
+  // Auth validation errors — user input, not bugs
+  /password must contain/i,
+  /email already exists/i,
+  /account uses google/i,
+  // Auth network errors — transient, retried automatically
+  /^AuthError: Network error/i,
+  /^AuthError: Request timed out/i,
+  // Failed to fetch — generic browser network error
+  /^TypeError: Failed to fetch$/i,
+]
+
+function isExpectedError(event: { message?: string; exception?: { values?: Array<{ type?: string; value?: string }> } }): boolean {
+  const texts: string[] = []
+  if (event.message) texts.push(event.message)
+  if (event.exception?.values) {
+    for (const ex of event.exception.values) {
+      if (ex.value) texts.push(ex.type ? `${ex.type}: ${ex.value}` : ex.value)
+    }
+  }
+  return texts.some((text) => IGNORED_ERROR_PATTERNS.some((pattern) => pattern.test(text)))
+}
+
 export async function start(): Promise<void> {
   if (isInitialized) return
 
@@ -48,6 +80,9 @@ export async function start(): Promise<void> {
       autoSessionTracking: true,
       maxBreadcrumbs: 100,
       beforeSend(event) {
+        // Drop expected/transient errors that are handled by app logic
+        if (isExpectedError(event)) return null
+
         if (event.message) {
           event.message = scrubPII(event.message)
         }
