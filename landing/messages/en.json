@@ -910,6 +910,14 @@
       "ciCdOptimization": {
         "title": "CI/CD Pipeline Optimization",
         "description": "Eliminated duplicate test runs and added concurrency controls across all build and deploy workflows"
+      },
+      "sentryErrorFiltering": {
+        "title": "Reduced Error Noise (Windows)",
+        "description": "Expected transient errors like WebSocket reconnections and auth validation are no longer reported as crashes, improving issue visibility"
+      },
+      "updaterUrlRewriting": {
+        "title": "Auto-Updater Path Fix (Windows)",
+        "description": "Fixed an issue where the auto-updater could fail with a file not found error due to incorrect URL-to-path conversion on Windows"
       }
     }
   },

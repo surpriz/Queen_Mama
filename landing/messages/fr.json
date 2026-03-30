@@ -910,6 +910,14 @@
       "ciCdOptimization": {
         "title": "Optimisation du pipeline CI/CD",
         "description": "Élimination des exécutions de tests en double et ajout de contrôles de concurrence sur tous les workflows de build et déploiement"
+      },
+      "sentryErrorFiltering": {
+        "title": "Réduction du bruit d'erreurs (Windows)",
+        "description": "Les erreurs transitoires attendues comme les reconnexions WebSocket et la validation d'authentification ne sont plus signalées comme des crashs, améliorant la visibilité des vrais problèmes"
+      },
+      "updaterUrlRewriting": {
+        "title": "Correction du chemin de mise à jour (Windows)",
+        "description": "Correction d'un problème où la mise à jour automatique échouait avec une erreur fichier introuvable due à une conversion URL incorrecte sur Windows"
       }
     }
   },

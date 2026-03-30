@@ -307,6 +307,16 @@ export const changelogData: ChangelogRelease[] = [
             id: "windowsAutoUpdaterFix",
             title: "Windows Auto-Updater Reliability",
             description: "Resolved an issue where the Windows updater sometimes failed to detect available updates due to incorrect file path handling after code signing"
+          },
+          {
+            id: "sentryErrorFiltering",
+            title: "Reduced Error Noise (Windows)",
+            description: "Expected transient errors like WebSocket reconnections and auth validation are no longer reported as crashes, improving issue visibility"
+          },
+          {
+            id: "updaterUrlRewriting",
+            title: "Auto-Updater Path Fix (Windows)",
+            description: "Fixed an issue where the auto-updater could fail with a file not found error due to incorrect URL-to-path conversion on Windows"
           }
         ]
       },
