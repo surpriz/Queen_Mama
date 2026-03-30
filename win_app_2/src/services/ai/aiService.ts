@@ -305,7 +305,7 @@ export async function generateSessionSummary(transcript: string): Promise<string
     const summary = await proxyApi.generateAIResponse({
       model: 'auto',
       messages,
-      max_tokens: 300,
+      max_tokens: 3000,
       temperature: 0.3,
     })
     return summary.trim() || null
