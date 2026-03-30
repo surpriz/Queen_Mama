@@ -43,9 +43,8 @@ export default function HeroSection({ macDownloadUrl, winDownloadUrl }: HeroSect
               <span className="gradient-text">soufflé en temps réel.</span>
             </h1>
             <p className="text-lg text-[var(--qm-text-secondary)] mb-8 max-w-xl leading-relaxed">
-              Queen Mama analyse vos appels et vous souffle les bons arguments,
-              objections et relances — en direct, invisible pour votre
-              interlocuteur.
+              Pendant votre prochain call, les bonnes réponses s&apos;affichent
+              sur votre écran — au bon moment, sans que personne ne le voie.
             </p>
 
             <OSDownloadButtons

@@ -112,10 +112,10 @@ export default function DemoSection() {
           className="text-center mb-12"
         >
           <h2 className="text-3xl sm:text-4xl font-bold text-[var(--qm-text-primary)] mb-4">
-            En action
+            Votre prochain call, avec Queen Mama
           </h2>
           <p className="text-[var(--qm-text-secondary)] text-lg">
-            Voyez comment Queen Mama vous accompagne en temps réel.
+            Voici ce qui se passe sur votre écran pendant que vous parlez.
           </p>
         </motion.div>
 
@@ -241,7 +241,7 @@ export default function DemoSection() {
           <div className="flex items-center gap-2">
             <MonitorOff className="w-4 h-4 text-[var(--qm-text-tertiary)]" />
             <p className="text-sm text-[var(--qm-text-tertiary)]">
-              Invisible sur Zoom, Teams, Meet et tous les outils de visio.
+              Invisible pour votre interlocuteur. Compatible Zoom, Teams, Meet et toutes les apps de visio.
             </p>
           </div>
           <div className="flex items-center gap-6">
