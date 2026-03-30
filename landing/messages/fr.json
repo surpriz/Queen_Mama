@@ -918,6 +918,14 @@
       "updaterUrlRewriting": {
         "title": "Correction du chemin de mise à jour (Windows)",
         "description": "Correction d'un problème où la mise à jour automatique échouait avec une erreur fichier introuvable due à une conversion URL incorrecte sur Windows"
+      },
+      "aiLanguageBiasFix": {
+        "title": "Correction de la langue des réponses IA (Windows)",
+        "description": "Les réponses IA correspondent désormais à la langue du transcript — auparavant, des exemples français dans les prompts système orientaient toutes les réponses vers le français quelle que soit la langue de la réunion"
+      },
+      "taskbarVisibility": {
+        "title": "Icône visible dans la barre des tâches (Windows)",
+        "description": "L'icône Queen Mama reste désormais visible dans la barre des tâches Windows lorsque le tableau de bord est fermé, permettant de voir facilement que l'application est active"
       }
     }
   },

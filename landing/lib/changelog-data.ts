@@ -317,6 +317,16 @@ export const changelogData: ChangelogRelease[] = [
             id: "updaterUrlRewriting",
             title: "Auto-Updater Path Fix (Windows)",
             description: "Fixed an issue where the auto-updater could fail with a file not found error due to incorrect URL-to-path conversion on Windows"
+          },
+          {
+            id: "aiLanguageBiasFix",
+            title: "AI Language Matching Fix (Windows)",
+            description: "AI responses now correctly match the transcript language — previously, French examples in system prompts biased all responses toward French regardless of the meeting language"
+          },
+          {
+            id: "taskbarVisibility",
+            title: "Taskbar Icon Visibility (Windows)",
+            description: "The Queen Mama icon now stays visible in the Windows taskbar when the dashboard is closed, making it easy to see the app is running"
           }
         ]
       },
