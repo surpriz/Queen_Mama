@@ -76,6 +76,11 @@ export default async function middleware(request: NextRequest) {
     return (authMiddleware as (req: NextRequest) => Promise<NextResponse>)(request);
   }
 
+  // Skip i18n for standalone pages (no locale prefix)
+  if (pathname === "/get" || pathname.startsWith("/get/")) {
+    return NextResponse.next();
+  }
+
   return intlMiddleware(request);
 }
 
