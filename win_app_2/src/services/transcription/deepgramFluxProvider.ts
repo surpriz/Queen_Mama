@@ -93,10 +93,6 @@ export class DeepgramFluxProvider implements TranscriptionProvider {
       this.ws.onerror = (event) => {
         const errEvent = event as ErrorEvent
         log.error(`WebSocket error: ${errEvent.message || 'unknown'}`)
-        captureError(new Error(`Deepgram Flux connection failed: ${errEvent.message || 'unknown'}`), {
-          provider: 'deepgram-flux',
-          phase: 'ws_error',
-        })
         reject(new Error(`Deepgram Flux connection failed: ${errEvent.message || 'unknown'}`))
       }
 
@@ -105,13 +101,6 @@ export class DeepgramFluxProvider implements TranscriptionProvider {
         this.stopKeepalive()
         if (event.code !== 1000) {
           const err = new Error(`Deepgram Flux disconnected: code=${event.code} reason="${event.reason}"`)
-          captureError(err, {
-            provider: 'deepgram-flux',
-            phase: 'ws_close',
-            closeCode: event.code,
-            closeReason: event.reason,
-            wasClean: event.wasClean,
-          })
           this.onError?.(err)
         }
       }

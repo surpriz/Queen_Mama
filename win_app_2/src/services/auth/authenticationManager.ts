@@ -120,10 +120,6 @@ export async function checkExistingAuth(): Promise<void> {
 
     if (isAuthRejection) {
       log.warn('Server rejected credentials, session expired')
-      captureError(
-        error instanceof Error ? error : new Error('Auth session expired'),
-        { service: 'auth', reason: 'session_expired' },
-      )
       await clearCredentials()
       store.setSessionExpired()
     } else {
@@ -154,10 +150,6 @@ export async function loginWithCredentials(email: string, password: string): Pro
       log.warn('License revalidation failed:', err)
     })
   } catch (error) {
-    captureError(
-      error instanceof Error ? error : new Error('Login failed'),
-      { service: 'auth', method: 'credentials' },
-    )
     store.setError(error instanceof Error ? error.message : 'Login failed')
     throw error
   }
@@ -185,10 +177,6 @@ export async function registerWithCredentials(
       log.warn('License revalidation failed:', err)
     })
   } catch (error) {
-    captureError(
-      error instanceof Error ? error : new Error('Registration failed'),
-      { service: 'auth', method: 'register' },
-    )
     store.setError(error instanceof Error ? error.message : 'Registration failed')
     throw error
   }

@@ -64,7 +64,7 @@ export default function OSDownloadButtons({
           }`}
         >
           <Apple className="w-5 h-5" />
-          Télécharger pour Mac
+          Essayer sur Mac
         </motion.a>
       )}
       {winDownloadUrl && (
@@ -77,7 +77,7 @@ export default function OSDownloadButtons({
           }`}
         >
           <WindowsIcon className="w-5 h-5" />
-          Télécharger pour Windows
+          Essayer sur Windows
         </motion.a>
       )}
       {!macDownloadUrl && !winDownloadUrl && (

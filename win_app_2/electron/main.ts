@@ -12,6 +12,22 @@ if (process.env.SENTRY_DSN) {
         : (process.env.VITE_APP_ENV || 'production'),
     release: `com.queenmama.windows@${app.getVersion()}`,
     tracesSampleRate: 0.1,
+    beforeSend(event) {
+      // Filter auto-updater errors (checksum mismatch, download failures)
+      // These are transient infrastructure issues, not application bugs
+      const texts: string[] = []
+      if (event.message) texts.push(event.message)
+      event.exception?.values?.forEach((ex) => {
+        if (ex.value) texts.push(ex.value)
+      })
+      const isUpdaterError = texts.some((t) =>
+        /checksum mismatch/i.test(t) ||
+        /ENOENT.*updater/i.test(t) ||
+        /sha512 checksum/i.test(t)
+      )
+      if (isUpdaterError) return null
+      return event
+    },
   })
 }
 import {

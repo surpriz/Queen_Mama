@@ -72,10 +72,6 @@ export class AssemblyAIProvider implements TranscriptionProvider {
 
       this.ws.onerror = (event) => {
         log.error('WebSocket error', event)
-        captureError(new Error('AssemblyAI connection failed'), {
-          provider: 'assemblyai',
-          phase: 'ws_error',
-        })
         reject(new Error('AssemblyAI connection failed'))
       }
 
@@ -83,13 +79,6 @@ export class AssemblyAIProvider implements TranscriptionProvider {
         log.info(`Disconnected (code: ${event.code}, reason: "${event.reason}", clean: ${event.wasClean})`)
         if (event.code !== 1000) {
           const err = new Error(`AssemblyAI disconnected: code=${event.code} reason="${event.reason}"`)
-          captureError(err, {
-            provider: 'assemblyai',
-            phase: 'ws_close',
-            closeCode: event.code,
-            closeReason: event.reason,
-            wasClean: event.wasClean,
-          })
           this.onError?.(err)
         }
       }

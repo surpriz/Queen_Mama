@@ -8,23 +8,23 @@ const STEPS = [
   {
     icon: Mic,
     number: "1",
-    title: "Lancez votre appel",
+    title: "Ouvrez l'app",
     description:
-      "Démarrez Queen Mama avant votre rdv. L'app tourne en arrière-plan.",
+      "Un clic avant votre rdv. C'est tout.",
   },
   {
     icon: BrainCircuit,
     number: "2",
-    title: "L'IA écoute et analyse",
+    title: "L'app suit la conversation",
     description:
-      "Transcription en temps réel + capture d'écran pour comprendre le contexte.",
+      "Elle comprend ce qui se dit et ce qui se passe à l'écran.",
   },
   {
     icon: Zap,
     number: "3",
     title: "Recevez les bons arguments",
     description:
-      "Objections, relances, données clés — affichés dans un widget invisible pour votre interlocuteur.",
+      "La bonne réponse apparaît sur votre écran. Votre interlocuteur ne voit rien.",
   },
 ];
 
@@ -40,7 +40,7 @@ export default function HowItWorksSection() {
           className="text-center mb-16"
         >
           <h2 className="text-3xl sm:text-4xl font-bold text-[var(--qm-text-primary)] mb-4">
-            Comment ça marche
+            Prêt avant votre prochain rdv
           </h2>
           <p className="text-[var(--qm-text-secondary)] text-lg max-w-2xl mx-auto">
             Trois étapes. Zéro configuration compliquée.

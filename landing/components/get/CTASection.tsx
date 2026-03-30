@@ -28,7 +28,7 @@ export default function CTASection({ macDownloadUrl, winDownloadUrl }: CTASectio
             Votre prochain appel mérite un copilote.
           </h2>
           <p className="text-lg text-white/80 mb-10 max-w-xl mx-auto">
-            Rejoignez les professionnels qui ne laissent plus rien au hasard.
+            Téléchargez-le maintenant, testez-le sur votre prochain rdv.
           </p>
 
           <div className="flex justify-center">
