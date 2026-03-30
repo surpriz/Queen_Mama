@@ -303,9 +303,6 @@ export async function stopSession(): Promise<void> {
 
         try {
           generatedSummary = await aiService.generateSessionSummary(sessionContent)
-          if (generatedSummary) {
-            generatedSummary = `🤖 ${generatedSummary}`
-          }
           console.log(`[SessionLifecycle] AI Summary: ${generatedSummary ? generatedSummary.length + ' chars' : 'null'}`)
         } catch (summaryErr) {
           console.error('[SessionLifecycle] Summary generation failed:', summaryErr)
