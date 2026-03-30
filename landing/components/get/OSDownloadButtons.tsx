@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useSyncExternalStore } from "react";
 import { motion } from "framer-motion";
 import { Apple } from "lucide-react";
 
@@ -18,7 +18,9 @@ interface OSDownloadButtonsProps {
   variant?: "dark" | "light";
 }
 
-function detectOS(): "mac" | "windows" | "other" {
+type OS = "mac" | "windows" | "other";
+
+function getOS(): OS {
   if (typeof navigator === "undefined") return "other";
   const ua = navigator.userAgent;
   if (ua.includes("Mac")) return "mac";
@@ -26,16 +28,14 @@ function detectOS(): "mac" | "windows" | "other" {
   return "other";
 }
 
+const subscribe = () => () => {};
+
 export default function OSDownloadButtons({
   macDownloadUrl,
   winDownloadUrl,
   variant = "dark",
 }: OSDownloadButtonsProps) {
-  const [os, setOS] = useState<"mac" | "windows" | "other">("other");
-
-  useEffect(() => {
-    setOS(detectOS());
-  }, []);
+  const os = useSyncExternalStore(subscribe, getOS, () => "other" as OS);
 
   const isPrimary = (button: "mac" | "windows") => {
     if (os === "other") return true;
