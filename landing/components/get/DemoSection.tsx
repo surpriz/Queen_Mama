@@ -3,7 +3,7 @@
 import { useReducer, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Container } from "@/components/ui";
-import { Video, Users, Mic, MonitorOff } from "lucide-react";
+import { Video, Users, Mic, MicOff, MonitorOff } from "lucide-react";
 import WidgetMockup from "./WidgetMockup";
 
 interface Scenario {
@@ -29,6 +29,13 @@ const SCENARIOS: Scenario[] = [
     response:
       "Relance suggérée : Pour résumer les 3 points clés qu'on a abordés — est-ce que ça correspond à ce que vous cherchiez ?",
   },
+];
+
+const PARTICIPANTS = [
+  { initials: "TM", name: "Thomas Martin", color: "bg-blue-600", muted: false },
+  { initials: "SL", name: "Sophie Laurent", color: "bg-emerald-600", muted: true },
+  { initials: "Vous", name: "Vous", color: "bg-purple-600", muted: false },
+  { initials: "JD", name: "Julie Dupont", color: "bg-amber-600", muted: true },
 ];
 
 const VISIO_LOGOS = [
@@ -139,13 +146,31 @@ export default function DemoSection() {
             {/* Meeting content */}
             <div className="relative aspect-video bg-[var(--qm-bg-primary)] flex items-center justify-center p-8">
               {/* Fake meeting participants */}
-              <div className="grid grid-cols-2 gap-4 w-full max-w-lg opacity-30">
-                {[1, 2, 3, 4].map((i) => (
+              <div className="grid grid-cols-2 gap-3 sm:gap-4 w-full max-w-xl">
+                {PARTICIPANTS.map((p) => (
                   <div
-                    key={i}
-                    className="aspect-video rounded-xl bg-[var(--qm-bg-tertiary)] flex items-center justify-center"
+                    key={p.initials}
+                    className="relative aspect-video rounded-xl bg-[var(--qm-bg-tertiary)] border border-[var(--qm-border-subtle)] flex flex-col items-center justify-center overflow-hidden"
                   >
-                    <div className="w-12 h-12 rounded-full bg-[var(--qm-surface-medium)]" />
+                    {/* Gradient background per participant */}
+                    <div className={`w-14 h-14 sm:w-16 sm:h-16 rounded-full ${p.color} flex items-center justify-center text-white font-bold text-lg sm:text-xl shadow-lg`}>
+                      {p.initials}
+                    </div>
+                    {/* Name label */}
+                    <span className="mt-2 text-[10px] sm:text-xs text-white/70 font-medium">
+                      {p.name}
+                    </span>
+                    {/* Mic indicator */}
+                    <div className={`absolute bottom-2 right-2 p-1 rounded-full ${p.muted ? "bg-red-500/80" : "bg-[var(--qm-surface-medium)]"}`}>
+                      {p.muted
+                        ? <MicOff className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-white" />
+                        : <Mic className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-white/70" />
+                      }
+                    </div>
+                    {/* Speaking indicator ring */}
+                    {!p.muted && (
+                      <div className="absolute inset-0 rounded-xl border-2 border-[var(--qm-accent)]/30 animate-pulse pointer-events-none" />
+                    )}
                   </div>
                 ))}
               </div>
