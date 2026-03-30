@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useReducer, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Container } from "@/components/ui";
 import { Video, Users, Mic, MonitorOff } from "lucide-react";
@@ -39,36 +39,46 @@ const VISIO_LOGOS = [
 
 type Phase = "transcript" | "thinking" | "response" | "pause";
 
+interface DemoState {
+  phase: Phase;
+  scenarioIndex: number;
+  transcriptVisible: boolean;
+}
+
+function demoReducer(state: DemoState, action: "advance" | "show_transcript"): DemoState {
+  if (action === "show_transcript") {
+    return { ...state, transcriptVisible: true };
+  }
+  // advance
+  switch (state.phase) {
+    case "transcript":
+      return { ...state, phase: "thinking" };
+    case "thinking":
+      return { ...state, phase: "response" };
+    case "response":
+      return { ...state, phase: "pause" };
+    case "pause":
+      return {
+        phase: "transcript",
+        scenarioIndex: (state.scenarioIndex + 1) % SCENARIOS.length,
+        transcriptVisible: false,
+      };
+  }
+}
+
 export default function DemoSection() {
-  const [scenarioIndex, setScenarioIndex] = useState(0);
-  const [phase, setPhase] = useState<Phase>("transcript");
-  const [transcriptVisible, setTranscriptVisible] = useState(false);
+  const [state, dispatch] = useReducer(demoReducer, {
+    phase: "transcript",
+    scenarioIndex: 0,
+    transcriptVisible: false,
+  });
 
+  const { phase, scenarioIndex, transcriptVisible } = state;
   const scenario = SCENARIOS[scenarioIndex];
-
-  const advancePhase = useCallback(() => {
-    setPhase((current) => {
-      switch (current) {
-        case "transcript":
-          return "thinking";
-        case "thinking":
-          return "response";
-        case "response":
-          return "pause";
-        case "pause":
-          setScenarioIndex((i) => (i + 1) % SCENARIOS.length);
-          setTranscriptVisible(false);
-          return "transcript";
-      }
-    });
-  }, []);
 
   useEffect(() => {
     if (phase === "transcript") {
-      setTranscriptVisible(false);
-      const timer = setTimeout(() => {
-        setTranscriptVisible(true);
-      }, 300);
+      const timer = setTimeout(() => dispatch("show_transcript"), 300);
       return () => clearTimeout(timer);
     }
   }, [phase, scenarioIndex]);
@@ -80,9 +90,9 @@ export default function DemoSection() {
       response: 5000,
       pause: 1500,
     };
-    const timer = setTimeout(advancePhase, durations[phase]);
+    const timer = setTimeout(() => dispatch("advance"), durations[phase]);
     return () => clearTimeout(timer);
-  }, [phase, advancePhase, scenarioIndex]);
+  }, [phase, scenarioIndex]);
 
   return (
     <section className="py-24 relative">

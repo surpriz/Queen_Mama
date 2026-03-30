@@ -43,19 +43,21 @@ export default function WidgetMockup({ text, isTyping, className = "" }: WidgetM
       className={`w-full max-w-[380px] rounded-2xl overflow-hidden border border-[var(--qm-border-subtle)] bg-[var(--qm-bg-secondary)]/95 backdrop-blur-xl shadow-2xl ${className}`}
     >
       {/* Tab bar */}
-      <div className="flex border-b border-[var(--qm-border-subtle)] px-1 pt-1">
+      <div role="tablist" aria-label="Queen Mama tabs" className="flex border-b border-[var(--qm-border-subtle)] px-1 pt-1">
         {TABS.map((tab) => (
-          <button
+          <div
             key={tab.id}
-            className={`flex items-center gap-1.5 px-3 py-2 text-xs font-medium rounded-t-lg transition-colors ${
+            role="tab"
+            aria-selected={tab.active}
+            className={`flex items-center gap-1.5 px-3 py-2 text-xs font-medium rounded-t-lg ${
               tab.active
                 ? "text-[var(--qm-accent)] bg-[var(--qm-surface-medium)]"
-                : "text-[var(--qm-text-tertiary)] hover:text-[var(--qm-text-secondary)]"
+                : "text-[var(--qm-text-tertiary)]"
             }`}
           >
             <tab.icon className="w-3 h-3" />
             {tab.label}
-          </button>
+          </div>
         ))}
       </div>
 

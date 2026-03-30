@@ -2,7 +2,15 @@
 
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Apple, Monitor } from "lucide-react";
+import { Apple } from "lucide-react";
+
+function WindowsIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="currentColor">
+      <path d="M3 12.5h8V21l-8-1.143V12.5zM3 11.5h8V3L3 4.143V11.5zM12 12.5h9V22l-9-1.286V12.5zM12 11.5h9V2l-9 1.286V11.5z" />
+    </svg>
+  );
+}
 
 interface OSDownloadButtonsProps {
   macDownloadUrl: string | null;
@@ -68,7 +76,7 @@ export default function OSDownloadButtons({
             isPrimary("windows") ? primaryClasses : secondaryClasses
           }`}
         >
-          <Monitor className="w-5 h-5" />
+          <WindowsIcon className="w-5 h-5" />
           Télécharger pour Windows
         </motion.a>
       )}

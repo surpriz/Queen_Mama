@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import SetLang from "./set-lang";
 
 export const metadata: Metadata = {
   title: "Télécharger Queen Mama — Assistant IA pour vos appels",
@@ -14,5 +15,10 @@ export const metadata: Metadata = {
 };
 
 export default function GetLayout({ children }: { children: React.ReactNode }) {
-  return <>{children}</>;
+  return (
+    <>
+      <SetLang />
+      {children}
+    </>
+  );
 }
