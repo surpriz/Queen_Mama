@@ -35,11 +35,12 @@ export function createMainWindow(): BrowserWindow {
     mainWindow?.show()
   })
 
-  // Hide to tray instead of quitting when dashboard is closed
+  // Minimize to taskbar instead of quitting when dashboard is closed
+  // This keeps the app icon visible in the Windows taskbar
   mainWindow.on('close', (event) => {
     if (!(app as typeof app & { isQuitting?: boolean }).isQuitting) {
       event.preventDefault()
-      mainWindow?.hide()
+      mainWindow?.minimize()
     }
   })
 

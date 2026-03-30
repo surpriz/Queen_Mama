@@ -63,8 +63,8 @@ const LANGUAGE_NAMES: Record<string, string> = {
 }
 
 function getLanguageInstruction(): string {
-  const lang = useConfigStore.getState().primaryLanguage || 'fr'
-  const langName = LANGUAGE_NAMES[lang] || LANGUAGE_NAMES['fr']
+  const lang = useConfigStore.getState().primaryLanguage || 'multi'
+  const langName = LANGUAGE_NAMES[lang] || LANGUAGE_NAMES['multi']
   if (lang === 'multi') {
     return `\n\nIMPORTANT: You MUST respond in ${langName}. Detect the language from the transcript and respond in that same language.`
   }
@@ -175,7 +175,7 @@ export function buildUserMessage(params: AIContextParams): AIMessage[] {
         const backgroundPart = olderPart.length > backgroundMaxLength
           ? '[...previous conversation truncated...]\n\n' + olderPart.slice(-backgroundMaxLength)
           : olderPart
-        textContent += `## Contexte de réunion (plus tôt dans la discussion) :\n${backgroundPart}\n\n## Discussion en cours (priorité ici) :\n${recentPart}\n\n`
+        textContent += `## Meeting context (earlier in the discussion):\n${backgroundPart}\n\n## Current discussion (priority here):\n${recentPart}\n\n`
       }
     }
   }

@@ -318,7 +318,7 @@ export async function stopSession(): Promise<void> {
 
       // Fallback 1: basic summary from transcript preview (ALWAYS runs if AI failed)
       if (!generatedSummary && fullTranscript.length > 10) {
-        const lang = useConfigStore.getState().primaryLanguage || 'fr'
+        const lang = useConfigStore.getState().primaryLanguage || 'multi'
         const previewText = fullTranscript.slice(0, 200).trim()
         generatedSummary = lang === 'fr'
           ? `📝 Résumé automatique — ${previewText}...`
@@ -328,7 +328,7 @@ export async function stopSession(): Promise<void> {
 
       // Fallback 2: last resort — always produce something
       if (!generatedSummary) {
-        const lang = useConfigStore.getState().primaryLanguage || 'fr'
+        const lang = useConfigStore.getState().primaryLanguage || 'multi'
         generatedSummary = lang === 'fr'
           ? `📝 Session enregistrée le ${new Date().toLocaleDateString('fr-FR')}`
           : `📝 Session recorded on ${new Date().toLocaleDateString('en-US')}`

@@ -172,8 +172,8 @@ export function registerIPCHandlers(): void {
     const windows = BrowserWindow.getAllWindows()
     for (const win of windows) {
       if (!win.isAlwaysOnTop() && !win.isDestroyed()) {
-        if (win.isVisible()) {
-          win.hide()
+        if (win.isVisible() && !win.isMinimized()) {
+          win.minimize()
         } else {
           win.show()
           win.focus()
