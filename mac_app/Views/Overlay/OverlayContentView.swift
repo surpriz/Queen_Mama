@@ -231,6 +231,7 @@ struct OverlayContentView: View {
                 showLimitPricingSheet = true
             } else {
                 appState.errorMessage = aiAccess.errorMessage
+                appState.isErrorRetryable = false
             }
             return
         }
@@ -240,6 +241,7 @@ struct OverlayContentView: View {
             let smartModeAccess = licenseManager.canUse(.smartMode)
             if !smartModeAccess.isAllowed {
                 appState.errorMessage = smartModeAccess.errorMessage
+                appState.isErrorRetryable = false
                 return
             }
         }
@@ -370,7 +372,8 @@ struct OverlayContentView: View {
                 print("[Overlay] Request completed successfully")
             } catch {
                 print("[Overlay] Error: \(error)")
-                appState.errorMessage = error.localizedDescription
+                appState.errorMessage = localizedErrorMessage(for: error)
+                appState.isErrorRetryable = isRetryableError(error)
                 // Ensure processing state is reset on error
                 appState.aiService.isProcessing = false
             }
@@ -1012,17 +1015,27 @@ struct ModernExpandedContentView: View {
         VStack(spacing: QMDesign.Spacing.sm) {
             // AI Error Toast (shown when appState.errorMessage is set)
             if let errorMessage = appState.errorMessage, !errorMessage.isEmpty {
-                AIErrorToast(message: errorMessage) {
-                    appState.errorMessage = nil
-                }
+                AIErrorToast(
+                    message: errorMessage,
+                    isRetryable: appState.isErrorRetryable,
+                    onDismiss: {
+                        appState.clearError()
+                    },
+                    onRetry: {
+                        appState.clearError()
+                        onSubmit()
+                    }
+                )
                 .transition(.move(edge: .top).combined(with: .opacity))
                 .onAppear {
                     aiErrorDismissTask?.cancel()
+                    // Only auto-dismiss non-retryable errors — retryable ones stay until user acts
+                    guard !appState.isErrorRetryable else { return }
                     aiErrorDismissTask = Task {
                         try? await Task.sleep(nanoseconds: 5_000_000_000)
                         guard !Task.isCancelled else { return }
                         withAnimation(QMDesign.Animation.smooth) {
-                            appState.errorMessage = nil
+                            appState.clearError()
                         }
                     }
                 }
@@ -2184,11 +2197,59 @@ struct TranscriptionConnectionBanner: View {
     }
 }
 
+// MARK: - Error Classification Helpers
+
+/// Whether the error is transient and worth retrying (timeout, network, server 5xx).
+private func isRetryableError(_ error: Error) -> Bool {
+    if let urlError = error as? URLError {
+        switch urlError.code {
+        case .timedOut, .networkConnectionLost, .notConnectedToInternet, .cannotConnectToHost:
+            return true
+        default:
+            return false
+        }
+    }
+    if let proxyError = error as? ProxyError {
+        switch proxyError {
+        case .requestFailed(let code, _) where code >= 500:
+            return true
+        case .serverError:
+            return true
+        default:
+            return false
+        }
+    }
+    return false
+}
+
+/// User-friendly, localized error message for known error types.
+/// ProxyError and AILicenseError already implement LocalizedError.errorDescription with i18n keys,
+/// so we only need to handle URLError here — everything else falls through to localizedDescription.
+private func localizedErrorMessage(for error: Error) -> String {
+    if let urlError = error as? URLError {
+        switch urlError.code {
+        case .timedOut:
+            return String(localized: "error.network.timeout")
+        case .networkConnectionLost:
+            return String(localized: "error.network.connectionLost")
+        case .notConnectedToInternet:
+            return String(localized: "error.network.notConnected")
+        case .cannotConnectToHost:
+            return String(localized: "error.network.cannotConnect")
+        default:
+            break
+        }
+    }
+    return error.localizedDescription
+}
+
 // MARK: - AI Error Toast
 
 struct AIErrorToast: View {
     let message: String
+    let isRetryable: Bool
     let onDismiss: () -> Void
+    var onRetry: (() -> Void)?
 
     var body: some View {
         HStack(spacing: QMDesign.Spacing.xs) {
@@ -2200,6 +2261,20 @@ struct AIErrorToast: View {
                 .lineLimit(2)
 
             Spacer()
+
+            if isRetryable, let onRetry {
+                Button(action: onRetry) {
+                    Text(String(localized: "error.toast.retry"))
+                        .font(.system(size: 10, weight: .semibold))
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 3)
+                        .background(
+                            RoundedRectangle(cornerRadius: 4)
+                                .fill(QMDesign.Colors.error.opacity(0.2))
+                        )
+                }
+                .buttonStyle(.plain)
+            }
 
             Button(action: onDismiss) {
                 Image(systemName: "xmark")

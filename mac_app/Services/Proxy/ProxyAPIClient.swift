@@ -645,17 +645,19 @@ enum ProxyError: LocalizedError {
     var errorDescription: String? {
         switch self {
         case .notAuthenticated:
-            return "Not authenticated. Please sign in."
+            return String(localized: "error.proxy.notAuthenticated")
         case .invalidResponse:
-            return "Invalid response from server."
-        case .accessDenied(let message):
-            return message
-        case .providerNotConfigured(let message):
-            return message
-        case .requestFailed(let code, let message):
-            return "Request failed (\(code)): \(message)"
-        case .serverError(let message):
-            return "Server error: \(message)"
+            return String(localized: "error.proxy.invalidResponse")
+        case .accessDenied:
+            return String(localized: "error.proxy.accessDenied")
+        case .providerNotConfigured:
+            return String(localized: "error.proxy.providerNotConfigured")
+        case .requestFailed(let code, _) where code >= 500:
+            return String(localized: "error.proxy.serverError")
+        case .requestFailed:
+            return String(localized: "error.proxy.requestFailed")
+        case .serverError:
+            return String(localized: "error.proxy.serverError")
         }
     }
 }

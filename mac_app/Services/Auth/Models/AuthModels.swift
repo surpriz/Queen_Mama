@@ -327,16 +327,16 @@ enum FeatureAccess: Equatable {
         switch self {
         case .allowed:
             return ""
-        case .limitReached(let used, let limit):
-            return "Daily limit reached (\(used)/\(limit)). Upgrade to continue."
+        case .limitReached:
+            return String(localized: "error.featureAccess.limitReached")
         case .requiresPro:
-            return "This feature requires a PRO subscription."
+            return String(localized: "error.featureAccess.requiresPro")
         case .requiresEnterprise:
-            return "This feature requires an Enterprise subscription."
+            return String(localized: "error.featureAccess.requiresEnterprise")
         case .requiresAuth:
-            return "Please sign in to use this feature."
+            return String(localized: "error.featureAccess.requiresAuth")
         case .blocked:
-            return "Please sign in to access Queen Mama features."
+            return String(localized: "error.featureAccess.blocked")
         }
     }
 }

@@ -60,13 +60,13 @@ enum AILicenseError: LocalizedError {
     var errorDescription: String? {
         switch self {
         case .requiresAuthentication:
-            return "Please sign in to use AI features"
+            return String(localized: "error.license.requiresAuthentication")
         case .requiresEnterprise:
-            return "This feature requires an Enterprise subscription"
-        case .dailyLimitReached(let used, let limit):
-            return "Daily AI request limit reached (\(used)/\(limit)). Upgrade to continue."
-        case .smartModeLimitReached(let used, let limit):
-            return "Smart Mode limit reached (\(used)/\(limit)). Upgrade to Enterprise for unlimited access."
+            return String(localized: "error.license.requiresEnterprise")
+        case .dailyLimitReached:
+            return String(localized: "error.license.dailyLimitReached")
+        case .smartModeLimitReached:
+            return String(localized: "error.license.smartModeLimitReached")
         }
     }
 }
@@ -365,12 +365,15 @@ final class AIService: ObservableObject {
 
                 // Single request to backend - no client-side cascade needed
                 // Backend handles provider fallback (OpenAI → Grok → Anthropic)
+
+                // Accumulate chunks on background thread, batch UI updates
+                // Declared outside `do` so timeout-retry catch clause can reuse them
+                var accumulatedResponse = ""
+                var chunkBuffer = ""
+                var lastUIUpdate = Date()
+                let uiUpdateInterval: TimeInterval = 0.05  // Update UI every 50ms max
+
                 do {
-                    // Accumulate chunks on background thread, batch UI updates
-                    var accumulatedResponse = ""
-                    var chunkBuffer = ""
-                    var lastUIUpdate = Date()
-                    let uiUpdateInterval: TimeInterval = 0.05  // Update UI every 50ms max
 
                     for try await chunk in self.proxyProvider.generateStreamingResponse(context: context) {
                         accumulatedResponse += chunk
@@ -538,6 +541,108 @@ final class AIService: ObservableObject {
                     }
 
                     continuation.finish()
+                } catch let urlError as URLError where urlError.code == .timedOut && screenshot != nil {
+                    // Timeout with screenshot — retry with lighter payload (no screenshot)
+                    print("[AIService] Timeout with screenshot — retrying without screenshot...")
+
+                    await MainActor.run {
+                        CrashReporter.shared.addBreadcrumb(
+                            category: "ai",
+                            message: "Timeout retry without screenshot for \(type.rawValue)"
+                        )
+                        self.currentResponse = String(localized: "error.timeout.retryingWithoutScreenshot") + "\n\n"
+                    }
+
+                    // Build lighter context without screenshot
+                    let retryContext = AIContext(
+                        transcript: transcript,
+                        screenshot: nil,
+                        mode: mode,
+                        responseType: type,
+                        customPrompt: customPrompt,
+                        smartMode: isSmartMode
+                    )
+
+                    // Reset accumulators for retry
+                    accumulatedResponse = ""
+                    chunkBuffer = ""
+                    lastUIUpdate = Date()
+
+                    do {
+                        for try await chunk in self.proxyProvider.generateStreamingResponse(context: retryContext) {
+                            accumulatedResponse += chunk
+                            chunkBuffer += chunk
+                            continuation.yield(chunk)
+
+                            let now = Date()
+                            if now.timeIntervalSince(lastUIUpdate) >= uiUpdateInterval {
+                                let bufferedContent = chunkBuffer
+                                await MainActor.run {
+                                    self.currentResponse += bufferedContent
+                                }
+                                chunkBuffer = ""
+                                lastUIUpdate = now
+                            }
+                        }
+
+                        // Flush remaining buffer
+                        if !chunkBuffer.isEmpty {
+                            await MainActor.run {
+                                self.currentResponse += chunkBuffer
+                            }
+                        }
+
+                        print("[AIService] Retry without screenshot completed: \(accumulatedResponse.count) chars")
+
+                        // Record response time and persist
+                        let responseTimeMs = Int((CFAbsoluteTimeGetCurrent() - responseStartTime) * 1000)
+                        let retryProviderType = await MainActor.run { self.proxyProvider.providerType }
+                        await MainActor.run {
+                            HealthCheckService.shared.recordAIResponseTime(responseTimeMs)
+
+                            let response = AIResponse(
+                                type: type,
+                                content: accumulatedResponse,
+                                provider: retryProviderType
+                            )
+                            self.addResponse(response)
+                            self.lastProvider = retryProviderType
+
+                            let licenseManager = LicenseManager.shared
+                            licenseManager.recordUsage(.aiRequest, provider: retryProviderType.rawValue)
+                            if isSmartMode {
+                                licenseManager.recordUsage(.smartMode, provider: retryProviderType.rawValue)
+                            }
+
+                            if let ctx = self.modelContext {
+                                ctx.insert(response)
+                                self.dbHelper.save(context: ctx, immediate: false)
+                            }
+
+                            self.isProcessing = false
+                        }
+
+                        continuation.finish()
+                    } catch {
+                        // Second attempt also failed — propagate as retryable error
+                        print("[AIService] Retry without screenshot also failed: \(error)")
+                        await MainActor.run {
+                            CrashReporter.shared.captureError(error, extras: [
+                                "response_type": type.rawValue,
+                                "smart_mode": isSmartMode,
+                                "timeout_retry": true,
+                                "transcript_length": transcript.count,
+                                "streaming": true
+                            ])
+                            AnalyticsService.shared.trackError(
+                                error.localizedDescription,
+                                context: "ai_streaming_timeout_retry_\(type.rawValue)"
+                            )
+                            self.currentResponse = ""
+                            self.isProcessing = false
+                        }
+                        continuation.finish(throwing: error)
+                    }
                 } catch {
                     print("[AIService] Backend proxy streaming failed: \(error)")
 
