@@ -350,6 +350,12 @@ class AppState: ObservableObject {
     @Published var audioLevel: Float = 0.0
     @Published var selectedMode: Mode?
     @Published var errorMessage: String?
+    @Published var isErrorRetryable: Bool = false
+
+    func clearError() {
+        errorMessage = nil
+        isErrorRetryable = false
+    }
     @Published var isFinalizingSession = false  // Indicates AI is generating title/summary
 
     /// Memory Palace: Triggers contact picker from menu bar or keyboard shortcut
