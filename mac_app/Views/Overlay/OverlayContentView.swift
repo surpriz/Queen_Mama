@@ -2247,6 +2247,13 @@ struct OverlayTranscriptStripView: View {
         transcriptionService.currentTranscript.count > Self.tailChars
     }
 
+    /// Fixed minimum height for the transcript text area (3 lines of 10.5pt font).
+    /// Prevents the response section below from jumping when transcript toggles between 2-3 lines.
+    private var transcriptStripMinHeight: CGFloat {
+        let lineHeight: CGFloat = ceil(10.5 * 1.4) // 10.5pt font × ~1.4 line height factor
+        return lineHeight * 3
+    }
+
     var body: some View {
         let interim = transcriptionService.interimTranscript
         let t = tail
@@ -2254,7 +2261,7 @@ struct OverlayTranscriptStripView: View {
         textContent(tail: t, interim: interim)
             .font(.system(size: 10.5, weight: .regular))
             .lineLimit(3)
-            .frame(maxWidth: .infinity, alignment: .leading)
+            .frame(maxWidth: .infinity, minHeight: transcriptStripMinHeight, alignment: .leading)
             .padding(.horizontal, QMDesign.Spacing.sm)
             .padding(.vertical, QMDesign.Spacing.xs)
             .background(QMDesign.Colors.surfaceLight.opacity(0.5))
