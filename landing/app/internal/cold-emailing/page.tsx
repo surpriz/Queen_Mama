@@ -421,7 +421,7 @@ export default function ColdEmailingPage() {
         {/* 8. Séquences */}
         <Section id="sequences" icon="📨" title="Séquences d'emails" subtitle="6 séquences × 5 emails × 2 variantes A/B — lien dès J0">
           <Callout type="warning">
-            <strong>Règles transversales :</strong> Lien présent dès l'Email 1 (PLG / self-serve, friction zéro) — Pas de nom produit en Email 1 — RGPD obligatoire —
+            <strong>Règles transversales :</strong> Lien présent dès l&apos;Email 1 (PLG / self-serve, friction zéro) — Pas de nom produit en Email 1 — RGPD obligatoire —
             Pas de [Prénom] dans les sujets (-12% réponses) — Pas de chiffres dans les sujets (-46% ouvertures) —
             Cadence : J0 → J+3 → J+7 → J+14 → J+21 —
             Liens UTM : <code className="text-orange-300">https://www.queenmama.co/get?utm_source=cold&amp;utm_medium=email&amp;utm_campaign=&#123;persona&#125;&amp;utm_content=&#123;variante&#125;</code>
@@ -544,7 +544,7 @@ export default function ColdEmailingPage() {
                 body={`Bonjour [Prénom],\n\nÉvaluer 20 candidats différents sur les mêmes critères est plus difficile qu'il n'y paraît. Le 14e entretien de la semaine n'a pas la même rigueur que le premier.\n\nJ'ai créé un outil pour ça : il tourne en fond pendant vos entretiens et vous aide à rester constant dans vos évaluations. Invisible pour le candidat.\n\n→ https://www.queenmama.co/get\n\n[Prénom]\n\nP.S. Un "stop" suffit si vous préférez ne plus me lire.`} />
             </div>
 
-            <h4 className="text-sm font-medium text-[var(--qm-text-secondary)] mt-4">Email 2 — J+3 <span className="text-[var(--qm-text-tertiary)]">(cas d'usage concret)</span></h4>
+            <h4 className="text-sm font-medium text-[var(--qm-text-secondary)] mt-4">Email 2 — J+3 <span className="text-[var(--qm-text-tertiary)]">(cas d&apos;usage concret)</span></h4>
             <div className="grid gap-4 md:grid-cols-2">
               <EmailBlock variant="A" label="Candidat qui dévie" subject="Re: [objet email 1]"
                 body={`Bonjour [Prénom],\n\nUn candidat part dans une direction inattendue. Vous l'écoutez, mais vous savez que vous n'avez pas eu le temps d'explorer sa gestion des conflits.\n\nQueenMama vous l'aurait rappelé à ce moment-là, sur votre écran.\n\n→ https://www.queenmama.co/get — gratuit pour commencer.\n\n[Prénom]\n\nP.S. Répondez "stop" pour ne plus recevoir ces emails.`} />
