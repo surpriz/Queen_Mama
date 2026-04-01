@@ -419,109 +419,311 @@ export default function ColdEmailingPage() {
         </Section>
 
         {/* 8. Séquences */}
-        <Section id="sequences" icon="📨" title="Séquences d'emails" subtitle="3 séquences × 3 emails × 2 variantes A/B">
+        <Section id="sequences" icon="📨" title="Séquences d'emails" subtitle="6 séquences × 5 emails × 2 variantes A/B — lien dès J0">
           <Callout type="warning">
-            <strong>Règles transversales :</strong> Pas de lien en Email 1 — Pas de nom produit en Email 1 — RGPD obligatoire —
+            <strong>Règles transversales :</strong> Lien présent dès l'Email 1 (PLG / self-serve, friction zéro) — Pas de nom produit en Email 1 — RGPD obligatoire —
             Pas de [Prénom] dans les sujets (-12% réponses) — Pas de chiffres dans les sujets (-46% ouvertures) —
-            Liens UTM : <code className="text-orange-300">queenmama.co/get?utm_source=cold&amp;utm_medium=email&amp;utm_campaign=&#123;persona&#125;&amp;utm_content=&#123;variante&#125;</code>
+            Cadence : J0 → J+3 → J+7 → J+14 → J+21 —
+            Liens UTM : <code className="text-orange-300">https://www.queenmama.co/get?utm_source=cold&amp;utm_medium=email&amp;utm_campaign=&#123;persona&#125;&amp;utm_content=&#123;variante&#125;</code>
           </Callout>
 
-          {/* Séquence 1 */}
+          {/* Séquence 1 — BD / Sales Manager France */}
           <div className="mt-6 mb-4">
             <h3 className="text-base font-semibold text-[var(--qm-text-primary)] flex items-center gap-2">
               <Badge variant="blue">SEQ 1</Badge> France / Business Developer / Sales Manager
             </h3>
+            <p className="text-xs text-[var(--qm-text-tertiary)] mt-1">Cadence : J0 → J+3 → J+7 → J+14 → J+21</p>
           </div>
 
-          <div className="space-y-4 mb-8">
-            <h4 className="text-sm font-medium text-[var(--qm-text-secondary)]">Email 1 — J0 <span className="text-[var(--qm-text-tertiary)]">(premier contact, pas de lien)</span></h4>
+          <div className="space-y-4 mb-10">
+            <h4 className="text-sm font-medium text-[var(--qm-text-secondary)]">Email 1 — J0 <span className="text-[var(--qm-text-tertiary)]">(premier contact + lien)</span></h4>
             <div className="grid gap-4 md:grid-cols-2">
-              <EmailBlock variant="A" label="Douleur directe" subject="votre prochain rdv / l'argument raté / une question sur vos appels"
-                body={`Bonjour [Prénom],\n\nCombien de fois vous êtes-vous dit après un rdv : "j'aurais dû mentionner ça" — trop tard ?\n\nJ'ai créé un outil qui tourne en fond pendant vos appels et vous souffle ce qu'il faut dire, quand le dire. Invisible pour l'autre.\n\nÇa vous parle ?\n\n[Prénom]\n\nP.S. Pour ne plus recevoir mes messages : répondez simplement "stop".`} />
-              <EmailBlock variant="B" label="Curiosité / intrigue" subject="ce qui se passe pendant l'appel / l'écart qui fait closer"
-                body={`Bonjour [Prénom],\n\nL'écart entre vos meilleurs commerciaux et les autres, ce n'est pas le script. Ce n'est pas la formation.\n\nC'est ce qui se passe pendant l'appel — la capacité à rebondir dans l'instant.\n\nJ'ai créé un outil qui donne cette capacité à n'importe qui. Invisible pour l'interlocuteur.\n\nÇa vous intrigue ?\n\n[Prénom]\n\nP.S. Pour ne plus recevoir mes messages : répondez simplement "stop".`} />
+              <EmailBlock variant="A" label="Douleur directe" subject="votre prochain appel commercial"
+                body={`Bonjour [Prénom],\n\nAprès chaque rdv, il y a toujours cet argument que vous auriez dû sortir au bon moment. Trop tard.\n\nJ'ai créé QueenMama — un outil qui tourne en fond pendant vos appels et affiche sur votre écran ce qu'il faut dire, quand le dire. L'autre ne voit rien.\n\n→ Testez sur votre prochain appel : https://www.queenmama.co/get (Mac & Windows, 2 min pour installer)\n\n[Prénom]\n\nP.S. Un "stop" en réponse et vous ne me réentendez plus.`} />
+              <EmailBlock variant="B" label="Curiosité / écart" subject="l'écart entre vos meilleurs commerciaux"
+                body={`Bonjour [Prénom],\n\nL'écart entre vos meilleurs commerciaux et les autres n'est pas le script ni la formation. C'est ce qui se passe dans les 10 premières secondes après une objection inattendue.\n\nJ'ai créé un outil qui donne cette réactivité à n'importe qui. Il tourne en fond pendant l'appel, invisible pour l'interlocuteur.\n\n→ https://www.queenmama.co/get — 2 minutes pour l'avoir sur Mac ou Windows.\n\n[Prénom]\n\nP.S. Un "stop" suffit si vous préférez ne plus me lire.`} />
             </div>
 
-            <h4 className="text-sm font-medium text-[var(--qm-text-secondary)] mt-4">Email 2 — J+3 <span className="text-[var(--qm-text-tertiary)]">(relance + lien download)</span></h4>
+            <h4 className="text-sm font-medium text-[var(--qm-text-secondary)] mt-4">Email 2 — J+3 <span className="text-[var(--qm-text-tertiary)]">(bénéfice concret)</span></h4>
             <div className="grid gap-4 md:grid-cols-2">
-              <EmailBlock variant="A" label="Friction zéro ← principale" subject="Re: [objet email 1]"
-                body={`Bonjour [Prénom],\n\nPas de démo à attendre, pas de rdv à planifier.\n\nQueenMama se télécharge en 2 minutes sur Mac ou Windows. Vous le testez sur votre prochain appel. Vous voyez par vous-même.\n\n→ queenmama.co/get\n\n[Prénom]\n\nP.S. Pour ne plus recevoir mes messages : répondez simplement "stop".`} />
-              <EmailBlock variant="B" label="Cas concret" subject="Re: [objet email 1]"
-                body={`Bonjour [Prénom],\n\nVotre prospect évoque un problème de budget. Avant même que vous répondiez, QueenMama affiche sur votre écran comment reformuler en investissement.\n\nVous ne cherchez plus — vous savez.\n\n→ queenmama.co/get\n\n[Prénom]\n\nP.S. Pour ne plus recevoir mes messages : répondez simplement "stop".`} />
+              <EmailBlock variant="A" label="Objection budget" subject="Re: [objet email 1]"
+                body={`Bonjour [Prénom],\n\nUn prospect évoque un problème de budget. Avant même que vous répondiez, QueenMama affiche sur votre écran comment reformuler en investissement.\n\nPas de blancs. Pas d'hésitation. Juste le bon argument, au bon moment.\n\n→ https://www.queenmama.co/get\n\n[Prénom]\n\nP.S. Un "stop" en réponse et je ne reviens plus.`} />
+              <EmailBlock variant="B" label="Expertise sous pression" subject="Re: [objet email 1]"
+                body={`Bonjour [Prénom],\n\nQueenMama ne remplace pas votre expertise. Il la rend accessible sous pression.\n\nVotre prospect pose une question technique à laquelle vous connaissez la réponse — mais l'enjeu vous brouille les idées. QueenMama l'affiche au bon moment.\n\n→ https://www.queenmama.co/get — gratuit pour commencer.\n\n[Prénom]\n\nP.S. Répondez "stop" si vous souhaitez ne plus recevoir mes emails.`} />
             </div>
 
-            <h4 className="text-sm font-medium text-[var(--qm-text-secondary)] mt-4">Email 3 — J+7 <span className="text-[var(--qm-text-tertiary)]">(breakup)</span></h4>
+            <h4 className="text-sm font-medium text-[var(--qm-text-secondary)] mt-4">Email 3 — J+7 <span className="text-[var(--qm-text-tertiary)]">(preuve / ROI)</span></h4>
+            <div className="grid gap-4 md:grid-cols-2">
+              <EmailBlock variant="A" label="Top commerciaux" subject="ce que vos meilleurs commerciaux font différemment"
+                body={`Bonjour [Prénom],\n\nLes meilleurs commerciaux n'improvisent pas moins. Ils récupèrent mieux.\n\nQueenMama est l'outil qui fait ça : il détecte ce qui se dit dans l'appel et affiche la réponse idéale sur votre écran. En temps réel.\n\n→ https://www.queenmama.co/get\n\n[Prénom]\n\nP.S. Répondez "stop" pour ne plus recevoir mes messages.`} />
+              <EmailBlock variant="B" label="ROI commercial" subject="votre taux de closing cette semaine"
+                body={`Bonjour [Prénom],\n\nSi un de vos commerciaux ratait 1 deal sur 5 faute du bon argument au bon moment — combien ça représente sur l'année ?\n\nQueenMama règle ce problème. Il tourne pendant l'appel et affiche sur l'écran ce qu'il faut dire.\n\n→ https://www.queenmama.co/get — téléchargement en 2 minutes.\n\n[Prénom]\n\nP.S. Répondez "stop" si vous souhaitez vous désinscrire.`} />
+            </div>
+
+            <h4 className="text-sm font-medium text-[var(--qm-text-secondary)] mt-4">Email 4 — J+14 <span className="text-[var(--qm-text-tertiary)]">(lever les objections)</span></h4>
+            <div className="grid gap-4 md:grid-cols-2">
+              <EmailBlock variant="A" label="Objection setup" subject="la seule objection valable"
+                body={`Bonjour [Prénom],\n\nL'objection que j'entends le plus : "ça prend du temps à configurer."\n\nQueenMama s'installe en 2 minutes. Pas de compte, pas d'onboarding. Vous ouvrez l'app, vous lancez votre appel, c'est tout.\n\n→ https://www.queenmama.co/get\n\n[Prénom]\n\nP.S. Répondez "stop" pour ne plus recevoir ces emails.`} />
+              <EmailBlock variant="B" label="Objection visibilité" subject="pourquoi personne ne le voit pendant l'appel"
+                body={`Bonjour [Prénom],\n\nLa question que tout le monde se pose : l'autre ne voit vraiment rien ?\n\nQueenMama s'affiche uniquement sur votre écran. Il n'apparaît dans aucun partage d'écran, aucune capture Zoom, aucun enregistrement. Conçu pour rester invisible.\n\n→ https://www.queenmama.co/get\n\n[Prénom]\n\nP.S. Répondez "stop" pour ne plus recevoir ces emails.`} />
+            </div>
+
+            <h4 className="text-sm font-medium text-[var(--qm-text-secondary)] mt-4">Email 5 — J+21 <span className="text-[var(--qm-text-tertiary)]">(breakup)</span></h4>
             <div className="grid gap-4 md:grid-cols-2">
               <EmailBlock variant="A" label="Breakup direct" subject="je referme ce dossier"
-                body={`[Prénom],\n\nDernier message de ma part.\n\nSi un jour vous voulez tester l'IA qui tourne pendant vos appels : queenmama.co/get — gratuit pour commencer.\n\nBonne suite,\n[Prénom]\n\nP.S. Le timing est mauvais ? Répondez "plus tard" et je reviens dans 90 jours. Vous ne voulez plus mes messages ? Répondez "stop".`} />
+                body={`[Prénom],\n\nDernier message de ma part.\n\nSi un jour vous voulez tester l'outil qui souffle le bon argument pendant vos appels : https://www.queenmama.co/get — gratuit pour commencer.\n\nBonne suite,\n[Prénom]\n\nP.S. Le timing est mauvais ? Répondez "plus tard" et je reviens dans 90 jours. Vous ne voulez plus de mes messages ? Répondez "stop".`} />
               <EmailBlock variant="B" label="Curiosité finale" subject="avant que je parte"
-                body={`[Prénom],\n\nJe ne reviens pas après ce message.\n\nMais si vous avez 3 minutes : queenmama.co/get montre exactement ce que l'IA affiche en temps réel pendant un appel. Sans jargon.\n\nBelle suite.\n[Prénom]\n\nP.S. Un "stop" suffit si vous ne voulez plus recevoir mes emails.`} />
+                body={`[Prénom],\n\nJe ne reviens pas après ce message.\n\nMais si vous avez 3 minutes : https://www.queenmama.co/get montre exactement ce que QueenMama affiche en temps réel pendant un appel commercial. Sans jargon.\n\nBelle suite.\n[Prénom]\n\nP.S. Un "stop" suffit si vous ne voulez plus recevoir mes emails.`} />
             </div>
           </div>
 
-          {/* Séquence 2 */}
+          {/* Séquence 2 — CEO / Fondateur France */}
           <div className="mb-4">
             <h3 className="text-base font-semibold text-[var(--qm-text-primary)] flex items-center gap-2">
               <Badge variant="purple">SEQ 2</Badge> France / CEO / Fondateur
             </h3>
+            <p className="text-xs text-[var(--qm-text-tertiary)] mt-1">Cadence : J0 → J+3 → J+7 → J+14 → J+21</p>
           </div>
 
-          <div className="space-y-4 mb-8">
-            <h4 className="text-sm font-medium text-[var(--qm-text-secondary)]">Email 1 — J0</h4>
+          <div className="space-y-4 mb-10">
+            <h4 className="text-sm font-medium text-[var(--qm-text-secondary)]">Email 1 — J0 <span className="text-[var(--qm-text-tertiary)]">(premier contact + lien)</span></h4>
             <div className="grid gap-4 md:grid-cols-2">
-              <EmailBlock variant="A" label="Le rdv sous pression" subject="votre prochain rdv décisif / quand les mots ne sortent pas"
-                body={`Bonjour [Prénom],\n\nVous êtes face à un investisseur. Il pose une question sur votre go-to-market. Vous connaissez la réponse — mais sous pression, elle ne sort pas dans le bon ordre.\n\nJ'ai créé un outil qui affiche discrètement sur votre écran ce qu'il faut dire à ce moment précis. Invisible pour l'autre.\n\nÇa vous parle ?\n\n[Prénom]\n\nP.S. Pour ne plus recevoir mes messages : répondez simplement "stop".`} />
-              <EmailBlock variant="B" label="Le temps qui manque" subject="se préparer sans le temps / entre deux rdv"
-                body={`Bonjour [Prénom],\n\nQuand vous enchaînez rdv investisseurs, clients et recrutements dans la même semaine, il y en a toujours un que vous n'avez pas eu le temps de préparer comme il faut.\n\nJ'ai créé un outil qui compense : il tourne en fond pendant le rdv et affiche les bons arguments sur votre écran. L'autre ne voit rien.\n\nÇa vous intéresse ?\n\n[Prénom]\n\nP.S. Pour ne plus recevoir mes messages : répondez simplement "stop".`} />
+              <EmailBlock variant="A" label="Rdv sous pression" subject="votre prochain rdv décisif"
+                body={`Bonjour [Prénom],\n\nVous êtes face à un investisseur. Il pose une question sur votre go-to-market. Vous connaissez la réponse — mais sous pression, elle ne sort pas dans le bon ordre.\n\nJ'ai créé QueenMama pour ça : un outil qui affiche sur votre écran ce qu'il faut dire à ce moment précis. L'autre ne voit rien.\n\n→ https://www.queenmama.co/get — 2 minutes pour l'avoir sur Mac ou Windows.\n\n[Prénom]\n\nP.S. Un "stop" en réponse et vous ne me réentendez plus.`} />
+              <EmailBlock variant="B" label="Le temps qui manque" subject="se préparer sans le temps"
+                body={`Bonjour [Prénom],\n\nQuand vous enchaînez rdv investisseurs, clients et recrutements dans la même semaine, il y en a toujours un pour lequel vous n'avez pas eu le temps de vous préparer comme il faut.\n\nJ'ai créé un outil qui compense : il tourne en fond pendant le rdv et affiche les bons arguments sur votre écran. L'autre ne voit rien.\n\n→ https://www.queenmama.co/get\n\n[Prénom]\n\nP.S. Un "stop" suffit si vous préférez ne plus me lire.`} />
             </div>
 
-            <h4 className="text-sm font-medium text-[var(--qm-text-secondary)] mt-4">Email 2 — J+4</h4>
+            <h4 className="text-sm font-medium text-[var(--qm-text-secondary)] mt-4">Email 2 — J+3 <span className="text-[var(--qm-text-tertiary)]">(scénario concret)</span></h4>
             <div className="grid gap-4 md:grid-cols-2">
-              <EmailBlock variant="A" label="Friction zéro ← principale" subject="Re: [objet email 1]"
-                body={`Bonjour [Prénom],\n\nPas de démo à planifier, pas de call de 30 minutes.\n\nQueenMama se télécharge en 2 minutes. Vous le testez sur votre prochain rdv. Vous voyez par vous-même si ça change la donne.\n\n→ queenmama.co/get\n\n[Prénom]\n\nP.S. Pour ne plus recevoir mes messages : répondez simplement "stop".`} />
-              <EmailBlock variant="B" label="Scénario concret" subject="Re: [objet email 1]"
-                body={`Bonjour [Prénom],\n\nUn investisseur vous demande comment vous comptez attaquer le marché UK. Vous l'aviez préparé — mais le chiffre clé s'échappe.\n\nQueenMama l'aurait affiché sur votre écran à ce moment précis. Pas de préparation supplémentaire. Juste le bon argument, au bon moment.\n\n→ queenmama.co/get\n\n[Prénom]\n\nP.S. Pour ne plus recevoir mes messages : répondez simplement "stop".`} />
+              <EmailBlock variant="A" label="Scénario investisseur" subject="Re: [objet email 1]"
+                body={`Bonjour [Prénom],\n\nUn investisseur vous demande comment vous comptez attaquer le marché UK. Vous l'aviez préparé — mais le chiffre clé s'échappe.\n\nQueenMama l'aurait affiché sur votre écran à ce moment précis. Sans préparation supplémentaire.\n\n→ https://www.queenmama.co/get — téléchargement en 2 minutes, gratuit pour commencer.\n\n[Prénom]\n\nP.S. Répondez "stop" pour ne plus recevoir ces emails.`} />
+              <EmailBlock variant="B" label="Réactivité vs préparation" subject="Re: [objet email 1]"
+                body={`Bonjour [Prénom],\n\nConvaincre quelqu'un n'est pas une question de préparation. C'est une question de réactivité.\n\nQueenMama ne vous donne pas un script. Il vous donne le bon mot au bon moment — quand votre interlocuteur vient de dire quelque chose d'inattendu.\n\n→ https://www.queenmama.co/get\n\n[Prénom]\n\nP.S. Un "stop" en réponse et je ne reviens plus.`} />
             </div>
 
-            <h4 className="text-sm font-medium text-[var(--qm-text-secondary)] mt-4">Email 3 — J+8 <span className="text-[var(--qm-text-tertiary)]">(breakup)</span></h4>
+            <h4 className="text-sm font-medium text-[var(--qm-text-secondary)] mt-4">Email 3 — J+7 <span className="text-[var(--qm-text-tertiary)]">(insight / différenciation)</span></h4>
+            <div className="grid gap-4 md:grid-cols-2">
+              <EmailBlock variant="A" label="Récupération vs préparation" subject="ce que les meilleurs fondateurs ont en commun"
+                body={`Bonjour [Prénom],\n\nLes fondateurs qui performent le mieux dans les rdv décisifs ne sont pas ceux qui ont préparé le plus. Ce sont ceux qui récupèrent le mieux quand la conversation part dans une direction inattendue.\n\nQueenMama est cet outil. Il tourne en fond et affiche les bons arguments sur votre écran, en temps réel.\n\n→ https://www.queenmama.co/get\n\n[Prénom]\n\nP.S. Répondez "stop" pour ne plus recevoir mes messages.`} />
+              <EmailBlock variant="B" label="Agenda chargé" subject="le rdv que vous n'avez pas eu le temps de préparer"
+                body={`Bonjour [Prénom],\n\nImaginez ne plus jamais devoir reporter un rdv faute de préparation. Même agenda chargé, même performance dans la salle.\n\nC'est ce que QueenMama permet : un co-pilote qui tourne en temps réel, invisible pour l'autre.\n\n→ https://www.queenmama.co/get — 2 minutes pour installer.\n\n[Prénom]\n\nP.S. Répondez "stop" si vous souhaitez vous désinscrire.`} />
+            </div>
+
+            <h4 className="text-sm font-medium text-[var(--qm-text-secondary)] mt-4">Email 4 — J+14 <span className="text-[var(--qm-text-tertiary)]">(lever les objections)</span></h4>
+            <div className="grid gap-4 md:grid-cols-2">
+              <EmailBlock variant="A" label="Friction zéro" subject="ça prend combien de temps à mettre en place"
+                body={`Bonjour [Prénom],\n\nAucune configuration. Aucun onboarding. Aucun rdv avec une équipe commerciale.\n\nQueenMama se télécharge en 2 minutes sur Mac ou Windows. Vous l'ouvrez, vous lancez votre rdv. C'est tout.\n\n→ https://www.queenmama.co/get\n\n[Prénom]\n\nP.S. Répondez "stop" pour ne plus recevoir ces emails.`} />
+              <EmailBlock variant="B" label="Invisibilité garantie" subject="pourquoi l'autre ne le voit pas"
+                body={`Bonjour [Prénom],\n\nQueenMama n'apparaît sur aucun partage d'écran, aucune capture Zoom ou Teams. Il s'affiche uniquement sur votre côté.\n\nC'est la première question que tout le monde pose — et la réponse est non, l'autre ne voit rien.\n\n→ https://www.queenmama.co/get\n\n[Prénom]\n\nP.S. Un "stop" en réponse et je disparais de votre boîte.`} />
+            </div>
+
+            <h4 className="text-sm font-medium text-[var(--qm-text-secondary)] mt-4">Email 5 — J+21 <span className="text-[var(--qm-text-tertiary)]">(breakup)</span></h4>
             <div className="grid gap-4 md:grid-cols-2">
               <EmailBlock variant="A" label="Promesse de silence" subject="je ne reviens plus"
-                body={`[Prénom],\n\nPromesse : c'est mon dernier email.\n\nSi un jour vous cherchez à être plus convaincant dans vos rdv décisifs sans y passer plus de temps : queenmama.co/get\n\nBelle croissance pour [Entreprise].\n[Prénom]\n\nP.S. Un "stop" suffit si vous ne voulez plus recevoir mes emails.`} />
-              <EmailBlock variant="B" label="Laisser la porte ouverte" subject="dernière chose"
-                body={`[Prénom],\n\nJe ne vous recontacte plus après ça.\n\nSi vous cherchez un jour un copilote pour vos rdv stratégiques : queenmama.co/get — 3 minutes pour comprendre ce que ça fait.\n\nBelle suite.\n[Prénom]\n\nP.S. Un "stop" suffit si vous ne voulez plus recevoir mes emails.`} />
+                body={`[Prénom],\n\nPromesse : c'est mon dernier email.\n\nSi un jour vous cherchez à être plus convaincant dans vos rdv décisifs sans y passer plus de temps : https://www.queenmama.co/get\n\nBelle croissance pour [Entreprise].\n[Prénom]\n\nP.S. Un "stop" suffit si vous ne voulez plus recevoir mes emails.`} />
+              <EmailBlock variant="B" label="Porte ouverte" subject="dernière chose"
+                body={`[Prénom],\n\nJe ne vous recontacte plus après ça.\n\nSi vous cherchez un jour un copilote pour vos rdv stratégiques : https://www.queenmama.co/get — 3 minutes pour comprendre ce que ça fait.\n\nBelle suite.\n[Prénom]\n\nP.S. Un "stop" suffit si vous ne voulez plus recevoir mes emails.`} />
             </div>
           </div>
 
-          {/* Séquence 3 */}
+          {/* Séquence 3 — Recruteur France */}
           <div className="mb-4">
             <h3 className="text-base font-semibold text-[var(--qm-text-primary)] flex items-center gap-2">
-              <Badge variant="green">SEQ 3</Badge> UK / International (Anglais)
+              <Badge variant="green">SEQ 3</Badge> France / Recruteur / RH
             </h3>
+            <p className="text-xs text-[var(--qm-text-tertiary)] mt-1">Cadence : J0 → J+3 → J+7 → J+14 → J+21</p>
+          </div>
+
+          <div className="space-y-4 mb-10">
+            <h4 className="text-sm font-medium text-[var(--qm-text-secondary)]">Email 1 — J0 <span className="text-[var(--qm-text-tertiary)]">(premier contact + lien)</span></h4>
+            <div className="grid gap-4 md:grid-cols-2">
+              <EmailBlock variant="A" label="Questions oubliées" subject="vos prochains entretiens"
+                body={`Bonjour [Prénom],\n\nIl y a toujours un entretien dans la semaine où le candidat vous surprend — et vous sortez de la salle en vous demandant si vous avez bien posé toutes vos questions.\n\nJ'ai créé un outil qui tourne en fond pendant l'entretien et vous souffle les bonnes questions au bon moment. Le candidat ne voit rien.\n\n→ https://www.queenmama.co/get — Mac & Windows, 2 minutes pour installer.\n\n[Prénom]\n\nP.S. Un "stop" en réponse et vous ne me réentendez plus.`} />
+              <EmailBlock variant="B" label="Constance évaluation" subject="la constance dans vos évaluations"
+                body={`Bonjour [Prénom],\n\nÉvaluer 20 candidats différents sur les mêmes critères est plus difficile qu'il n'y paraît. Le 14e entretien de la semaine n'a pas la même rigueur que le premier.\n\nJ'ai créé un outil pour ça : il tourne en fond pendant vos entretiens et vous aide à rester constant dans vos évaluations. Invisible pour le candidat.\n\n→ https://www.queenmama.co/get\n\n[Prénom]\n\nP.S. Un "stop" suffit si vous préférez ne plus me lire.`} />
+            </div>
+
+            <h4 className="text-sm font-medium text-[var(--qm-text-secondary)] mt-4">Email 2 — J+3 <span className="text-[var(--qm-text-tertiary)]">(cas d'usage concret)</span></h4>
+            <div className="grid gap-4 md:grid-cols-2">
+              <EmailBlock variant="A" label="Candidat qui dévie" subject="Re: [objet email 1]"
+                body={`Bonjour [Prénom],\n\nUn candidat part dans une direction inattendue. Vous l'écoutez, mais vous savez que vous n'avez pas eu le temps d'explorer sa gestion des conflits.\n\nQueenMama vous l'aurait rappelé à ce moment-là, sur votre écran.\n\n→ https://www.queenmama.co/get — gratuit pour commencer.\n\n[Prénom]\n\nP.S. Répondez "stop" pour ne plus recevoir ces emails.`} />
+              <EmailBlock variant="B" label="Multi-usage" subject="Re: [objet email 1]"
+                body={`Bonjour [Prénom],\n\nQueenMama fonctionne aussi bien pour les entretiens que pour les rdv avec des hiring managers ou les appels de sourcing.\n\nDès que vous parlez, il analyse ce qui se dit et affiche les suggestions sur votre écran. L'autre ne voit rien dans tous les cas.\n\n→ https://www.queenmama.co/get\n\n[Prénom]\n\nP.S. Un "stop" en réponse et je ne reviens plus.`} />
+            </div>
+
+            <h4 className="text-sm font-medium text-[var(--qm-text-secondary)] mt-4">Email 3 — J+7 <span className="text-[var(--qm-text-tertiary)]">(gain de qualité)</span></h4>
+            <div className="grid gap-4 md:grid-cols-2">
+              <EmailBlock variant="A" label="Meilleur candidat raté" subject="l'entretien que vous avez failli rater"
+                body={`Bonjour [Prénom],\n\nLe meilleur candidat du lot peut sortir de votre radar si vous n'avez pas posé la bonne question au bon moment.\n\nQueenMama vous évite ça : il guide votre entretien en temps réel, sur votre écran, pendant que vous parlez.\n\n→ https://www.queenmama.co/get\n\n[Prénom]\n\nP.S. Répondez "stop" pour ne plus recevoir mes messages.`} />
+              <EmailBlock variant="B" label="Efficacité évaluation" subject="évaluer plus vite, mieux"
+                body={`Bonjour [Prénom],\n\nMoins de temps à reconstruire vos notes après l'entretien. Plus de cohérence dans vos évaluations. Moins de "j'aurais dû creuser ce point."\n\nQueenMama rend ça possible : il tourne en fond, invisible pour le candidat.\n\n→ https://www.queenmama.co/get — 2 minutes pour installer.\n\n[Prénom]\n\nP.S. Répondez "stop" si vous souhaitez vous désinscrire.`} />
+            </div>
+
+            <h4 className="text-sm font-medium text-[var(--qm-text-secondary)] mt-4">Email 4 — J+14 <span className="text-[var(--qm-text-tertiary)]">(lever les objections)</span></h4>
+            <div className="grid gap-4 md:grid-cols-2">
+              <EmailBlock variant="A" label="Installation rapide" subject="deux minutes à perdre ?"
+                body={`Bonjour [Prénom],\n\nQueenMama n'a pas de configuration complexe. Pas d'onboarding de 45 minutes. Pas de call avec un commercial.\n\nVous téléchargez, vous ouvrez, vous testez sur votre prochain entretien.\n\n→ https://www.queenmama.co/get\n\n[Prénom]\n\nP.S. Répondez "stop" pour ne plus recevoir ces emails.`} />
+              <EmailBlock variant="B" label="Visio + présentiel" subject="ça fonctionne en visio aussi"
+                body={`Bonjour [Prénom],\n\nQue l'entretien soit en présentiel ou en visio (Teams, Zoom, Meet), QueenMama fonctionne de la même manière.\n\nIl capte ce qui se dit et affiche les suggestions sur votre écran. L'autre ne voit rien dans aucun cas.\n\n→ https://www.queenmama.co/get\n\n[Prénom]\n\nP.S. Un "stop" en réponse et je disparais de votre boîte.`} />
+            </div>
+
+            <h4 className="text-sm font-medium text-[var(--qm-text-secondary)] mt-4">Email 5 — J+21 <span className="text-[var(--qm-text-tertiary)]">(breakup)</span></h4>
+            <div className="grid gap-4 md:grid-cols-2">
+              <EmailBlock variant="A" label="Breakup direct" subject="je referme ce dossier"
+                body={`[Prénom],\n\nDernier message de ma part.\n\nSi vous cherchez un jour à conduire des entretiens plus consistants sans y passer plus de temps : https://www.queenmama.co/get — gratuit pour commencer.\n\nBonne suite,\n[Prénom]\n\nP.S. Le timing est mauvais ? Répondez "plus tard". Vous ne voulez plus de mes messages ? Répondez "stop".`} />
+              <EmailBlock variant="B" label="Porte ouverte" subject="avant que je parte"
+                body={`[Prénom],\n\nJe ne reviens pas après ce message.\n\nSi vous avez 3 minutes : https://www.queenmama.co/get montre exactement ce que QueenMama affiche en temps réel pendant un entretien.\n\nBelle suite.\n[Prénom]\n\nP.S. Un "stop" suffit si vous ne voulez plus recevoir mes emails.`} />
+            </div>
+          </div>
+
+          {/* Séquence 4 — Consultant indépendant France */}
+          <div className="mb-4">
+            <h3 className="text-base font-semibold text-[var(--qm-text-primary)] flex items-center gap-2">
+              <Badge variant="orange">SEQ 4</Badge> France / Consultant indépendant / Freelance
+            </h3>
+            <p className="text-xs text-[var(--qm-text-tertiary)] mt-1">Cadence : J0 → J+3 → J+7 → J+14 → J+21</p>
+          </div>
+
+          <div className="space-y-4 mb-10">
+            <h4 className="text-sm font-medium text-[var(--qm-text-secondary)]">Email 1 — J0 <span className="text-[var(--qm-text-tertiary)]">(premier contact + lien)</span></h4>
+            <div className="grid gap-4 md:grid-cols-2">
+              <EmailBlock variant="A" label="Expertise pas rafraîchie" subject="l'expertise que vous n'avez pas eu le temps de rafraîchir"
+                body={`Bonjour [Prénom],\n\nVotre client pose une question sur un point que vous maîtrisez — mais que vous n'avez pas eu le temps de revoir avant le rdv.\n\nJ'ai créé un outil qui tourne en fond pendant vos appels clients et affiche sur votre écran ce qu'il faut dire. Le client ne voit rien.\n\n→ https://www.queenmama.co/get — Mac & Windows, 2 minutes pour installer.\n\n[Prénom]\n\nP.S. Un "stop" en réponse et vous ne me réentendez plus.`} />
+              <EmailBlock variant="B" label="Toujours la bonne réponse" subject="toujours la bonne réponse au bon moment"
+                body={`Bonjour [Prénom],\n\nCe qui différencie un bon consultant d'un excellent consultant, ce n'est pas le savoir. C'est la capacité à l'exprimer au bon moment, sous pression, face à un client qui teste.\n\nJ'ai créé un outil pour ça : il tourne en fond pendant vos appels et vous souffle le bon argument sur votre écran.\n\n→ https://www.queenmama.co/get\n\n[Prénom]\n\nP.S. Un "stop" suffit si vous préférez ne plus me lire.`} />
+            </div>
+
+            <h4 className="text-sm font-medium text-[var(--qm-text-secondary)] mt-4">Email 2 — J+3 <span className="text-[var(--qm-text-tertiary)]">(scénario client)</span></h4>
+            <div className="grid gap-4 md:grid-cols-2">
+              <EmailBlock variant="A" label="Client qui challenge" subject="Re: [objet email 1]"
+                body={`Bonjour [Prénom],\n\nUn client challenge votre recommandation sur un point technique. Avant même que vous répondiez, QueenMama affiche sur votre écran les éléments de réponse.\n\nVous restez calme. Vous êtes précis. Le client est rassuré.\n\n→ https://www.queenmama.co/get — gratuit pour commencer.\n\n[Prénom]\n\nP.S. Répondez "stop" pour ne plus recevoir ces emails.`} />
+              <EmailBlock variant="B" label="Multi-missions" subject="Re: [objet email 1]"
+                body={`Bonjour [Prénom],\n\nEn tant que consultant indépendant, chaque rdv compte. Vous n'avez pas le droit à l'hésitation.\n\nQueenMama ne remplace pas votre expertise — il la rend accessible même quand vous avez 4 missions en parallèle.\n\n→ https://www.queenmama.co/get\n\n[Prénom]\n\nP.S. Un "stop" en réponse et je ne reviens plus.`} />
+            </div>
+
+            <h4 className="text-sm font-medium text-[var(--qm-text-secondary)] mt-4">Email 3 — J+7 <span className="text-[var(--qm-text-tertiary)]">(positionnement expert)</span></h4>
+            <div className="grid gap-4 md:grid-cols-2">
+              <EmailBlock variant="A" label="Ce que vos clients ne voient pas" subject="ce que vos clients ne voient pas"
+                body={`Bonjour [Prénom],\n\nVos clients vous recrutent pour votre expertise. Ils ne savent pas — et ne doivent pas savoir — que vous n'avez pas eu le temps de préparer ce rdv comme vous l'auriez voulu.\n\nQueenMama vous donne la même performance, quelle que soit votre charge de travail.\n\n→ https://www.queenmama.co/get\n\n[Prénom]\n\nP.S. Répondez "stop" pour ne plus recevoir mes messages.`} />
+              <EmailBlock variant="B" label="Temps non facturable" subject="facturer votre expertise, pas votre préparation"
+                body={`Bonjour [Prénom],\n\nChaque heure passée à préparer un rdv client est une heure non facturée.\n\nQueenMama réduit ce temps de préparation : il compense en temps réel ce que vous n'avez pas eu le temps de revoir.\n\n→ https://www.queenmama.co/get — 2 minutes pour installer.\n\n[Prénom]\n\nP.S. Répondez "stop" si vous souhaitez vous désinscrire.`} />
+            </div>
+
+            <h4 className="text-sm font-medium text-[var(--qm-text-secondary)] mt-4">Email 4 — J+14 <span className="text-[var(--qm-text-tertiary)]">(lever les objections)</span></h4>
+            <div className="grid gap-4 md:grid-cols-2">
+              <EmailBlock variant="A" label="Démarrage immédiat" subject="combien de temps pour démarrer"
+                body={`Bonjour [Prénom],\n\nAucune configuration. Aucun onboarding. Aucun rdv avec une équipe commerciale.\n\nQueenMama se télécharge en 2 minutes. Vous l'ouvrez, vous lancez votre appel client. C'est tout.\n\n→ https://www.queenmama.co/get\n\n[Prénom]\n\nP.S. Répondez "stop" pour ne plus recevoir ces emails.`} />
+              <EmailBlock variant="B" label="Tous types d'appels" subject="ça marche pour quel type d'appels"
+                body={`Bonjour [Prénom],\n\nQueenMama fonctionne sur tous vos appels : pitch de nouvelle mission, rdv de suivi client, présentation de livrables, appels de cadrage.\n\nDès que vous parlez, il analyse et affiche. L'autre ne voit rien.\n\n→ https://www.queenmama.co/get\n\n[Prénom]\n\nP.S. Un "stop" en réponse et je disparais de votre boîte.`} />
+            </div>
+
+            <h4 className="text-sm font-medium text-[var(--qm-text-secondary)] mt-4">Email 5 — J+21 <span className="text-[var(--qm-text-tertiary)]">(breakup)</span></h4>
+            <div className="grid gap-4 md:grid-cols-2">
+              <EmailBlock variant="A" label="Breakup direct" subject="je referme ce dossier"
+                body={`[Prénom],\n\nDernier message de ma part.\n\nSi un jour vous cherchez à être plus percutant dans vos rdv clients sans y passer plus de temps de préparation : https://www.queenmama.co/get — gratuit pour commencer.\n\nBonne suite,\n[Prénom]\n\nP.S. Le timing est mauvais ? Répondez "plus tard". Vous ne voulez plus de mes messages ? Répondez "stop".`} />
+              <EmailBlock variant="B" label="Porte ouverte" subject="avant que je parte"
+                body={`[Prénom],\n\nJe ne reviens pas après ce message.\n\nSi vous avez 3 minutes : https://www.queenmama.co/get montre exactement ce que QueenMama affiche en temps réel pendant un appel client.\n\nBelle suite.\n[Prénom]\n\nP.S. Un "stop" suffit si vous ne voulez plus recevoir mes emails.`} />
+            </div>
+          </div>
+
+          {/* Séquence 5 — Responsable commercial / Manager France */}
+          <div className="mb-4">
+            <h3 className="text-base font-semibold text-[var(--qm-text-primary)] flex items-center gap-2">
+              <Badge variant="red">SEQ 5</Badge> France / Responsable commercial / Manager
+            </h3>
+            <p className="text-xs text-[var(--qm-text-tertiary)] mt-1">Cadence : J0 → J+3 → J+7 → J+14 → J+21</p>
+          </div>
+
+          <div className="space-y-4 mb-10">
+            <h4 className="text-sm font-medium text-[var(--qm-text-secondary)]">Email 1 — J0 <span className="text-[var(--qm-text-tertiary)]">(premier contact + lien)</span></h4>
+            <div className="grid gap-4 md:grid-cols-2">
+              <EmailBlock variant="A" label="Montée en compétence juniors" subject="faire monter vos juniors plus vite"
+                body={`Bonjour [Prénom],\n\nLe problème avec les nouveaux commerciaux : le délai entre leur onboarding et leur premier deal autonome est trop long. Et vous ne pouvez pas être sur tous leurs appels.\n\nJ'ai créé un outil qui tourne en fond pendant leurs appels et leur souffle le bon argument sur leur écran. Invisible pour le prospect.\n\n→ https://www.queenmama.co/get — Mac & Windows, 2 minutes pour installer.\n\n[Prénom]\n\nP.S. Un "stop" en réponse et vous ne me réentendez plus.`} />
+              <EmailBlock variant="B" label="Délai onboarding" subject="le temps entre l'onboarding et le premier deal"
+                body={`Bonjour [Prénom],\n\nCombien de mois faut-il en moyenne pour qu'un nouveau commercial soit autonome sur ses appels ? Chez la plupart des équipes, c'est 3 à 6 mois.\n\nJ'ai créé un outil qui réduit ce délai : il tourne en fond pendant les appels et affiche les bons arguments sur l'écran du commercial. En temps réel.\n\n→ https://www.queenmama.co/get\n\n[Prénom]\n\nP.S. Un "stop" suffit si vous préférez ne plus me lire.`} />
+            </div>
+
+            <h4 className="text-sm font-medium text-[var(--qm-text-secondary)] mt-4">Email 2 — J+3 <span className="text-[var(--qm-text-tertiary)]">(scénario junior)</span></h4>
+            <div className="grid gap-4 md:grid-cols-2">
+              <EmailBlock variant="A" label="Junior face au prix" subject="Re: [objet email 1]"
+                body={`Bonjour [Prénom],\n\nUn junior face à une objection sur le prix. Il ne sait pas comment répondre — et le prospect sent l'hésitation.\n\nQueenMama lui aurait affiché la bonne réponse sur son écran avant même qu'il ouvre la bouche.\n\n→ https://www.queenmama.co/get — gratuit pour commencer.\n\n[Prénom]\n\nP.S. Répondez "stop" pour ne plus recevoir ces emails.`} />
+              <EmailBlock variant="B" label="Pour vous aussi" subject="Re: [objet email 1]"
+                body={`Bonjour [Prénom],\n\nQueenMama fonctionne aussi pour vous, pas seulement pour votre équipe. Vos propres rdv de négociation, vos calls avec des grands comptes — même bénéfice.\n\nUn outil. Toute l'équipe.\n\n→ https://www.queenmama.co/get\n\n[Prénom]\n\nP.S. Un "stop" en réponse et je ne reviens plus.`} />
+            </div>
+
+            <h4 className="text-sm font-medium text-[var(--qm-text-secondary)] mt-4">Email 3 — J+7 <span className="text-[var(--qm-text-tertiary)]">(ROI management)</span></h4>
+            <div className="grid gap-4 md:grid-cols-2">
+              <EmailBlock variant="A" label="Compétence plus rapide" subject="réduire le délai de montée en compétence"
+                body={`Bonjour [Prénom],\n\nLes équipes commerciales qui utilisent QueenMama constatent une montée en compétence plus rapide chez les nouveaux — parce que chaque appel devient un appel assisté.\n\nVous n'avez pas besoin de changer votre process de formation. Vous ajoutez une couche.\n\n→ https://www.queenmama.co/get\n\n[Prénom]\n\nP.S. Répondez "stop" pour ne plus recevoir mes messages.`} />
+              <EmailBlock variant="B" label="Manager dans l'oreillette" subject="plus de deals fermés, même charge d'accompagnement"
+                body={`Bonjour [Prénom],\n\nImaginez que vos commerciaux juniors performent comme s'ils avaient un manager dans l'oreillette — sans que vous ayez à être présent sur chaque appel.\n\nQueenMama rend ça possible.\n\n→ https://www.queenmama.co/get — 2 minutes pour installer.\n\n[Prénom]\n\nP.S. Répondez "stop" si vous souhaitez vous désinscrire.`} />
+            </div>
+
+            <h4 className="text-sm font-medium text-[var(--qm-text-secondary)] mt-4">Email 4 — J+14 <span className="text-[var(--qm-text-tertiary)]">(lever les objections)</span></h4>
+            <div className="grid gap-4 md:grid-cols-2">
+              <EmailBlock variant="A" label="Comment ça fonctionne" subject="comment ça marche concrètement"
+                body={`Bonjour [Prénom],\n\nChaque commercial installe QueenMama en 2 minutes sur son Mac ou son PC. Il n'y a rien à configurer côté admin.\n\nL'outil détecte ce qui se dit dans l'appel et affiche les bonnes réponses sur son écran. Le prospect ne voit rien.\n\n→ https://www.queenmama.co/get\n\n[Prénom]\n\nP.S. Répondez "stop" pour ne plus recevoir ces emails.`} />
+              <EmailBlock variant="B" label="Complément formation" subject="est-ce que ça remplace la formation"
+                body={`Bonjour [Prénom],\n\nNon, QueenMama ne remplace pas votre formation commerciale. Il la complète.\n\nEn formation, vous donnez le savoir. QueenMama le rend accessible au bon moment, sous pression, quand l'appel ne se passe pas comme prévu.\n\n→ https://www.queenmama.co/get\n\n[Prénom]\n\nP.S. Un "stop" en réponse et je disparais de votre boîte.`} />
+            </div>
+
+            <h4 className="text-sm font-medium text-[var(--qm-text-secondary)] mt-4">Email 5 — J+21 <span className="text-[var(--qm-text-tertiary)]">(breakup)</span></h4>
+            <div className="grid gap-4 md:grid-cols-2">
+              <EmailBlock variant="A" label="Breakup direct" subject="je referme ce dossier"
+                body={`[Prénom],\n\nDernier message de ma part.\n\nSi vous cherchez un jour à réduire le délai de montée en compétence de vos commerciaux : https://www.queenmama.co/get — gratuit pour commencer.\n\nBonne suite,\n[Prénom]\n\nP.S. Le timing est mauvais ? Répondez "plus tard". Vous ne voulez plus de mes messages ? Répondez "stop".`} />
+              <EmailBlock variant="B" label="Porte ouverte" subject="avant que je parte"
+                body={`[Prénom],\n\nJe ne reviens pas après ce message.\n\nSi vous avez 3 minutes : https://www.queenmama.co/get montre exactement ce que QueenMama affiche pendant un appel commercial en temps réel.\n\nBelle suite.\n[Prénom]\n\nP.S. Un "stop" suffit si vous ne voulez plus recevoir mes emails.`} />
+            </div>
+          </div>
+
+          {/* Séquence 6 — UK / International */}
+          <div className="mb-4">
+            <h3 className="text-base font-semibold text-[var(--qm-text-primary)] flex items-center gap-2">
+              <Badge>SEQ 6</Badge> UK / International (English)
+            </h3>
+            <p className="text-xs text-[var(--qm-text-tertiary)] mt-1">Cadence: J0 → J+3 → J+7 → J+14 → J+21</p>
           </div>
 
           <div className="space-y-4">
-            <h4 className="text-sm font-medium text-[var(--qm-text-secondary)]">Email 1 — J0</h4>
+            <h4 className="text-sm font-medium text-[var(--qm-text-secondary)]">Email 1 — J0 <span className="text-[var(--qm-text-tertiary)]">(first touch + link)</span></h4>
             <div className="grid gap-4 md:grid-cols-2">
-              <EmailBlock variant="A" label="Direct pain" subject="your next sales call / the point you almost made"
-                body={`Hi [First name],\n\nHow often do you leave a call thinking "I should have said that"?\n\nI built a tool that runs in the background during your calls and tells you exactly what to say, right when you need it. The other side can't see it.\n\nSound familiar?\n\n[Name]\n\nP.S. To stop receiving these emails, just reply "stop".`} />
-              <EmailBlock variant="B" label="Curiosity" subject="what happens during the call / the gap on every sales team"
-                body={`Hi [First name],\n\nThe best reps don't wing it. They have something running in the background that tells them exactly what to say when the call goes sideways.\n\nI built that tool. It's invisible to the person on the other end.\n\nCurious?\n\n[Name]\n\nP.S. To stop receiving these emails, just reply "stop".`} />
+              <EmailBlock variant="A" label="Direct pain" subject="your next sales call"
+                body={`Hi [First name],\n\nHow many times have you left a call thinking "I should have said that" — and it's too late?\n\nI built QueenMama — a tool that runs in the background during your calls and shows you exactly what to say, right when you need it. The other side can't see it.\n\n→ Try it on your next call: https://www.queenmama.co/get (Mac & Windows, 2 min to install)\n\n[Name]\n\nP.S. Reply "stop" and you won't hear from me again.`} />
+              <EmailBlock variant="B" label="The gap" subject="the gap on every sales team"
+                body={`Hi [First name],\n\nThe best reps don't wing it — they recover faster. When an objection comes out of nowhere, they have something to say before the silence gets uncomfortable.\n\nI built a tool that gives any rep that ability. It runs in the background during calls, invisible to the other side.\n\n→ https://www.queenmama.co/get — 2 minutes to install on Mac or Windows.\n\n[Name]\n\nP.S. Reply "stop" if you'd rather not hear from me.`} />
             </div>
 
-            <h4 className="text-sm font-medium text-[var(--qm-text-secondary)] mt-4">Email 2 — J+3</h4>
+            <h4 className="text-sm font-medium text-[var(--qm-text-secondary)] mt-4">Email 2 — J+3 <span className="text-[var(--qm-text-tertiary)]">(concrete benefit)</span></h4>
             <div className="grid gap-4 md:grid-cols-2">
-              <EmailBlock variant="A" label="Zero friction ← primary" subject="Re: [original subject]"
-                body={`Hi [First name],\n\nNo demo to book. No 30-minute call.\n\nQueenMama downloads in 2 minutes on Mac or Windows. Try it on your next call. See for yourself.\n\n→ queenmama.co/get\n\n[Name]\n\nP.S. To stop receiving these emails, just reply "stop".`} />
-              <EmailBlock variant="B" label="Concrete scenario" subject="Re: [original subject]"
-                body={`Hi [First name],\n\nYour prospect just brought up budget concerns. Before you even respond, QueenMama shows you how to reframe it as an investment — right there on your screen.\n\nYou don't scramble. You just say it.\n\n→ queenmama.co/get\n\n[Name]\n\nP.S. To stop receiving these emails, just reply "stop".`} />
+              <EmailBlock variant="A" label="Budget objection" subject="Re: [original subject]"
+                body={`Hi [First name],\n\nYour prospect just raised a budget concern. Before you respond, QueenMama shows you exactly how to reframe it as an investment — right there on your screen.\n\nNo pause. No scramble. Just the right thing to say.\n\n→ https://www.queenmama.co/get — free to start.\n\n[Name]\n\nP.S. Reply "stop" to unsubscribe.`} />
+              <EmailBlock variant="B" label="Expertise under pressure" subject="Re: [original subject]"
+                body={`Hi [First name],\n\nQueenMama doesn't replace your expertise. It makes it accessible under pressure.\n\nYour prospect asks a technical question you know the answer to — but the stakes make it harder to articulate clearly. QueenMama surfaces it at the right moment.\n\n→ https://www.queenmama.co/get\n\n[Name]\n\nP.S. Reply "stop" if you'd like to unsubscribe.`} />
             </div>
 
-            <h4 className="text-sm font-medium text-[var(--qm-text-secondary)] mt-4">Email 3 — J+7 <span className="text-[var(--qm-text-tertiary)]">(breakup)</span></h4>
+            <h4 className="text-sm font-medium text-[var(--qm-text-secondary)] mt-4">Email 3 — J+7 <span className="text-[var(--qm-text-tertiary)]">(proof / ROI)</span></h4>
+            <div className="grid gap-4 md:grid-cols-2">
+              <EmailBlock variant="A" label="Top reps" subject="what your top reps do differently"
+                body={`Hi [First name],\n\nYour best reps don't prepare more — they recover better. When the conversation goes sideways, they get back on track before the prospect notices.\n\nQueenMama is what makes that possible for everyone on your team. Real-time, on their screen, invisible to the other side.\n\n→ https://www.queenmama.co/get\n\n[Name]\n\nP.S. Reply "stop" to unsubscribe.`} />
+              <EmailBlock variant="B" label="ROI angle" subject="your close rate this quarter"
+                body={`Hi [First name],\n\nIf one of your reps is losing 1 deal in 5 because they couldn't handle an objection — what does that add up to over a year?\n\nQueenMama fixes that. It runs during the call and shows the right response at the right moment.\n\n→ https://www.queenmama.co/get — downloads in 2 minutes.\n\n[Name]\n\nP.S. Reply "stop" to unsubscribe.`} />
+            </div>
+
+            <h4 className="text-sm font-medium text-[var(--qm-text-secondary)] mt-4">Email 4 — J+14 <span className="text-[var(--qm-text-tertiary)]">(objection handling)</span></h4>
+            <div className="grid gap-4 md:grid-cols-2">
+              <EmailBlock variant="A" label="Setup objection" subject="the only real objection"
+                body={`Hi [First name],\n\nThe most common pushback I hear: "Sounds interesting but takes time to set up."\n\nQueenMama installs in 2 minutes. No account, no onboarding call, no sales process. You open it, start your call, that's it.\n\n→ https://www.queenmama.co/get\n\n[Name]\n\nP.S. Reply "stop" to unsubscribe.`} />
+              <EmailBlock variant="B" label="Visibility objection" subject="does the other side see it"
+                body={`Hi [First name],\n\nThe most common question: does the other person see it on screen?\n\nNo. QueenMama only appears on your side. It doesn't show up in screen shares, Zoom recordings, or Teams captures. Built to stay invisible.\n\n→ https://www.queenmama.co/get\n\n[Name]\n\nP.S. Reply "stop" if you'd like to unsubscribe.`} />
+            </div>
+
+            <h4 className="text-sm font-medium text-[var(--qm-text-secondary)] mt-4">Email 5 — J+21 <span className="text-[var(--qm-text-tertiary)]">(breakup)</span></h4>
             <div className="grid gap-4 md:grid-cols-2">
               <EmailBlock variant="A" label="Close the loop" subject="closing the loop"
-                body={`[First name],\n\nLast one from me.\n\nIf you ever want an AI running in the background during your calls: queenmama.co/get — free to start.\n\nGood luck with the pipeline.\n[Name]\n\nP.S. Bad timing? Reply "later" and I'll check back in 90 days. Otherwise, "stop" works too.`} />
+                body={`[First name],\n\nLast one from me.\n\nIf you ever want an AI running in the background during your calls: https://www.queenmama.co/get — free to start.\n\nGood luck with the pipeline.\n[Name]\n\nP.S. Bad timing? Reply "later" and I'll check back in 90 days. Otherwise, "stop" works too.`} />
               <EmailBlock variant="B" label="Before I go" subject="before I go"
-                body={`[First name],\n\nNot emailing you again after this.\n\nIf you're curious what it actually looks like: queenmama.co/get shows exactly what the AI displays during a live call. Takes 3 minutes.\n\nAll the best.\n[Name]\n\nP.S. Reply "stop" if you'd like me to stop emailing you.`} />
+                body={`[First name],\n\nNot emailing you again after this.\n\nIf you're curious what it actually looks like: https://www.queenmama.co/get shows exactly what the AI displays during a live call. Takes 3 minutes.\n\nAll the best.\n[Name]\n\nP.S. Reply "stop" if you'd like me to stop emailing you.`} />
             </div>
           </div>
         </Section>
