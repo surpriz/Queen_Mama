@@ -396,6 +396,7 @@ class AppState: ObservableObject {
     let audioBatchingService = AudioBatchingService()
     let systemAudioBatchingService = AudioBatchingService()  // Separate batching for system audio
     let transcriptBuffer = TranscriptBuffer()
+    let systemTranscriptBuffer = TranscriptBuffer()  // Separate buffer for system audio (Them)
     let dictationService = DictationService()
     let preGenerationService = PreGenerationService()
     let meetingDetectionService = MeetingDetectionService()
@@ -471,6 +472,17 @@ class AppState: ObservableObject {
             let startupTime = (CFAbsoluteTimeGetCurrent() - startTime) * 1000
             print("[AppState] All services started in \(Int(startupTime))ms (parallel)")
 
+            // Connect system audio WebSocket for speaker diarization (non-blocking)
+            Task {
+                do {
+                    try await self.transcriptionService.connectSystemAudio()
+                    print("[AppState] System audio WebSocket connected for speaker diarization")
+                } catch {
+                    print("[AppState] System audio WebSocket failed (diarization degraded): \(error.localizedDescription)")
+                    CrashReporter.shared.addBreadcrumb(category: "session", message: "System audio WS failed: \(error.localizedDescription)")
+                }
+            }
+
             // Services are ready — now create the session record
             isSessionActive = true
             let defaultTitle = "Session - \(Date().formatted(date: .abbreviated, time: .shortened))"
@@ -481,8 +493,20 @@ class AppState: ObservableObject {
                 contact.lastSeenAt = Date()
             }
 
-            // Start audio batching service
+            // Wire system audio pipeline for speaker diarization (Me/Them)
+            // Must assign callbacks BEFORE start() to avoid dropping early buffers
+            screenService.systemAudioService = systemAudioService
+
+            systemAudioService.onAudioBuffer = { [weak self] buffer in
+                self?.systemAudioBatchingService.append(buffer)
+            }
+            systemAudioBatchingService.onBatchReady = { [weak self] batch in
+                self?.transcriptionService.sendSystemAudio(batch)
+            }
+
+            // Start audio batching services (mic + system audio)
             audioBatchingService.start()
+            systemAudioBatchingService.start()
 
             // Wire audio batching: Audio → Batch → Transcription
             // This reduces WebSocket messages from ~3750/hour to ~240/hour
@@ -506,30 +530,37 @@ class AppState: ObservableObject {
                 modeProvider: { [weak self] in self?.selectedMode }
             )
 
-            // Start transcript buffer for batched UI/SwiftData updates
+            // Start transcript buffers for batched UI/SwiftData updates
             transcriptBuffer.start()
+            systemTranscriptBuffer.start()
 
-            // Handle transcription results through buffer
-            // This reduces UI re-renders and SwiftData writes by ~10x
+            // Handle mic transcription results (Me) through buffer
             transcriptionService.onTranscript = { [weak self] text in
                 Task { @MainActor in
                     self?.transcriptBuffer.append(text)
                 }
             }
 
-            // Wire transcript buffer flush to update UI/SwiftData/AutoAnswer
+            // Handle system audio transcription results (Them) through buffer
+            transcriptionService.onSystemTranscript = { [weak self] text in
+                Task { @MainActor in
+                    self?.systemTranscriptBuffer.append(text)
+                }
+            }
+
+            // Wire mic transcript buffer flush → "Moi" entries
             transcriptBuffer.onFlush = { [weak self] (batchedText: String) in
                 guard let self = self else { return }
 
-                // Add transcript entry (speaker separation disabled - doesn't work without headphones)
+                // Add transcript entry with "Moi" speaker label (AEC ensures mic = user only)
                 self.sessionManager?.addTranscriptEntry(
-                    speaker: "",
+                    speaker: "Moi",
                     text: batchedText,
                     isFinal: true
                 )
 
-                // Update in-memory transcript (no speaker prefix)
-                self.currentTranscript += "\(batchedText)\n"
+                // Update in-memory transcript with speaker prefix
+                self.currentTranscript += "Moi: \(batchedText)\n"
 
                 // Track words transcribed for health monitoring
                 let wordCount = batchedText.split(separator: " ").count
@@ -539,6 +570,25 @@ class AppState: ObservableObject {
                 self.autoAnswerService.onTranscriptReceived(self.currentTranscript)
 
                 // Feed transcript to PreGenerationService (Buffered Pre-Generation)
+                self.preGenerationService.onTranscriptUpdated(self.currentTranscript)
+            }
+
+            // Wire system transcript buffer flush → "Interlocuteur" entries
+            systemTranscriptBuffer.onFlush = { [weak self] (batchedText: String) in
+                guard let self = self else { return }
+
+                self.sessionManager?.addTranscriptEntry(
+                    speaker: "Interlocuteur",
+                    text: batchedText,
+                    isFinal: true
+                )
+
+                self.currentTranscript += "Interlocuteur: \(batchedText)\n"
+
+                let wordCount = batchedText.split(separator: " ").count
+                HealthCheckService.shared.recordWordsTranscribed(wordCount)
+
+                self.autoAnswerService.onTranscriptReceived(self.currentTranscript)
                 self.preGenerationService.onTranscriptUpdated(self.currentTranscript)
             }
 
@@ -584,7 +634,8 @@ class AppState: ObservableObject {
         // 1. Stop services immediately (for good UX)
         audioBatchingService.reset()  // Flush remaining audio before stopping
         systemAudioBatchingService.reset()  // Flush remaining system audio before stopping
-        transcriptBuffer.reset()  // Flush remaining transcript before stopping
+        transcriptBuffer.reset()  // Flush remaining mic transcript before stopping
+        systemTranscriptBuffer.reset()  // Flush remaining system transcript before stopping
         audioService.stopCapture()
         screenService.stopCapture()
         transcriptionService.disconnect()

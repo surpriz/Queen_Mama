@@ -464,8 +464,25 @@ SMART MODE ENABLED: Please provide enhanced, thorough analysis:
             prompt += "\nUse this context to provide more personalized and relevant responses."
         }
 
-        // Speaker identification unavailable — applies to ALL modes
-        prompt += """
+        // Speaker identification — conditional on whether diarization is active
+        // Anchor to line start to avoid false positives from spoken content like "pour moi: ..."
+        let hasDiarization = transcript.split(separator: "\n").contains { line in
+            line.hasPrefix("Moi: ") || line.hasPrefix("Interlocuteur: ")
+        }
+
+        if hasDiarization {
+            prompt += """
+
+
+SPEAKER IDENTIFICATION:
+The transcript includes speaker labels: "Moi" = the user, "Interlocuteur" = other participant(s).
+You CAN and SHOULD distinguish who said what:
+- Use "you said/proposed/asked" for "Moi" entries
+- Use "your interlocutor said/proposed/asked" for "Interlocuteur" entries
+- Action items: clearly attribute to the correct speaker
+"""
+        } else {
+            prompt += """
 
 
 SPEAKER IDENTIFICATION — CRITICAL RULE:
@@ -474,6 +491,7 @@ NEVER attribute a statement, decision, or action item to a specific person by na
 Use generic references only: "a participant mentioned", "someone raised", "it was said", "the team discussed".
 BAD: "Denis should send the report" → GOOD: "Someone should send the report" or "The report needs to be sent".
 """
+        }
 
         return prompt
     }
