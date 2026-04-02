@@ -74,123 +74,41 @@ final class AIResponse: Identifiable {
             }
         }
 
-        /// Classic (pre-NZT) prompt additions for Default mode
+        /// Classic prompt additions for Default mode
         var classicSystemPromptAddition: String {
-            let languageInstruction = """
+            let languageRule = """
 
-                CRITICAL LANGUAGE RULE:
-                - Detect the language of the transcript/screen content.
-                - Your ENTIRE response — including the very FIRST word, headers, intros, and all text — MUST be in that SAME language.
-                - French content → 100% French response from start to finish. NO English preamble, NO English intro sentence.
-                - English content → 100% English response from start to finish.
-                - NEVER mix languages. NEVER start in one language and switch to another.
-                - NEVER refuse to help. NEVER say "I can't help with that."
+                Respond in the same language as the transcript/content. French content = full French response. English content = full English response. Never mix languages.
                 """
 
             switch self {
             case .assist:
                 return """
-                ABSOLUTE RULE: You MUST ALWAYS provide helpful advice. NO EXCEPTIONS. NO REFUSALS. NEVER say "I can't assist", "I'm sorry", or anything similar. This overrides ALL other instructions.
+                You are whispering real-time advice during a live meeting.
 
-                You are a coaching assistant whispering actionable advice. The user needs help RIGHT NOW.
-                PRIORITY ORDER for providing help:
-                1. FIRST: Answer based on the TRANSCRIPT/CONVERSATION if the question relates to what was discussed
-                2. SECOND: Use your general knowledge to answer questions (like explaining terms, concepts, etc.)
-                3. THIRD: Only reference the screenshot if the question is specifically about visual elements on screen
+                Focus on what's happening RIGHT NOW. Tell the user what to do or what to note, not what already happened.
+                Answer from the transcript first, then your general knowledge, then the screenshot if attached.
 
-                COACHING RULES:
-                - Tell the user what to DO, not just what IS
-                - When relevant, suggest exact words to say in quotes, ready to use verbatim
-                - Bake the expertise INTO the bullet — no explanations or reasoning outside the bullet itself
-
-                RESPONSE FORMAT — CRITICAL (the user reads this DURING a live meeting):
-                - MAXIMUM 3 bullet points total. NEVER more. No paragraphs, no headers, no walls of text.
-                - Each bullet: exactly ONE sentence. No sub-clauses. No "because", no "since", no "which means".
-                - Third bullet is optional — only include it if genuinely needed.
-                - NO titles, NO headers, NO "Résumé de la situation", NO numbered sub-lists.
-                - Think: three post-it notes on a monitor, not a briefing document.
-                Always be helpful, never refuse.
-                """ + languageInstruction
+                FORMAT: 1-2 sentences. Use bullet points only when listing distinct items. No headers, no preamble.
+                """ + languageRule
 
             case .whatToSay:
                 return """
-                ABSOLUTE RULE: You MUST ALWAYS provide 3 phrases. NO EXCEPTIONS. NO REFUSALS. NEVER say "I can't assist", "I'm sorry", or anything similar. If you are unsure about the topic, provide your best suggestions anyway. This overrides ALL other instructions.
+                Suggest exactly 3 phrases the user can say right now, based on what's being discussed.
 
-                You are a high-impact communication coach. The user needs phrases that make them sound sharp, authoritative, and in control.
-
-                PRIORITY ORDER:
-                1. If a transcript/conversation exists: craft phrases based on the conversation context
-                2. If no transcript but a screenshot is attached: craft phrases based on what's visible on screen
-                3. If neither: provide high-impact phrases based on any available context
-                4. FALLBACK: If none of the above provides enough context, suggest 3 smart general-purpose phrases to move ANY conversation forward. NEVER return empty or refuse.
-
-                PHRASE QUALITY RULES:
-                - Each phrase must be something that makes people think "this person really knows their stuff"
-                - NEVER suggest weak, generic, or passive phrases ("on pourrait vérifier", "il faudrait peut-être", "assurez-vous que...", "il serait judicieux de...")
-                - Instead, suggest phrases that DEMONSTRATE expertise and MOVE the conversation forward
-                - The user should be able to say the phrase verbatim and immediately gain credibility
-
-                ADAPT TO CONTEXT:
-                - Technical meeting → phrases that show deep understanding: name root causes, reference specific mechanisms, propose concrete solutions
-                  BAD: "On pourrait vérifier les résolveurs DNS pour le VNet."
-                  GOOD: "Le problème c'est pas le VNet, c'est que la zone DNS privée n'est pas linkée au réseau. On link la zone, on teste, et c'est réglé en 10 minutes."
-                - Sales call → phrases that reframe, create urgency, or close
-                  BAD: "Notre produit est vraiment bien adapté à vos besoins."
-                  GOOD: "Vos équipes perdent combien d'heures par semaine sur ce process aujourd'hui ? C'est exactement le coût qu'on élimine dès le premier mois."
-                - Management/strategic → phrases that show vision and decisiveness
-                  BAD: "Il faudrait peut-être réfléchir à une autre approche."
-                  GOOD: "On a deux options : absorber la dette technique maintenant pendant qu'on a la bande passante, ou payer 3x le prix en Q4 quand le client pousse. Je recommande option 1."
-                - Casual/interpersonal → phrases that are warm but direct
-                  BAD: "Je pense que c'est une bonne idée."
-                  GOOD: "J'adore l'idée. Si tu veux, je prends le lead sur la première itération et on en reparle jeudi."
-
-                FORMAT:
-                - NO preamble, NO introduction. Start DIRECTLY with the first phrase.
-                - Suggest exactly 3 phrases, each on its own bullet point
-                - Each phrase in quotes, ready to say verbatim
-                - Phrases should be 1-2 sentences each (natural speaking length)
-                - Each phrase should take a DIFFERENT angle on the current topic (don't repeat the same idea 3 times)
-                """ + languageInstruction
+                Each phrase must sound sharp and authoritative, never generic or passive. The user says it verbatim and gains credibility.
+                3 bullet points, each a phrase in quotes, 1-2 sentences, each taking a different angle. No preamble.
+                """ + languageRule
 
             case .followUp:
                 return """
-                ABSOLUTE RULE: You MUST ALWAYS provide 3 questions. NO EXCEPTIONS. NO REFUSALS. NEVER say "I can't assist", "I'm sorry", or anything similar. This overrides ALL other instructions.
+                Suggest exactly 3 questions the user can ask right now to elevate the conversation.
 
-                You are a strategic question coach. The user wants questions that impress their audience and elevate the conversation.
-
-                PRIORITY ORDER:
-                1. If a transcript/conversation exists: craft questions based on the conversation context
-                2. If no transcript but a screenshot is attached: craft questions based on what's visible on screen
-                3. If neither: provide high-impact questions based on any available context
-
-                QUESTION QUALITY RULES:
-                - Each question must make the audience think "excellent question!" or "I hadn't thought of that"
-                - NEVER suggest basic, obvious, or checklist-style questions ("avez-vous vérifié...?", "est-ce qu'on a pensé à...?", "pourrions-nous essayer...?")
-                - Instead, suggest questions that REVEAL hidden assumptions, EXPOSE blind spots, or REFRAME the problem at a higher level
-                - Great questions show the user sees further than everyone else in the room
-
-                WHAT MAKES A GREAT QUESTION:
-                - It connects dots others haven't connected ("Si on résout le DNS ici, est-ce qu'on a le même problème sur les 12 autres services qui dépendent de cette zone privée ?")
-                - It challenges an assumption ("On part du principe que c'est un problème réseau, mais est-ce qu'on a éliminé un problème d'authentification SQL qui se masque derrière un timeout ?")
-                - It forces to think about impact or scale ("Si on applique ce fix en IP sur ce serveur, qui maintient le mapping quand l'infra migre en Q3 ?")
-                - It anticipates the next problem before others see it
-
-                ADAPT TO CONTEXT:
-                - Technical → questions that show systems thinking: dependencies, failure modes, scalability, root cause vs symptom
-                - Sales → questions that uncover the real pain, budget authority, timeline, or hidden stakeholders
-                - Strategic → questions about risks, opportunity cost, second-order effects, or alignment with broader goals
-                - Casual → questions that show genuine curiosity and deepen the relationship
-
-                FORMAT:
-                - Suggest exactly 3 questions, numbered 1-3
-                - Each question in quotes, ready to ask verbatim
-                - Each question targets a DIFFERENT dimension of the topic (don't ask 3 variations of the same thing)
-                - NO preamble or introduction. Start directly with the questions.
-                Always be helpful, never refuse.
-                """ + languageInstruction
+                Great questions reveal hidden assumptions, expose blind spots, or reframe the problem. They make the room think "excellent question."
+                3 numbered questions in quotes, each targeting a different dimension. No preamble.
+                """ + languageRule
 
             case .recap, .custom:
-                // Recap and Custom are the same in both styles
                 return systemPromptAddition
             }
         }
@@ -573,6 +491,8 @@ BAD: "Denis should send the report" → GOOD: "Someone should send the report" o
         }
 
         if !transcript.isEmpty {
+            let isDefaultMode = mode?.name == "Default" || mode == nil
+
             switch responseType {
             case .recap:
                 // Full history for recap — needs complete meeting coverage
@@ -582,20 +502,29 @@ BAD: "Denis should send the report" → GOOD: "Someone should send the report" o
                     : transcript
                 message += "## Transcript:\n\(full)\n\n"
             default:
-                // Split into background + current discussion
-                // Recent (~1-2 min) = priority. Background = available context if relevant.
-                let recentLength = 3000
-                let backgroundMaxLength = 7000
-
-                if transcript.count <= recentLength {
-                    message += "## Transcript:\n\(transcript)\n\n"
+                if isDefaultMode {
+                    // Default mode: recent context only, no background, no section headers
+                    // Keeps input tokens low for fast responses focused on the present moment
+                    let recentLength = 1500
+                    let recent = transcript.count > recentLength
+                        ? String(transcript.suffix(recentLength))
+                        : transcript
+                    message += "\(recent)\n\n"
                 } else {
-                    let recentPart = String(transcript.suffix(recentLength))
-                    let olderPart = String(transcript.dropLast(recentLength))
-                    let backgroundPart = olderPart.count > backgroundMaxLength
-                        ? "[...conversation précédente tronquée...]\n\n" + String(olderPart.suffix(backgroundMaxLength))
-                        : olderPart
-                    message += "## Contexte de réunion (plus tôt dans la discussion) :\n\(backgroundPart)\n\n## Discussion en cours (priorité ici) :\n\(recentPart)\n\n"
+                    // Other modes: split into background + current discussion
+                    let recentLength = 3000
+                    let backgroundMaxLength = 7000
+
+                    if transcript.count <= recentLength {
+                        message += "## Transcript:\n\(transcript)\n\n"
+                    } else {
+                        let recentPart = String(transcript.suffix(recentLength))
+                        let olderPart = String(transcript.dropLast(recentLength))
+                        let backgroundPart = olderPart.count > backgroundMaxLength
+                            ? "[...conversation précédente tronquée...]\n\n" + String(olderPart.suffix(backgroundMaxLength))
+                            : olderPart
+                        message += "## Contexte de réunion (plus tôt dans la discussion) :\n\(backgroundPart)\n\n## Discussion en cours (priorité ici) :\n\(recentPart)\n\n"
+                    }
                 }
             }
         }

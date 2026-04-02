@@ -48,13 +48,26 @@ final class ProxyAIProvider: AIProvider {
 
         let startTime = Date()
 
+        // Default mode capped at 300 for fast, terse responses
+        // Recap needs more tokens for comprehensive meeting summaries
+        // Other modes use config default
+        let isDefaultMode = context.mode?.name == "Default" || context.mode == nil
+        let effectiveMaxTokens: Int
+        if context.responseType == .recap {
+            effectiveMaxTokens = max(configManager.maxTokens, 3000)
+        } else if isDefaultMode {
+            effectiveMaxTokens = min(configManager.maxTokens, 300)
+        } else {
+            effectiveMaxTokens = configManager.maxTokens
+        }
+
         let response = try await proxyClient.generateAIResponse(
             provider: providerName,
             smartMode: context.smartMode,
             systemPrompt: context.systemPrompt,
             userMessage: context.userMessage,
             screenshot: context.screenshot,
-            maxTokens: configManager.maxTokens
+            maxTokens: effectiveMaxTokens
         )
 
         let latencyMs = Int(Date().timeIntervalSince(startTime) * 1000)
