@@ -24,7 +24,7 @@ final class AIContextTests: XCTestCase {
         )
 
         let prompt = context.systemPrompt
-        XCTAssertTrue(prompt.contains("coaching assistant"), "Default mode prompt should contain coaching assistant identity")
+        XCTAssertTrue(prompt.contains("real-time assistant"), "Default mode prompt should contain real-time assistant identity")
         XCTAssertTrue(prompt.contains("LANGUAGE RULE"), "Should include language rule")
     }
 
@@ -73,7 +73,7 @@ final class AIContextTests: XCTestCase {
         // Default mode uses classic coaching prompts (no NZT)
         let defaultMode = Mode(name: "Default", systemPrompt: "test")
         let defaultContext = AIContext(transcript: "test", mode: defaultMode, responseType: .assist)
-        XCTAssertTrue(defaultContext.systemPrompt.contains("coaching assistant"),
+        XCTAssertTrue(defaultContext.systemPrompt.contains("whispering real-time advice"),
             "Default should use classic prompt additions")
         XCTAssertFalse(defaultContext.systemPrompt.contains("NZT"),
             "Default should NOT use NZT prompt additions")
@@ -97,11 +97,13 @@ final class AIContextTests: XCTestCase {
     }
 
     func testLongTranscriptIsTruncated() {
-        let longTranscript = String(repeating: "word ", count: 5000) // ~25000 chars, exceeds 20000 limit
-        let context = AIContext(transcript: longTranscript, responseType: .assist)
+        // Use a non-Default mode to test background truncation (Default mode has no background)
+        let mode = Mode(name: "Limitless", systemPrompt: "test")
+        let longTranscript = String(repeating: "word ", count: 5000) // ~25000 chars, exceeds limit
+        let context = AIContext(transcript: longTranscript, mode: mode, responseType: .assist)
         let message = context.userMessage
 
-        XCTAssertTrue(message.contains("tronquée"), "Long transcript should show truncation marker")
+        XCTAssertTrue(message.contains("tronquée"), "Long transcript should show truncation marker for non-Default modes")
     }
 
     func testTranscriptTruncationKeepsEnd() {
