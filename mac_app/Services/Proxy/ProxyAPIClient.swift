@@ -434,25 +434,16 @@ final class ProxyAPIClient: @unchecked Sendable {
             return try JSONDecoder().decode(T.self, from: data)
 
         case 401:
-            // Try to refresh the token and retry once
+            // Retry once with a force-refreshed token, routed through the deduped
+            // getValidAccessToken() to avoid concurrent refresh races (Sentry: QUEEN-MAMA-MACOS-1E).
+            // Previously this did its own manual refresh, which raced with getValidAccessToken()
+            // when multiple requests hit 401 simultaneously after app wake.
             if retryCount == 0 {
-                print("[ProxyAPI] 401 Unauthorized - attempting token refresh and retry...")
-                if let refreshToken = await MainActor.run(body: { tokenStore.refreshToken }) {
-                    do {
-                        let refreshResponse = try await AuthAPIClient.shared.refreshTokens(refreshToken)
-                        await MainActor.run {
-                            tokenStore.accessToken = refreshResponse.accessToken
-                            tokenStore.accessTokenExpiry = Date().addingTimeInterval(TimeInterval(refreshResponse.expiresIn))
-                            tokenStore.refreshToken = refreshResponse.refreshToken
-                        }
-
-                        // Rebuild request with new token
-                        var retryRequest = request
-                        retryRequest.setValue("Bearer \(refreshResponse.accessToken)", forHTTPHeaderField: "Authorization")
-                        return try await perform(retryRequest, retryCount: 1)
-                    } catch {
-                        print("[ProxyAPI] Token refresh failed during 401 retry: \(error)")
-                    }
+                print("[ProxyAPI] 401 Unauthorized - attempting deduped token refresh and retry...")
+                if let refreshedToken = await getValidAccessToken(forceRefresh: true) {
+                    var retryRequest = request
+                    retryRequest.setValue("Bearer \(refreshedToken)", forHTTPHeaderField: "Authorization")
+                    return try await perform(retryRequest, retryCount: 1)
                 }
             }
             throw ProxyError.notAuthenticated
