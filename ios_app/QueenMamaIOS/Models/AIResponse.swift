@@ -64,6 +64,46 @@ final class AIResponse: Identifiable {
             }
         }
 
+        /// Classic prompt additions for Default mode — terse, fast, focused on the present moment
+        var classicSystemPromptAddition: String {
+            let languageRule = """
+
+                Respond in the same language as the transcript/content. French content = full French response. English content = full English response. Never mix languages.
+                """
+
+            switch self {
+            case .assist:
+                return """
+                You are whispering real-time advice during a live meeting.
+
+                Focus on what's happening RIGHT NOW. Tell the user what to do or what to note, not what already happened.
+                Answer from the transcript first, then your general knowledge, then the screenshot if attached.
+
+                FORMAT: 1-2 sentences. Use bullet points only when listing distinct items. No headers, no preamble.
+                """ + languageRule
+
+            case .whatToSay:
+                return """
+                Suggest exactly 3 phrases the user can say right now, based on what's being discussed.
+
+                Each phrase must sound sharp and authoritative, never generic or passive. The user says it verbatim and gains credibility.
+                3 bullet points, each a phrase in quotes, 1-2 sentences, each taking a different angle. No preamble.
+                """ + languageRule
+
+            case .followUp:
+                return """
+                Suggest exactly 3 questions the user can ask right now to elevate the conversation.
+
+                Great questions reveal hidden assumptions, expose blind spots, or reframe the problem. They make the room think "excellent question."
+                3 numbered questions in quotes, each targeting a different dimension. No preamble.
+                """ + languageRule
+
+            case .recap, .custom:
+                return systemPromptAddition
+            }
+        }
+
+        /// Full prompt additions for non-Default built-in modes
         var systemPromptAddition: String {
             // Language instruction added to ALL response types for consistency
             let languageInstruction = """
@@ -292,9 +332,13 @@ struct AIContext: @unchecked Sendable {
             // For built-in modes, use the traditional combination
             prompt += mode?.systemPrompt ?? Mode.defaultMode.systemPrompt
             // Developer Exam has its own complete prompt — skip responseType addition
-            // to avoid conflicting instructions (e.g. .assist adding "1-2 sentences max")
             if mode?.name != "Developer Exam" {
-                prompt += "\n\n" + responseType.systemPromptAddition
+                // Default mode uses classic terse prompts, others use full prompts
+                if mode?.name == "Default" || mode == nil {
+                    prompt += "\n\n" + responseType.classicSystemPromptAddition
+                } else {
+                    prompt += "\n\n" + responseType.systemPromptAddition
+                }
             }
             print("[AIContext] Using BUILT-IN mode logic with responseType: \(responseType.rawValue)")
         }
@@ -367,20 +411,31 @@ BAD: "Denis should send the report" → GOOD: "Someone should send the report" o
         }
 
         if !transcript.isEmpty {
-            // Split into background + current discussion
-            // Recent (~1-2 min) = priority. Background = available context if relevant.
-            let recentLength = 2500
-            let backgroundMaxLength = 5500
+            let isDefaultMode = mode?.name == "Default" || mode == nil
 
-            if transcript.count <= recentLength {
-                message += "## Transcript:\n\(transcript)\n\n"
+            if isDefaultMode && responseType != .recap {
+                // Default mode: recent context only, no background, no section headers
+                // Keeps input tokens low for fast responses focused on the present moment
+                let recentLength = 1500
+                let recent = transcript.count > recentLength
+                    ? String(transcript.suffix(recentLength))
+                    : transcript
+                message += "\(recent)\n\n"
             } else {
-                let recentPart = String(transcript.suffix(recentLength))
-                let olderPart = String(transcript.dropLast(recentLength))
-                let backgroundPart = olderPart.count > backgroundMaxLength
-                    ? "[...conversation précédente tronquée...]\n\n" + String(olderPart.suffix(backgroundMaxLength))
-                    : olderPart
-                message += "## Contexte de réunion (plus tôt dans la discussion) :\n\(backgroundPart)\n\n## Discussion en cours (priorité ici) :\n\(recentPart)\n\n"
+                // Other modes: split into background + current discussion
+                let recentLength = 2500
+                let backgroundMaxLength = 5500
+
+                if transcript.count <= recentLength {
+                    message += "## Transcript:\n\(transcript)\n\n"
+                } else {
+                    let recentPart = String(transcript.suffix(recentLength))
+                    let olderPart = String(transcript.dropLast(recentLength))
+                    let backgroundPart = olderPart.count > backgroundMaxLength
+                        ? "[...conversation précédente tronquée...]\n\n" + String(olderPart.suffix(backgroundMaxLength))
+                        : olderPart
+                    message += "## Contexte de réunion (plus tôt dans la discussion) :\n\(backgroundPart)\n\n## Discussion en cours (priorité ici) :\n\(recentPart)\n\n"
+                }
             }
         }
 

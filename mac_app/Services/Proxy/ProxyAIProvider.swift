@@ -91,10 +91,17 @@ final class ProxyAIProvider: AIProvider {
         let startTime = Date()
 
         // Recap needs more tokens for comprehensive meeting summaries
-        // Other modes capped at 600 for concise, faster responses
-        let effectiveMaxTokens = context.responseType == .recap
-            ? max(configManager.maxTokens, 3000)
-            : min(configManager.maxTokens, 600)
+        // Default mode capped at 300 for fast, terse responses
+        // Other modes capped at 600 for concise responses
+        let isDefaultMode = context.mode?.name == "Default" || context.mode == nil
+        let effectiveMaxTokens: Int
+        if context.responseType == .recap {
+            effectiveMaxTokens = max(configManager.maxTokens, 3000)
+        } else if isDefaultMode {
+            effectiveMaxTokens = min(configManager.maxTokens, 300)
+        } else {
+            effectiveMaxTokens = min(configManager.maxTokens, 600)
+        }
 
         let response = try await proxyClient.generateAIResponse(
             provider: providerName,

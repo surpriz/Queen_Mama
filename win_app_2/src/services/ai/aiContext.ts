@@ -155,15 +155,24 @@ export function buildUserMessage(params: AIContextParams): AIMessage[] {
   let textContent = ''
 
   if (transcript.trim()) {
+    const isDefaultMode = !mode || mode.name === 'Default'
+
     if (responseType === ResponseType.Recap) {
       // Full history for recap — needs complete meeting coverage
       const truncated = transcript.length > MAX_TRANSCRIPT_LENGTH_RECAP
         ? '[...previous conversation truncated...]\n\n' + transcript.slice(-MAX_TRANSCRIPT_LENGTH_RECAP)
         : transcript
       textContent += `## Transcript:\n${truncated}\n\n`
+    } else if (isDefaultMode) {
+      // Default mode: recent context only, no background, no section headers
+      // Keeps input tokens low for fast responses focused on the present moment
+      const recentLength = 1500
+      const recent = transcript.length > recentLength
+        ? transcript.slice(-recentLength)
+        : transcript
+      textContent += `${recent}\n\n`
     } else {
-      // Split into background + current discussion
-      // Recent (~1-2 min) = priority. Background = available context if relevant.
+      // Other modes: split into background + current discussion
       const recentLength = 3000
       const backgroundMaxLength = MAX_TRANSCRIPT_LENGTH - recentLength
 
