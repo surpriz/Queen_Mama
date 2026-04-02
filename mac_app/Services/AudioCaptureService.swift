@@ -139,7 +139,25 @@ final class AudioCaptureService: ObservableObject {
     // MARK: - Private Methods
 
     private func setupAudioEngine() throws {
+        // Invalidate converter before any format queries (format may change with AEC)
+        audioConverter = nil
+
         let inputNode = audioEngine.inputNode
+
+        // Enable Voice Processing (AEC) for speaker diarization
+        // This subtracts system audio (speakers) from the mic signal,
+        // leaving only the user's voice — works without headphones.
+        // Requires macOS 14+ (app already targets 14.2+)
+        if #available(macOS 14.0, *) {
+            do {
+                try inputNode.setVoiceProcessingEnabled(true)
+                print("[AudioCapture] Voice Processing (AEC) enabled for speaker diarization")
+            } catch {
+                print("[AudioCapture] Failed to enable Voice Processing: \(error) — continuing without AEC")
+                CrashReporter.shared.addBreadcrumb(category: "audio", message: "AEC failed: \(error.localizedDescription)")
+            }
+        }
+
         let inputFormat = inputNode.outputFormat(forBus: 0)
 
         print("[AudioCapture] Input format: \(inputFormat)")

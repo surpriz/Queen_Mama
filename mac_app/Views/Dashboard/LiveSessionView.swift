@@ -135,9 +135,13 @@ struct ModernLiveTranscriptPanel: View {
                             .frame(maxWidth: .infinity, maxHeight: .infinity)
                             .padding(QMDesign.Spacing.xl)
                         } else {
-                            // Parse and display transcript with speaker labels
-                            ForEach(Array(transcriptLines.enumerated()), id: \.offset) { _, line in
-                                TranscriptLineView(line: line)
+                            // Display transcript with iMessage-style bubbles
+                            let lines = transcriptLines
+                            ForEach(Array(lines.enumerated()), id: \.offset) { index, line in
+                                TranscriptBubbleView(
+                                    line: line,
+                                    isFirstInGroup: index == 0 || speakerOf(lines[index - 1]) != speakerOf(line)
+                                )
                             }
 
                             // Interim text with pulse animation
@@ -189,6 +193,13 @@ struct ModernLiveTranscriptPanel: View {
             .filter { !$0.isEmpty }
     }
 
+    /// Identify speaker from a raw transcript line for grouping
+    private func speakerOf(_ line: String) -> String? {
+        if line.hasPrefix("Moi: ") { return "Moi" }
+        if line.hasPrefix("Interlocuteur: ") { return "Interlocuteur" }
+        return nil
+    }
+
     private var wordCount: Int {
         transcript.split(separator: " ").count
     }
@@ -199,63 +210,54 @@ struct ModernLiveTranscriptPanel: View {
     }
 }
 
-// MARK: - Transcript Line View with Speaker Labels
+// MARK: - Transcript Bubble View (iMessage Style)
 
-struct TranscriptLineView: View {
+struct TranscriptBubbleView: View {
     let line: String
+    let isFirstInGroup: Bool
 
-    var body: some View {
-        HStack(alignment: .top, spacing: QMDesign.Spacing.sm) {
-            // Speaker label with color coding
-            if let speaker = extractSpeaker(from: line) {
-                Text(speaker)
-                    .font(QMDesign.Typography.labelSmall)
-                    .fontWeight(.semibold)
-                    .foregroundColor(speakerColor(for: speaker))
-                    .frame(width: 80, alignment: .leading)
-
-                Text(extractContent(from: line))
-                    .font(QMDesign.Typography.bodyMedium)
-                    .foregroundColor(QMDesign.Colors.textPrimary)
-                    .textSelection(.enabled)
-            } else {
-                // Legacy format without speaker label
-                Text(line)
-                    .font(QMDesign.Typography.bodyMedium)
-                    .foregroundColor(QMDesign.Colors.textPrimary)
-                    .textSelection(.enabled)
-            }
-        }
-    }
-
-    /// Extract speaker name from line (e.g., "Moi: Hello" -> localized name)
-    private func extractSpeaker(from line: String) -> String? {
-        if line.hasPrefix("Moi:") {
-            return String(localized: "live.speaker.me")
-        } else if line.hasPrefix("Interlocuteur:") {
-            return String(localized: "live.speaker.other")
-        }
+    private var speaker: String? {
+        if line.hasPrefix("Moi: ") { return "Moi" }
+        if line.hasPrefix("Interlocuteur: ") { return "Interlocuteur" }
         return nil
     }
 
-    /// Extract content after speaker label (e.g., "Moi: Hello" -> "Hello")
-    private func extractContent(from line: String) -> String {
-        if line.hasPrefix("Moi: ") {
-            return String(line.dropFirst(5))
-        } else if line.hasPrefix("Interlocuteur: ") {
-            return String(line.dropFirst(15))
-        }
+    private var isMe: Bool { speaker == "Moi" }
+
+    private var content: String {
+        if line.hasPrefix("Moi: ") { return String(line.dropFirst(5)) }
+        if line.hasPrefix("Interlocuteur: ") { return String(line.dropFirst(15)) }
         return line
     }
 
-    /// Get color for speaker label
-    private func speakerColor(for speaker: String) -> Color {
-        if speaker == String(localized: "live.speaker.me") {
-            return Color.blue
-        } else if speaker == String(localized: "live.speaker.other") {
-            return Color.green
+    var body: some View {
+        if speaker != nil {
+            // Diarized line — iMessage-style bubble
+            HStack {
+                if isMe { Spacer(minLength: 60) }
+
+                Text(content)
+                    .font(QMDesign.Typography.bodyMedium)
+                    .foregroundColor(isMe ? .white : QMDesign.Colors.textPrimary)
+                    .textSelection(.enabled)
+                    .padding(.horizontal, QMDesign.Spacing.md)
+                    .padding(.vertical, QMDesign.Spacing.sm)
+                    .background(
+                        RoundedRectangle(cornerRadius: QMDesign.Radius.lg)
+                            .fill(isMe ? QMDesign.Colors.accent : QMDesign.Colors.surfaceMedium)
+                    )
+                    .frame(maxWidth: 500, alignment: isMe ? .trailing : .leading)
+
+                if !isMe { Spacer(minLength: 60) }
+            }
+            .padding(.top, isFirstInGroup ? QMDesign.Spacing.sm : 2)
+        } else {
+            // Legacy line — no speaker label (backward compatible)
+            Text(line)
+                .font(QMDesign.Typography.bodyMedium)
+                .foregroundColor(QMDesign.Colors.textPrimary)
+                .textSelection(.enabled)
         }
-        return QMDesign.Colors.textSecondary
     }
 }
 

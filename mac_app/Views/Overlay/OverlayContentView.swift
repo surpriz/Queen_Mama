@@ -2362,11 +2362,37 @@ struct OverlayTranscriptStripView: View {
                 .foregroundColor(QMDesign.Colors.textTertiary)
                 .italic()
         } else {
-            Text(tail).foregroundColor(QMDesign.Colors.textSecondary) +
+            speakerColoredText(tail) +
             Text(interim.isEmpty ? "" : " " + interim)
                 .foregroundColor(QMDesign.Colors.textTertiary)
                 .italic()
         }
+    }
+
+    /// Build a Text with per-speaker color differentiation.
+    /// "Moi: ..." segments get white, "Interlocuteur: ..." get dimmed blue-gray.
+    /// Lines without speaker prefix keep the default secondary color.
+    private func speakerColoredText(_ text: String) -> Text {
+        let lines = text.split(separator: "\n", omittingEmptySubsequences: false)
+        var result = Text("")
+        for (i, line) in lines.enumerated() {
+            let str = String(line)
+            let color: Color
+            let content: String
+            if str.hasPrefix("Moi: ") {
+                color = .white
+                content = String(str.dropFirst(5))
+            } else if str.hasPrefix("Interlocuteur: ") {
+                color = QMDesign.Colors.textSecondary.opacity(0.6)
+                content = String(str.dropFirst(15))
+            } else {
+                color = QMDesign.Colors.textSecondary
+                content = str
+            }
+            if i > 0 { result = result + Text("\n") }
+            result = result + Text(content).foregroundColor(color)
+        }
+        return result
     }
 }
 
