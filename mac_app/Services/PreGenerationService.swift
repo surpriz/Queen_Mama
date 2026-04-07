@@ -53,10 +53,10 @@ final class PreGenerationService: ObservableObject {
     // MARK: - Configuration (Enterprise-optimized)
 
     /// Number of new words before triggering pre-generation
-    private let wordTriggerCount = 40
+    private let wordTriggerCount = 20
 
     /// Seconds of silence to trigger pre-generation (backup, with ≥1 word)
-    private let silenceThreshold: TimeInterval = 3.0
+    private let silenceThreshold: TimeInterval = 2.0
 
     /// Cooldown between pre-generation triggers (seconds)
     private let cooldownPeriod: TimeInterval = 10.0

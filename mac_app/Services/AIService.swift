@@ -371,7 +371,8 @@ final class AIService: ObservableObject {
                 var accumulatedResponse = ""
                 var chunkBuffer = ""
                 var lastUIUpdate = Date()
-                let uiUpdateInterval: TimeInterval = 0.05  // Update UI every 50ms max
+                let uiUpdateInterval: TimeInterval = 0.016  // 16ms = 1 frame @60fps
+                var isFirstChunk = true
 
                 do {
 
@@ -380,15 +381,17 @@ final class AIService: ObservableObject {
                         chunkBuffer += chunk
                         continuation.yield(chunk)
 
-                        // Batch UI updates to avoid main thread blocking
+                        // Flush immediately on first chunk to minimize perceived TTFT,
+                        // then batch subsequent updates at 60fps
                         let now = Date()
-                        if now.timeIntervalSince(lastUIUpdate) >= uiUpdateInterval {
+                        if isFirstChunk || now.timeIntervalSince(lastUIUpdate) >= uiUpdateInterval {
                             let bufferedContent = chunkBuffer
                             await MainActor.run {
                                 self.currentResponse += bufferedContent
                             }
                             chunkBuffer = ""
                             lastUIUpdate = now
+                            isFirstChunk = false
                         }
                     }
 
@@ -451,6 +454,7 @@ final class AIService: ObservableObject {
                             accumulatedResponse = ""
                             chunkBuffer = ""
                             lastUIUpdate = Date()
+                            isFirstChunk = true
 
                             // Retry streaming without screenshot
                             for try await chunk in self.proxyProvider.generateStreamingResponse(context: retryContext) {
@@ -459,13 +463,14 @@ final class AIService: ObservableObject {
                                 continuation.yield(chunk)
 
                                 let now = Date()
-                                if now.timeIntervalSince(lastUIUpdate) >= uiUpdateInterval {
+                                if isFirstChunk || now.timeIntervalSince(lastUIUpdate) >= uiUpdateInterval {
                                     let bufferedContent = chunkBuffer
                                     await MainActor.run {
                                         self.currentResponse += bufferedContent
                                     }
                                     chunkBuffer = ""
                                     lastUIUpdate = now
+                                    isFirstChunk = false
                                 }
                             }
 
@@ -567,6 +572,7 @@ final class AIService: ObservableObject {
                     accumulatedResponse = ""
                     chunkBuffer = ""
                     lastUIUpdate = Date()
+                    isFirstChunk = true
 
                     do {
                         for try await chunk in self.proxyProvider.generateStreamingResponse(context: retryContext) {
@@ -575,13 +581,14 @@ final class AIService: ObservableObject {
                             continuation.yield(chunk)
 
                             let now = Date()
-                            if now.timeIntervalSince(lastUIUpdate) >= uiUpdateInterval {
+                            if isFirstChunk || now.timeIntervalSince(lastUIUpdate) >= uiUpdateInterval {
                                 let bufferedContent = chunkBuffer
                                 await MainActor.run {
                                     self.currentResponse += bufferedContent
                                 }
                                 chunkBuffer = ""
                                 lastUIUpdate = now
+                                isFirstChunk = false
                             }
                         }
 
@@ -959,22 +966,25 @@ final class AIService: ObservableObject {
                     var accumulatedResponse = ""
                     var chunkBuffer = ""
                     var lastUIUpdate = Date()
-                    let uiUpdateInterval: TimeInterval = 0.05  // Update UI every 50ms max
+                    let uiUpdateInterval: TimeInterval = 0.016  // 16ms = 1 frame @60fps
+                    var isFirstChunk = true
 
                     for try await chunk in self.proxyProvider.generateStreamingResponse(context: context) {
                         accumulatedResponse += chunk
                         chunkBuffer += chunk
                         continuation.yield(chunk)
 
-                        // Batch UI updates to avoid main thread blocking
+                        // Flush immediately on first chunk to minimize perceived TTFT,
+                        // then batch subsequent updates at 60fps
                         let now = Date()
-                        if now.timeIntervalSince(lastUIUpdate) >= uiUpdateInterval {
+                        if isFirstChunk || now.timeIntervalSince(lastUIUpdate) >= uiUpdateInterval {
                             let bufferedContent = chunkBuffer
                             await MainActor.run {
                                 self.currentResponse += bufferedContent
                             }
                             chunkBuffer = ""
                             lastUIUpdate = now
+                            isFirstChunk = false
                         }
                     }
 
