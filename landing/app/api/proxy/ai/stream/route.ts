@@ -26,7 +26,8 @@ interface TokenUsage {
 const TOKEN_COSTS: Record<string, { input: number; output: number }> = {
   "claude-sonnet-4-6":          { input: 3.00,  output: 15.00 },
   "claude-sonnet-4-5-20250929": { input: 3.00,  output: 15.00 },
-  "gpt-4o":                     { input: 2.50,  output: 10.00 },
+  "gpt-4.1":                    { input: 2.00,  output: 8.00  },
+  "gpt-4o":                     { input: 2.50,  output: 10.00 }, // kept for legacy logs
   "o4-mini":                    { input: 1.10,  output: 4.40  },
   "grok-4-1-fast-non-reasoning": { input: 3.00,  output: 15.00 },
   "grok-4-1-fast-reasoning":     { input: 3.00,  output: 15.00 },
@@ -576,37 +577,52 @@ async function streamAnthropic(
     messages.push({ role: "user", content: userMessage });
   }
 
+  // B2: Dynamic effort based on mode and transcript length
+  // Standard: low for short transcripts, medium for long/complex (>2000 chars)
+  // Smart: always medium (user expects intelligence)
+  // Recap: always high (full reasoning, user waits for quality summary)
+  const effort = mode === "recap" ? "high"
+    : mode === "smart" ? "medium"
+    : userMessage.length > 2000 ? "medium" : "low";
+
   const body: Record<string, unknown> = {
     model,
-    system: systemPrompt,
+    // B1: Prompt caching — system prompt as array with cache_control
+    // Reduces input cost by ~90% and processing time on repeated requests
+    system: [
+      {
+        type: "text",
+        text: systemPrompt,
+        cache_control: { type: "ephemeral" },
+      }
+    ],
     messages,
     max_tokens: maxTokens,
     stream: true,
+    // A1: effort parameter — replaces implicit "high" default on Sonnet 4.6
+    output_config: { effort },
   };
 
-  // Extended thinking configuration by mode:
-  // - Standard (PRO): NO thinking → fastest responses with Sonnet 4.5
-  // - Smart (Enterprise): thinking with 6000 tokens → balanced reasoning
-  // - Recap: thinking with 16000 tokens → full power for comprehensive summaries
+  // A4: Thinking configuration by mode
+  // - Standard: no thinking (effort "low" naturally skips thinking for simple tasks)
+  // - Smart: adaptive thinking — model decides when to reason (recommended for Sonnet 4.6)
+  // - Recap: full thinking power (16000 tokens, user waits for quality summary)
   const enableThinking = mode !== "standard";
 
   if (mode === "recap") {
-    // Recap mode: full thinking power (user waits for quality summary)
     body.thinking = {
       type: "enabled",
       budget_tokens: 16000,
     };
   } else if (mode === "smart") {
-    // Smart mode: optimized thinking (good reasoning, reasonable latency)
+    // A4: Replace deprecated budget_tokens with adaptive thinking
     body.thinking = {
-      type: "enabled",
-      budget_tokens: Math.min(maxTokens, 6000),
+      type: "adaptive",
     };
   }
-  // Standard mode: no thinking (fastest responses)
 
   const startTime = Date.now();
-  console.log(`[Anthropic] Calling API with model: ${model}, mode: ${mode}, thinking: ${enableThinking}, screenshot: ${!!screenshot}, maxTokens: ${maxTokens}`);
+  console.log(`[Anthropic] Calling API with model: ${model}, mode: ${mode}, effort: ${effort}, thinking: ${enableThinking}, screenshot: ${!!screenshot}, maxTokens: ${maxTokens}`);
 
   const response = await fetch(PROVIDER_URLS.anthropic, {
     method: "POST",
@@ -614,7 +630,11 @@ async function streamAnthropic(
       "x-api-key": apiKey,
       "Content-Type": "application/json",
       "anthropic-version": "2023-06-01",
-      ...(enableThinking && { "anthropic-beta": "interleaved-thinking-2025-05-14" }),
+      // B1: prompt-caching header always present; interleaved-thinking when applicable
+      "anthropic-beta": [
+        "prompt-caching-2024-07-31",
+        ...(enableThinking ? ["interleaved-thinking-2025-05-14"] : []),
+      ].join(","),
     },
     body: JSON.stringify(body),
   });

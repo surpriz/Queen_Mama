@@ -29,8 +29,8 @@ export const MODEL_CASCADE = {
   // Standard Mode (PRO): Real-time suggestions with Sonnet 4.6 (no thinking)
   // Optimized for speed + exceptional quality
   standard: [
-    { provider: "anthropic", model: "claude-sonnet-4-6" },             // Primary: ⭐⭐⭐⭐⭐ Sonnet 4.6, best speed/quality, NO thinking = fast
-    { provider: "openai", model: "gpt-4o" },                           // Fallback 1: ⭐⭐⭐⭐ quality, 599ms TTFB, proven reliable
+    { provider: "anthropic", model: "claude-sonnet-4-6" },             // Primary: ⭐⭐⭐⭐⭐ Sonnet 4.6 effort=low, fastest real-time
+    { provider: "openai", model: "gpt-4.1" },                          // Fallback 1: ⭐⭐⭐⭐ GPT-4.1, replaces retired GPT-4o
     { provider: "anthropic", model: "claude-sonnet-4-5-20250929" },    // Fallback 2: ⭐⭐⭐⭐⭐ quality, previous gen backup
   ] as CascadeModel[],
 
@@ -54,7 +54,7 @@ export const MODEL_CASCADE = {
 // Legacy AI_MODELS for backward compatibility
 export const AI_MODELS = {
   openai: {
-    standard: "gpt-4o",      // Fallback: 599ms TTFB, 128K context, Vision ✅
+    standard: "gpt-4.1",     // Fallback: replaces retired GPT-4o, Vision ✅
     smart: "o4-mini",        // Fallback: reasoning model
   },
   anthropic: {

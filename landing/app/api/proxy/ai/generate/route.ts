@@ -341,14 +341,14 @@ async function callAnthropic(
     system: systemPrompt,
     messages,
     max_tokens: maxTokens,
+    // A1: effort parameter — standard=low for speed, smart=medium for balanced reasoning
+    output_config: { effort: smartMode ? "medium" : "low" },
   };
 
-  // Add extended thinking for smart mode
-  // Budget optimized: 6000 tokens provides good reasoning without excessive latency
   if (smartMode) {
+    // A4: Replace deprecated budget_tokens with adaptive thinking
     body.thinking = {
-      type: "enabled",
-      budget_tokens: Math.min(maxTokens, 6000),
+      type: "adaptive",
     };
   }
 
