@@ -1044,7 +1044,7 @@ struct ModernExpandedContentView: View {
 
             // Live Transcript Strip
             if appState.isSessionActive && config.showTranscriptInOverlay {
-                OverlayTranscriptStripView(transcriptionService: appState.transcriptionService)
+                OverlayTranscriptStripView(transcriptionService: appState.transcriptionService, appState: appState)
                     .transition(.opacity.combined(with: .move(edge: .top)))
             }
 
@@ -2305,11 +2305,14 @@ struct AIErrorToast: View {
 
 struct OverlayTranscriptStripView: View {
     @ObservedObject var transcriptionService: TranscriptionService
+    @ObservedObject var appState: AppState
 
-    private static let tailChars = 150
+    private static let tailChars = 200
 
+    /// Use appState.currentTranscript (has "Moi:"/"Interlocuteur:" labels)
+    /// for speaker-colored display. Fall back to transcriptionService for interim.
     private var tail: String {
-        let full = transcriptionService.currentTranscript
+        let full = appState.currentTranscript
         guard full.count > Self.tailChars else { return full }
         let slice = full.suffix(Self.tailChars)
         if let space = slice.firstIndex(of: " ") {
@@ -2319,7 +2322,7 @@ struct OverlayTranscriptStripView: View {
     }
 
     private var isTruncated: Bool {
-        transcriptionService.currentTranscript.count > Self.tailChars
+        appState.currentTranscript.count > Self.tailChars
     }
 
     /// Fixed minimum height for the transcript text area (3 lines of 10.5pt font).
@@ -2369,28 +2372,28 @@ struct OverlayTranscriptStripView: View {
         }
     }
 
-    /// Build a Text with per-speaker color differentiation.
-    /// "Moi: ..." segments get white, "Interlocuteur: ..." get dimmed blue-gray.
-    /// Lines without speaker prefix keep the default secondary color.
+    /// Build a Text with visible speaker labels and distinct colors.
+    /// "Moi: ..." → purple tag + white text, "Interlocuteur: ..." → blue tag + grey text.
     private func speakerColoredText(_ text: String) -> Text {
         let lines = text.split(separator: "\n", omittingEmptySubsequences: false)
         var result = Text("")
         for (i, line) in lines.enumerated() {
             let str = String(line)
-            let color: Color
-            let content: String
-            if str.hasPrefix("Moi: ") {
-                color = .white
-                content = String(str.dropFirst(5))
-            } else if str.hasPrefix("Interlocuteur: ") {
-                color = QMDesign.Colors.textSecondary.opacity(0.6)
-                content = String(str.dropFirst(15))
-            } else {
-                color = QMDesign.Colors.textSecondary
-                content = str
-            }
             if i > 0 { result = result + Text("\n") }
-            result = result + Text(content).foregroundColor(color)
+
+            if str.hasPrefix("Moi: ") {
+                let content = String(str.dropFirst(5))
+                result = result
+                    + Text("Me ").font(.system(size: 9, weight: .bold)).foregroundColor(QMDesign.Colors.accent)
+                    + Text(content).foregroundColor(.white)
+            } else if str.hasPrefix("Interlocuteur: ") {
+                let content = String(str.dropFirst(15))
+                result = result
+                    + Text("Them ").font(.system(size: 9, weight: .bold)).foregroundColor(QMDesign.Colors.info)
+                    + Text(content).foregroundColor(QMDesign.Colors.textSecondary.opacity(0.7))
+            } else {
+                result = result + Text(str).foregroundColor(QMDesign.Colors.textSecondary)
+            }
         }
         return result
     }

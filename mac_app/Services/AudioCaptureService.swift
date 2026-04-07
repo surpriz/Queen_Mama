@@ -144,19 +144,11 @@ final class AudioCaptureService: ObservableObject {
 
         let inputNode = audioEngine.inputNode
 
-        // Enable Voice Processing (AEC) for speaker diarization
-        // This subtracts system audio (speakers) from the mic signal,
-        // leaving only the user's voice — works without headphones.
-        // Requires macOS 14+ (app already targets 14.2+)
-        if #available(macOS 14.0, *) {
-            do {
-                try inputNode.setVoiceProcessingEnabled(true)
-                print("[AudioCapture] Voice Processing (AEC) enabled for speaker diarization")
-            } catch {
-                print("[AudioCapture] Failed to enable Voice Processing: \(error) — continuing without AEC")
-                CrashReporter.shared.addBreadcrumb(category: "audio", message: "AEC failed: \(error.localizedDescription)")
-            }
-        }
+        // NOTE: Voice Processing (AEC) via setVoiceProcessingEnabled is DISABLED.
+        // It conflicts with ScreenCaptureKit: AEC ducks the system audio output,
+        // causing ScreenCaptureKit to capture near-silence for the "Them" stream.
+        // Speaker diarization works without AEC: mic captures user voice (+ some
+        // speaker bleed), system audio captures remote participants cleanly.
 
         let inputFormat = inputNode.outputFormat(forBus: 0)
 

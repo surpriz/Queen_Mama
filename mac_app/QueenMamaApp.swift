@@ -472,17 +472,6 @@ class AppState: ObservableObject {
             let startupTime = (CFAbsoluteTimeGetCurrent() - startTime) * 1000
             print("[AppState] All services started in \(Int(startupTime))ms (parallel)")
 
-            // Connect system audio WebSocket for speaker diarization (non-blocking)
-            Task {
-                do {
-                    try await self.transcriptionService.connectSystemAudio()
-                    print("[AppState] System audio WebSocket connected for speaker diarization")
-                } catch {
-                    print("[AppState] System audio WebSocket failed (diarization degraded): \(error.localizedDescription)")
-                    CrashReporter.shared.addBreadcrumb(category: "session", message: "System audio WS failed: \(error.localizedDescription)")
-                }
-            }
-
             // Services are ready — now create the session record
             isSessionActive = true
             let defaultTitle = "Session - \(Date().formatted(date: .abbreviated, time: .shortened))"
@@ -493,24 +482,10 @@ class AppState: ObservableObject {
                 contact.lastSeenAt = Date()
             }
 
-            // Wire system audio pipeline for speaker diarization (Me/Them)
-            // Must assign callbacks BEFORE start() to avoid dropping early buffers
-            screenService.systemAudioService = systemAudioService
-
-            systemAudioService.onAudioBuffer = { [weak self] buffer in
-                self?.systemAudioBatchingService.append(buffer)
-            }
-            systemAudioBatchingService.onBatchReady = { [weak self] batch in
-                self?.transcriptionService.sendSystemAudio(batch)
-            }
-
-            // Start audio batching services (mic + system audio)
+            // Start audio batching service (mic only — Deepgram diarize handles speaker separation)
             audioBatchingService.start()
-            systemAudioBatchingService.start()
 
             // Wire audio batching: Audio → Batch → Transcription
-            // This reduces WebSocket messages from ~3750/hour to ~240/hour
-            // Also sends audio to DictationService when dictation is active
             audioService.onAudioBuffer = { [weak self] buffer in
                 self?.audioBatchingService.append(buffer)
                 // Send to dictation if recording
@@ -530,60 +505,51 @@ class AppState: ObservableObject {
                 modeProvider: { [weak self] in self?.selectedMode }
             )
 
-            // Start transcript buffers for batched UI/SwiftData updates
+            // Start transcript buffer for non-diarized fallback
             transcriptBuffer.start()
-            systemTranscriptBuffer.start()
 
-            // Handle mic transcription results (Me) through buffer
+            // Handle non-diarized transcripts (fallback if Deepgram doesn't return speaker info)
             transcriptionService.onTranscript = { [weak self] text in
                 Task { @MainActor in
                     self?.transcriptBuffer.append(text)
                 }
             }
 
-            // Handle system audio transcription results (Them) through buffer
-            transcriptionService.onSystemTranscript = { [weak self] text in
-                Task { @MainActor in
-                    self?.systemTranscriptBuffer.append(text)
-                }
+            // Handle DIARIZED transcripts from Deepgram (speaker 0 = Moi, speaker 1+ = Interlocuteur)
+            transcriptionService.onDiarizedTranscript = { [weak self] (text: String, speaker: Int) in
+                guard let self = self else { return }
+
+                // Speaker 0 = first to speak = typically the other person in a call.
+                // Speaker 1 = the user (closer to mic, usually speaks second).
+                // All other speakers (2, 3, ...) = additional participants = "Interlocuteur".
+                let label = speaker == 1 ? "Moi" : "Interlocuteur"
+
+                self.sessionManager?.addTranscriptEntry(
+                    speaker: label,
+                    text: text,
+                    isFinal: true
+                )
+
+                self.currentTranscript += "\(label): \(text)\n"
+
+                let wordCount = text.split(separator: " ").count
+                HealthCheckService.shared.recordWordsTranscribed(wordCount)
+
+                self.autoAnswerService.onTranscriptReceived(self.currentTranscript)
+                self.preGenerationService.onTranscriptUpdated(self.currentTranscript)
             }
 
-            // Wire mic transcript buffer flush → "Moi" entries
+            // Non-diarized fallback flush → "Moi" entries (when no speaker info available)
             transcriptBuffer.onFlush = { [weak self] (batchedText: String) in
                 guard let self = self else { return }
 
-                // Add transcript entry with "Moi" speaker label (AEC ensures mic = user only)
                 self.sessionManager?.addTranscriptEntry(
                     speaker: "Moi",
                     text: batchedText,
                     isFinal: true
                 )
 
-                // Update in-memory transcript with speaker prefix
                 self.currentTranscript += "Moi: \(batchedText)\n"
-
-                // Track words transcribed for health monitoring
-                let wordCount = batchedText.split(separator: " ").count
-                HealthCheckService.shared.recordWordsTranscribed(wordCount)
-
-                // Feed transcript to AutoAnswerService
-                self.autoAnswerService.onTranscriptReceived(self.currentTranscript)
-
-                // Feed transcript to PreGenerationService (Buffered Pre-Generation)
-                self.preGenerationService.onTranscriptUpdated(self.currentTranscript)
-            }
-
-            // Wire system transcript buffer flush → "Interlocuteur" entries
-            systemTranscriptBuffer.onFlush = { [weak self] (batchedText: String) in
-                guard let self = self else { return }
-
-                self.sessionManager?.addTranscriptEntry(
-                    speaker: "Interlocuteur",
-                    text: batchedText,
-                    isFinal: true
-                )
-
-                self.currentTranscript += "Interlocuteur: \(batchedText)\n"
 
                 let wordCount = batchedText.split(separator: " ").count
                 HealthCheckService.shared.recordWordsTranscribed(wordCount)

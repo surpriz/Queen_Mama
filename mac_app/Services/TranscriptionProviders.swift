@@ -63,6 +63,12 @@ final class DeepgramProvider: TranscriptionProvider {
     var onInterimTranscript: ((String) -> Void)?
     var onError: ((Error) -> Void)?
 
+    /// Diarized transcript callback: (transcript, speakerIndex)
+    var onDiarizedTranscript: ((String, Int) -> Void)?
+
+    /// Label for debug logging (e.g. "mic" or "system")
+    var debugLabel: String = "mic"
+
     private let proxyClient = ProxyAPIClient.shared
     private let configManager = ProxyConfigManager.shared
     private var webSocketTask: URLSessionWebSocketTask?
@@ -126,14 +132,17 @@ final class DeepgramProvider: TranscriptionProvider {
             URLQueryItem(name: "sample_rate", value: "16000"),
             URLQueryItem(name: "channels", value: "1"),
             // Endpointing configuration for better phrase boundary detection
-            URLQueryItem(name: "endpointing", value: "300"),       // 300ms silence = end of speech (Deepgram minimum on Pay As You Go)
+            URLQueryItem(name: "endpointing", value: "300"),       // 300ms silence = end of speech
             URLQueryItem(name: "utterance_end_ms", value: "1000"), // 1s silence = end of utterance
-            URLQueryItem(name: "vad_events", value: "true")        // Voice Activity Detection events
+            URLQueryItem(name: "vad_events", value: "true"),       // Voice Activity Detection events
+            URLQueryItem(name: "diarize", value: "true")           // Speaker diarization (Me vs Them)
         ]
 
         guard let url = components.url else {
             throw TranscriptionError.connectionFailed(NSError(domain: "Invalid URL", code: -1))
         }
+
+        print("[Deepgram-\(debugLabel)] URL: \(url.absoluteString.prefix(120))...")
 
         var request = URLRequest(url: url)
         let authScheme = token.tokenType == "bearer" ? "Bearer" : "Token"
@@ -336,6 +345,7 @@ final class DeepgramProvider: TranscriptionProvider {
         }
     }
 
+    private var responseCount = 0
     private func parseTranscriptionResponse(_ jsonString: String) {
         guard let data = jsonString.data(using: .utf8) else { return }
 
@@ -348,8 +358,16 @@ final class DeepgramProvider: TranscriptionProvider {
 
             if response.isFinal == true {
                 if !transcript.isEmpty {
-                    print("[Deepgram] FINAL: \"\(transcript)\"")
-                    onTranscript?(transcript)
+                    // Try to extract speaker from diarized words
+                    if let words = alternative.words, !words.isEmpty,
+                       let onDiarized = onDiarizedTranscript {
+                        // Group consecutive words by speaker and emit per-speaker segments
+                        emitDiarizedSegments(words: words, onDiarized: onDiarized)
+                    } else {
+                        // No diarization data — fall back to plain transcript
+                        print("[Deepgram-\(debugLabel)] FINAL (no speaker): \"\(transcript.prefix(80))\"")
+                        onTranscript?(transcript)
+                    }
                 }
             } else {
                 if !transcript.isEmpty {
@@ -357,10 +375,42 @@ final class DeepgramProvider: TranscriptionProvider {
                 }
             }
         } catch {
-            // Ignore parsing errors for non-transcript messages
-            if jsonString.contains("transcript") {
-                print("[Deepgram] Parse error: \(error)")
+            // Ignore non-transcript messages (SpeechStarted, UtteranceEnd, etc.)
+            if jsonString.contains("\"transcript\"") {
+                print("[Deepgram-\(debugLabel)] Parse error: \(jsonString.prefix(200))")
             }
+        }
+    }
+
+    /// Group consecutive words by speaker and emit one callback per segment.
+    private func emitDiarizedSegments(words: [DiarizedWord], onDiarized: (String, Int) -> Void) {
+        var currentSpeaker: Int? = nil
+        var currentWords: [String] = []
+
+        for word in words {
+            let speaker = word.speaker ?? 0
+            let text = word.word ?? ""
+            guard !text.isEmpty else { continue }
+
+            if speaker != currentSpeaker {
+                // Flush previous segment
+                if !currentWords.isEmpty, let prevSpeaker = currentSpeaker {
+                    let segment = currentWords.joined(separator: " ")
+                    print("[Deepgram-\(debugLabel)] FINAL speaker=\(prevSpeaker): \"\(segment.prefix(80))\"")
+                    onDiarized(segment, prevSpeaker)
+                }
+                currentSpeaker = speaker
+                currentWords = [text]
+            } else {
+                currentWords.append(text)
+            }
+        }
+
+        // Flush last segment
+        if !currentWords.isEmpty, let speaker = currentSpeaker {
+            let segment = currentWords.joined(separator: " ")
+            print("[Deepgram-\(debugLabel)] FINAL speaker=\(speaker): \"\(segment.prefix(80))\"")
+            onDiarized(segment, speaker)
         }
     }
 
@@ -398,6 +448,14 @@ private struct Channel: Codable {
 private struct Alternative: Codable {
     let transcript: String?
     let confidence: Double?
+    let words: [DiarizedWord]?
+}
+
+private struct DiarizedWord: Codable {
+    let word: String?
+    let speaker: Int?
+    let start: Double?
+    let end: Double?
 }
 import Foundation
 
@@ -766,7 +824,7 @@ final class DeepgramFluxProvider: TranscriptionProvider {
             URLQueryItem(name: "sample_rate", value: "16000"),
             URLQueryItem(name: "channels", value: "1"),
             // Endpointing configuration for better phrase boundary detection
-            URLQueryItem(name: "endpointing", value: "300"),       // 300ms silence = end of speech (Deepgram minimum on Pay As You Go)
+            URLQueryItem(name: "endpointing", value: "300"),       // 300ms silence = end of speech
             URLQueryItem(name: "utterance_end_ms", value: "1000"), // 1s silence = end of utterance
             URLQueryItem(name: "vad_events", value: "true")        // Voice Activity Detection events
         ]

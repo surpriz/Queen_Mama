@@ -52,6 +52,10 @@ final class TranscriptionService: ObservableObject {
     var onInterimTranscript: ((String) -> Void)?
     var onError: ((Error) -> Void)?
 
+    /// Diarized transcript callback: (transcript, speakerIndex)
+    /// Called when Deepgram returns word-level speaker labels.
+    var onDiarizedTranscript: ((String, Int) -> Void)?
+
     // MARK: - Callbacks (System Audio)
 
     var onSystemTranscript: ((String) -> Void)?
@@ -358,12 +362,32 @@ final class TranscriptionService: ObservableObject {
                     self?.handleError(error)
                 }
             }
+
+            // Wire diarized transcript callback (Deepgram with diarize=true)
+            if let deepgramProvider = provider as? DeepgramProvider {
+                deepgramProvider.onDiarizedTranscript = { [weak self] transcript, speaker in
+                    Task { @MainActor in
+                        self?.handleDiarizedTranscript(transcript, speaker: speaker)
+                    }
+                }
+            }
         }
     }
 
+    private var micTranscriptCount = 0
     private func handleTranscript(_ transcript: String) {
+        micTranscriptCount += 1
+        print("[Transcription] Mic transcript #\(micTranscriptCount): \"\(transcript.prefix(80))\"")
         currentTranscript += transcript + " "
         onTranscript?(transcript)
+        interimTranscript = ""
+    }
+
+    private func handleDiarizedTranscript(_ transcript: String, speaker: Int) {
+        micTranscriptCount += 1
+        print("[Transcription] Diarized #\(micTranscriptCount) speaker=\(speaker): \"\(transcript.prefix(80))\"")
+        currentTranscript += transcript + " "
+        onDiarizedTranscript?(transcript, speaker)
         interimTranscript = ""
     }
 
@@ -667,7 +691,9 @@ final class TranscriptionService: ObservableObject {
         print("[Transcription] Connecting system audio WebSocket...")
 
         // Create dedicated provider for system audio
-        systemAudioProvider = DeepgramProvider()
+        let sysProvider = DeepgramProvider()
+        sysProvider.debugLabel = "system"
+        systemAudioProvider = sysProvider
 
         guard let provider = systemAudioProvider else {
             throw TranscriptionError.allProvidersFailed
@@ -714,13 +740,19 @@ final class TranscriptionService: ObservableObject {
     }
 
     /// Send audio data to the system audio transcription WebSocket
+    private var systemAudioSendCount = 0
     func sendSystemAudio(_ data: Data) {
         guard isSystemAudioConnected, let provider = systemAudioProvider else {
             // Log when we receive audio but can't send it (for debugging)
             if !isSystemAudioConnected {
-                print("[Transcription] System audio received but WebSocket not connected")
+                print("[Transcription] System audio received but WebSocket not connected (\(data.count) bytes dropped)")
             }
             return
+        }
+
+        systemAudioSendCount += 1
+        if systemAudioSendCount % 50 == 1 {
+            print("[Transcription] System audio sending batch #\(systemAudioSendCount) (\(data.count) bytes)")
         }
 
         Task {
@@ -733,10 +765,12 @@ final class TranscriptionService: ObservableObject {
     }
 
     private func handleSystemTranscript(_ transcript: String) {
+        print("[Transcription] System audio transcript received: \"\(transcript.prefix(80))\"")
         onSystemTranscript?(transcript)
     }
 
     private func handleSystemInterimTranscript(_ transcript: String) {
+        print("[Transcription] System audio interim: \"\(transcript.prefix(80))\"")
         onSystemInterimTranscript?(transcript)
     }
 

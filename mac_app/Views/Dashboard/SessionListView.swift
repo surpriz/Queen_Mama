@@ -635,16 +635,19 @@ struct ModernSessionDetailView: View {
                     isExpanded: $showingTranscript
                 ) {
                     if showingTranscript {
-                        Text(session.transcript.isEmpty ? String(localized: "sessions.detail.noTranscript") : session.transcript)
-                            .font(QMDesign.Typography.bodySmall)
-                            .foregroundColor(session.transcript.isEmpty ? QMDesign.Colors.textTertiary : QMDesign.Colors.textPrimary)
-                            .textSelection(.enabled)
-                            .padding(QMDesign.Spacing.md)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .background(
-                                RoundedRectangle(cornerRadius: QMDesign.Radius.md)
-                                    .fill(QMDesign.Colors.surfaceLight)
-                            )
+                        if session.transcript.isEmpty {
+                            Text(String(localized: "sessions.detail.noTranscript"))
+                                .font(QMDesign.Typography.bodySmall)
+                                .foregroundColor(QMDesign.Colors.textTertiary)
+                                .padding(QMDesign.Spacing.md)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .background(
+                                    RoundedRectangle(cornerRadius: QMDesign.Radius.md)
+                                        .fill(QMDesign.Colors.surfaceLight)
+                                )
+                        } else {
+                            SessionTranscriptView(transcript: session.transcript)
+                        }
                     }
                 }
             }
@@ -859,6 +862,57 @@ struct SyncStatusBadge: View {
         case .failed:
             return QMDesign.Colors.error
         }
+    }
+}
+
+// MARK: - Session Transcript View (iMessage-style bubbles for post-session)
+
+struct SessionTranscriptView: View {
+    let transcript: String
+
+    private var lines: [String] {
+        transcript
+            .split(separator: "\n", omittingEmptySubsequences: false)
+            .map(String.init)
+            .filter { !$0.isEmpty }
+    }
+
+    private func speakerOf(_ line: String) -> String? {
+        if line.hasPrefix("Moi: ") { return "Moi" }
+        if line.hasPrefix("Interlocuteur: ") { return "Interlocuteur" }
+        return nil
+    }
+
+    /// Check if any line has diarization labels
+    private var hasDiarization: Bool {
+        lines.contains { $0.hasPrefix("Moi: ") || $0.hasPrefix("Interlocuteur: ") }
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 2) {
+            if hasDiarization {
+                // Diarized transcript — iMessage-style bubbles
+                let allLines = lines
+                ForEach(Array(allLines.enumerated()), id: \.offset) { index, line in
+                    TranscriptBubbleView(
+                        line: line,
+                        isFirstInGroup: index == 0 || speakerOf(allLines[index - 1]) != speakerOf(line)
+                    )
+                }
+            } else {
+                // Legacy transcript — plain text
+                Text(transcript)
+                    .font(QMDesign.Typography.bodySmall)
+                    .foregroundColor(QMDesign.Colors.textPrimary)
+                    .textSelection(.enabled)
+            }
+        }
+        .padding(QMDesign.Spacing.md)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(
+            RoundedRectangle(cornerRadius: QMDesign.Radius.md)
+                .fill(QMDesign.Colors.surfaceLight)
+        )
     }
 }
 
