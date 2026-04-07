@@ -109,13 +109,21 @@ final class SystemAudioCaptureService: ObservableObject {
 
     // MARK: - Private Methods
 
+    private var isInterleaved = true
+
     private func setupConverter(asbd: AudioStreamBasicDescription) {
-        // Create input format from ASBD
+        // Detect interleaving from ASBD format flags
+        let isNonInterleaved = (asbd.mFormatFlags & kAudioFormatFlagIsNonInterleaved) != 0
+        isInterleaved = !isNonInterleaved
+
+        print("[SystemAudio] ASBD: sampleRate=\(asbd.mSampleRate) channels=\(asbd.mChannelsPerFrame) bytesPerFrame=\(asbd.mBytesPerFrame) bytesPerPacket=\(asbd.mBytesPerPacket) formatFlags=\(asbd.mFormatFlags) interleaved=\(isInterleaved)")
+
+        // Create input format matching the ACTUAL ASBD layout
         inputFormat = AVAudioFormat(
             commonFormat: .pcmFormatFloat32,
             sampleRate: asbd.mSampleRate,
             channels: AVAudioChannelCount(asbd.mChannelsPerFrame),
-            interleaved: false
+            interleaved: isInterleaved
         )
 
         guard let inputFormat = inputFormat, let outputFormat = outputFormat else {
@@ -126,7 +134,7 @@ final class SystemAudioCaptureService: ObservableObject {
         audioConverter = AVAudioConverter(from: inputFormat, to: outputFormat)
 
         if audioConverter != nil {
-            print("[SystemAudio] Created converter: \(asbd.mSampleRate)Hz \(asbd.mChannelsPerFrame)ch -> \(targetSampleRate)Hz \(targetChannelCount)ch")
+            print("[SystemAudio] Created converter: \(asbd.mSampleRate)Hz \(asbd.mChannelsPerFrame)ch (\(isInterleaved ? "interleaved" : "non-interleaved")) -> \(targetSampleRate)Hz \(targetChannelCount)ch")
         } else {
             print("[SystemAudio] Failed to create audio converter")
         }
@@ -143,13 +151,15 @@ final class SystemAudioCaptureService: ObservableObject {
             return
         }
 
-        // Calculate frame count from data length
-        let bytesPerFrame = Int(asbd.mBytesPerFrame)
-        guard bytesPerFrame > 0 else { return }
+        // Calculate frame count from raw data length
+        let channelCount = Int(asbd.mChannelsPerFrame)
+        let bytesPerSample = MemoryLayout<Float>.size  // 4 bytes per Float32
+        // Total frames = total samples / channels (works for both interleaved & non-interleaved)
+        let totalSamples = totalLength / bytesPerSample
+        let frameCount = channelCount > 0 ? totalSamples / channelCount : 0
+        guard frameCount > 0 else { return }
 
-        let frameCount = totalLength / bytesPerFrame
-
-        // Create input buffer
+        // Create input buffer matching the ACTUAL format from ASBD
         guard let inputBuffer = AVAudioPCMBuffer(
             pcmFormat: inputFormat,
             frameCapacity: AVAudioFrameCount(frameCount)
@@ -159,25 +169,22 @@ final class SystemAudioCaptureService: ObservableObject {
 
         inputBuffer.frameLength = AVAudioFrameCount(frameCount)
 
-        // Copy data to input buffer
-        // System audio from ScreenCaptureKit is typically interleaved Float32
-        let floatPointer = UnsafeRawPointer(dataPointer).assumingMemoryBound(to: Float.self)
-        let channelCount = Int(asbd.mChannelsPerFrame)
-        let floatCount = totalLength / MemoryLayout<Float>.size
-
-        // De-interleave stereo to non-interleaved format
-        guard let channelData = inputBuffer.floatChannelData else { return }
-
-        if channelCount == 2 {
-            let leftChannel = channelData[0]
-            let rightChannel = channelCount > 1 ? channelData[1] : channelData[0]
-
-            for i in 0..<min(frameCount, floatCount / 2) {
-                leftChannel[i] = floatPointer[i * 2]
-                rightChannel[i] = floatPointer[i * 2 + 1]
+        // Copy raw audio data directly into the buffer's underlying storage.
+        // AVAudioPCMBuffer's internal layout matches the format (interleaved or not),
+        // so a straight memcpy is correct when our inputFormat matches the ASBD.
+        let srcPtr = UnsafeRawPointer(dataPointer)
+        if isInterleaved {
+            // Interleaved: data is [L0,R0,L1,R1,...] — copy into floatChannelData[0]
+            // (for interleaved format, floatChannelData[0] points to the interleaved buffer)
+            guard let channelData = inputBuffer.floatChannelData else { return }
+            memcpy(channelData[0], srcPtr, frameCount * channelCount * bytesPerSample)
+        } else {
+            // Non-interleaved: each channel is a contiguous block [L0,L1,...,R0,R1,...]
+            guard let channelData = inputBuffer.floatChannelData else { return }
+            for ch in 0..<channelCount {
+                let offset = ch * frameCount * bytesPerSample
+                memcpy(channelData[ch], srcPtr + offset, frameCount * bytesPerSample)
             }
-        } else if channelCount == 1 {
-            memcpy(channelData[0], floatPointer, min(totalLength, frameCount * MemoryLayout<Float>.size))
         }
 
         // Calculate audio level for visualization (use left channel or mono)
@@ -196,7 +203,18 @@ final class SystemAudioCaptureService: ObservableObject {
 
         var error: NSError?
 
+        // Reset converter state before each conversion — without this, the resampling
+        // filter accumulates stale state and produces silence/corruption over time.
+        // Must match the pattern used in AudioCaptureService.
+        converter.reset()
+
+        var hasProvidedInput = false
         let inputBlock: AVAudioConverterInputBlock = { _, outStatus in
+            if hasProvidedInput {
+                outStatus.pointee = .endOfStream
+                return nil
+            }
+            hasProvidedInput = true
             outStatus.pointee = .haveData
             return inputBuffer
         }
@@ -225,9 +243,20 @@ final class SystemAudioCaptureService: ObservableObject {
 
         let data = Data(bytes: &int16Data, count: outputFrameLength * 2)
 
-        // Log progress periodically
+        // Log progress and audio level periodically
         if bufferCount % 100 == 0 {
-            print("[SystemAudio] Processed \(bufferCount) buffers, sending \(data.count) bytes")
+            // Calculate RMS of output PCM to verify audio is not silence
+            let rms: Float = {
+                guard outputFrameLength > 0 else { return 0 }
+                var sum: Float = 0
+                for i in 0..<outputFrameLength {
+                    let s = Float(int16Data[i]) / Float(Int16.max)
+                    sum += s * s
+                }
+                return sqrt(sum / Float(outputFrameLength))
+            }()
+            let dbLevel = rms > 0 ? 20 * log10(rms) : -100
+            print("[SystemAudio] Processed \(bufferCount) buffers, sending \(data.count) bytes, RMS: \(String(format: "%.4f", rms)) (\(String(format: "%.1f", dbLevel))dB)")
         }
 
         // Send to transcription service
