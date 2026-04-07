@@ -228,14 +228,26 @@ struct QueenMamaApp: App {
                         }
                 }
             }
-            // Recovery: if auth succeeds after timeout showed "Session Expired",
-            // automatically transition to dashboard without requiring manual re-login
+            // Auth state transitions: handle both recovery and session expiry
             .onChange(of: authManager.authState) { _, newState in
+                // Recovery: if auth succeeds after timeout showed "Session Expired",
+                // automatically transition to dashboard without requiring manual re-login
                 if launchState == .login, case .authenticated = newState {
                     if ConfigurationManager.shared.hasCompletedOnboarding {
                         print("[App] Auth recovered after timeout - switching to dashboard")
                         launchState = .dashboard
                     }
+                }
+
+                // Auth lost while on dashboard (token refresh permanently failed)
+                // → stop active session, hide overlay, show re-authentication screen
+                if launchState == .dashboard, case .unauthenticated = newState {
+                    print("[App] Auth lost while on dashboard - switching to re-authentication")
+                    if appState.isSessionActive {
+                        Task { await appState.stopSession() }
+                    }
+                    OverlayWindowController.shared.hideOverlay()
+                    launchState = .login
                 }
             }
         }
@@ -657,9 +669,13 @@ class AppState: ObservableObject {
         // 3. Get the final transcript
         let finalTranscript = currentTranscript.trimmingCharacters(in: .whitespacesAndNewlines)
 
-        // 4. Skip AI processing if transcript is too short (< 50 characters)
-        if finalTranscript.count < 50 {
-            print("[AppState] Session too short for AI processing (\(finalTranscript.count) chars)")
+        // 4. Skip AI processing if transcript is too short or auth is lost
+        if finalTranscript.count < 50 || !AuthenticationManager.shared.isAuthenticated {
+            if !AuthenticationManager.shared.isAuthenticated {
+                print("[AppState] Skipping AI finalization - auth lost")
+            } else {
+                print("[AppState] Session too short for AI processing (\(finalTranscript.count) chars)")
+            }
             manager.endSession()
             syncSessionIfEligible(session)
             clearContext()
