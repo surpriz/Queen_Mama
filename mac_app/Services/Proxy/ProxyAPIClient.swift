@@ -323,6 +323,9 @@ final class ProxyAPIClient: @unchecked Sendable {
                                     self.streamProviderLock.lock()
                                     self._lastStreamProvider = provider
                                     self.streamProviderLock.unlock()
+                                    if let effort = chunk.effort {
+                                        print("[ProxyAPI] ✅ effort=\(effort) provider=\(provider)")
+                                    }
                                 }
                                 if let content = chunk.content {
                                     continuation.yield(content)
@@ -625,6 +628,7 @@ private struct StreamChunk: Codable {
     let error: String?
     let provider: String?
     let model: String?
+    let effort: String?
 }
 
 private struct ErrorResponse: Codable {
