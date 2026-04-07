@@ -229,6 +229,7 @@ export async function POST(request: Request) {
       async start(controller) {
         let successProvider: string | null = null;
         let successModel: string | null = null;
+        let successEffort: string | null = null;
         let successTokenUsage: TokenUsage = { inputTokens: 0, outputTokens: 0 };
         const errors: string[] = [];
 
@@ -304,6 +305,12 @@ export async function POST(request: Request) {
             successProvider = provider;
             successModel = model;
             successTokenUsage = tokenUsage;
+            // Capture effort for metadata (only applies to Anthropic)
+            if (provider === "anthropic") {
+              successEffort = mode === "recap" ? "high"
+                : mode === "smart" ? "medium"
+                : userMessage.length > 2000 ? "medium" : "low";
+            }
             console.log(`[AI Cascade] Success with ${provider}/${model} (tokens: ${tokenUsage.inputTokens}in/${tokenUsage.outputTokens}out)`);
             break; // Exit cascade loop on success
 
@@ -323,8 +330,8 @@ export async function POST(request: Request) {
         if (streamClosed) return;
 
         if (successProvider && successModel) {
-          // Send metadata with actual provider/model used before completion marker
-          const metaEvent = `data: ${JSON.stringify({ provider: successProvider, model: successModel })}\n\n`;
+          // Send metadata with actual provider/model/effort used before completion marker
+          const metaEvent = `data: ${JSON.stringify({ provider: successProvider, model: successModel, effort: successEffort })}\n\n`;
           controller.enqueue(encoder.encode(metaEvent));
           controller.enqueue(encoder.encode(`data: [DONE]\n\n`));
           streamClosed = true;

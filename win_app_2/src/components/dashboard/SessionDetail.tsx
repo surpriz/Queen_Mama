@@ -1,6 +1,8 @@
 import { ArrowLeft, Download, Copy, Check, ChevronDown, CheckCircle, Clock, Circle } from 'lucide-react'
 import { useState, useRef, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
+import ReactMarkdown from 'react-markdown'
+import remarkGfm from 'remark-gfm'
 import { useSessionStore } from '@/stores/sessionStore'
 import { exportSession, type ExportFormat } from '@/services/session/sessionExport'
 import { formatDate, formatDuration } from '@/lib/utils'
@@ -186,7 +188,9 @@ export function SessionDetail({ sessionId, onBack }: SessionDetailProps) {
                 {copiedSummary ? <Check size={14} className="text-qm-success" /> : <Copy size={14} />}
               </button>
             </div>
-            <p className="text-body-md text-qm-text-primary leading-relaxed">{session.summary}</p>
+            <div className="text-body-md text-qm-text-primary leading-relaxed prose prose-sm prose-invert max-w-none prose-headings:text-qm-text-primary prose-headings:text-base prose-headings:font-semibold prose-headings:mt-4 prose-headings:mb-2 prose-strong:text-qm-text-primary prose-li:my-0.5">
+              <ReactMarkdown remarkPlugins={[remarkGfm]}>{session.summary}</ReactMarkdown>
+            </div>
           </div>
         )}
 

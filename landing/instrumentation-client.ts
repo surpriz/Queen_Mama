@@ -15,6 +15,23 @@ Sentry.init({
   // Enable sending user PII (Personally Identifiable Information)
   // https://docs.sentry.io/platforms/javascript/guides/nextjs/configuration/options/#sendDefaultPii
   sendDefaultPii: true,
+
+  // Filter out noise from browser extensions (LastPass, Bitwarden, etc.)
+  beforeSend(event) {
+    const message =
+      event.exception?.values?.[0]?.value ?? event.message ?? "";
+
+    const browserExtensionPatterns = [
+      /Object Not Found Matching Id:\d+, MethodName:\w+, ParamCount:\d+/,
+      /ResizeObserver loop/,
+    ];
+
+    if (browserExtensionPatterns.some((p) => p.test(message))) {
+      return null;
+    }
+
+    return event;
+  },
 });
 
 export const onRouterTransitionStart = Sentry.captureRouterTransitionStart;
