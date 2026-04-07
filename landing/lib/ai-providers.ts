@@ -29,7 +29,7 @@ export const MODEL_CASCADE = {
   // Standard Mode (PRO): Real-time suggestions with Sonnet 4.6 (no thinking)
   // Optimized for speed + exceptional quality
   standard: [
-    { provider: "openai", model: "gpt-4.1" },                          // Primary: ⭐⭐⭐⭐ GPT-4.1 — LOCAL TEST ONLY
+    { provider: "openai", model: "gpt-5.4-mini" },                     // Primary: ⭐⭐⭐⭐⭐ GPT-5.4-mini — strongest mini, low latency
     { provider: "anthropic", model: "claude-sonnet-4-6" },             // Fallback 1: ⭐⭐⭐⭐⭐ Sonnet 4.6 effort=low
     { provider: "anthropic", model: "claude-sonnet-4-5-20250929" },    // Fallback 2: ⭐⭐⭐⭐⭐ quality, previous gen backup
   ] as CascadeModel[],
@@ -54,8 +54,8 @@ export const MODEL_CASCADE = {
 // Legacy AI_MODELS for backward compatibility
 export const AI_MODELS = {
   openai: {
-    standard: "gpt-4.1",     // Fallback: replaces retired GPT-4o, Vision ✅
-    smart: "o4-mini",        // Fallback: reasoning model
+    standard: "gpt-5.4-mini", // Primary test: strongest mini, low latency
+    smart: "o4-mini",         // Fallback: reasoning model
   },
   anthropic: {
     standard: "claude-sonnet-4-6",  // PRO: Sonnet 4.6 sans thinking (rapide)
