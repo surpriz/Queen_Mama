@@ -544,6 +544,11 @@ class AppState: ObservableObject {
 
             // --- SYSTEM AUDIO TRANSCRIPTS → "Interlocuteur" (authoritative, clean signal) ---
 
+            // Feed system audio INTERIMS into dedup immediately (before mic diarized arrives)
+            transcriptionService.onSystemInterimTranscript = { [weak self] text in
+                self?.transcriptDeduplicator.addSystemTranscript(text)
+            }
+
             transcriptionService.onSystemTranscript = { [weak self] text in
                 Task { @MainActor in
                     self?.systemTranscriptBuffer.append(text)
@@ -553,7 +558,7 @@ class AppState: ObservableObject {
             systemTranscriptBuffer.onFlush = { [weak self] (batchedText: String) in
                 guard let self = self else { return }
 
-                // Register in dedup so mic bleed will be filtered
+                // Register final in dedup too (interims may have been pruned)
                 self.transcriptDeduplicator.addSystemTranscript(batchedText)
 
                 self.sessionManager?.addTranscriptEntry(
