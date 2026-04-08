@@ -415,6 +415,7 @@ class AppState: ObservableObject {
 
     // System Audio Service for speaker separation ("Moi" vs "Interlocuteur")
     let systemAudioService = SystemAudioCaptureService()
+    let transcriptDeduplicator = TranscriptDeduplicator()
 
     // Session Manager reference (injected from QueenMamaApp)
     weak var sessionManager: SessionManager?
@@ -494,10 +495,11 @@ class AppState: ObservableObject {
                 contact.lastSeenAt = Date()
             }
 
-            // Start audio batching service (mic only — Deepgram diarize handles speaker separation)
+            // Start audio batching services (mic + system audio)
             audioBatchingService.start()
+            systemAudioBatchingService.start()
 
-            // Wire audio batching: Audio → Batch → Transcription
+            // Wire mic audio batching: Mic → Batch → Transcription
             audioService.onAudioBuffer = { [weak self] buffer in
                 self?.audioBatchingService.append(buffer)
                 // Send to dictation if recording
@@ -510,6 +512,25 @@ class AppState: ObservableObject {
                 self?.transcriptionService.sendAudio(batch)
             }
 
+            // Wire system audio: ScreenCaptureKit → SystemAudioService → Batch → Transcription
+            screenService.systemAudioService = systemAudioService
+            systemAudioService.onAudioBuffer = { [weak self] buffer in
+                self?.systemAudioBatchingService.append(buffer)
+            }
+            systemAudioBatchingService.onBatchReady = { [weak self] batch in
+                self?.transcriptionService.sendSystemAudio(batch)
+            }
+
+            // Connect system audio WebSocket (non-blocking — session works without it)
+            Task {
+                do {
+                    try await transcriptionService.connectSystemAudio()
+                    print("[AppState] System audio WebSocket connected")
+                } catch {
+                    print("[AppState] System audio WebSocket failed (continuing without): \(error.localizedDescription)")
+                }
+            }
+
             // Configure Buffered Pre-Generation (before callback wiring)
             preGenerationService.configure(
                 aiService: aiService,
@@ -517,32 +538,66 @@ class AppState: ObservableObject {
                 modeProvider: { [weak self] in self?.selectedMode }
             )
 
-            // Start transcript buffer for non-diarized fallback
+            // Start transcript buffers for mic and system audio
             transcriptBuffer.start()
+            systemTranscriptBuffer.start()
 
-            // Handle non-diarized transcripts (fallback if Deepgram doesn't return speaker info)
+            // --- SYSTEM AUDIO TRANSCRIPTS → "Interlocuteur" (authoritative, clean signal) ---
+
+            transcriptionService.onSystemTranscript = { [weak self] text in
+                Task { @MainActor in
+                    self?.systemTranscriptBuffer.append(text)
+                }
+            }
+
+            systemTranscriptBuffer.onFlush = { [weak self] (batchedText: String) in
+                guard let self = self else { return }
+
+                // Register in dedup so mic bleed will be filtered
+                self.transcriptDeduplicator.addSystemTranscript(batchedText)
+
+                self.sessionManager?.addTranscriptEntry(
+                    speaker: "Interlocuteur",
+                    text: batchedText,
+                    isFinal: true
+                )
+
+                self.currentTranscript += "Interlocuteur: \(batchedText)\n"
+
+                let wordCount = batchedText.split(separator: " ").count
+                HealthCheckService.shared.recordWordsTranscribed(wordCount)
+
+                self.autoAnswerService.onTranscriptReceived(self.currentTranscript)
+                self.preGenerationService.onTranscriptUpdated(self.currentTranscript)
+            }
+
+            // --- MIC TRANSCRIPTS → "Moi" (with bleed filtering) ---
+
+            // Handle non-diarized mic transcripts
             transcriptionService.onTranscript = { [weak self] text in
                 Task { @MainActor in
                     self?.transcriptBuffer.append(text)
                 }
             }
 
-            // Handle DIARIZED transcripts from Deepgram (speaker 0 = Moi, speaker 1+ = Interlocuteur)
+            // Handle diarized mic transcripts — always label "Moi" (system audio handles "Interlocuteur")
+            // Bleed from speakers picked up by mic is filtered via dedup
             transcriptionService.onDiarizedTranscript = { [weak self] (text: String, speaker: Int) in
                 guard let self = self else { return }
 
-                // Speaker 0 = first to speak = typically the other person in a call.
-                // Speaker 1 = the user (closer to mic, usually speaks second).
-                // All other speakers (2, 3, ...) = additional participants = "Interlocuteur".
-                let label = speaker == 1 ? "Moi" : "Interlocuteur"
+                // Check if this mic transcript is bleed from the speakers
+                if self.transcriptDeduplicator.isMicTranscriptBleed(text) {
+                    print("[AppState] Dropped mic bleed: \"\(text.prefix(60))\"")
+                    return
+                }
 
                 self.sessionManager?.addTranscriptEntry(
-                    speaker: label,
+                    speaker: "Moi",
                     text: text,
                     isFinal: true
                 )
 
-                self.currentTranscript += "\(label): \(text)\n"
+                self.currentTranscript += "Moi: \(text)\n"
 
                 let wordCount = text.split(separator: " ").count
                 HealthCheckService.shared.recordWordsTranscribed(wordCount)
@@ -551,9 +606,15 @@ class AppState: ObservableObject {
                 self.preGenerationService.onTranscriptUpdated(self.currentTranscript)
             }
 
-            // Non-diarized fallback flush → "Moi" entries (when no speaker info available)
+            // Non-diarized fallback flush → "Moi" entries (with bleed filtering)
             transcriptBuffer.onFlush = { [weak self] (batchedText: String) in
                 guard let self = self else { return }
+
+                // Check if this mic transcript is bleed from the speakers
+                if self.transcriptDeduplicator.isMicTranscriptBleed(batchedText) {
+                    print("[AppState] Dropped mic bleed (non-diarized): \"\(batchedText.prefix(60))\"")
+                    return
+                }
 
                 self.sessionManager?.addTranscriptEntry(
                     speaker: "Moi",
@@ -619,6 +680,7 @@ class AppState: ObservableObject {
         transcriptionService.disconnect()
         transcriptionService.disconnectSystemAudio()  // Disconnect system audio WebSocket
         systemAudioService.reset()  // Reset system audio service
+        transcriptDeduplicator.reset()  // Reset dedup state
         autoAnswerService.reset()  // Reset auto-answer state
         autoAnswerService.resetProactiveState()  // Reset proactive state
         preGenerationService.reset()  // Reset pre-generation buffer
