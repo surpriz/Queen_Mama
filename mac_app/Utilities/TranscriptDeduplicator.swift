@@ -19,8 +19,9 @@ final class TranscriptDeduplicator {
     private let windowDuration: TimeInterval = 10.0
 
     /// If system audio produced a transcript within this window, suppress ALL mic transcripts.
-    /// Mic diarized transcripts typically arrive 1-4s after system audio interims.
-    private let temporalSuppressionWindow: TimeInterval = 3.5
+    /// Keep short (1.5s) to avoid clipping the start of user speech after the interlocutor stops.
+    /// Delayed bleed (arriving 2-4s later) is caught by word overlap (Layer 2) and session-wide (Layer 3).
+    private let temporalSuppressionWindow: TimeInterval = 1.5
 
     /// Minimum word overlap ratio to consider a mic transcript as bleed
     private let similarityThreshold: Double = 0.35
