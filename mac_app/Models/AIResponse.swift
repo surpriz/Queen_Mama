@@ -89,7 +89,7 @@ final class AIResponse: Identifiable {
                 Focus on what's happening RIGHT NOW. Tell the user what to do or what to note, not what already happened.
                 Answer from the transcript first, then your general knowledge, then the screenshot if attached.
 
-                FORMAT: 1-2 sentences. Use bullet points only when listing distinct items. No headers, no preamble.
+                FORMAT: 1-2 sentences. Use bullet points (- ) only when listing distinct items, each on its own line. No headers, no preamble.
                 """ + languageRule
 
             case .whatToSay:
@@ -97,7 +97,7 @@ final class AIResponse: Identifiable {
                 Suggest exactly 3 phrases the user can say right now, based on what's being discussed.
 
                 Each phrase must sound sharp and authoritative, never generic or passive. The user says it verbatim and gains credibility.
-                3 bullet points, each a phrase in quotes, 1-2 sentences, each taking a different angle. No preamble.
+                3 bullet points (using "- "), each on its own line, each a phrase in quotes, 1-2 sentences, each taking a different angle. No preamble.
                 """ + languageRule
 
             case .followUp:
@@ -154,6 +154,7 @@ final class AIResponse: Identifiable {
 
                 RESPONSE FORMAT — CRITICAL (user reads DURING a live meeting):
                 - MAXIMUM 3 bullet points. NEVER more.
+                - Each bullet MUST start with "- " on its own line (one bullet per line, separated by newlines)
                 - No paragraphs, no headers, no titles, no numbered sub-lists
                 - Each bullet: one glanceable sentence (scannable in 2-3 seconds)
                 - Think: cheat sheet glanced at during an exam, not a report
@@ -184,7 +185,7 @@ final class AIResponse: Identifiable {
 
                 FORMAT:
                 - NO preamble, NO introduction. Start DIRECTLY with the first bullet.
-                - Exactly 3 phrases, each on its own bullet point, in quotes
+                - Exactly 3 phrases, each starting with "- " on its own line, in quotes
                 - 1-2 sentences each (natural speaking length)
                 - Each phrase takes a DIFFERENT angle (don't repeat the same idea)
                 """ + languageInstruction

@@ -26,7 +26,9 @@ enum MarkdownBlock {
 struct MarkdownParser {
     static func parse(_ text: String) -> [MarkdownBlock] {
         var blocks: [MarkdownBlock] = []
-        let lines = text.components(separatedBy: .newlines)
+        // Normalize inline bullets: split "• item1 • item2" into separate lines
+        let normalized = text.replacingOccurrences(of: " • ", with: "\n• ")
+        let lines = normalized.components(separatedBy: .newlines)
         var currentParagraph = ""
 
         // State machine for fenced code blocks
@@ -124,14 +126,21 @@ struct MarkdownParser {
                 }
                 blocks.append(.header1(String(trimmed.dropFirst(2))))
             }
-            // Bullet items (- or *)
-            else if trimmed.hasPrefix("- ") || trimmed.hasPrefix("* ") {
+            // Bullet items (- or * or •)
+            else if trimmed.hasPrefix("- ") || trimmed.hasPrefix("* ") || trimmed.hasPrefix("• ") || trimmed == "•" {
                 if !currentParagraph.isEmpty {
                     blocks.append(.paragraph(currentParagraph))
                     currentParagraph = ""
                 }
                 let indent = line.prefix(while: { $0 == " " || $0 == "\t" }).count / 2
-                let text = String(trimmed.dropFirst(2))
+                let text: String
+                if trimmed.hasPrefix("• ") {
+                    text = String(trimmed.dropFirst(2))
+                } else if trimmed == "•" {
+                    text = ""
+                } else {
+                    text = String(trimmed.dropFirst(2))
+                }
                 blocks.append(.bulletItem(text: text, indent: indent))
             }
             // Ordered list items (1. 2. etc.)
