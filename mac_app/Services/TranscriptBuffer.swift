@@ -13,7 +13,7 @@ final class TranscriptBuffer: ObservableObject {
     // MARK: - Configuration
 
     /// Time to wait before flushing accumulated transcript
-    private let flushInterval: TimeInterval = 0.5
+    private let flushInterval: TimeInterval
 
     // MARK: - State
 
@@ -29,7 +29,10 @@ final class TranscriptBuffer: ObservableObject {
 
     // MARK: - Initialization
 
-    init() {}
+    /// - Parameter flushInterval: Time to wait before flushing (default 0.5s for mic, use 2.0s for system audio)
+    init(flushInterval: TimeInterval = 0.5) {
+        self.flushInterval = flushInterval
+    }
 
     // MARK: - Public Methods
 
