@@ -408,7 +408,7 @@ class AppState: ObservableObject {
     let audioBatchingService = AudioBatchingService()
     let systemAudioBatchingService = AudioBatchingService()  // Separate batching for system audio
     let transcriptBuffer = TranscriptBuffer()
-    let systemTranscriptBuffer = TranscriptBuffer()  // Separate buffer for system audio (Them)
+    let systemTranscriptBuffer = TranscriptBuffer(flushInterval: 2.0)  // Longer batching for system audio sentences
     let dictationService = DictationService()
     let preGenerationService = PreGenerationService()
     let meetingDetectionService = MeetingDetectionService()
