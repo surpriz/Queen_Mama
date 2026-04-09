@@ -592,6 +592,12 @@ async function streamAnthropic(
     : mode === "smart" ? "medium"
     : userMessage.length > 2000 ? "medium" : "low";
 
+  // A4: Thinking configuration by mode
+  // - Standard: no thinking (effort "low" naturally skips thinking for simple tasks)
+  // - Smart: adaptive thinking — model decides when to reason (recommended for Sonnet 4.6)
+  // - Recap: full thinking power (16000 tokens, user waits for quality summary)
+  const enableThinking = mode !== "standard";
+
   const body: Record<string, unknown> = {
     model,
     // B1: Prompt caching — system prompt as array with cache_control
@@ -606,15 +612,13 @@ async function streamAnthropic(
     messages,
     max_tokens: maxTokens,
     stream: true,
-    // A1: effort parameter — replaces implicit "high" default on Sonnet 4.6
-    output_config: { effort },
   };
 
-  // A4: Thinking configuration by mode
-  // - Standard: no thinking (effort "low" naturally skips thinking for simple tasks)
-  // - Smart: adaptive thinking — model decides when to reason (recommended for Sonnet 4.6)
-  // - Recap: full thinking power (16000 tokens, user waits for quality summary)
-  const enableThinking = mode !== "standard";
+  // A1: effort parameter — only for standard mode (no thinking)
+  // effort and thinking are mutually exclusive on Anthropic API
+  if (!enableThinking) {
+    body.output_config = { effort };
+  }
 
   if (mode === "recap") {
     body.thinking = {
@@ -622,7 +626,6 @@ async function streamAnthropic(
       budget_tokens: 16000,
     };
   } else if (mode === "smart") {
-    // A4: Replace deprecated budget_tokens with adaptive thinking
     body.thinking = {
       type: "adaptive",
     };
