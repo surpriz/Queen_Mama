@@ -341,15 +341,16 @@ async function callAnthropic(
     system: systemPrompt,
     messages,
     max_tokens: maxTokens,
-    // A1: effort parameter — standard=low for speed, smart=medium for balanced reasoning
-    output_config: { effort: smartMode ? "medium" : "low" },
   };
 
   if (smartMode) {
-    // A4: Replace deprecated budget_tokens with adaptive thinking
+    // A4: Adaptive thinking for smart mode (effort and thinking are mutually exclusive)
     body.thinking = {
       type: "adaptive",
     };
+  } else {
+    // A1: effort parameter — only when thinking is disabled
+    body.output_config = { effort: "low" };
   }
 
   const response = await fetch(PROVIDER_URLS.anthropic, {
