@@ -166,42 +166,49 @@ final class AIService: ObservableObject {
     /// Removes the last bullet if it matches prediction patterns like "il va probablement..."
     static func stripPredictionBullets(_ text: String) -> String {
         let predictionPatterns = [
+            // Sonnet 4.6 patterns
             "il va probablement", "ils vont probablement", "il va sûrement", "ils vont sûrement",
             "elle va probablement", "elles vont probablement",
             "il va certainement", "ils vont certainement",
             "la prochaine question", "la prochaine objection", "la suite logique",
             "prépare un", "prépare une", "prépare-toi", "prépare le", "prépare la",
             "anticipe la", "anticipe le", "anticipe un",
+            // GPT-5.4-mini patterns
+            "le prochain risque", "prochain angle probable", "la vraie question sera",
+            "on vous demandera", "ils vont tester", "il va tester",
+            "anticipez la suite", "enchaînez avec le prochain", "enchaîne avec le prochain",
+            "c'est ce qu'ils vont", "c'est ce qu'il va",
+            // English patterns
             "he will probably", "she will probably", "they will probably",
             "the next question", "prepare a", "prepare for",
+            "they will likely", "expect them to", "the follow-up will",
         ]
 
         let lines = text.components(separatedBy: "\n")
         guard lines.count >= 2 else { return text }
 
-        // Check the last non-empty line
-        var lastBulletIndex: Int?
-        for i in stride(from: lines.count - 1, through: 0, by: -1) {
-            let trimmed = lines[i].trimmingCharacters(in: .whitespaces)
-            if trimmed.hasPrefix("- ") || trimmed.hasPrefix("• ") || trimmed.hasPrefix("* ") {
-                lastBulletIndex = i
-                break
+        // Scan ALL bullets and remove any that contain prediction patterns
+        var filtered: [String] = []
+        var strippedCount = 0
+        for line in lines {
+            let trimmed = line.trimmingCharacters(in: .whitespaces)
+            let isBullet = trimmed.hasPrefix("- ") || trimmed.hasPrefix("• ") || trimmed.hasPrefix("* ")
+
+            if isBullet {
+                let lower = trimmed.lowercased()
+                let isPrediction = predictionPatterns.contains { lower.contains($0) }
+                if isPrediction {
+                    print("[AIService] Stripped prediction bullet: \"\(trimmed.prefix(80))\"")
+                    strippedCount += 1
+                    continue // Skip this line
+                }
             }
+            filtered.append(line)
         }
 
-        guard let idx = lastBulletIndex else { return text }
-        let lastBullet = lines[idx].lowercased()
-
-        for pattern in predictionPatterns {
-            if lastBullet.contains(pattern) {
-                var filtered = lines
-                filtered.remove(at: idx)
-                let result = filtered.joined(separator: "\n").trimmingCharacters(in: .whitespacesAndNewlines)
-                print("[AIService] Stripped prediction bullet: \"\(lines[idx].prefix(80))\"")
-                return result
-            }
+        if strippedCount > 0 {
+            return filtered.joined(separator: "\n").trimmingCharacters(in: .whitespacesAndNewlines)
         }
-
         return text
     }
 
