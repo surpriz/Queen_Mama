@@ -43,6 +43,7 @@ final class TranscriptionService: ObservableObject {
     @Published var connectionState: TranscriptionConnectionState = .disconnected
     @Published var currentTranscript = ""
     @Published var interimTranscript = ""
+    @Published var systemInterimTranscript = ""
     @Published var errorMessage: String?
     @Published var currentProvider: TranscriptionProviderType?
 
@@ -765,11 +766,13 @@ final class TranscriptionService: ObservableObject {
     }
 
     private func handleSystemTranscript(_ transcript: String) {
+        systemInterimTranscript = ""  // Clear interim since final arrived
         print("[Transcription] System audio transcript received: \"\(transcript.prefix(80))\"")
         onSystemTranscript?(transcript)
     }
 
     private func handleSystemInterimTranscript(_ transcript: String) {
+        systemInterimTranscript = transcript
         print("[Transcription] System audio interim: \"\(transcript.prefix(80))\"")
         onSystemInterimTranscript?(transcript)
     }

@@ -271,18 +271,25 @@ struct OverlayContentView: View {
                 let cacheStatus = screenshot != nil ? "(may be cached)" : ""
                 print("[Overlay] Screen capture \(enableScreenCapture ? "enabled" : "disabled") - Screenshot: \(hasScreenshot ? "captured (\(screenshotSize / 1024)KB) \(cacheStatus)" : "skipped (low value or disabled)")")
 
+                // Force-flush audio batches so the latest audio reaches Deepgram immediately
+                appState.audioBatchingService.forceFlush()
+                appState.systemAudioBatchingService.forceFlush()
+
                 // Flush pending transcript buffers so the latest speech is included
                 appState.transcriptBuffer.flush()
                 appState.systemTranscriptBuffer.flush()
 
-                // Append interim transcript (words being spoken RIGHT NOW but not yet finalized)
-                let freshTranscript: String
-                let interim = appState.transcriptionService.interimTranscript
-                if !interim.isEmpty {
-                    freshTranscript = appState.currentTranscript + interim + " "
-                    print("[Overlay] Included interim transcript: \"\(interim.prefix(60))\"")
-                } else {
-                    freshTranscript = appState.currentTranscript
+                // Append interim transcripts (words being spoken RIGHT NOW but not yet finalized)
+                var freshTranscript = appState.currentTranscript
+                let micInterim = appState.transcriptionService.interimTranscript
+                let sysInterim = appState.transcriptionService.systemInterimTranscript
+                if !sysInterim.isEmpty {
+                    freshTranscript += "Interlocuteur: " + sysInterim + " "
+                    print("[Overlay] Included system interim: \"\(sysInterim.prefix(60))\"")
+                }
+                if !micInterim.isEmpty {
+                    freshTranscript += "Moi: " + micInterim + " "
+                    print("[Overlay] Included mic interim: \"\(micInterim.prefix(60))\"")
                 }
 
                 // Phase 3 Optimization: Trim transcript for real-time tabs to reduce latency
