@@ -300,8 +300,8 @@ struct OverlayContentView: View {
                     // Recap needs full transcript for comprehensive summary
                     transcriptForRequest = freshTranscript
                 case .assist:
-                    // Assist: surgical window (last ~15-20s) to focus on the exact current topic
-                    transcriptForRequest = AIService.trimTranscript(freshTranscript, maxLength: 500)
+                    // Assist: razor-tight window (~10-15s) to isolate the current question only
+                    transcriptForRequest = AIService.trimTranscript(freshTranscript, maxLength: 300)
                 default:
                     // WhatToSay, FollowUp use broader context
                     transcriptForRequest = AIService.trimTranscript(
