@@ -271,17 +271,31 @@ struct OverlayContentView: View {
                 let cacheStatus = screenshot != nil ? "(may be cached)" : ""
                 print("[Overlay] Screen capture \(enableScreenCapture ? "enabled" : "disabled") - Screenshot: \(hasScreenshot ? "captured (\(screenshotSize / 1024)KB) \(cacheStatus)" : "skipped (low value or disabled)")")
 
+                // Flush pending transcript buffers so the latest speech is included
+                appState.transcriptBuffer.flush()
+                appState.systemTranscriptBuffer.flush()
+
+                // Append interim transcript (words being spoken RIGHT NOW but not yet finalized)
+                let freshTranscript: String
+                let interim = appState.transcriptionService.interimTranscript
+                if !interim.isEmpty {
+                    freshTranscript = appState.currentTranscript + interim + " "
+                    print("[Overlay] Included interim transcript: \"\(interim.prefix(60))\"")
+                } else {
+                    freshTranscript = appState.currentTranscript
+                }
+
                 // Phase 3 Optimization: Trim transcript for real-time tabs to reduce latency
                 // Recap uses full transcript for comprehensive summary
                 let transcriptForRequest: String
                 switch selectedTab {
                 case .recap:
                     // Recap needs full transcript for comprehensive summary
-                    transcriptForRequest = appState.currentTranscript
+                    transcriptForRequest = freshTranscript
                 default:
                     // Assist, WhatToSay, FollowUp use trimmed transcript (last 4000 chars)
                     transcriptForRequest = AIService.trimTranscript(
-                        appState.currentTranscript,
+                        freshTranscript,
                         maxLength: AIService.defaultMaxTranscriptLength
                     )
                 }
