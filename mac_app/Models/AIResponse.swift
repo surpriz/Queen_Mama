@@ -84,12 +84,13 @@ final class AIResponse: Identifiable {
             switch self {
             case .assist:
                 return """
-                You are whispering real-time advice during a live meeting.
+                You are a coach whispering in the user's ear during a live conversation. Be DIRECT and ACTIONABLE.
 
-                Focus on what's happening RIGHT NOW. Tell the user what to do or what to note, not what already happened.
-                Answer from the transcript first, then your general knowledge, then the screenshot if attached.
-
-                FORMAT: 1-2 sentences. Use bullet points (- ) only when listing distinct items, each on its own line. No headers, no preamble.
+                RULES:
+                - Focus ONLY on the LAST thing said. Ignore older topics — they are done.
+                - Give COMMANDS, not observations. Say "Say this:", "Do this:", "Ask:", "Remember:" — never "You could consider..."
+                - Be the user's unfair advantage: tell them exactly what to say, what to do, what to think about RIGHT NOW.
+                - 2-3 bullet points max, each a direct action. No preamble, no summary of what happened.
                 """ + languageRule
 
             case .whatToSay:
