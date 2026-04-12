@@ -131,9 +131,9 @@ final class DeepgramProvider: TranscriptionProvider {
             URLQueryItem(name: "encoding", value: "linear16"),
             URLQueryItem(name: "sample_rate", value: "16000"),
             URLQueryItem(name: "channels", value: "1"),
-            // Endpointing: lower values = faster final transcripts (less waiting for silence)
-            URLQueryItem(name: "endpointing", value: "250"),       // 250ms silence = end of speech (was 300ms)
-            URLQueryItem(name: "utterance_end_ms", value: "800"),  // 800ms silence = end of utterance (was 1000ms)
+            // Endpointing configuration for phrase boundary detection
+            URLQueryItem(name: "endpointing", value: "300"),       // 300ms silence = end of speech
+            URLQueryItem(name: "utterance_end_ms", value: "1000"), // 1s silence = end of utterance
             URLQueryItem(name: "vad_events", value: "true"),       // Voice Activity Detection events
             URLQueryItem(name: "diarize", value: "true")           // Speaker diarization (Me vs Them)
         ]
@@ -823,9 +823,9 @@ final class DeepgramFluxProvider: TranscriptionProvider {
             URLQueryItem(name: "encoding", value: "linear16"),
             URLQueryItem(name: "sample_rate", value: "16000"),
             URLQueryItem(name: "channels", value: "1"),
-            // Endpointing: lower values = faster final transcripts (less waiting for silence)
-            URLQueryItem(name: "endpointing", value: "250"),       // 250ms silence = end of speech (was 300ms)
-            URLQueryItem(name: "utterance_end_ms", value: "800"),  // 800ms silence = end of utterance (was 1000ms)
+            // Endpointing configuration for phrase boundary detection
+            URLQueryItem(name: "endpointing", value: "300"),       // 300ms silence = end of speech
+            URLQueryItem(name: "utterance_end_ms", value: "1000"), // 1s silence = end of utterance
             URLQueryItem(name: "vad_events", value: "true")        // Voice Activity Detection events
         ]
 
