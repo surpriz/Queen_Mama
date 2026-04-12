@@ -494,6 +494,15 @@ BAD: "Denis should send the report" → GOOD: "Someone should send the report" o
 """
         }
 
+        // Final language anchor — placed LAST for maximum weight with all models (especially OpenAI)
+        prompt += """
+
+
+FINAL MANDATORY RULE — RESPONSE LANGUAGE:
+Detect the language of the transcript below. Respond ENTIRELY in that SAME language.
+French transcript → French response. English transcript → English response. NO EXCEPTIONS.
+"""
+
         return prompt
     }
 
