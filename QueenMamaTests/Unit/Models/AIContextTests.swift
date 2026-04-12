@@ -73,7 +73,7 @@ final class AIContextTests: XCTestCase {
         // Default mode uses classic coaching prompts (no NZT)
         let defaultMode = Mode(name: "Default", systemPrompt: "test")
         let defaultContext = AIContext(transcript: "test", mode: defaultMode, responseType: .assist)
-        XCTAssertTrue(defaultContext.systemPrompt.contains("whispering real-time advice"),
+        XCTAssertTrue(defaultContext.systemPrompt.contains("live coach in the user"),
             "Default should use classic prompt additions")
         XCTAssertFalse(defaultContext.systemPrompt.contains("NZT"),
             "Default should NOT use NZT prompt additions")
