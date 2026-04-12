@@ -162,6 +162,49 @@ final class AIService: ObservableObject {
         return false
     }
 
+    /// Strips prediction bullets that AI models stubbornly add despite prompt instructions.
+    /// Removes the last bullet if it matches prediction patterns like "il va probablement..."
+    static func stripPredictionBullets(_ text: String) -> String {
+        let predictionPatterns = [
+            "il va probablement", "ils vont probablement", "il va sûrement", "ils vont sûrement",
+            "elle va probablement", "elles vont probablement",
+            "il va certainement", "ils vont certainement",
+            "la prochaine question", "la prochaine objection", "la suite logique",
+            "prépare un", "prépare une", "prépare-toi", "prépare le", "prépare la",
+            "anticipe la", "anticipe le", "anticipe un",
+            "he will probably", "she will probably", "they will probably",
+            "the next question", "prepare a", "prepare for",
+        ]
+
+        let lines = text.components(separatedBy: "\n")
+        guard lines.count >= 2 else { return text }
+
+        // Check the last non-empty line
+        var lastBulletIndex: Int?
+        for i in stride(from: lines.count - 1, through: 0, by: -1) {
+            let trimmed = lines[i].trimmingCharacters(in: .whitespaces)
+            if trimmed.hasPrefix("- ") || trimmed.hasPrefix("• ") || trimmed.hasPrefix("* ") {
+                lastBulletIndex = i
+                break
+            }
+        }
+
+        guard let idx = lastBulletIndex else { return text }
+        let lastBullet = lines[idx].lowercased()
+
+        for pattern in predictionPatterns {
+            if lastBullet.contains(pattern) {
+                var filtered = lines
+                filtered.remove(at: idx)
+                let result = filtered.joined(separator: "\n").trimmingCharacters(in: .whitespacesAndNewlines)
+                print("[AIService] Stripped prediction bullet: \"\(lines[idx].prefix(80))\"")
+                return result
+            }
+        }
+
+        return text
+    }
+
     // MARK: - Proxy Provider (single provider architecture)
 
     // Single proxy provider that routes ALL requests through the backend
@@ -529,9 +572,12 @@ final class AIService: ObservableObject {
                             ))
                             return
                         }
+                        // Post-process: strip prediction bullets that models stubbornly add
+                        let cleanedResponse = Self.stripPredictionBullets(accumulatedResponse)
+                        self.currentResponse = cleanedResponse
                         let response = AIResponse(
                             type: type,
-                            content: accumulatedResponse,
+                            content: cleanedResponse,
                             provider: providerType
                         )
                         self.addResponse(response)
