@@ -55,7 +55,19 @@ final class AudioBatchingService: ObservableObject {
         }
     }
 
-    /// Force flush any remaining buffered audio
+    /// Force flush any remaining buffered audio, bypassing minimum batch size
+    func forceFlush() {
+        guard !buffer.isEmpty else { return }
+        let batchData = buffer
+        buffer = Data()
+        lastFlushTime = Date()
+        totalFlushes += 1
+        flushTimer?.invalidate()
+        flushTimer = nil
+        onBatchReady?(batchData)
+    }
+
+    /// Flush buffered audio when batch is large enough or timer fires
     func flush() {
         guard !buffer.isEmpty else { return }
 
