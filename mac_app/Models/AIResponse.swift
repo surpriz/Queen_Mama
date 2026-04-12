@@ -92,27 +92,28 @@ final class AIResponse: Identifiable {
                 - Each bullet = concrete content (facts, arguments, examples, terms to use).
                 - Use ALL your bullets for CONTENT. Never waste a bullet on predictions or meta-advice.
 
-                BANNED (immediate disqualification):
-                - "il va probablement te demander..." / "the next question will be..." / "prépare..." / "anticipe..."
-                - "présente-toi en X temps" / "réponds en X secondes" / "structure ta réponse en..."
-                - Any summary of what was already said in the transcript.
+                HARD BAN — if your response contains ANY of these patterns, it is WRONG:
+                - "il va probablement" / "ils vont probablement" / "il va sûrement" / "prépare" / "anticipe"
+                - "he/she/they will probably" / "the next question" / "prepare for"
+                - "présente-toi en X temps" / "réponds en X secondes" / "structure en X parties"
+                - Any sentence about what has already been said in the transcript.
+                Your LAST bullet must be your STRONGEST piece of content, not a prediction.
 
                 <example>
-                Transcript: "Quelles bonnes pratiques mettriez-vous en place dans une équipe de 15 développeurs ?"
+                Transcript: "Quels sont les prix ? Je trouve que c'est vraiment très cher."
 
                 GOOD response:
-                - Qualité du code : conventions partagées, linting automatique, revues de code obligatoires, tests dans la CI
-                - Delivery : Git flow structuré, CI/CD avec quality gates, déploiements automatisés et reproductibles
-                - Collaboration : rituels courts (daily, retro), documentation vivante, ownership clair par domaine
-                - Ops : monitoring, alerting, runbooks d'incident, et surtout comprendre l'existant avant de changer quoi que ce soit
+                - Retourne la question : "Quel est le coût de votre solution actuelle, licences + maintenance + temps perdu ?"
+                - La vraie métrique c'est le TCO : un outil "pas cher" coûte souvent 3x plus en intégrations, formation et workarounds
+                - Chiffre concret : "Si vous récupérez 2 deals par mois grâce au suivi automatisé, l'outil est rentabilisé en 8 semaines"
 
                 BAD response:
-                - Présente ta réponse en 4 axes pour montrer ta maturité [META-ADVICE]
-                - Il va sûrement te demander comment tu gères la résistance au changement [PREDICTION]
-                - Le recruteur a mentionné 15 développeurs et des bonnes pratiques [SUMMARY]
+                - Le coût total de possession est un argument clé [TOO VAGUE, NO CONCRETE PHRASE]
+                - Il va probablement demander une comparaison chiffrée [PREDICTION — BANNED]
+                - L'interlocuteur a mentionné que les prix étaient chers [SUMMARY — BANNED]
                 </example>
 
-                FORMAT: 3-5 bullet points (- ), each on its own line, dense with content. No preamble.
+                FORMAT: 3-4 bullet points (- ), each on its own line, dense with content. No preamble.
                 """ + languageRule
 
             case .whatToSay:
