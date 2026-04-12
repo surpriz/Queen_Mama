@@ -29,8 +29,8 @@ export const MODEL_CASCADE = {
   // Standard Mode (PRO): Real-time suggestions with Sonnet 4.6 (no thinking)
   // Optimized for speed + exceptional quality
   standard: [
-    { provider: "anthropic", model: "claude-sonnet-4-6" },             // Primary: ⭐⭐⭐⭐⭐ Sonnet 4.6 effort=low — best instruction following
-    { provider: "openai", model: "gpt-5.4-mini" },                     // Fallback 1: GPT-5.4-mini — fast backup
+    { provider: "openai", model: "gpt-5.4-mini" },                     // Primary: ⭐⭐⭐⭐⭐ GPT-5.4-mini — fastest + code-level prediction filter
+    { provider: "anthropic", model: "claude-sonnet-4-6" },             // Fallback 1: Sonnet 4.6 effort=low
     { provider: "anthropic", model: "claude-sonnet-4-5-20250929" },    // Fallback 2: previous gen backup
   ] as CascadeModel[],
 
