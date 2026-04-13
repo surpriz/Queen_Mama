@@ -9,7 +9,7 @@ import { buildSystemPrompt, buildUserMessage, buildTitlePrompt, buildSummaryProm
 import { getCachedResponse, setCachedResponse, clearCache } from './responseCache'
 import { recordUsage, estimateTokens } from './tokenUsageTracker'
 import { screenCaptureService } from '../screenCapture/screenCaptureService'
-import { flushBatch as flushAudioBatch } from '../transcription/transcriptionService'
+import { flushBatch as flushAudioBatch, flushSystemBatch } from '../transcription/transcriptionService'
 import { transcriptBuffer } from '../transcription/transcriptBuffer'
 import type { AIContextParams } from './aiContext'
 import { Feature } from '@/types/auth'
@@ -31,13 +31,14 @@ export interface StreamingOptions {
 export async function generateStreamingResponse(params: AIContextParams, options?: StreamingOptions): Promise<string> {
   // Force-flush audio + transcript buffers so the latest speech is included
   flushAudioBatch()
+  flushSystemBatch()
   transcriptBuffer.flush()
 
-  // Include interim transcript (words being spoken RIGHT NOW but not yet finalized)
-  const interim = useAppStore.getState().interimTranscript
-  if (interim) {
-    params = { ...params, transcript: params.transcript + interim + ' ' }
-    log.info(`Included interim transcript: "${interim.substring(0, 60)}"`)
+  // Include interim transcripts (mic + system audio — words being spoken RIGHT NOW)
+  const micInterim = useAppStore.getState().interimTranscript
+  if (micInterim) {
+    params = { ...params, transcript: params.transcript + 'Moi: ' + micInterim + ' ' }
+    log.info(`Included mic interim: "${micInterim.substring(0, 60)}"`)
   }
 
   // Show processing state immediately so the UI responds on first click,
