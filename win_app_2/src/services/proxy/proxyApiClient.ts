@@ -240,6 +240,12 @@ export async function* streamAIResponse(
             throw new Error(parsed.message || 'AI request failed')
           }
 
+          // Log SSE metadata (provider/model/effort) sent before [DONE]
+          if (parsed.provider) {
+            const effort = parsed.effort || 'unknown'
+            log.info(`Provider: ${parsed.provider}, model: ${parsed.model}, effort: ${effort}`)
+          }
+
           const content = parsed.content || ''
 
           if (content) {

@@ -42,15 +42,27 @@ let lastDiagnosticLog = 0
 
 let onTranscript: ((text: string) => void) | null = null
 let onInterimTranscript: ((text: string) => void) | null = null
+let onDiarizedTranscript: ((text: string, speaker: number) => void) | null = null
 let onError: ((error: Error) => void) | null = null
 let onConnectionChanged: ((connected: boolean, provider: string | null) => void) | null = null
 let onReconnectionBudgetExhausted: ((countdown: number) => void) | null = null
+
+// System audio callbacks (dual-stream diarization)
+let onSystemTranscript: ((text: string) => void) | null = null
+let onSystemInterimTranscript: ((text: string) => void) | null = null
 
 const providers: TranscriptionProvider[] = [
   new DeepgramProvider(),       // Primary: WS proxy (API key stays on server)
   new DeepgramFluxProvider(),   // Fallback 1: Direct Deepgram connection
   new AssemblyAIProvider(),     // Fallback 2
 ]
+
+// System audio provider (second Deepgram WebSocket for "Interlocuteur" stream)
+let systemProvider: DeepgramProvider | null = null
+let isSystemConnected = false
+let systemBatchBuffer: ArrayBuffer[] = []
+let systemBatchBufferSize = 0
+let systemBatchTimer: ReturnType<typeof setInterval> | null = null
 
 // Track providers that returned 403 (not available for plan) to avoid retrying
 const unavailableProviders = new Set<string>()
@@ -61,6 +73,12 @@ function setupProviderCallbacks(provider: TranscriptionProvider): void {
   }
   provider.onInterimTranscript = (text) => {
     onInterimTranscript?.(text)
+  }
+  // Wire diarization callback if provider supports it (DeepgramProvider)
+  if ('onDiarizedTranscript' in provider) {
+    (provider as DeepgramProvider).onDiarizedTranscript = (text: string, speaker: number) => {
+      onDiarizedTranscript?.(text, speaker)
+    }
   }
   provider.onError = (error) => {
     log.error(`Provider error: ${error.message}`)
@@ -78,12 +96,18 @@ function setupProviderCallbacks(provider: TranscriptionProvider): void {
 export function setCallbacks(callbacks: {
   onTranscript?: (text: string) => void
   onInterimTranscript?: (text: string) => void
+  onDiarizedTranscript?: (text: string, speaker: number) => void
+  onSystemTranscript?: (text: string) => void
+  onSystemInterimTranscript?: (text: string) => void
   onError?: (error: Error) => void
   onConnectionChanged?: (connected: boolean, provider: string | null) => void
   onReconnectionBudgetExhausted?: (countdown: number) => void
 }): void {
   onTranscript = callbacks.onTranscript || null
   onInterimTranscript = callbacks.onInterimTranscript || null
+  onDiarizedTranscript = callbacks.onDiarizedTranscript || null
+  onSystemTranscript = callbacks.onSystemTranscript || null
+  onSystemInterimTranscript = callbacks.onSystemInterimTranscript || null
   onError = callbacks.onError || null
   onConnectionChanged = callbacks.onConnectionChanged || null
   onReconnectionBudgetExhausted = callbacks.onReconnectionBudgetExhausted || null
@@ -180,6 +204,9 @@ export function disconnect(): void {
   stopBatchTimer()
   stopAutoRecovery()
 
+  // Disconnect system audio too
+  disconnectSystemAudio()
+
   currentProvider?.disconnect()
   currentProvider = null
   currentProviderType = null
@@ -192,7 +219,7 @@ export function disconnect(): void {
   onConnectionChanged?.(false, null)
 }
 
-function flushBatch(): void {
+export function flushBatch(): void {
   if (batchBuffer.length === 0 || !isConnected || !currentProvider) return
 
   // Concatenate all buffered ArrayBuffers into a single one
@@ -353,4 +380,104 @@ export function getCurrentProviderType(): TranscriptionProviderType | null {
 
 export function getAutoRecoveryCountdown(): number {
   return autoRecoveryCountdown
+}
+
+/** Enable Deepgram diarization on the primary mic provider (fallback when system audio unavailable) */
+export function enableDiarization(): void {
+  for (const p of providers) {
+    if (p instanceof DeepgramProvider) {
+      p.diarize = true
+      log.info('Diarization enabled on primary DeepgramProvider (fallback mode)')
+    }
+  }
+}
+
+// ============================================================
+// SYSTEM AUDIO — Second Deepgram WebSocket ("Interlocuteur")
+// ============================================================
+
+/** Connect a second Deepgram WebSocket for system audio transcription */
+export async function connectSystemAudio(): Promise<void> {
+  try {
+    log.info('Connecting system audio WebSocket...')
+    const sysProvider = new DeepgramProvider()
+    const language = useConfigStore.getState().primaryLanguage || 'multi'
+    sysProvider.language = language
+
+    sysProvider.onTranscript = (text) => {
+      log.info(`System audio transcript: "${text.substring(0, 80)}"`)
+      onSystemTranscript?.(text)
+    }
+    sysProvider.onInterimTranscript = (text) => {
+      onSystemInterimTranscript?.(text)
+    }
+    sysProvider.onError = (error) => {
+      log.warn(`System audio error: ${error.message}`)
+      isSystemConnected = false
+    }
+
+    await sysProvider.connect()
+    systemProvider = sysProvider
+    isSystemConnected = true
+
+    // Start system audio batch timer
+    systemBatchTimer = setInterval(() => {
+      flushSystemBatch()
+    }, BATCH_INTERVAL)
+
+    log.info('System audio WebSocket connected')
+  } catch (error) {
+    log.warn(`System audio connection failed (continuing without): ${(error as Error).message}`)
+    systemProvider = null
+    isSystemConnected = false
+  }
+}
+
+/** Disconnect the system audio WebSocket */
+export function disconnectSystemAudio(): void {
+  log.info('Disconnecting system audio...')
+  flushSystemBatch()
+  if (systemBatchTimer) {
+    clearInterval(systemBatchTimer)
+    systemBatchTimer = null
+  }
+  systemProvider?.disconnect()
+  systemProvider = null
+  isSystemConnected = false
+  systemBatchBuffer = []
+  systemBatchBufferSize = 0
+}
+
+/** Send audio data to the system audio transcription WebSocket */
+export function sendSystemAudio(data: ArrayBuffer): void {
+  if (!isSystemConnected || !systemProvider) return
+
+  systemBatchBuffer.push(data)
+  systemBatchBufferSize += data.byteLength
+
+  if (systemBatchBufferSize >= MAX_BATCH_SIZE) {
+    flushSystemBatch()
+  }
+}
+
+/** Flush system audio batch */
+export function flushSystemBatch(): void {
+  if (systemBatchBuffer.length === 0 || !isSystemConnected || !systemProvider) return
+
+  const totalSize = systemBatchBufferSize
+  const merged = new Uint8Array(totalSize)
+  let offset = 0
+  for (const buf of systemBatchBuffer) {
+    merged.set(new Uint8Array(buf), offset)
+    offset += buf.byteLength
+  }
+
+  systemBatchBuffer = []
+  systemBatchBufferSize = 0
+  systemProvider.sendAudio(merged.buffer)
+}
+
+/** Get system audio connection state */
+export function getIsSystemConnected(): boolean {
+  return isSystemConnected
 }

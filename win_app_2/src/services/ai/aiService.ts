@@ -9,6 +9,8 @@ import { buildSystemPrompt, buildUserMessage, buildTitlePrompt, buildSummaryProm
 import { getCachedResponse, setCachedResponse, clearCache } from './responseCache'
 import { recordUsage, estimateTokens } from './tokenUsageTracker'
 import { screenCaptureService } from '../screenCapture/screenCaptureService'
+import { flushBatch as flushAudioBatch, flushSystemBatch } from '../transcription/transcriptionService'
+import { transcriptBuffer } from '../transcription/transcriptBuffer'
 import type { AIContextParams } from './aiContext'
 import { Feature } from '@/types/auth'
 import type { ResponseType, Mode } from '@/types/models'
@@ -27,6 +29,18 @@ export interface StreamingOptions {
 }
 
 export async function generateStreamingResponse(params: AIContextParams, options?: StreamingOptions): Promise<string> {
+  // Force-flush audio + transcript buffers so the latest speech is included
+  flushAudioBatch()
+  flushSystemBatch()
+  transcriptBuffer.flush()
+
+  // Include interim transcripts (mic + system audio — words being spoken RIGHT NOW)
+  const micInterim = useAppStore.getState().interimTranscript
+  if (micInterim) {
+    params = { ...params, transcript: params.transcript + 'Moi: ' + micInterim + ' ' }
+    log.info(`Included mic interim: "${micInterim.substring(0, 60)}"`)
+  }
+
   // Show processing state immediately so the UI responds on first click,
   // before screenshot capture and network latency kick in
   useAppStore.getState().setProcessing(true)
@@ -119,11 +133,9 @@ export async function generateStreamingResponse(params: AIContextParams, options
     batchTimer = null
   }
 
-  // Default mode capped at 300 for fast, terse responses
   // Recap needs more tokens for comprehensive meeting summaries
-  // Other modes capped at 600 for concise responses
-  const isDefaultMode = !params.mode || params.mode.name === 'Default'
-  const maxTokens = params.responseType === 'Recap' ? 3000 : isDefaultMode ? 300 : 600
+  // All other modes capped at 600 (aligned with macOS)
+  const maxTokens = params.responseType === 'Recap' ? 3000 : 600
 
   addBreadcrumb('ai', `AI streaming request: ${params.responseType}`, 'info')
 
@@ -135,14 +147,19 @@ export async function generateStreamingResponse(params: AIContextParams, options
       max_tokens: maxTokens,
     })
 
+    let isFirstChunk = true
     for await (const chunk of stream) {
       if (chunk.done) break
 
       fullContent += chunk.content
       batchedContent = fullContent
 
-      // Batch UI updates to ~60fps
-      if (!batchTimer) {
+      // Flush first chunk immediately (minimize perceived TTFT)
+      if (isFirstChunk) {
+        flushBatch()
+        isFirstChunk = false
+      } else if (!batchTimer) {
+        // Batch subsequent UI updates to ~60fps
         batchTimer = setTimeout(flushBatch, UI_BATCH_INTERVAL)
       }
     }

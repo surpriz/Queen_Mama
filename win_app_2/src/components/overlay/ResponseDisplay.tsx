@@ -11,6 +11,12 @@ import { submitFeedback } from '@/services/proxy/proxyApiClient'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 
+// ── Markdown normalization ───────────────────────────────────────────
+// Normalize inline bullets ("• item1 • item2") into separate lines
+function normalizeMarkdown(text: string): string {
+  return text.replace(/ • /g, '\n• ')
+}
+
 // ── Relative time helper ─────────────────────────────────────────────
 
 function useFormatRelativeTime() {
@@ -250,7 +256,7 @@ export function ResponseDisplay() {
                 {/* Markdown body */}
                 <div className="prose prose-invert prose-sm max-w-none text-body-sm leading-relaxed pr-16">
                   <ReactMarkdown remarkPlugins={[remarkGfm]} components={{ pre: CodeBlockWrapper }}>
-                    {entry.content}
+                    {normalizeMarkdown(entry.content)}
                   </ReactMarkdown>
                 </div>
 
@@ -288,7 +294,7 @@ export function ResponseDisplay() {
                     </p>
                   ) : (
                     <ReactMarkdown remarkPlugins={[remarkGfm]} components={{ pre: CodeBlockWrapper }}>
-                      {streamingContent}
+                      {normalizeMarkdown(streamingContent)}
                     </ReactMarkdown>
                   )}
                 </div>
