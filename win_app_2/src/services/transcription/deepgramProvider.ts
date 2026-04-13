@@ -15,8 +15,10 @@ export class DeepgramProvider implements TranscriptionProvider {
   private keepaliveInterval: ReturnType<typeof setInterval> | null = null
 
   language: string = 'fr'
+  diarize: boolean = false // Enable Deepgram speaker diarization (fallback when system audio unavailable)
   onTranscript: ((text: string) => void) | null = null
   onInterimTranscript: ((text: string) => void) | null = null
+  onDiarizedTranscript: ((text: string, speaker: number) => void) | null = null
   onError: ((error: Error) => void) | null = null
 
   get isConfigured(): boolean {
@@ -40,7 +42,8 @@ export class DeepgramProvider implements TranscriptionProvider {
     // Build the proxy URL with proper protocol
     const lang = this.language || 'multi'
     const langParam = `language=${lang}`
-    const proxyUrl = `${wsProtocol}//${host}:${PROXY_PORT}?token=${encodeURIComponent(authToken)}&${langParam}&model=nova-3`
+    const diarizeParam = this.diarize ? '&diarize=true' : ''
+    const proxyUrl = `${wsProtocol}//${host}:${PROXY_PORT}?token=${encodeURIComponent(authToken)}&${langParam}&model=nova-3${diarizeParam}`
 
     log.info(`Connecting to transcription proxy at ${wsProtocol}//${host}:${PROXY_PORT}...`)
 
@@ -81,10 +84,17 @@ export class DeepgramProvider implements TranscriptionProvider {
 
           // Handle Deepgram transcription results
           if (data.type === 'Results') {
-            const transcript = data.channel?.alternatives?.[0]?.transcript || ''
+            const alt = data.channel?.alternatives?.[0]
+            const transcript = alt?.transcript || ''
             if (transcript.trim()) {
               if (data.is_final) {
-                this.onTranscript?.(transcript)
+                // If diarization is enabled and words have speaker labels, emit per-speaker segments
+                const words = alt?.words as Array<{ word?: string; speaker?: number }> | undefined
+                if (this.diarize && this.onDiarizedTranscript && words?.length && words[0]?.speaker !== undefined) {
+                  this.emitDiarizedSegments(words)
+                } else {
+                  this.onTranscript?.(transcript)
+                }
               } else {
                 this.onInterimTranscript?.(transcript)
               }
@@ -125,6 +135,29 @@ export class DeepgramProvider implements TranscriptionProvider {
   sendAudio(data: ArrayBuffer): void {
     if (this.ws?.readyState === WebSocket.OPEN) {
       this.ws.send(data)
+    }
+  }
+
+  /** Group consecutive words by speaker and emit per-speaker segments */
+  private emitDiarizedSegments(words: Array<{ word?: string; speaker?: number }>): void {
+    let currentSpeaker = words[0]?.speaker ?? 0
+    let currentWords: string[] = []
+
+    for (const w of words) {
+      const speaker = w.speaker ?? 0
+      const word = w.word ?? ''
+      if (!word) continue
+
+      if (speaker !== currentSpeaker && currentWords.length > 0) {
+        this.onDiarizedTranscript?.(currentWords.join(' '), currentSpeaker)
+        currentWords = []
+        currentSpeaker = speaker
+      }
+      currentWords.push(word)
+    }
+
+    if (currentWords.length > 0) {
+      this.onDiarizedTranscript?.(currentWords.join(' '), currentSpeaker)
     }
   }
 
