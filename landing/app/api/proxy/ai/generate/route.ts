@@ -132,17 +132,22 @@ export async function POST(request: Request) {
     const requestMaxTokens = Math.min(maxTokens || validation.maxTokens, validation.maxTokens);
 
     // Make request to provider
+    // Smart mode always routes to Anthropic (cascade primary for smart = Sonnet 4.6 + thinking)
+    const effectiveProvider = smartMode ? "anthropic" as AIProviderType : provider;
+    const effectiveApiKey = smartMode ? (await getProviderApiKey("anthropic") || adminApiKey) : adminApiKey;
+    const effectiveModel = smartMode ? "claude-sonnet-4-6" : validation.model;
+
     const startTime = Date.now();
     let aiResponse: { content: string; tokensUsed?: number };
 
     try {
-      switch (provider) {
+      switch (effectiveProvider) {
         case "openai":
         case "grok":
           aiResponse = await callOpenAICompatible(
-            provider,
-            adminApiKey,
-            validation.model,
+            effectiveProvider,
+            effectiveApiKey,
+            effectiveModel,
             systemPrompt,
             userMessage,
             screenshot,
@@ -151,8 +156,8 @@ export async function POST(request: Request) {
           break;
         case "anthropic":
           aiResponse = await callAnthropic(
-            adminApiKey,
-            validation.model,
+            effectiveApiKey,
+            effectiveModel,
             systemPrompt,
             userMessage,
             screenshot,

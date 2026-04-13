@@ -332,9 +332,7 @@ struct OverlayContentView: View {
                     switch selectedTab {
                     case .assist:
                         // Check for pre-generated response (instant path)
-                        if let rawPreGen = appState.preGenerationService.consumeBuffer() {
-                            // Strip prediction bullets from pre-generated response
-                            let preGenText = AIService.stripPredictionBullets(rawPreGen)
+                        if let preGenText = appState.preGenerationService.consumeBuffer() {
                             appState.aiService.currentResponse = preGenText
 
                             // Commit as a real AIResponse (same as normal streaming completion)

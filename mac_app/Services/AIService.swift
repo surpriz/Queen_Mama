@@ -579,12 +579,9 @@ final class AIService: ObservableObject {
                             ))
                             return
                         }
-                        // Post-process: strip prediction bullets that models stubbornly add
-                        let cleanedResponse = Self.stripPredictionBullets(accumulatedResponse)
-                        self.currentResponse = cleanedResponse
                         let response = AIResponse(
                             type: type,
-                            content: cleanedResponse,
+                            content: accumulatedResponse,
                             provider: providerType
                         )
                         self.addResponse(response)
