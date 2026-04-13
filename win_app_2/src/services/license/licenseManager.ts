@@ -49,6 +49,9 @@ export async function revalidate(): Promise<void> {
     )
 
     log.info(`License validated: ${license.plan} (${license.status})`)
+
+    // Broadcast to ALL windows so overlay stays in sync
+    broadcastLicenseState()
   } catch (error) {
     log.error('Validation failed', error)
     captureError(
@@ -77,6 +80,22 @@ export async function revalidate(): Promise<void> {
   }
 
   licenseStore.setValidating(false)
+}
+
+/** Broadcast current license state to all Electron windows (main + overlay) */
+function broadcastLicenseState(): void {
+  const store = useLicenseStore.getState()
+  try {
+    window.electronAPI?.relay?.broadcast('relay:license', {
+      license: store.currentLicense,
+      smartModeUsedToday: store.smartModeUsedToday,
+      aiRequestsToday: store.aiRequestsToday,
+      lastValidatedAt: store.lastValidatedAt,
+    })
+    log.info('License state broadcast to all windows')
+  } catch {
+    // relay not available (e.g. in tests)
+  }
 }
 
 export function startPeriodicRevalidation(): void {
@@ -114,6 +133,9 @@ export async function recordUsage(feature: string, provider?: string): Promise<v
       licenseStore.recordAiRequestUsage()
       break
   }
+
+  // Broadcast updated usage to all windows
+  broadcastLicenseState()
 
   // Fire and forget server recording
   try {

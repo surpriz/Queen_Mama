@@ -1,8 +1,10 @@
 import { useEffect } from 'react'
 import { useAppStore } from '@/stores/appStore'
 import { useOverlayStore } from '@/stores/overlayStore'
+import { useLicenseStore } from '@/stores/licenseStore'
 import { loadSessions } from '@/services/session/sessionManager'
 import type { ResponseType } from '@/types/models'
+import type { License } from '@/types/auth'
 
 /**
  * Listens for cross-window transcript, session state, and AI response broadcasts
@@ -72,11 +74,27 @@ export function useTranscriptSync() {
       }
     })
 
+    // License sync: keep overlay in sync with main window's license state
+    const unsubLicense = window.electronAPI?.onLicenseSync?.((data: { license: unknown; smartModeUsedToday: number; aiRequestsToday: number; lastValidatedAt: string | null }) => {
+      const store = useLicenseStore.getState()
+      const license = data.license as License
+      if (store.currentLicense.plan !== license.plan || store.currentLicense.status !== license.status) {
+        store.setLicense(license)
+        store.setLastValidatedAt(data.lastValidatedAt)
+      }
+      // Always sync usage counters
+      useLicenseStore.setState({
+        smartModeUsedToday: data.smartModeUsedToday,
+        aiRequestsToday: data.aiRequestsToday,
+      })
+    })
+
     return () => {
       unsubTranscript?.()
       unsubSession?.()
       unsubAudioLevel?.()
       unsubAIResponse?.()
+      unsubLicense?.()
     }
   }, [])
 }
