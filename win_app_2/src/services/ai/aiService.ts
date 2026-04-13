@@ -137,7 +137,7 @@ export async function generateStreamingResponse(params: AIContextParams, options
   // Recap needs more tokens for comprehensive meeting summaries
   // Other modes capped at 600 for concise responses
   const isDefaultMode = !params.mode || params.mode.name === 'Default'
-  const maxTokens = params.responseType === 'Recap' ? 3000 : isDefaultMode ? 300 : 600
+  const maxTokens = params.responseType === 'Recap' ? 3000 : 600
 
   addBreadcrumb('ai', `AI streaming request: ${params.responseType}`, 'info')
 
