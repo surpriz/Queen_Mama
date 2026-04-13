@@ -18,7 +18,7 @@ export function useAudioCapture() {
 
       // Set up audio data callback
       if (audioDataCallbackRef.current) {
-        audioCaptureService.setOnAudioBuffer(audioDataCallbackRef.current)
+        audioCaptureService.setOnMicAudioBuffer(audioDataCallbackRef.current)
       }
 
       await audioCaptureService.startCapture()
@@ -38,7 +38,7 @@ export function useAudioCapture() {
 
   const onAudioData = useCallback((callback: (data: ArrayBuffer) => void) => {
     audioDataCallbackRef.current = callback
-    audioCaptureService.setOnAudioBuffer(callback)
+    audioCaptureService.setOnMicAudioBuffer(callback)
   }, [])
 
   useEffect(() => {

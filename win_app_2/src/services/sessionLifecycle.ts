@@ -24,14 +24,12 @@ import { extractContactsFromTranscript } from '@/services/contacts/contactExtrac
 import * as contactSyncService from '@/services/contacts/contactSyncService'
 import * as contactDb from '@/services/contacts/contactDb'
 import { useContactStore } from '@/stores/contactStore'
-import { transcriptBuffer } from '@/services/transcription/transcriptBuffer'
-import { TranscriptBuffer } from '@/services/transcription/transcriptBuffer'
+import { transcriptBuffer, TranscriptBuffer } from '@/services/transcription/transcriptBuffer'
 import * as dedup from '@/services/transcription/transcriptDeduplicator'
 import type { Contact } from '@/types/models'
 
 const MAX_TRANSCRIPT_MEMORY = 50000 // 50KB - max in-memory transcript size for display
 const systemTranscriptBuffer = new TranscriptBuffer()
-let systemInterimText = '' // Latest system audio interim for freshness
 
 let audioLevelInterval: ReturnType<typeof setInterval> | null = null
 let currentSessionId: string | null = null
@@ -436,7 +434,6 @@ function cleanup(): void {
   transcriptBuffer.stop()
   systemTranscriptBuffer.stop()
   dedup.reset()
-  systemInterimText = ''
   audioCapture.stopCapture()
   transcription.disconnect()
   screenCaptureService.stopAutoCapture()
