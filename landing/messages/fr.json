@@ -451,6 +451,46 @@
     },
     "badgeNew": "Nouveau",
     "entries": {
+      "speakerDiarization": {
+        "title": "Identification des locuteurs (macOS)",
+        "description": "Queen Mama distingue maintenant entre vous et votre interlocuteur grâce à l'analyse audio dual-stream avec filtrage intelligent du bleed"
+      },
+      "coachingAssist": {
+        "title": "Assist en mode coaching",
+        "description": "Le mode Assist donne maintenant des conseils directs et actionnables — des points concrets à mentionner plutôt que des conseils génériques"
+      },
+      "smartModeAllTabs": {
+        "title": "Mode Smart pour tous les onglets",
+        "description": "What to Say et Follow-Up fonctionnent maintenant correctement en mode Smart avec le raisonnement approfondi de Sonnet 4.6"
+      },
+      "fasterStreaming": {
+        "title": "Réponses IA plus rapides",
+        "description": "GPT-5.4-mini en modèle principal avec cache de prompts réduit le temps de réponse jusqu'à 44%"
+      },
+      "transcriptFreshness": {
+        "title": "Contexte de transcription en temps réel",
+        "description": "Assist capture maintenant les derniers mots prononcés, y compris ceux en cours, pour des réponses plus pertinentes"
+      },
+      "focusedContext": {
+        "title": "Contexte ultra-ciblé",
+        "description": "Les réponses Assist se concentrent strictement sur le sujet en cours de discussion, en ignorant les sujets précédents"
+      },
+      "languageDetection": {
+        "title": "Détection de langue améliorée",
+        "description": "Les réponses correspondent systématiquement à la langue du transcript — un transcript français donne toujours une réponse en français"
+      },
+      "markdownBullets": {
+        "title": "Meilleur formatage des réponses",
+        "description": "Les puces s'affichent maintenant correctement sur des lignes séparées quel que soit le modèle IA utilisé"
+      },
+      "smartModeError": {
+        "title": "Erreur du mode Smart corrigée",
+        "description": "Correction d'un problème où le mode Smart retournait des réponses vides à cause de paramètres API incompatibles"
+      },
+      "tokenRefreshRace": {
+        "title": "Stabilité du rafraîchissement de token",
+        "description": "Correction d'une condition de course lors du rafraîchissement de token qui pouvait causer des échecs d'authentification"
+      },
       "winOverlayContentProtection": {
         "title": "Protection contre l'enregistrement d'écran (Windows)",
         "description": "Le widget overlay est désormais exclu des captures d'écran et enregistrements quand la protection du contenu est activée sur Windows"

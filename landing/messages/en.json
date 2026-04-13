@@ -451,6 +451,46 @@
     },
     "badgeNew": "New",
     "entries": {
+      "speakerDiarization": {
+        "title": "Speaker Identification (macOS)",
+        "description": "Queen Mama now distinguishes between you and your interlocutor using dual-stream audio analysis with intelligent bleed filtering"
+      },
+      "coachingAssist": {
+        "title": "Coaching-Style Assist",
+        "description": "The Assist mode now gives direct, actionable coaching — concrete points to mention instead of generic advice"
+      },
+      "smartModeAllTabs": {
+        "title": "Smart Mode for All Tabs",
+        "description": "What to Say and Follow-Up now work correctly in Smart Mode with deep reasoning from Sonnet 4.6"
+      },
+      "fasterStreaming": {
+        "title": "Faster AI Responses",
+        "description": "GPT-5.4-mini as primary model with prompt caching reduces response time by up to 44%"
+      },
+      "transcriptFreshness": {
+        "title": "Real-Time Transcript Context",
+        "description": "Assist now captures the very latest speech including words being spoken right now for more relevant responses"
+      },
+      "focusedContext": {
+        "title": "Laser-Focused Context",
+        "description": "Assist responses now focus strictly on the current topic being discussed, ignoring older conversation"
+      },
+      "languageDetection": {
+        "title": "Improved Language Detection",
+        "description": "Responses now consistently match the transcript language — French transcript always gets a French response"
+      },
+      "markdownBullets": {
+        "title": "Better Response Formatting",
+        "description": "Bullet points now render correctly on separate lines regardless of the AI model used"
+      },
+      "smartModeError": {
+        "title": "Smart Mode Error Fixed",
+        "description": "Fixed an issue where Smart Mode returned empty responses due to incompatible API parameters"
+      },
+      "tokenRefreshRace": {
+        "title": "Token Refresh Stability",
+        "description": "Fixed a race condition in token refresh that could cause authentication failures"
+      },
       "winOverlayContentProtection": {
         "title": "Screen Recording Protection (Windows)",
         "description": "The overlay widget is now excluded from screen captures and recordings when content protection is enabled on Windows"

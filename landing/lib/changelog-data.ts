@@ -17,8 +17,78 @@ export interface ChangelogRelease {
 
 export const changelogData: ChangelogRelease[] = [
   {
-    date: "March 2026",
+    date: "April 2026",
     isNew: true,
+    sections: [
+      {
+        category: "features",
+        changes: [
+          {
+            id: "speakerDiarization",
+            title: "Speaker Identification (macOS)",
+            description: "Queen Mama now distinguishes between you and your interlocutor using dual-stream audio analysis with intelligent bleed filtering"
+          },
+          {
+            id: "coachingAssist",
+            title: "Coaching-Style Assist",
+            description: "The Assist mode now gives direct, actionable coaching — concrete points to mention instead of generic advice"
+          },
+          {
+            id: "smartModeAllTabs",
+            title: "Smart Mode for All Tabs",
+            description: "What to Say and Follow-Up now work correctly in Smart Mode with deep reasoning from Sonnet 4.6"
+          },
+        ],
+      },
+      {
+        category: "improvements",
+        changes: [
+          {
+            id: "fasterStreaming",
+            title: "Faster AI Responses",
+            description: "GPT-5.4-mini as primary model with prompt caching reduces response time by up to 44%"
+          },
+          {
+            id: "transcriptFreshness",
+            title: "Real-Time Transcript Context",
+            description: "Assist now captures the very latest speech including words being spoken right now for more relevant responses"
+          },
+          {
+            id: "focusedContext",
+            title: "Laser-Focused Context",
+            description: "Assist responses now focus strictly on the current topic being discussed, ignoring older conversation"
+          },
+          {
+            id: "languageDetection",
+            title: "Improved Language Detection",
+            description: "Responses now consistently match the transcript language — French transcript always gets a French response"
+          },
+          {
+            id: "markdownBullets",
+            title: "Better Response Formatting",
+            description: "Bullet points now render correctly on separate lines regardless of the AI model used"
+          },
+        ],
+      },
+      {
+        category: "fixes",
+        changes: [
+          {
+            id: "smartModeError",
+            title: "Smart Mode Error Fixed",
+            description: "Fixed an issue where Smart Mode returned empty responses due to incompatible API parameters"
+          },
+          {
+            id: "tokenRefreshRace",
+            title: "Token Refresh Stability",
+            description: "Fixed a race condition in token refresh that could cause authentication failures"
+          },
+        ],
+      },
+    ],
+  },
+  {
+    date: "March 2026",
     sections: [
       {
         category: "features",
