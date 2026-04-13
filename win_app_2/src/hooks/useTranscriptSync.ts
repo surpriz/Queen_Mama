@@ -80,7 +80,7 @@ export function useTranscriptSync() {
       const license = data.license as License
       if (store.currentLicense.plan !== license.plan || store.currentLicense.status !== license.status) {
         store.setLicense(license)
-        store.setLastValidatedAt(data.lastValidatedAt)
+        if (data.lastValidatedAt) store.setLastValidatedAt(data.lastValidatedAt)
       }
       // Always sync usage counters
       useLicenseStore.setState({

@@ -183,6 +183,7 @@ export interface ElectronAPI {
   onSessionStateSync: (callback: (data: { isSessionActive: boolean; sessionStartedAt: number | null; isFinalizingSession?: boolean; sessionFinalized?: boolean }) => void) => () => void
   onAudioLevelSync: (callback: (data: { audioLevel: number }) => void) => () => void
   onAIResponseSync: (callback: (data: { type: 'streaming' | 'history'; streamingContent?: string; entry?: { type: string; content: string; timestamp: string } }) => void) => () => void
+  onLicenseSync: (callback: (data: { license: unknown; smartModeUsedToday: number; aiRequestsToday: number; lastValidatedAt: string | null }) => void) => () => void
 
   // Meeting detection
   onMeetingDetected: (callback: (data: { appName: string }) => void) => () => void
