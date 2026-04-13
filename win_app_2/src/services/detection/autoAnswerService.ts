@@ -13,7 +13,7 @@ export interface AutoAnswerConfig {
 
 const DEFAULT_CONFIG: AutoAnswerConfig = {
   enabled: false,
-  silenceThreshold: 2.5,
+  silenceThreshold: 2.0,
   cooldown: 10,
   minWordsForSilence: 20,
   minWordsForQuestion: 10,

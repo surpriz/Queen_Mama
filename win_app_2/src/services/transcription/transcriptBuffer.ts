@@ -52,7 +52,7 @@ export class TranscriptBuffer {
     this.pendingText += separator + text
   }
 
-  private flush(): void {
+  flush(): void {
     if (this.pendingText.length === 0) return
 
     this.totalFlushes++
