@@ -9,6 +9,8 @@ import { buildSystemPrompt, buildUserMessage, buildTitlePrompt, buildSummaryProm
 import { getCachedResponse, setCachedResponse, clearCache } from './responseCache'
 import { recordUsage, estimateTokens } from './tokenUsageTracker'
 import { screenCaptureService } from '../screenCapture/screenCaptureService'
+import { flushBatch as flushAudioBatch } from '../transcription/transcriptionService'
+import { transcriptBuffer } from '../transcription/transcriptBuffer'
 import type { AIContextParams } from './aiContext'
 import { Feature } from '@/types/auth'
 import type { ResponseType, Mode } from '@/types/models'
@@ -27,6 +29,17 @@ export interface StreamingOptions {
 }
 
 export async function generateStreamingResponse(params: AIContextParams, options?: StreamingOptions): Promise<string> {
+  // Force-flush audio + transcript buffers so the latest speech is included
+  flushAudioBatch()
+  transcriptBuffer.flush()
+
+  // Include interim transcript (words being spoken RIGHT NOW but not yet finalized)
+  const interim = useAppStore.getState().interimTranscript
+  if (interim) {
+    params = { ...params, transcript: params.transcript + interim + ' ' }
+    log.info(`Included interim transcript: "${interim.substring(0, 60)}"`)
+  }
+
   // Show processing state immediately so the UI responds on first click,
   // before screenshot capture and network latency kick in
   useAppStore.getState().setProcessing(true)
@@ -135,14 +148,19 @@ export async function generateStreamingResponse(params: AIContextParams, options
       max_tokens: maxTokens,
     })
 
+    let isFirstChunk = true
     for await (const chunk of stream) {
       if (chunk.done) break
 
       fullContent += chunk.content
       batchedContent = fullContent
 
-      // Batch UI updates to ~60fps
-      if (!batchTimer) {
+      // Flush first chunk immediately (minimize perceived TTFT)
+      if (isFirstChunk) {
+        flushBatch()
+        isFirstChunk = false
+      } else if (!batchTimer) {
+        // Batch subsequent UI updates to ~60fps
         batchTimer = setTimeout(flushBatch, UI_BATCH_INTERVAL)
       }
     }

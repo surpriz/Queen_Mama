@@ -192,7 +192,7 @@ export function disconnect(): void {
   onConnectionChanged?.(false, null)
 }
 
-function flushBatch(): void {
+export function flushBatch(): void {
   if (batchBuffer.length === 0 || !isConnected || !currentProvider) return
 
   // Concatenate all buffered ArrayBuffers into a single one

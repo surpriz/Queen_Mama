@@ -142,6 +142,11 @@ NEVER attribute a statement, decision, or action item to a specific person by na
 Use generic references only: "a participant mentioned", "someone raised", "it was said", "the team discussed".
 BAD: "Denis should send the report" → GOOD: "Someone should send the report" or "The report needs to be sent".`
 
+  // Final language anchor — placed LAST for maximum weight with all models (especially OpenAI)
+  prompt += `\n\nFINAL MANDATORY RULE — RESPONSE LANGUAGE:
+Detect the language of the transcript below. Respond ENTIRELY in that SAME language.
+French transcript → French response. English transcript → English response. NO EXCEPTIONS.`
+
   return prompt
 }
 
@@ -163,9 +168,15 @@ export function buildUserMessage(params: AIContextParams): AIMessage[] {
         ? '[...previous conversation truncated...]\n\n' + transcript.slice(-MAX_TRANSCRIPT_LENGTH_RECAP)
         : transcript
       textContent += `## Transcript:\n${truncated}\n\n`
+    } else if (isDefaultMode && responseType === ResponseType.Assist) {
+      // Assist in Default mode: razor-tight window (~10-15s) to isolate the current question only
+      const recentLength = 300
+      const recent = transcript.length > recentLength
+        ? transcript.slice(-recentLength)
+        : transcript
+      textContent += `${recent}\n\n`
     } else if (isDefaultMode) {
-      // Default mode: recent context only, no background, no section headers
-      // Keeps input tokens low for fast responses focused on the present moment
+      // Other Default mode tabs (WhatToSay, FollowUp): broader context
       const recentLength = 1500
       const recent = transcript.length > recentLength
         ? transcript.slice(-recentLength)
