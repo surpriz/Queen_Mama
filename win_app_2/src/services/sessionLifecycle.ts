@@ -172,7 +172,6 @@ export async function startSession(mode?: Mode | null, contact?: Contact | null)
       onSystemInterimTranscript: (text: string) => {
         // Feed interims into dedup immediately (before mic diarized arrives)
         dedup.addSystemTranscript(text)
-        systemInterimText = text
       },
       onError: async (error: Error) => {
         console.error('[SessionLifecycle] Transcription error:', error.message)
