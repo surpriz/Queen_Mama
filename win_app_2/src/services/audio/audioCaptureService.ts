@@ -271,3 +271,8 @@ export function stopCapture(): void {
 export function getIsCapturing(): boolean {
   return isCapturing
 }
+
+/** Returns true if system audio (desktop loopback) was successfully captured */
+export function hasSystemAudio(): boolean {
+  return systemStream !== null
+}

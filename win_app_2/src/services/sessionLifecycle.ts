@@ -87,15 +87,19 @@ export async function startSession(mode?: Mode | null, contact?: Contact | null)
       useAppStore.getState().setAudioLevel(level)
     })
 
-    // Connect system audio WebSocket (non-blocking — session works without it)
-    // Track whether dual-stream is active to decide if dedup should filter mic transcripts
-    let dualStreamActive = false
-    transcription.connectSystemAudio().then(() => {
-      dualStreamActive = true
+    // Check if system audio was captured — if not, enable Deepgram diarization as fallback
+    const hasSystem = audioCapture.hasSystemAudio()
+    if (hasSystem) {
+      // Dual-stream mode: system audio → second Deepgram WS
+      transcription.connectSystemAudio().catch((err) => {
+        console.warn('[Session] System audio WebSocket failed (continuing without):', err)
+      })
       console.log('[Session] Dual-stream diarization active')
-    }).catch((err) => {
-      console.warn('[Session] System audio not available, falling back to single-stream (no dedup):', err)
-    })
+    } else {
+      // Fallback: enable Deepgram diarize=true on mic stream
+      transcription.enableDiarization()
+      console.log('[Session] System audio unavailable — using Deepgram single-stream diarization fallback')
+    }
 
     // Helper: update UI + broadcast after transcript changes
     const updateTranscriptUI = () => {
@@ -141,22 +145,19 @@ export async function startSession(mode?: Mode | null, contact?: Contact | null)
 
     // Set up transcription callbacks (dual-stream with dedup)
     transcription.setCallbacks({
-      // --- MIC TRANSCRIPTS → "Moi" (with bleed filtering when dual-stream is active) ---
+      // --- MIC TRANSCRIPTS → "Moi" (with bleed filtering) ---
       onTranscript: (text: string) => {
-        // Only apply dedup when system audio is available (dual-stream mode)
-        if (dualStreamActive && dedup.isMicTranscriptBleed(text)) {
+        // Check if this mic transcript is bleed from the speakers
+        if (dedup.isMicTranscriptBleed(text)) {
           console.log(`[Session] Dropped mic bleed: "${text.substring(0, 60)}"`)
           return
         }
 
-        // Label as "Moi" when dual-stream active, otherwise plain text (single-stream fallback)
-        const speaker = dualStreamActive ? 'Moi' : 'user'
-        const entry = dualStreamActive ? `Moi: ${text}` : text
-        const separator = fullTranscript.length > 0 ? (dualStreamActive ? '\n' : ' ') : ''
-        fullTranscript = fullTranscript + separator + entry
+        const labeled = `Moi: ${text}`
+        fullTranscript = fullTranscript + (fullTranscript.length > 0 ? '\n' : '') + labeled
         sessionMgr.updateTranscript(fullTranscript)
         if (currentSessionId) {
-          sessionMgr.addTranscriptEntry(speaker, text, true)
+          sessionMgr.addTranscriptEntry('Moi', text, true)
         }
         transcriptBuffer.append(text)
       },
@@ -171,6 +172,20 @@ export async function startSession(mode?: Mode | null, contact?: Contact | null)
           isSessionActive: true,
           sessionStartedAt: currentStore.sessionStartedAt,
         })
+      },
+
+      // --- DIARIZED MIC TRANSCRIPTS (fallback when system audio unavailable) ---
+      onDiarizedTranscript: (text: string, speaker: number) => {
+        // Speaker 0 = typically the other person (further from mic)
+        // Speaker 1 = the user (closer to mic)
+        const label = speaker === 1 ? 'Moi' : 'Interlocuteur'
+        const labeled = `${label}: ${text}`
+        fullTranscript = fullTranscript + (fullTranscript.length > 0 ? '\n' : '') + labeled
+        sessionMgr.updateTranscript(fullTranscript)
+        if (currentSessionId) {
+          sessionMgr.addTranscriptEntry(label, text, true)
+        }
+        transcriptBuffer.append(text)
       },
 
       // --- SYSTEM AUDIO TRANSCRIPTS → "Interlocuteur" ---

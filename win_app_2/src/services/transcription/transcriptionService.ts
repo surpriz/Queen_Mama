@@ -42,6 +42,7 @@ let lastDiagnosticLog = 0
 
 let onTranscript: ((text: string) => void) | null = null
 let onInterimTranscript: ((text: string) => void) | null = null
+let onDiarizedTranscript: ((text: string, speaker: number) => void) | null = null
 let onError: ((error: Error) => void) | null = null
 let onConnectionChanged: ((connected: boolean, provider: string | null) => void) | null = null
 let onReconnectionBudgetExhausted: ((countdown: number) => void) | null = null
@@ -73,6 +74,12 @@ function setupProviderCallbacks(provider: TranscriptionProvider): void {
   provider.onInterimTranscript = (text) => {
     onInterimTranscript?.(text)
   }
+  // Wire diarization callback if provider supports it (DeepgramProvider)
+  if ('onDiarizedTranscript' in provider) {
+    (provider as DeepgramProvider).onDiarizedTranscript = (text: string, speaker: number) => {
+      onDiarizedTranscript?.(text, speaker)
+    }
+  }
   provider.onError = (error) => {
     log.error(`Provider error: ${error.message}`)
     addBreadcrumb('transcription', `Provider ${provider.name} error: ${error.message}`, 'error')
@@ -89,6 +96,7 @@ function setupProviderCallbacks(provider: TranscriptionProvider): void {
 export function setCallbacks(callbacks: {
   onTranscript?: (text: string) => void
   onInterimTranscript?: (text: string) => void
+  onDiarizedTranscript?: (text: string, speaker: number) => void
   onSystemTranscript?: (text: string) => void
   onSystemInterimTranscript?: (text: string) => void
   onError?: (error: Error) => void
@@ -97,6 +105,7 @@ export function setCallbacks(callbacks: {
 }): void {
   onTranscript = callbacks.onTranscript || null
   onInterimTranscript = callbacks.onInterimTranscript || null
+  onDiarizedTranscript = callbacks.onDiarizedTranscript || null
   onSystemTranscript = callbacks.onSystemTranscript || null
   onSystemInterimTranscript = callbacks.onSystemInterimTranscript || null
   onError = callbacks.onError || null
@@ -371,6 +380,16 @@ export function getCurrentProviderType(): TranscriptionProviderType | null {
 
 export function getAutoRecoveryCountdown(): number {
   return autoRecoveryCountdown
+}
+
+/** Enable Deepgram diarization on the primary mic provider (fallback when system audio unavailable) */
+export function enableDiarization(): void {
+  for (const p of providers) {
+    if (p instanceof DeepgramProvider) {
+      p.diarize = true
+      log.info('Diarization enabled on primary DeepgramProvider (fallback mode)')
+    }
+  }
 }
 
 // ============================================================
