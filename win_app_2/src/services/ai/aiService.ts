@@ -133,10 +133,8 @@ export async function generateStreamingResponse(params: AIContextParams, options
     batchTimer = null
   }
 
-  // Default mode capped at 300 for fast, terse responses
   // Recap needs more tokens for comprehensive meeting summaries
-  // Other modes capped at 600 for concise responses
-  const isDefaultMode = !params.mode || params.mode.name === 'Default'
+  // All other modes capped at 600 (aligned with macOS)
   const maxTokens = params.responseType === 'Recap' ? 3000 : 600
 
   addBreadcrumb('ai', `AI streaming request: ${params.responseType}`, 'info')
