@@ -25,9 +25,13 @@ import * as contactSyncService from '@/services/contacts/contactSyncService'
 import * as contactDb from '@/services/contacts/contactDb'
 import { useContactStore } from '@/stores/contactStore'
 import { transcriptBuffer } from '@/services/transcription/transcriptBuffer'
+import { TranscriptBuffer } from '@/services/transcription/transcriptBuffer'
+import * as dedup from '@/services/transcription/transcriptDeduplicator'
 import type { Contact } from '@/types/models'
 
 const MAX_TRANSCRIPT_MEMORY = 50000 // 50KB - max in-memory transcript size for display
+const systemTranscriptBuffer = new TranscriptBuffer()
+let systemInterimText = '' // Latest system audio interim for freshness
 
 let audioLevelInterval: ReturnType<typeof setInterval> | null = null
 let currentSessionId: string | null = null
@@ -67,12 +71,17 @@ export async function startSession(mode?: Mode | null, contact?: Contact | null)
       useContactStore.getState().addContact(updated)
     }
 
-    // Start audio capture
+    // Start audio capture (dual-stream: mic + system audio separately)
     await audioCapture.startCapture()
 
-    // Connect audio to transcription
-    audioCapture.setOnAudioBuffer((buffer) => {
+    // Connect mic audio → primary Deepgram (for "Moi")
+    audioCapture.setOnMicAudioBuffer((buffer) => {
       transcription.sendAudio(buffer)
+    })
+
+    // Connect system audio → secondary Deepgram (for "Interlocuteur")
+    audioCapture.setOnSystemAudioBuffer((buffer) => {
+      transcription.sendSystemAudio(buffer)
     })
 
     // Connect audio level for UI feedback
@@ -80,12 +89,14 @@ export async function startSession(mode?: Mode | null, contact?: Contact | null)
       useAppStore.getState().setAudioLevel(level)
     })
 
-    // Start transcript buffer for debounced UI updates (reduces redraws by ~3-5x)
-    transcriptBuffer.start((_batchedText: string) => {
-      // Buffer flushed — update UI + broadcast with current full transcript
-      const currentStore = useAppStore.getState()
+    // Connect system audio WebSocket (non-blocking — session works without it)
+    transcription.connectSystemAudio().catch((err) => {
+      console.warn('[Session] System audio WebSocket failed (continuing without):', err)
+    })
 
-      // Trim in-memory transcript for display if it exceeds limit
+    // Helper: update UI + broadcast after transcript changes
+    const updateTranscriptUI = () => {
+      const currentStore = useAppStore.getState()
       let displayTranscript = fullTranscript
       if (displayTranscript.length > MAX_TRANSCRIPT_MEMORY) {
         displayTranscript = '[...previous content truncated...]\n\n' + displayTranscript.slice(-MAX_TRANSCRIPT_MEMORY)
@@ -93,7 +104,6 @@ export async function startSession(mode?: Mode | null, contact?: Contact | null)
       currentStore.setCurrentTranscript(displayTranscript)
       currentStore.setInterimTranscript('')
 
-      // Broadcast transcript to all windows (cross-process sync)
       window.electronAPI?.relay?.broadcast('relay:transcript', {
         transcript: displayTranscript,
         interim: '',
@@ -102,43 +112,52 @@ export async function startSession(mode?: Mode | null, contact?: Contact | null)
         sessionStartedAt: currentStore.sessionStartedAt,
       })
 
-      // Feed to auto-answer detection (use full transcript for accuracy)
       autoAnswer.onTranscriptReceived(fullTranscript)
-
-      // Feed to moment detection (proactive suggestions)
       const config = useConfigStore.getState()
       if (config.proactiveEnabled) {
         processTranscriptForMoments(fullTranscript)
       }
+    }
+
+    // Start transcript buffers (mic: 250ms, system: 2s for sentence-level batching)
+    transcriptBuffer.start((_batchedText: string) => updateTranscriptUI())
+
+    systemTranscriptBuffer.start((batchedText: string) => {
+      // Register in dedup so mic bleed will be filtered
+      dedup.addSystemTranscript(batchedText)
+
+      // Add to full transcript as "Interlocuteur"
+      const labeled = `Interlocuteur: ${batchedText}`
+      fullTranscript = fullTranscript + (fullTranscript.length > 0 ? '\n' : '') + labeled
+      sessionMgr.updateTranscript(fullTranscript)
+      if (currentSessionId) {
+        sessionMgr.addTranscriptEntry('Interlocuteur', batchedText, true)
+      }
+      updateTranscriptUI()
     })
 
-    // Set up transcription callbacks
-    // IMPORTANT: Always use useAppStore.getState() inside callbacks to get fresh state.
-    // The 'store' variable captured at startSession() is a stale snapshot.
+    // Set up transcription callbacks (dual-stream with dedup)
     transcription.setCallbacks({
+      // --- MIC TRANSCRIPTS → "Moi" (with bleed filtering) ---
       onTranscript: (text: string) => {
-        // Append to module-level fullTranscript immediately (always grows, never trimmed)
-        const separator = fullTranscript.length > 0 ? ' ' : ''
-        fullTranscript = fullTranscript + separator + text
-
-        // Persist full transcript to session record immediately (DB keeps everything)
-        sessionMgr.updateTranscript(fullTranscript)
-
-        // Persist transcript entry immediately
-        if (currentSessionId) {
-          sessionMgr.addTranscriptEntry('user', text, true)
+        // Check if this mic transcript is bleed from the speakers
+        if (dedup.isMicTranscriptBleed(text)) {
+          console.log(`[Session] Dropped mic bleed: "${text.substring(0, 60)}"`)
+          return
         }
 
-        // Buffer the UI update (flushes every 500ms)
+        const labeled = `Moi: ${text}`
+        fullTranscript = fullTranscript + (fullTranscript.length > 0 ? '\n' : '') + labeled
+        sessionMgr.updateTranscript(fullTranscript)
+        if (currentSessionId) {
+          sessionMgr.addTranscriptEntry('Moi', text, true)
+        }
         transcriptBuffer.append(text)
       },
       onInterimTranscript: (text: string) => {
         const currentStore = useAppStore.getState()
-
-        // Show interim results in UI with visual feedback
         currentStore.setInterimTranscript(text)
 
-        // Broadcast interim to all windows (include current transcript so it's not lost)
         window.electronAPI?.relay?.broadcast('relay:transcript', {
           transcript: currentStore.currentTranscript,
           interim: text,
@@ -146,6 +165,16 @@ export async function startSession(mode?: Mode | null, contact?: Contact | null)
           isSessionActive: true,
           sessionStartedAt: currentStore.sessionStartedAt,
         })
+      },
+
+      // --- SYSTEM AUDIO TRANSCRIPTS → "Interlocuteur" ---
+      onSystemTranscript: (text: string) => {
+        systemTranscriptBuffer.append(text)
+      },
+      onSystemInterimTranscript: (text: string) => {
+        // Feed interims into dedup immediately (before mic diarized arrives)
+        dedup.addSystemTranscript(text)
+        systemInterimText = text
       },
       onError: async (error: Error) => {
         console.error('[SessionLifecycle] Transcription error:', error.message)
@@ -405,6 +434,9 @@ export async function toggleSession(mode?: Mode | null): Promise<void> {
 
 function cleanup(): void {
   transcriptBuffer.stop()
+  systemTranscriptBuffer.stop()
+  dedup.reset()
+  systemInterimText = ''
   audioCapture.stopCapture()
   transcription.disconnect()
   screenCaptureService.stopAutoCapture()

@@ -10,17 +10,25 @@ export type AudioLevelCallback = (level: number) => void
 let audioContext: AudioContext | null = null
 let micStream: MediaStream | null = null
 let systemStream: MediaStream | null = null
-let workletNode: AudioWorkletNode | null = null
+let micWorkletNode: AudioWorkletNode | null = null
+let systemWorkletNode: AudioWorkletNode | null = null
 let micSourceNode: MediaStreamAudioSourceNode | null = null
 let systemSourceNode: MediaStreamAudioSourceNode | null = null
-let mergerNode: ChannelMergerNode | null = null
 let isCapturing = false
 
-let onAudioBuffer: AudioBufferCallback | null = null
+// Dual-stream callbacks: separate mic and system audio
+let onMicAudioBuffer: AudioBufferCallback | null = null
+let onSystemAudioBuffer: AudioBufferCallback | null = null
 let onAudioLevel: AudioLevelCallback | null = null
 
-export function setOnAudioBuffer(callback: AudioBufferCallback): void {
-  onAudioBuffer = callback
+/** Set callback for mic audio data (user's voice) */
+export function setOnMicAudioBuffer(callback: AudioBufferCallback): void {
+  onMicAudioBuffer = callback
+}
+
+/** Set callback for system audio data (remote participants) */
+export function setOnSystemAudioBuffer(callback: AudioBufferCallback): void {
+  onSystemAudioBuffer = callback
 }
 
 export function setOnAudioLevel(callback: AudioLevelCallback): void {
@@ -28,7 +36,6 @@ export function setOnAudioLevel(callback: AudioLevelCallback): void {
 }
 
 function scalePower(rms: number): number {
-  // Convert RMS to dB then to 0-1 scale
   const db = 20 * Math.log10(Math.max(rms, 0.0001))
   const minDb = -80
   const maxDb = 0
@@ -39,8 +46,6 @@ function scalePower(rms: number): number {
 
 async function captureSystemAudio(): Promise<MediaStream | null> {
   try {
-    // In Electron, desktopCapturer + getUserMedia with chromeMediaSource: 'desktop'
-    // captures system audio output (loopback). Video track is required but we discard it.
     const stream = await navigator.mediaDevices.getUserMedia({
       audio: {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -60,7 +65,6 @@ async function captureSystemAudio(): Promise<MediaStream | null> {
       } as unknown as MediaTrackConstraints,
     })
 
-    // Remove video tracks - we only need audio
     stream.getVideoTracks().forEach((track) => track.stop())
 
     const audioTracks = stream.getAudioTracks()
@@ -83,7 +87,7 @@ export async function startCapture(): Promise<void> {
     return
   }
 
-  log.info('Starting capture...')
+  log.info('Starting dual-stream capture...')
 
   const config = useConfigStore.getState()
   const useMic = config.captureMicrophone
@@ -112,7 +116,6 @@ export async function startCapture(): Promise<void> {
       if (!useSystem) {
         throw new Error('Microphone permission denied. Please enable in system settings.')
       }
-      // Continue with system audio only
     }
   }
 
@@ -121,7 +124,6 @@ export async function startCapture(): Promise<void> {
     systemStream = await captureSystemAudio()
   }
 
-  // Ensure we have at least one source
   if (!micStream && !systemStream) {
     throw new Error('No audio sources available. Please enable microphone or system audio.')
   }
@@ -141,129 +143,122 @@ export async function startCapture(): Promise<void> {
   }
 
   if (useWorklet) {
-    startWithWorklet()
+    startDualStreamWorklet()
   } else {
-    startWithScriptProcessor()
+    startDualStreamScriptProcessor()
   }
 
   isCapturing = true
-  log.info(`Audio capture started (mic: ${!!micStream}, system: ${!!systemStream})`)
-  addBreadcrumb('audio', `Capture started (mic=${!!micStream}, system=${!!systemStream}, sampleRate=${audioContext?.sampleRate})`, 'info')
+  log.info(`Dual-stream capture started (mic: ${!!micStream}, system: ${!!systemStream})`)
+  addBreadcrumb('audio', `Dual-stream capture started (mic=${!!micStream}, system=${!!systemStream})`, 'info')
 }
 
-function startWithWorklet(): void {
+/**
+ * Dual-stream with AudioWorklet: separate worklet nodes for mic and system audio.
+ * Each stream goes to its own Deepgram connection for speaker separation.
+ */
+function startDualStreamWorklet(): void {
   if (!audioContext) return
 
-  workletNode = new AudioWorkletNode(audioContext, 'audio-processor', {
-    processorOptions: { sampleRate: audioContext.sampleRate },
-  })
-
-  workletNode.port.onmessage = (event) => {
-    const { type, pcm16, audioLevel } = event.data
-    if (type === 'audio') {
-      onAudioBuffer?.(pcm16)
-      onAudioLevel?.(scalePower(audioLevel))
+  // Mic stream → dedicated worklet → onMicAudioBuffer
+  if (micStream) {
+    micWorkletNode = new AudioWorkletNode(audioContext, 'audio-processor', {
+      processorOptions: { sampleRate: audioContext.sampleRate },
+    })
+    micWorkletNode.port.onmessage = (event) => {
+      const { type, pcm16, audioLevel } = event.data
+      if (type === 'audio') {
+        onMicAudioBuffer?.(pcm16)
+        onAudioLevel?.(scalePower(audioLevel))
+      }
     }
+    micSourceNode = audioContext.createMediaStreamSource(micStream)
+    micSourceNode.connect(micWorkletNode)
   }
 
-  // Connect sources: mic and/or system audio → merger → worklet
-  if (micStream && systemStream) {
-    // Both sources: mix them together via ChannelMergerNode
-    micSourceNode = audioContext.createMediaStreamSource(micStream)
+  // System audio stream → dedicated worklet → onSystemAudioBuffer
+  if (systemStream) {
+    systemWorkletNode = new AudioWorkletNode(audioContext, 'audio-processor', {
+      processorOptions: { sampleRate: audioContext.sampleRate },
+    })
+    systemWorkletNode.port.onmessage = (event) => {
+      const { type, pcm16 } = event.data
+      if (type === 'audio') {
+        onSystemAudioBuffer?.(pcm16)
+      }
+    }
     systemSourceNode = audioContext.createMediaStreamSource(systemStream)
-    // Use a GainNode merger approach: both into a single destination
-    const micGain = audioContext.createGain()
-    const sysGain = audioContext.createGain()
-    micGain.gain.value = 1.0
-    sysGain.gain.value = 0.8 // Slightly lower system audio to balance with mic
-    micSourceNode.connect(micGain)
-    systemSourceNode.connect(sysGain)
-    micGain.connect(workletNode)
-    sysGain.connect(workletNode)
-  } else if (micStream) {
-    micSourceNode = audioContext.createMediaStreamSource(micStream)
-    micSourceNode.connect(workletNode)
-  } else if (systemStream) {
-    systemSourceNode = audioContext.createMediaStreamSource(systemStream)
-    systemSourceNode.connect(workletNode)
+    systemSourceNode.connect(systemWorkletNode)
   }
 }
 
-function startWithScriptProcessor(): void {
+/**
+ * Dual-stream fallback with ScriptProcessorNode.
+ */
+function startDualStreamScriptProcessor(): void {
   if (!audioContext) return
 
   const bufferSize = 4096
-  const scriptNode = audioContext.createScriptProcessor(bufferSize, 1, 1)
   const inputSampleRate = audioContext.sampleRate
   const targetSampleRate = 16000
 
-  scriptNode.onaudioprocess = (event) => {
-    const inputData = event.inputBuffer.getChannelData(0)
+  function createProcessor(callback: AudioBufferCallback | null, trackLevel: boolean): ScriptProcessorNode {
+    const scriptNode = audioContext!.createScriptProcessor(bufferSize, 1, 1)
+    scriptNode.onaudioprocess = (event) => {
+      const inputData = event.inputBuffer.getChannelData(0)
 
-    // Calculate RMS
-    let sum = 0
-    for (let i = 0; i < inputData.length; i++) {
-      sum += inputData[i] * inputData[i]
+      if (trackLevel) {
+        let sum = 0
+        for (let i = 0; i < inputData.length; i++) sum += inputData[i] * inputData[i]
+        onAudioLevel?.(scalePower(Math.sqrt(sum / inputData.length)))
+      }
+
+      const ratio = targetSampleRate / inputSampleRate
+      const outputLength = Math.round(inputData.length * ratio)
+      const pcm16 = new Int16Array(outputLength)
+      for (let i = 0; i < outputLength; i++) {
+        const srcIndex = i / ratio
+        const srcFloor = Math.floor(srcIndex)
+        const srcCeil = Math.min(srcFloor + 1, inputData.length - 1)
+        const frac = srcIndex - srcFloor
+        const sample = inputData[srcFloor] * (1 - frac) + inputData[srcCeil] * frac
+        const clamped = Math.max(-1, Math.min(1, sample))
+        pcm16[i] = clamped < 0 ? clamped * 0x8000 : clamped * 0x7fff
+      }
+      callback?.(pcm16.buffer)
     }
-    const rms = Math.sqrt(sum / inputData.length)
-    onAudioLevel?.(scalePower(rms))
-
-    // Resample
-    const ratio = targetSampleRate / inputSampleRate
-    const outputLength = Math.round(inputData.length * ratio)
-    const pcm16 = new Int16Array(outputLength)
-
-    for (let i = 0; i < outputLength; i++) {
-      const srcIndex = i / ratio
-      const srcFloor = Math.floor(srcIndex)
-      const srcCeil = Math.min(srcFloor + 1, inputData.length - 1)
-      const frac = srcIndex - srcFloor
-      const sample = inputData[srcFloor] * (1 - frac) + inputData[srcCeil] * frac
-      const clamped = Math.max(-1, Math.min(1, sample))
-      pcm16[i] = clamped < 0 ? clamped * 0x8000 : clamped * 0x7fff
-    }
-
-    onAudioBuffer?.(pcm16.buffer)
+    scriptNode.connect(audioContext!.destination) // Required for ScriptProcessor to work
+    return scriptNode
   }
 
-  // Connect sources
-  if (micStream && systemStream) {
+  if (micStream) {
+    const micProcessor = createProcessor(onMicAudioBuffer, true)
     micSourceNode = audioContext.createMediaStreamSource(micStream)
-    systemSourceNode = audioContext.createMediaStreamSource(systemStream)
-    const micGain = audioContext.createGain()
-    const sysGain = audioContext.createGain()
-    micGain.gain.value = 1.0
-    sysGain.gain.value = 0.8
-    micSourceNode.connect(micGain)
-    systemSourceNode.connect(sysGain)
-    micGain.connect(scriptNode)
-    sysGain.connect(scriptNode)
-  } else if (micStream) {
-    micSourceNode = audioContext.createMediaStreamSource(micStream)
-    micSourceNode.connect(scriptNode)
-  } else if (systemStream) {
-    systemSourceNode = audioContext.createMediaStreamSource(systemStream)
-    systemSourceNode.connect(scriptNode)
+    micSourceNode.connect(micProcessor)
   }
 
-  scriptNode.connect(audioContext.destination) // Required for ScriptProcessor to work
+  if (systemStream) {
+    const sysProcessor = createProcessor(onSystemAudioBuffer, false)
+    systemSourceNode = audioContext.createMediaStreamSource(systemStream)
+    systemSourceNode.connect(sysProcessor)
+  }
 }
 
 export function stopCapture(): void {
   if (!isCapturing) return
 
-  workletNode?.disconnect()
+  micWorkletNode?.disconnect()
+  systemWorkletNode?.disconnect()
   micSourceNode?.disconnect()
   systemSourceNode?.disconnect()
-  mergerNode?.disconnect()
   micStream?.getTracks().forEach((track) => track.stop())
   systemStream?.getTracks().forEach((track) => track.stop())
   audioContext?.close()
 
-  workletNode = null
+  micWorkletNode = null
+  systemWorkletNode = null
   micSourceNode = null
   systemSourceNode = null
-  mergerNode = null
   micStream = null
   systemStream = null
   audioContext = null
