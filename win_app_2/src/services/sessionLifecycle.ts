@@ -88,8 +88,13 @@ export async function startSession(mode?: Mode | null, contact?: Contact | null)
     })
 
     // Connect system audio WebSocket (non-blocking — session works without it)
-    transcription.connectSystemAudio().catch((err) => {
-      console.warn('[Session] System audio WebSocket failed (continuing without):', err)
+    // Track whether dual-stream is active to decide if dedup should filter mic transcripts
+    let dualStreamActive = false
+    transcription.connectSystemAudio().then(() => {
+      dualStreamActive = true
+      console.log('[Session] Dual-stream diarization active')
+    }).catch((err) => {
+      console.warn('[Session] System audio not available, falling back to single-stream (no dedup):', err)
     })
 
     // Helper: update UI + broadcast after transcript changes
@@ -136,19 +141,22 @@ export async function startSession(mode?: Mode | null, contact?: Contact | null)
 
     // Set up transcription callbacks (dual-stream with dedup)
     transcription.setCallbacks({
-      // --- MIC TRANSCRIPTS → "Moi" (with bleed filtering) ---
+      // --- MIC TRANSCRIPTS → "Moi" (with bleed filtering when dual-stream is active) ---
       onTranscript: (text: string) => {
-        // Check if this mic transcript is bleed from the speakers
-        if (dedup.isMicTranscriptBleed(text)) {
+        // Only apply dedup when system audio is available (dual-stream mode)
+        if (dualStreamActive && dedup.isMicTranscriptBleed(text)) {
           console.log(`[Session] Dropped mic bleed: "${text.substring(0, 60)}"`)
           return
         }
 
-        const labeled = `Moi: ${text}`
-        fullTranscript = fullTranscript + (fullTranscript.length > 0 ? '\n' : '') + labeled
+        // Label as "Moi" when dual-stream active, otherwise plain text (single-stream fallback)
+        const speaker = dualStreamActive ? 'Moi' : 'user'
+        const entry = dualStreamActive ? `Moi: ${text}` : text
+        const separator = fullTranscript.length > 0 ? (dualStreamActive ? '\n' : ' ') : ''
+        fullTranscript = fullTranscript + separator + entry
         sessionMgr.updateTranscript(fullTranscript)
         if (currentSessionId) {
-          sessionMgr.addTranscriptEntry('Moi', text, true)
+          sessionMgr.addTranscriptEntry(speaker, text, true)
         }
         transcriptBuffer.append(text)
       },
