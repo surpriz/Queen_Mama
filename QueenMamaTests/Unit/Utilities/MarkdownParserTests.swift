@@ -456,9 +456,9 @@ final class MarkdownParserTests: XCTestCase {
         )
         let prompt = context.systemPrompt
 
-        // Default mode SHOULD get the classic .assist addition (not NZT)
+        // Default mode SHOULD get the classic .assist addition (not enhanced)
         XCTAssertTrue(
-            prompt.contains("live coach in the user"),
+            prompt.contains("live coach whispering"),
             "Default mode should include classic .assist systemPromptAddition"
         )
     }
@@ -472,10 +472,10 @@ final class MarkdownParserTests: XCTestCase {
         )
         let prompt = context.systemPrompt
 
-        // Limitless mode SHOULD get the NZT .assist addition
+        // Limitless mode SHOULD get the enhanced .assist addition
         XCTAssertTrue(
-            prompt.contains("NZT EFFECT"),
-            "Limitless mode should include NZT .assist systemPromptAddition"
+            prompt.contains("smartest person in the room"),
+            "Limitless mode should include enhanced .assist systemPromptAddition"
         )
     }
 }
