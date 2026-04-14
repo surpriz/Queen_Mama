@@ -491,6 +491,34 @@
         "title": "Stabilité du rafraîchissement de token",
         "description": "Correction d'une condition de course lors du rafraîchissement de token qui pouvait causer des échecs d'authentification"
       },
+      "freePlanUpgrade": {
+        "title": "10 requêtes IA quotidiennes (Gratuit)",
+        "description": "Le plan gratuit inclut désormais 10 requêtes IA par jour au lieu de 1, rendant l'outil bien plus utile pour démarrer"
+      },
+      "windowsDiarization": {
+        "title": "Identification des interlocuteurs (Windows)",
+        "description": "L'identification des interlocuteurs avec analyse audio double-flux est maintenant disponible sur Windows"
+      },
+      "singleStreamFallback": {
+        "title": "Repli mono-flux",
+        "description": "Basculement automatique vers la transcription mono-flux lorsque la capture audio système n'est pas disponible"
+      },
+      "overlaySessionReset": {
+        "title": "Overlay nettoyé entre les sessions",
+        "description": "L'overlay efface automatiquement les réponses IA de la session précédente au démarrage d'une nouvelle session"
+      },
+      "responsivePricing": {
+        "title": "Modal de tarification responsive",
+        "description": "Le modal de tarification s'adapte désormais correctement à la taille du widget overlay"
+      },
+      "windowsStreamingParity": {
+        "title": "Performances streaming Windows",
+        "description": "L'application Windows atteint désormais les performances de streaming et la qualité de réponse IA de macOS"
+      },
+      "windowsLicenseDesync": {
+        "title": "Correction sync licence Windows",
+        "description": "Correction du décalage de statut de licence entre le tableau de bord et l'overlay sur Windows"
+      },
       "winOverlayContentProtection": {
         "title": "Protection contre l'enregistrement d'écran (Windows)",
         "description": "Le widget overlay est désormais exclu des captures d'écran et enregistrements quand la protection du contenu est activée sur Windows"

@@ -38,6 +38,21 @@ export const changelogData: ChangelogRelease[] = [
             title: "Smart Mode for All Tabs",
             description: "What to Say and Follow-Up now work correctly in Smart Mode with deep reasoning from Sonnet 4.6"
           },
+          {
+            id: "freePlanUpgrade",
+            title: "10 Daily AI Requests (Free)",
+            description: "Free plan now includes 10 AI requests per day instead of 1, making it much more useful for getting started"
+          },
+          {
+            id: "windowsDiarization",
+            title: "Speaker Identification (Windows)",
+            description: "Speaker identification with dual-stream audio analysis is now available on Windows"
+          },
+          {
+            id: "singleStreamFallback",
+            title: "Single-Stream Fallback",
+            description: "Automatic fallback to single-stream transcription when system audio capture is unavailable"
+          },
         ],
       },
       {
@@ -68,6 +83,21 @@ export const changelogData: ChangelogRelease[] = [
             title: "Better Response Formatting",
             description: "Bullet points now render correctly on separate lines regardless of the AI model used"
           },
+          {
+            id: "overlaySessionReset",
+            title: "Clean Overlay Between Sessions",
+            description: "The overlay now automatically clears previous session's AI responses when starting a new session"
+          },
+          {
+            id: "responsivePricing",
+            title: "Responsive Pricing Modal",
+            description: "The pricing modal now adapts properly to the overlay widget size"
+          },
+          {
+            id: "windowsStreamingParity",
+            title: "Windows Streaming Performance",
+            description: "Windows app now matches macOS streaming performance and AI response quality"
+          },
         ],
       },
       {
@@ -82,6 +112,11 @@ export const changelogData: ChangelogRelease[] = [
             id: "tokenRefreshRace",
             title: "Token Refresh Stability",
             description: "Fixed a race condition in token refresh that could cause authentication failures"
+          },
+          {
+            id: "windowsLicenseDesync",
+            title: "Windows License Sync Fix",
+            description: "Fixed license status mismatch between dashboard and overlay on Windows"
           },
         ],
       },
