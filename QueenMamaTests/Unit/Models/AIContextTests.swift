@@ -24,7 +24,7 @@ final class AIContextTests: XCTestCase {
         )
 
         let prompt = context.systemPrompt
-        XCTAssertTrue(prompt.contains("real-time assistant"), "Default mode prompt should contain real-time assistant identity")
+        XCTAssertTrue(prompt.contains("real-time coach"), "Default mode prompt should contain real-time coach identity")
         XCTAssertTrue(prompt.contains("LANGUAGE RULE"), "Should include language rule")
     }
 
@@ -37,7 +37,7 @@ final class AIContextTests: XCTestCase {
         )
 
         let prompt = context.systemPrompt
-        XCTAssertTrue(prompt.contains("NZT for communication"),
+        XCTAssertTrue(prompt.contains("3 phrases"),
             "Built-in mode should include responseType system prompt addition")
     }
 
@@ -73,7 +73,7 @@ final class AIContextTests: XCTestCase {
         // Default mode uses classic coaching prompts (no NZT)
         let defaultMode = Mode(name: "Default", systemPrompt: "test")
         let defaultContext = AIContext(transcript: "test", mode: defaultMode, responseType: .assist)
-        XCTAssertTrue(defaultContext.systemPrompt.contains("live coach in the user"),
+        XCTAssertTrue(defaultContext.systemPrompt.contains("live coach whispering"),
             "Default should use classic prompt additions")
         XCTAssertFalse(defaultContext.systemPrompt.contains("NZT"),
             "Default should NOT use NZT prompt additions")
