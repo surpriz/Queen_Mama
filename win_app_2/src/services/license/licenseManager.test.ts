@@ -173,14 +173,14 @@ describe('licenseStore feature gating', () => {
     it('should respect daily AI request limits', () => {
       useLicenseStore.setState({
         currentLicense: FREE_LICENSE,
-        aiRequestsToday: 1, // At limit for free tier (1 request/day)
+        aiRequestsToday: 10, // At limit for free tier (10 requests/day)
       })
 
       const result = useLicenseStore.getState().canUse(Feature.AiRequest)
       expect(result.type).toBe('limitReached')
       if (result.type === 'limitReached') {
-        expect(result.used).toBe(1)
-        expect(result.limit).toBe(1)
+        expect(result.used).toBe(10)
+        expect(result.limit).toBe(10)
       }
     })
 

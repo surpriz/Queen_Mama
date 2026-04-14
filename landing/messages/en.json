@@ -242,7 +242,7 @@
       "period": "forever",
       "description": "Try Queen Mama with basic features",
       "cta": "Download Free",
-      "feature1": "1 AI request per day",
+      "feature1": "10 AI requests per day",
       "feature2": "Live transcription",
       "feature3": "6 built-in AI modes",
       "feature4": "Standard AI models",
@@ -490,6 +490,34 @@
       "tokenRefreshRace": {
         "title": "Token Refresh Stability",
         "description": "Fixed a race condition in token refresh that could cause authentication failures"
+      },
+      "freePlanUpgrade": {
+        "title": "10 Daily AI Requests (Free)",
+        "description": "Free plan now includes 10 AI requests per day instead of 1, making it much more useful for getting started"
+      },
+      "windowsDiarization": {
+        "title": "Speaker Identification (Windows)",
+        "description": "Speaker identification with dual-stream audio analysis is now available on Windows"
+      },
+      "singleStreamFallback": {
+        "title": "Single-Stream Fallback",
+        "description": "Automatic fallback to single-stream transcription when system audio capture is unavailable"
+      },
+      "overlaySessionReset": {
+        "title": "Clean Overlay Between Sessions",
+        "description": "The overlay now automatically clears previous session's AI responses when starting a new session"
+      },
+      "responsivePricing": {
+        "title": "Responsive Pricing Modal",
+        "description": "The pricing modal now adapts properly to the overlay widget size"
+      },
+      "windowsStreamingParity": {
+        "title": "Windows Streaming Performance",
+        "description": "Windows app now matches macOS streaming performance and AI response quality"
+      },
+      "windowsLicenseDesync": {
+        "title": "Windows License Sync Fix",
+        "description": "Fixed license status mismatch between dashboard and overlay on Windows"
       },
       "winOverlayContentProtection": {
         "title": "Screen Recording Protection (Windows)",

@@ -170,6 +170,11 @@ const electronAPI = {
     ipcRenderer.on(IPC_CHANNELS.RELAY_AI_RESPONSE, handler)
     return () => ipcRenderer.removeListener(IPC_CHANNELS.RELAY_AI_RESPONSE, handler)
   },
+  onLicenseSync: (callback: (data: { license: unknown; smartModeUsedToday: number; aiRequestsToday: number; lastValidatedAt: string | null }) => void) => {
+    const handler = (_event: Electron.IpcRendererEvent, data: { license: unknown; smartModeUsedToday: number; aiRequestsToday: number; lastValidatedAt: string | null }) => callback(data)
+    ipcRenderer.on('relay:license', handler)
+    return () => ipcRenderer.removeListener('relay:license', handler)
+  },
 
   // Meeting detection (main → renderer)
   onMeetingDetected: (callback: (data: { appName: string }) => void) => {

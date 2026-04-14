@@ -211,19 +211,13 @@ final class ConfigurationManager: ObservableObject {
         self.proactiveHesitationsEnabled = defaults.object(forKey: Keys.proactiveHesitations) as? Bool ?? false
         self.proactiveClosingEnabled = defaults.object(forKey: Keys.proactiveClosing) as? Bool ?? true
 
-        // Buffered Pre-Generation (Enterprise only)
-        // Default true for Enterprise users who had implicit pre-gen before gating, false otherwise
-        if let stored = defaults.object(forKey: Keys.bufferedPreGen) as? Bool {
-            self.bufferedPreGenEnabled = stored
-        } else {
-            // Default on for all users
-            self.bufferedPreGenEnabled = true
-        }
+        // Buffered Pre-Generation
+        self.bufferedPreGenEnabled = defaults.object(forKey: Keys.bufferedPreGen) as? Bool ?? false
 
         // Meeting Detection
         self.meetingDetectionEnabled = defaults.object(forKey: Keys.meetingDetection) as? Bool ?? true
         // Overlay Transcript
-        self.showTranscriptInOverlay = defaults.object(forKey: Keys.showTranscriptInOverlay) as? Bool ?? true
+        self.showTranscriptInOverlay = defaults.object(forKey: Keys.showTranscriptInOverlay) as? Bool ?? false
     }
 
     // MARK: - Onboarding
@@ -278,7 +272,7 @@ final class ConfigurationManager: ObservableObject {
         // Meeting Detection
         meetingDetectionEnabled = true
         // Overlay Transcript
-        showTranscriptInOverlay = true
+        showTranscriptInOverlay = false
     }
 
     // MARK: - Language Override

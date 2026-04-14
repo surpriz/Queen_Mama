@@ -29,7 +29,7 @@ export const PLANS = {
     name: "Free",
     price: 0,
     features: [
-      "1 AI request per day",
+      "10 AI requests per day",
       "Live transcription",
       "4 built-in AI modes",
       "Standard AI models",

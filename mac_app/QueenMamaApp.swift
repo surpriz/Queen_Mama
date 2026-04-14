@@ -451,6 +451,10 @@ class AppState: ObservableObject {
 
         errorMessage = nil
         currentSessionContact = contact
+
+        // Clear previous session's AI responses from overlay
+        clearContext()
+
         CrashReporter.shared.addBreadcrumb(category: "session", message: "Session started")
 
         // Record session start usage

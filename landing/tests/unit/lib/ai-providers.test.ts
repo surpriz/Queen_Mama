@@ -245,7 +245,7 @@ describe("ai-providers", () => {
     it("FREE tier should have limited tokens and no smart mode", () => {
       expect(TIER_LIMITS.FREE.maxTokens).toBe(1000);
       expect(TIER_LIMITS.FREE.smartMode).toBe(false);
-      expect(TIER_LIMITS.FREE.dailyAiRequests).toBe(1);
+      expect(TIER_LIMITS.FREE.dailyAiRequests).toBe(10);
       expect(TIER_LIMITS.FREE.screenshot).toBe(false);
     });
 
@@ -408,7 +408,7 @@ describe("ai-providers", () => {
         tier: "FREE",
         provider: "openai",
         smartMode: false,
-        dailyRequestCount: 1,
+        dailyRequestCount: 10,
       });
 
       expect(result.valid).toBe(false);
