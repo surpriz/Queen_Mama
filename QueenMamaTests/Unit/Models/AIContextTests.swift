@@ -59,24 +59,24 @@ final class AIContextTests: XCTestCase {
     func testBuiltInModeNames() {
         // Verify the built-in names are correctly classified
         // Developer Exam intentionally skips responseType addition to avoid conflicting instructions
-        // Default uses classic coaching prompts, others use NZT-enhanced prompts
-        let nztModes = ["Limitless", "Professional", "Interview", "Sales"]
+        // Default uses classic coaching prompts, others use enhanced prompts
+        let enhancedModes = ["Limitless", "Professional", "Interview", "Sales"]
 
-        for name in nztModes {
+        for name in enhancedModes {
             let mode = Mode(name: name, systemPrompt: "test")
             let context = AIContext(transcript: "test", mode: mode, responseType: .assist)
-            // NZT modes should include the NZT responseType addition
-            XCTAssertTrue(context.systemPrompt.contains("NZT"),
-                "\(name) should use NZT prompt additions")
+            // Enhanced modes should include the enhanced responseType addition
+            XCTAssertTrue(context.systemPrompt.contains("smartest person in the room"),
+                "\(name) should use enhanced prompt additions")
         }
 
-        // Default mode uses classic coaching prompts (no NZT)
+        // Default mode uses classic coaching prompts (not enhanced)
         let defaultMode = Mode(name: "Default", systemPrompt: "test")
         let defaultContext = AIContext(transcript: "test", mode: defaultMode, responseType: .assist)
         XCTAssertTrue(defaultContext.systemPrompt.contains("live coach whispering"),
             "Default should use classic prompt additions")
-        XCTAssertFalse(defaultContext.systemPrompt.contains("NZT"),
-            "Default should NOT use NZT prompt additions")
+        XCTAssertFalse(defaultContext.systemPrompt.contains("smartest person in the room"),
+            "Default should NOT use enhanced prompt additions")
 
         // Developer Exam is built-in but skips responseType addition
         let examMode = Mode(name: "Developer Exam", systemPrompt: "test")
