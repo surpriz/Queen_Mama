@@ -79,7 +79,7 @@ export const TIER_LIMITS = {
     transcriptionProviders: ["deepgram"] as TranscriptionProviderType[],
     maxTokens: 1000,
     smartMode: false,
-    dailyAiRequests: 1,
+    dailyAiRequests: 10,
     transcription: true,
     screenshot: false,
   },

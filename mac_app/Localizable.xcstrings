@@ -4293,13 +4293,13 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "1 AI request per day. Upgrade for unlimited access."
+            "value" : "10 AI requests per day. Upgrade for unlimited access."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "1 requête IA par jour. Passez à la version supérieure pour un accès illimité."
+            "value" : "10 requêtes IA par jour. Passez à la version supérieure pour un accès illimité."
           }
         }
       }
@@ -8496,13 +8496,13 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "1 per day"
+            "value" : "10 per day"
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "1 par jour"
+            "value" : "10 par jour"
           }
         }
       }

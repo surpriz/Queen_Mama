@@ -17,7 +17,7 @@ const PLAN_FEATURES = {
     exportFormats: ["plainText"],
     autoAnswerEnabled: false, // Enterprise only
     sessionSyncEnabled: true, // Session sync enabled for all users
-    dailyAiRequestLimit: 1, // 1 request per day for free authenticated users
+    dailyAiRequestLimit: 10, // 10 requests per day for free authenticated users
     maxSyncedSessions: 100, // Limit for free users
     maxTranscriptSize: 10240, // 10KB
     undetectableEnabled: false, // Enterprise only

@@ -81,7 +81,7 @@
     "seePlans": "Voir les offres",
     "feature": {
       "aiRequests": "Requêtes IA",
-      "aiRequestsFree": "1 par jour",
+      "aiRequestsFree": "10 par jour",
       "unlimited": "Illimité",
       "customModes": "Modes personnalisés",
       "cloudSync": "Synchronisation cloud",
@@ -94,7 +94,7 @@
     "limitReached": "Vous avez atteint votre limite quotidienne de requêtes IA",
     "triggerAfterSession": "Queen Mama vous aide — débloquez plus de fonctionnalités",
     "freeBannerTitle": "Vous êtes sur le plan Gratuit",
-    "freeBannerSubtitle": "1 requête IA par jour. Passez à la version supérieure pour un accès illimité.",
+    "freeBannerSubtitle": "10 requêtes IA par jour. Passez à la version supérieure pour un accès illimité.",
     "counterTooltip": "Requêtes IA quotidiennes restantes. Cliquez pour passer à la version supérieure."
   },
   "error": {
