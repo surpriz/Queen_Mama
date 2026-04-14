@@ -13,6 +13,6 @@ enum QueenMamaMigrationPlan: SchemaMigrationPlan {
         [SchemaV1.self]
     }
     static var stages: [MigrationStage] {
-        []  // No migration needed for V1 (initial schema)
+        []  // No explicit migration needed — SwiftData handles new optional fields automatically
     }
 }

@@ -39,6 +39,7 @@ final class ScreenContentAnalyzer {
         let shouldInclude: Bool
         let reason: SkipReason?
         let faceCoverage: Float      // 0.0 - 1.0, percentage of screen covered by faces
+        let faceCount: Int           // Number of individual faces detected
         let textRatio: Float         // 0.0 - 1.0, rough estimate of text presence
         let entropy: Float           // 0.0 - 1.0, image complexity/variation
         let analysisTimeMs: Int
@@ -47,6 +48,7 @@ final class ScreenContentAnalyzer {
             shouldInclude: true,
             reason: nil,
             faceCoverage: 0,
+            faceCount: 0,
             textRatio: 0,
             entropy: 1.0,
             analysisTimeMs: 0
@@ -75,6 +77,7 @@ final class ScreenContentAnalyzer {
                 shouldInclude: true, // Default to include on error
                 reason: nil,
                 faceCoverage: 0,
+                faceCount: 0,
                 textRatio: 0,
                 entropy: 1.0,
                 analysisTimeMs: 0
@@ -90,6 +93,7 @@ final class ScreenContentAnalyzer {
                 shouldInclude: false,
                 reason: .emptyScreen,
                 faceCoverage: 0,
+                faceCount: 0,
                 textRatio: 0,
                 entropy: entropy,
                 analysisTimeMs: timeMs
@@ -100,7 +104,9 @@ final class ScreenContentAnalyzer {
         async let faceResult = detectFaces(in: cgImage)
         async let textResult = detectText(in: cgImage)
 
-        let faceCoverage = await faceResult
+        let faceDetection = await faceResult
+        let faceCoverage = faceDetection.coverage
+        let faceCount = faceDetection.count
         let textRatio = await textResult
 
         let timeMs = Int((CFAbsoluteTimeGetCurrent() - startTime) * 1000)
@@ -112,12 +118,13 @@ final class ScreenContentAnalyzer {
             entropy: entropy
         )
 
-        print("[ScreenAnalyzer] Analysis: faces=\(Int(faceCoverage * 100))%, text=\(Int(textRatio * 100))%, entropy=\(String(format: "%.2f", entropy)) → \(shouldInclude ? "INCLUDE" : "SKIP (\(reason?.rawValue ?? "unknown"))")")
+        print("[ScreenAnalyzer] Analysis: faces=\(Int(faceCoverage * 100))% (\(faceCount) detected), text=\(Int(textRatio * 100))%, entropy=\(String(format: "%.2f", entropy)) → \(shouldInclude ? "INCLUDE" : "SKIP (\(reason?.rawValue ?? "unknown"))")")
 
         return AnalysisResult(
             shouldInclude: shouldInclude,
             reason: reason,
             faceCoverage: faceCoverage,
+            faceCount: faceCount,
             textRatio: textRatio,
             entropy: entropy,
             analysisTimeMs: timeMs
@@ -206,12 +213,13 @@ final class ScreenContentAnalyzer {
     }
 
     /// Detect faces using Vision framework
-    private func detectFaces(in image: CGImage) async -> Float {
+    /// Returns (coverage: Float, count: Int)
+    private func detectFaces(in image: CGImage) async -> (coverage: Float, count: Int) {
         return await withCheckedContinuation { continuation in
             let request = VNDetectFaceRectanglesRequest { request, error in
                 guard error == nil,
                       let results = request.results as? [VNFaceObservation] else {
-                    continuation.resume(returning: 0)
+                    continuation.resume(returning: (0, 0))
                     return
                 }
 
@@ -224,7 +232,7 @@ final class ScreenContentAnalyzer {
 
                 // Cap at 1.0 (faces can overlap)
                 let coverage = min(totalFaceArea, 1.0)
-                continuation.resume(returning: coverage)
+                continuation.resume(returning: (coverage, results.count))
             }
 
             let handler = VNImageRequestHandler(cgImage: image, options: [:])
@@ -232,7 +240,7 @@ final class ScreenContentAnalyzer {
                 try handler.perform([request])
             } catch {
                 print("[ScreenAnalyzer] Face detection error: \(error)")
-                continuation.resume(returning: 0)
+                continuation.resume(returning: (0, 0))
             }
         }
     }
