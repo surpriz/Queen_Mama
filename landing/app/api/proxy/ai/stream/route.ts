@@ -177,7 +177,10 @@ export async function POST(request: Request) {
     }
 
     // Calculate tokens
-    const requestMaxTokens = Math.min(maxTokens || tierConfig.maxTokens, tierConfig.maxTokens);
+    // Thinking modes need more tokens — thinking consumes part of max_tokens,
+    // so a low client value (e.g. 600) leaves no room for text output
+    const rawMaxTokens = Math.min(maxTokens || tierConfig.maxTokens, tierConfig.maxTokens);
+    const requestMaxTokens = mode !== "standard" ? Math.max(rawMaxTokens, 4000) : rawMaxTokens;
 
     // ============================================
     // CONTEXT INTELLIGENCE: Inject personalized knowledge for Enterprise
