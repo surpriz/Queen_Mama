@@ -7,6 +7,7 @@
 
 import SwiftUI
 import SwiftData
+import UniformTypeIdentifiers
 
 struct ModesListView: View {
     @Environment(\.modelContext) private var modelContext
@@ -708,8 +709,10 @@ struct ModernModePromptCard: View {
 // MARK: - Modern Mode Files Card
 
 struct ModernModeFilesCard: View {
+    @Environment(\.modelContext) private var modelContext
     let mode: Mode
     let isEditing: Bool
+    @State private var isDropTargeted = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: QMDesign.Spacing.md) {
@@ -770,14 +773,14 @@ struct ModernModeFilesCard: View {
                         .fill(QMDesign.Colors.backgroundSecondary)
                         .overlay(
                             RoundedRectangle(cornerRadius: QMDesign.Radius.md)
-                                .stroke(QMDesign.Colors.borderSubtle, style: StrokeStyle(lineWidth: 1, dash: [5]))
+                                .stroke(isDropTargeted ? QMDesign.Colors.accent : QMDesign.Colors.borderSubtle, style: StrokeStyle(lineWidth: isDropTargeted ? 2 : 1, dash: [5]))
                         )
                 )
             } else {
                 VStack(spacing: QMDesign.Spacing.sm) {
                     ForEach(mode.attachedFiles, id: \.id) { file in
                         ModernAttachedFileRow(file: file, isEditing: isEditing) {
-                            // Remove file action
+                            removeFile(file)
                         }
                     }
                 }
@@ -789,25 +792,59 @@ struct ModernModeFilesCard: View {
                 .fill(QMDesign.Colors.surfaceLight)
                 .overlay(
                     RoundedRectangle(cornerRadius: QMDesign.Radius.lg)
-                        .stroke(QMDesign.Colors.borderSubtle, lineWidth: 1)
+                        .stroke(isDropTargeted ? QMDesign.Colors.accent : QMDesign.Colors.borderSubtle, lineWidth: isDropTargeted ? 2 : 1)
                 )
         )
+        .onDrop(of: [.fileURL], isTargeted: $isDropTargeted) { providers in
+            guard isEditing else { return false }
+            let supportedExtensions = ["pdf", "txt", "rtf"]
+            for provider in providers {
+                provider.loadItem(forTypeIdentifier: UTType.fileURL.identifier, options: nil) { data, _ in
+                    guard let data = data as? Data,
+                          let url = URL(dataRepresentation: data, relativeTo: nil) else { return }
+                    guard supportedExtensions.contains(url.pathExtension.lowercased()) else { return }
+                    Task { @MainActor in
+                        addFileFromURL(url)
+                    }
+                }
+            }
+            return true
+        }
     }
 
     @MainActor
     private func addFile() {
         let openPanel = NSOpenPanel()
         openPanel.allowedContentTypes = [.pdf, .plainText, .rtf]
-        openPanel.allowsMultipleSelection = false
+        openPanel.allowsMultipleSelection = true
 
-        if openPanel.runModal() == .OK, let url = openPanel.url {
-            let file = AttachedFile(
-                name: url.lastPathComponent,
-                path: url.path,
-                type: .document
-            )
-            mode.attachedFiles.append(file)
+        if openPanel.runModal() == .OK {
+            for url in openPanel.urls {
+                addFileFromURL(url)
+            }
         }
+    }
+
+    @MainActor
+    private func addFileFromURL(_ url: URL) {
+        let alreadyAttached = mode.attachedFiles.contains { $0.path == url.path }
+        guard !alreadyAttached else { return }
+
+        let file = AttachedFile(
+            name: url.lastPathComponent,
+            path: url.path,
+            type: .document
+        )
+        var files = mode.attachedFiles
+        files.append(file)
+        mode.attachedFiles = files
+        try? modelContext.save()
+    }
+
+    @MainActor
+    private func removeFile(_ file: AttachedFile) {
+        mode.attachedFiles.removeAll { $0.id == file.id }
+        try? modelContext.save()
     }
 }
 
