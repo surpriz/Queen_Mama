@@ -503,6 +503,22 @@
         "title": "Repli mono-flux",
         "description": "Basculement automatique vers la transcription mono-flux lorsque la capture audio système n'est pas disponible"
       },
+      "meetingCostTracking": {
+        "title": "Suivi du coût des réunions",
+        "description": "Visualisez en temps réel le coût IA par réunion et configurez vos propres seuils d'alerte dans les Réglages"
+      },
+      "perspectiveAwareAssist": {
+        "title": "Coaching conscient du locuteur",
+        "description": "Assist ne met plus les mots de votre interlocuteur dans votre bouche, et passe en mode « insight » quand vous écoutez en silence plutôt que de vous forcer à répondre"
+      },
+      "modeFileDragDrop": {
+        "title": "Pièces jointes des modes",
+        "description": "Glissez-déposez des fichiers dans un mode, retirez les pièces jointes, et conservez-les d'une session à l'autre"
+      },
+      "windowsAIGuardsParity": {
+        "title": "Parité du coaching IA sur Windows",
+        "description": "L'application Windows applique désormais les mêmes verrous de langue et garde-fous de perspective que macOS pour un coaching plus fiable"
+      },
       "overlaySessionReset": {
         "title": "Overlay nettoyé entre les sessions",
         "description": "L'overlay efface automatiquement les réponses IA de la session précédente au démarrage d'une nouvelle session"

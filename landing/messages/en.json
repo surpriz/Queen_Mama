@@ -503,6 +503,22 @@
         "title": "Single-Stream Fallback",
         "description": "Automatic fallback to single-stream transcription when system audio capture is unavailable"
       },
+      "meetingCostTracking": {
+        "title": "Meeting Cost Tracking",
+        "description": "See real-time AI spend per meeting and configure custom cost thresholds from Settings"
+      },
+      "perspectiveAwareAssist": {
+        "title": "Speaker-Aware Coaching",
+        "description": "Assist no longer puts your interlocutor's words in your mouth, and shifts to insight mode when you're silently listening instead of forcing a reply"
+      },
+      "modeFileDragDrop": {
+        "title": "Mode File Attachments",
+        "description": "Drag and drop files directly into a mode, remove attachments, and keep them across sessions"
+      },
+      "windowsAIGuardsParity": {
+        "title": "Windows AI Coaching Parity",
+        "description": "The Windows app now applies the same language lock and speaker perspective guards as macOS for more reliable coaching"
+      },
       "overlaySessionReset": {
         "title": "Clean Overlay Between Sessions",
         "description": "The overlay now automatically clears previous session's AI responses when starting a new session"

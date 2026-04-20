@@ -53,6 +53,11 @@ export const changelogData: ChangelogRelease[] = [
             title: "Single-Stream Fallback",
             description: "Automatic fallback to single-stream transcription when system audio capture is unavailable"
           },
+          {
+            id: "meetingCostTracking",
+            title: "Meeting Cost Tracking",
+            description: "See real-time AI spend per meeting and configure custom cost thresholds from Settings"
+          },
         ],
       },
       {
@@ -97,6 +102,21 @@ export const changelogData: ChangelogRelease[] = [
             id: "windowsStreamingParity",
             title: "Windows Streaming Performance",
             description: "Windows app now matches macOS streaming performance and AI response quality"
+          },
+          {
+            id: "perspectiveAwareAssist",
+            title: "Speaker-Aware Coaching",
+            description: "Assist no longer puts your interlocutor's words in your mouth, and shifts to insight mode when you're silently listening instead of forcing a reply"
+          },
+          {
+            id: "modeFileDragDrop",
+            title: "Mode File Attachments",
+            description: "Drag and drop files directly into a mode, remove attachments, and keep them across sessions"
+          },
+          {
+            id: "windowsAIGuardsParity",
+            title: "Windows AI Coaching Parity",
+            description: "The Windows app now applies the same language lock and speaker perspective guards as macOS for more reliable coaching"
           },
         ],
       },
