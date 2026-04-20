@@ -91,12 +91,15 @@ final class ProxyAIProvider: AIProvider {
         let startTime = Date()
 
         // Recap needs more tokens for comprehensive meeting summaries
+        // Smart mode needs full budget — thinking tokens count against max_tokens
         // Default mode capped at 300 for fast, terse responses
         // Other modes capped at 600 for concise responses
         let isDefaultMode = context.mode?.name == "Default" || context.mode == nil
         let effectiveMaxTokens: Int
         if context.responseType == .recap {
             effectiveMaxTokens = max(configManager.maxTokens, 3000)
+        } else if context.smartMode {
+            effectiveMaxTokens = configManager.maxTokens
         } else if isDefaultMode {
             effectiveMaxTokens = min(configManager.maxTokens, 300)
         } else {
@@ -183,10 +186,16 @@ final class ProxyAIProvider: AIProvider {
                 let providerName = await MainActor.run { self.providerName }
                 let baseMaxTokens = await MainActor.run { self.configManager.maxTokens }
                 // Recap needs more tokens for comprehensive meeting summaries
+                // Smart mode needs full budget — thinking tokens count against max_tokens
                 // Other modes capped at 600 for concise, faster responses
-                let maxTokens = context.responseType == .recap
-                    ? max(baseMaxTokens, 3000)
-                    : min(baseMaxTokens, 600)
+                let maxTokens: Int
+                if context.responseType == .recap {
+                    maxTokens = max(baseMaxTokens, 3000)
+                } else if context.smartMode {
+                    maxTokens = baseMaxTokens
+                } else {
+                    maxTokens = min(baseMaxTokens, 600)
+                }
 
                 do {
                     // Debug logging for system prompt

@@ -31,6 +31,7 @@ final class ScreenCaptureService: NSObject, ObservableObject {
     @Published var isCapturing = false
     @Published var latestScreenshot: NSImage?
     @Published var errorMessage: String?
+    @Published var lastDetectedFaceCount: Int = 0
 
     // MARK: - Display Info
 
@@ -401,6 +402,7 @@ final class ScreenCaptureService: NSObject, ObservableObject {
             let analyzer = ScreenContentAnalyzer.shared
             let analysis = await analyzer.analyze(data)
             cachedScreenshotAnalysis = analysis
+            lastDetectedFaceCount = analysis.faceCount
 
             let totalTime = (CFAbsoluteTimeGetCurrent() - startTime) * 1000
 

@@ -173,6 +173,13 @@ final class SessionManager: ObservableObject {
         dbHelper.save(context: modelContext, immediate: true)
     }
 
+    func setMeetingCost(participantCount: Int, hourlyRate: Double, currency: String) {
+        currentSession?.meetingParticipantCount = participantCount
+        currentSession?.meetingHourlyRate = hourlyRate
+        currentSession?.meetingCurrency = currency
+        dbHelper.save(context: modelContext, immediate: true)
+    }
+
     // MARK: - Session Queries
 
     func fetchAllSessions() -> [Session] {

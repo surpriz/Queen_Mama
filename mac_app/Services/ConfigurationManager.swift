@@ -118,6 +118,20 @@ final class ConfigurationManager: ObservableObject {
         didSet { defaults.set(showTranscriptInOverlay, forKey: Keys.showTranscriptInOverlay) }
     }
 
+    // MARK: - Meeting Cost
+
+    @Published var meetingHourlyRate: Double {
+        didSet { defaults.set(meetingHourlyRate, forKey: Keys.meetingHourlyRate) }
+    }
+
+    @Published var meetingCurrency: String {
+        didSet { defaults.set(meetingCurrency, forKey: Keys.meetingCurrency) }
+    }
+
+    @Published var meetingDefaultParticipants: Int {
+        didSet { defaults.set(meetingDefaultParticipants, forKey: Keys.meetingDefaultParticipants) }
+    }
+
     // MARK: - Keyboard Shortcuts
 
     @Published var shortcutToggleWidget: String {
@@ -168,6 +182,10 @@ final class ConfigurationManager: ObservableObject {
         static let meetingDetection = "meeting_detection_enabled"
         // Overlay Transcript
         static let showTranscriptInOverlay = "show_transcript_in_overlay"
+        // Meeting Cost
+        static let meetingHourlyRate = "meeting_hourly_rate"
+        static let meetingCurrency = "meeting_currency"
+        static let meetingDefaultParticipants = "meeting_default_participants"
     }
 
     // MARK: - Initialization
@@ -218,6 +236,11 @@ final class ConfigurationManager: ObservableObject {
         self.meetingDetectionEnabled = defaults.object(forKey: Keys.meetingDetection) as? Bool ?? true
         // Overlay Transcript
         self.showTranscriptInOverlay = defaults.object(forKey: Keys.showTranscriptInOverlay) as? Bool ?? false
+
+        // Meeting Cost
+        self.meetingHourlyRate = defaults.object(forKey: Keys.meetingHourlyRate) as? Double ?? 50.0
+        self.meetingCurrency = defaults.string(forKey: Keys.meetingCurrency) ?? "EUR"
+        self.meetingDefaultParticipants = defaults.object(forKey: Keys.meetingDefaultParticipants) as? Int ?? 2
     }
 
     // MARK: - Onboarding
@@ -273,6 +296,10 @@ final class ConfigurationManager: ObservableObject {
         meetingDetectionEnabled = true
         // Overlay Transcript
         showTranscriptInOverlay = false
+        // Meeting Cost
+        meetingHourlyRate = 50.0
+        meetingCurrency = "EUR"
+        meetingDefaultParticipants = 2
     }
 
     // MARK: - Language Override

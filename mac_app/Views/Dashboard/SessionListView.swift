@@ -597,6 +597,11 @@ struct ModernSessionDetailView: View {
                         )
                 )
 
+                // Meeting Cost Section
+                if let costSnapshot = session.costSnapshot {
+                    MeetingCostDetailSection(snapshot: costSnapshot)
+                }
+
                 // Summary Section
                 if let summary = session.summary {
                     DetailSection(

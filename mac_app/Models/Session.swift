@@ -15,6 +15,13 @@ final class Session {
     /// Memory Palace: Contact associated with this session
     var contactId: UUID?
 
+    /// Meeting Cost: number of participants at session end
+    var meetingParticipantCount: Int?
+    /// Meeting Cost: hourly rate per person snapshot at session end
+    var meetingHourlyRate: Double?
+    /// Meeting Cost: currency code snapshot at session end ("EUR" or "USD")
+    var meetingCurrency: String?
+
     @Relationship(deleteRule: .nullify)
     var contact: Contact?
 
@@ -32,7 +39,10 @@ final class Session {
         modeId: UUID? = nil,
         contactId: UUID? = nil,
         contact: Contact? = nil,
-        entries: [TranscriptEntry] = []
+        entries: [TranscriptEntry] = [],
+        meetingParticipantCount: Int? = nil,
+        meetingHourlyRate: Double? = nil,
+        meetingCurrency: String? = nil
     ) {
         self.id = id
         self.title = title
@@ -45,6 +55,9 @@ final class Session {
         self.contactId = contactId
         self.contact = contact
         self.entries = entries
+        self.meetingParticipantCount = meetingParticipantCount
+        self.meetingHourlyRate = meetingHourlyRate
+        self.meetingCurrency = meetingCurrency
     }
 
     var duration: TimeInterval? {
@@ -156,6 +169,50 @@ extension Session {
             myCharCount: myChars,
             theirCharCount: theirChars,
             totalCharCount: myChars + theirChars
+        )
+    }
+}
+
+// MARK: - Meeting Cost Analysis
+
+extension Session {
+    struct CostSnapshot {
+        let participantCount: Int
+        let hourlyRate: Double
+        let currency: String
+        let durationSeconds: TimeInterval
+
+        var totalCost: Double {
+            Double(participantCount) * hourlyRate * (durationSeconds / 3600)
+        }
+
+        var currencySymbol: String {
+            currency == "USD" ? "$" : "€"
+        }
+
+        var formattedCost: String {
+            let symbol = currencySymbol
+            if totalCost >= 1000 {
+                return "\(symbol)\(String(format: "%.0f", totalCost))"
+            }
+            return "\(symbol)\(String(format: "%.2f", totalCost))"
+        }
+
+        var formattedRate: String {
+            "\(currencySymbol)\(Int(hourlyRate))/h"
+        }
+    }
+
+    var costSnapshot: CostSnapshot? {
+        guard let endTime,
+              let count = meetingParticipantCount, count > 0,
+              let rate = meetingHourlyRate,
+              let currency = meetingCurrency else { return nil }
+        return CostSnapshot(
+            participantCount: count,
+            hourlyRate: rate,
+            currency: currency,
+            durationSeconds: endTime.timeIntervalSince(startTime)
         )
     }
 }

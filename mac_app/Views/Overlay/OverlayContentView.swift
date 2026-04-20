@@ -31,6 +31,10 @@ struct OverlayContentView: View {
     @State private var showingContactPicker = false
     @State private var selectedContact: Contact?
 
+    // Meeting Cost: participant count during active session
+    @State private var activeParticipantCount: Int = 2
+    @State private var detectedFaceCount: Int = 0
+
     // Binding to AutoAnswerService.isEnabled
     private var isAutoAnswerEnabled: Binding<Bool> {
         Binding(
@@ -61,12 +65,23 @@ struct OverlayContentView: View {
                 isAutoAnswerEnabled: isAutoAnswerEnabled,
                 isSmartModeEnabled: isSmartModeEnabled,
                 showPopupMenu: $showPopupMenu,
+                sessionDuration: sessionManager.sessionDuration,
+                participantCount: $activeParticipantCount,
+                detectedFaceCount: detectedFaceCount,
                 onToggleExpand: { overlayController.toggleExpanded() },
                 onStart: {
                     // Show contact picker directly in widget
                     showingContactPicker = true
                 },
-                onStop: { Task { await appState.stopSession() } },
+                onStop: {
+                    // Persist meeting cost before stopping session
+                    sessionManager.setMeetingCost(
+                        participantCount: activeParticipantCount,
+                        hourlyRate: config.meetingHourlyRate,
+                        currency: config.meetingCurrency
+                    )
+                    Task { await appState.stopSession() }
+                },
                 onCopyResponse: {
                     let content: String? = if !appState.aiService.currentResponse.isEmpty {
                         appState.aiService.currentResponse
@@ -134,6 +149,10 @@ struct OverlayContentView: View {
         .onChange(of: appState.isSessionActive) { wasActive, isActive in
             // Show toast when session starts
             if !wasActive && isActive {
+                // Reset meeting cost state for new session
+                activeParticipantCount = config.meetingDefaultParticipants
+                detectedFaceCount = 0
+
                 Task {
                     await updateDisplayName()
                     withAnimation(QMDesign.Animation.smooth) {
@@ -146,6 +165,11 @@ struct OverlayContentView: View {
                         showDisplayToast = false
                     }
                 }
+            }
+        }
+        .onChange(of: appState.screenService.lastDetectedFaceCount) { _, newCount in
+            if appState.isSessionActive && newCount > 0 {
+                detectedFaceCount = newCount
             }
         }
         .onChange(of: config.smartModeEnabled) { isEnabled in
@@ -513,6 +537,10 @@ struct ModernPillHeaderView: View {
     @Binding var isAutoAnswerEnabled: Bool
     @Binding var isSmartModeEnabled: Bool
     @Binding var showPopupMenu: Bool
+    // Meeting Cost
+    let sessionDuration: TimeInterval
+    @Binding var participantCount: Int
+    let detectedFaceCount: Int
     let onToggleExpand: () -> Void
     let onStart: () -> Void
     let onStop: () -> Void
@@ -642,6 +670,17 @@ struct ModernPillHeaderView: View {
             // FREE plan request counter
             if !LicenseManager.shared.isPro {
                 FreeRequestCounter()
+            }
+
+            // Meeting Cost Indicator (live during session)
+            if isSessionActive {
+                MeetingCostIndicator(
+                    sessionDuration: sessionDuration,
+                    participantCount: $participantCount,
+                    hourlyRate: config.meetingHourlyRate,
+                    currency: config.meetingCurrency,
+                    detectedFaceCount: detectedFaceCount
+                )
             }
 
             Spacer()

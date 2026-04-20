@@ -129,7 +129,9 @@ export async function POST(request: Request) {
     }
 
     // Calculate tokens
-    const requestMaxTokens = Math.min(maxTokens || validation.maxTokens, validation.maxTokens);
+    // Smart mode uses thinking which consumes part of max_tokens — enforce minimum
+    const rawMaxTokens = Math.min(maxTokens || validation.maxTokens, validation.maxTokens);
+    const requestMaxTokens = smartMode ? Math.max(rawMaxTokens, 4000) : rawMaxTokens;
 
     // Make request to provider
     // Smart mode always routes to Anthropic (cascade primary for smart = Sonnet 4.6 + thinking)
