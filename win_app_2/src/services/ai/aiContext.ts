@@ -1,3 +1,4 @@
+import { franc } from 'franc-min'
 import { ResponseType, RESPONSE_TYPE_INFO, BUILT_IN_MODE_NAMES, BUILT_IN_MODES } from '@/types/models'
 import type { Mode } from '@/types/models'
 import type { AIMessage } from '@/types/api'
@@ -62,6 +63,54 @@ const LANGUAGE_NAMES: Record<string, string> = {
   multi: 'the same language as the transcript',
 }
 
+// Franc returns ISO 639-3 codes; map to human-readable English names for prompt injection.
+const FRANC_LANGUAGE_NAMES: Record<string, string> = {
+  fra: 'French',
+  eng: 'English',
+  spa: 'Spanish',
+  deu: 'German',
+  ita: 'Italian',
+  por: 'Portuguese',
+  nld: 'Dutch',
+  jpn: 'Japanese',
+  cmn: 'Chinese',
+  kor: 'Korean',
+  arb: 'Arabic',
+  rus: 'Russian',
+  pol: 'Polish',
+  tur: 'Turkish',
+}
+
+/**
+ * Detects the dominant language of the recent transcript with franc-min.
+ * Used when primaryLanguage is 'multi' to pin the response language deterministically
+ * instead of relying on the LLM to re-detect it from a prompt full of bilingual examples
+ * or a potentially French-UI screenshot.
+ * Returns null if transcript is too short or detection is uncertain.
+ */
+function detectTranscriptLanguage(transcript: string): string | null {
+  if (transcript.length < 20) return null
+  // Use the last 2000 chars — older context may be in a different language and bias detection.
+  const sample = transcript.length > 2000 ? transcript.slice(-2000) : transcript
+  const code = franc(sample, { minLength: 20 })
+  if (code === 'und') return null
+  return FRANC_LANGUAGE_NAMES[code] || null
+}
+
+/**
+ * Resolves the response language from user config + auto-detection.
+ * - Explicit user config (fr/en/etc.) always wins — the user made a deliberate choice.
+ * - When set to 'multi', we attempt local auto-detection on the transcript.
+ * Returns null if no lock should be applied (fall back to LLM detection).
+ */
+function resolveLockedLanguage(transcript: string): string | null {
+  const configured = useConfigStore.getState().primaryLanguage || 'multi'
+  if (configured !== 'multi') {
+    return LANGUAGE_NAMES[configured] || null
+  }
+  return detectTranscriptLanguage(transcript)
+}
+
 function getLanguageInstruction(): string {
   const lang = useConfigStore.getState().primaryLanguage || 'multi'
   const langName = LANGUAGE_NAMES[lang] || LANGUAGE_NAMES['multi']
@@ -69,6 +118,34 @@ function getLanguageInstruction(): string {
     return `\n\nIMPORTANT: You MUST respond in ${langName}. Detect the language from the transcript and respond in that same language.`
   }
   return `\n\nIMPORTANT: You MUST respond in ${langName}. All your responses must be entirely in ${langName}, no exceptions.`
+}
+
+/**
+ * True when the transcript contains "Moi:" or "Interlocuteur:" prefixes — the speaker labels
+ * injected by sessionLifecycle when system audio is captured OR Deepgram diarization is active.
+ */
+function hasDiarization(transcript: string): boolean {
+  return transcript
+    .split('\n')
+    .some((line) => line.startsWith('Moi: ') || line.startsWith('Interlocuteur: '))
+}
+
+/**
+ * True when the user has barely spoken in the most recent labeled window — signals they are
+ * LISTENING, not conversing, so the AI shouldn't push them to speak.
+ * Threshold: <2 "Moi:" entries among the last 10 labeled lines. Requires ≥3 labeled entries
+ * to judge, and ≥2 "Moi" to consider active — guards against Deepgram occasionally
+ * misattributing a short utterance the user didn't actually say.
+ */
+function isUserPassivelyListening(transcript: string): boolean {
+  const labeled = transcript
+    .split('\n')
+    .map((l) => l.trim())
+    .filter((l) => l.startsWith('Moi: ') || l.startsWith('Interlocuteur: '))
+  if (labeled.length < 3) return false
+  const recent = labeled.slice(-10)
+  const userEntries = recent.filter((l) => l.startsWith('Moi: ')).length
+  return userEntries < 2
 }
 
 export interface AIContextParams {
@@ -81,11 +158,25 @@ export interface AIContextParams {
 }
 
 export function buildSystemPrompt(params: AIContextParams): string {
-  const { mode, responseType, smartMode } = params
+  const { transcript, mode, responseType, smartMode } = params
+
+  // Pre-detect language so we can pin the response deterministically against bilingual
+  // prompt content and French-UI screenshots (macOS parity).
+  const lockedLanguage = resolveLockedLanguage(transcript)
+  const diarized = hasDiarization(transcript)
+  const passive = diarized && isUserPassivelyListening(transcript)
+
+  let prompt = ''
+
+  // LANGUAGE LOCK injected FIRST so it wins over bilingual examples and screenshot UI text.
+  if (lockedLanguage) {
+    console.log(`[AIContext] Locked response language: ${lockedLanguage}`)
+    prompt += `RESPONSE LANGUAGE LOCK — MANDATORY: Respond in ${lockedLanguage} ONLY. Every word, including action verb prefixes, bullet labels, and quoted phrases, must be in ${lockedLanguage}. Do NOT mix languages. Ignore the language of the screenshot, system UI, or any examples — only the transcript language matters. This overrides every other language rule below.\n\n`
+  }
 
   // Inject current date so models never confuse training cutoff with today
   const today = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })
-  let prompt = `Today's date is ${today}. Use this as the current date for any temporal reasoning.\n\n`
+  prompt += `Today's date is ${today}. Use this as the current date for any temporal reasoning.\n\n`
 
   const isCustomMode = mode
     ? !BUILT_IN_MODE_NAMES.includes(mode.name as (typeof BUILT_IN_MODE_NAMES)[number])
@@ -135,17 +226,56 @@ export function buildSystemPrompt(params: AIContextParams): string {
     prompt += cachedContactsContext
   }
 
-  // Speaker identification unavailable — applies to ALL modes
-  prompt += `\n\nSPEAKER IDENTIFICATION — CRITICAL RULE:
+  // Speaker identification — conditional on whether diarization is active (matches macOS).
+  // Anchor to line start to avoid false positives from spoken content like "pour moi: ...".
+  if (diarized) {
+    prompt += `\n\nSPEAKER IDENTIFICATION:
+The transcript includes speaker labels: "Moi" = the user, "Interlocuteur" = other participant(s).
+You CAN and SHOULD distinguish who said what:
+- Use "you said/proposed/asked" for "Moi" entries
+- Use "your interlocutor said/proposed/asked" for "Interlocuteur" entries
+- Action items: clearly attribute to the correct speaker
+
+PERSPECTIVE GUARD — ABSOLUTE:
+The user is the ONE receiving coaching. The user is NEVER the speaker of any "Interlocuteur" content.
+- First-person pronouns ("je", "I") in "Interlocuteur" lines belong to the INTERLOCUTOR, NEVER to the user
+- NEVER echo another speaker's first-person claims as if the user said them
+- NEVER invent specific details the user hasn't mentioned (absence, availability, opinions, commitments, personal circumstances)
+- When suggesting what to say, base it on what is a REASONABLE RESPONSE to the interlocutor, not a restatement
+- BAD: Interlocuteur says "Je ne serai pas là la semaine prochaine" → You write "Réponds: Je ne serai pas là la semaine prochaine" (the user's absence is invented)
+- GOOD: Interlocuteur says "Je ne serai pas là la semaine prochaine" → You write "Demande: « Quels jours exactement ? »" or "Propose: « Je peux couvrir tes sujets urgents »"`
+  } else {
+    prompt += `\n\nSPEAKER IDENTIFICATION — CRITICAL RULE:
 The transcript does NOT include speaker identification. You do NOT know who said what.
 NEVER attribute a statement, decision, or action item to a specific person by name.
 Use generic references only: "a participant mentioned", "someone raised", "it was said", "the team discussed".
 BAD: "Denis should send the report" → GOOD: "Someone should send the report" or "The report needs to be sent".`
+  }
 
-  // Final language anchor — placed LAST for maximum weight with all models (especially OpenAI)
-  prompt += `\n\nFINAL MANDATORY RULE — RESPONSE LANGUAGE:
+  // Passive listening override — when the user has barely spoken, TypeScript detects this
+  // deterministically and overrides the mode's "coach the user to speak" directive.
+  if (passive) {
+    console.log('[AIContext] User passively listening — injecting passive mode directive')
+    prompt += `\n\nPASSIVE LISTENING MODE — MANDATORY (overrides mode defaults):
+The user has been SILENT and is LISTENING, not conversing. Do NOT force them to speak.
+- DO NOT lead bullets with "Réponds", "Dis", "Demande", "Reply", "Say", "Ask" unless a question is DIRECTLY and UNAMBIGUOUSLY addressed to the user in the most recent interlocutor turn
+- PREFER extracting the key takeaway, flagging a shift in the discussion, or offering an OPTIONAL interjection
+- Use leads like: "L'idée clé :" / "Ce qu'il faut retenir :" / "Point important :" / "À noter :" / "Key insight:" / "Worth noting:"
+- If the user MAY want to intervene, frame it as optional: "Si tu veux intervenir :" / "Tu peux glisser :" / "To chime in (optional):"
+- NEVER fabricate details about the user (availability, absence, opinions, commitments)`
+  }
+
+  // Final language anchor — placed LAST for maximum weight with all models (especially OpenAI).
+  // When we have a locked language, reference it explicitly so the model can't "re-detect"
+  // a different language from screenshot UI or bilingual prompt content.
+  if (lockedLanguage) {
+    prompt += `\n\nFINAL MANDATORY RULE — RESPONSE LANGUAGE:
+The transcript language has been pre-detected as ${lockedLanguage}. Respond ENTIRELY in ${lockedLanguage}. NO EXCEPTIONS.`
+  } else {
+    prompt += `\n\nFINAL MANDATORY RULE — RESPONSE LANGUAGE:
 Detect the language of the transcript below. Respond ENTIRELY in that SAME language.
 French transcript → French response. English transcript → English response. NO EXCEPTIONS.`
+  }
 
   return prompt
 }
