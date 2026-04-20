@@ -392,6 +392,24 @@ struct AIContext: @unchecked Sendable {
         self.contactContext = contact.map { ContactContext(from: $0) }
     }
 
+    /// True when the user has barely spoken in the most recent labeled window — signals they are
+    /// LISTENING, not conversing, so the AI shouldn't push them to speak.
+    /// Threshold: <2 "Moi:" entries among the last 10 labeled lines. Requires ≥3 labeled entries
+    /// to judge, and ≥2 "Moi" to consider active — this guards against Deepgram occasionally
+    /// misattributing a short utterance (e.g. "ça marche") the user didn't actually say.
+    var isUserPassivelyListening: Bool {
+        let labeled = transcript
+            .split(separator: "\n", omittingEmptySubsequences: true)
+            .map(String.init)
+            .filter { $0.hasPrefix("Moi: ") || $0.hasPrefix("Interlocuteur: ") }
+
+        guard labeled.count >= 3 else { return false }
+
+        let recent = labeled.suffix(10)
+        let userEntries = recent.filter { $0.hasPrefix("Moi: ") }.count
+        return userEntries < 2
+    }
+
     /// Dominant language of the recent transcript, detected locally with Apple's NLLanguageRecognizer.
     /// Nil if the transcript is too short or detection confidence is below 0.75.
     /// Used to pin the AI's response language deterministically instead of relying on the LLM
@@ -562,6 +580,15 @@ You CAN and SHOULD distinguish who said what:
 - Use "you said/proposed/asked" for "Moi" entries
 - Use "your interlocutor said/proposed/asked" for "Interlocuteur" entries
 - Action items: clearly attribute to the correct speaker
+
+PERSPECTIVE GUARD — ABSOLUTE:
+The user is the ONE receiving coaching. The user is NEVER the speaker of any "Interlocuteur" content.
+- First-person pronouns ("je", "I") in "Interlocuteur" lines belong to the INTERLOCUTOR, NEVER to the user
+- NEVER echo another speaker's first-person claims as if the user said them
+- NEVER invent specific details the user hasn't mentioned (absence, availability, opinions, commitments, personal circumstances)
+- When suggesting what to say, base it on what is a REASONABLE RESPONSE to the interlocutor, not a restatement
+- BAD: Interlocuteur says "Je ne serai pas là la semaine prochaine" → You write "Réponds: Je ne serai pas là la semaine prochaine" (the user's absence is invented)
+- GOOD: Interlocuteur says "Je ne serai pas là la semaine prochaine" → You write "Demande: « Quels jours exactement ? »" or "Propose: « Je peux couvrir tes sujets urgents »"
 """
         } else {
             prompt += """
@@ -572,6 +599,24 @@ The transcript does NOT include speaker identification. You do NOT know who said
 NEVER attribute a statement, decision, or action item to a specific person by name.
 Use generic references only: "a participant mentioned", "someone raised", "it was said", "the team discussed".
 BAD: "Denis should send the report" → GOOD: "Someone should send the report" or "The report needs to be sent".
+"""
+        }
+
+        // Passive listening override — when the user has barely spoken, Swift detects this
+        // deterministically and overrides the mode's "coach the user to speak" directive.
+        // Placed AFTER speaker identification so it applies on top, BEFORE the language anchor.
+        if isUserPassivelyListening {
+            print("[AIContext] User passively listening — injecting passive mode directive")
+            prompt += """
+
+
+PASSIVE LISTENING MODE — MANDATORY (overrides mode defaults):
+The user has been SILENT and is LISTENING, not conversing. Do NOT force them to speak.
+- DO NOT lead bullets with "Réponds", "Dis", "Demande", "Reply", "Say", "Ask" unless a question is DIRECTLY and UNAMBIGUOUSLY addressed to the user in the most recent interlocutor turn
+- PREFER extracting the key takeaway, flagging a shift in the discussion, or offering an OPTIONAL interjection
+- Use leads like: "L'idée clé :" / "Ce qu'il faut retenir :" / "Point important :" / "À noter :" / "Key insight:" / "Worth noting:"
+- If the user MAY want to intervene, frame it as optional: "Si tu veux intervenir :" / "Tu peux glisser :" / "To chime in (optional):"
+- NEVER fabricate details about the user (availability, absence, opinions, commitments)
 """
         }
 
