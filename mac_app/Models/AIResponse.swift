@@ -1,4 +1,5 @@
 import Foundation
+import NaturalLanguage
 import SwiftData
 
 @Model
@@ -391,13 +392,76 @@ struct AIContext: @unchecked Sendable {
         self.contactContext = contact.map { ContactContext(from: $0) }
     }
 
+    /// Dominant language of the recent transcript, detected locally with Apple's NLLanguageRecognizer.
+    /// Nil if the transcript is too short or detection confidence is below 0.75.
+    /// Used to pin the AI's response language deterministically instead of relying on the LLM
+    /// to re-detect it from a prompt full of bilingual examples and a potentially French screenshot.
+    var detectedLanguageName: String? {
+        guard transcript.count >= 20 else { return nil }
+
+        // Detect on the most recent 2000 chars — older context may be in a different language
+        // (e.g., a French meeting that switched to English) and would bias detection.
+        let sample = transcript.count > 2000
+            ? String(transcript.suffix(2000))
+            : transcript
+
+        let recognizer = NLLanguageRecognizer()
+        recognizer.processString(sample)
+
+        let hypotheses = recognizer.languageHypotheses(withMaximum: 2)
+        guard let (topLanguage, confidence) = hypotheses.max(by: { $0.value < $1.value }) else {
+            return nil
+        }
+
+        guard confidence >= 0.75 else { return nil }
+
+        return AIContext.displayName(for: topLanguage)
+    }
+
+    private static func displayName(for language: NLLanguage) -> String? {
+        switch language {
+        case .french: return "French"
+        case .english: return "English"
+        case .spanish: return "Spanish"
+        case .italian: return "Italian"
+        case .german: return "German"
+        case .portuguese: return "Portuguese"
+        case .dutch: return "Dutch"
+        case .polish: return "Polish"
+        case .russian: return "Russian"
+        case .japanese: return "Japanese"
+        case .korean: return "Korean"
+        case .simplifiedChinese, .traditionalChinese: return "Chinese"
+        case .arabic: return "Arabic"
+        case .turkish: return "Turkish"
+        default:
+            return Locale(identifier: "en").localizedString(forLanguageCode: language.rawValue)
+        }
+    }
+
     var systemPrompt: String {
         // Inject current date so models never confuse training cutoff with today
         let dateFormatter = DateFormatter()
         dateFormatter.dateStyle = .long
         dateFormatter.timeStyle = .none
         let todayString = dateFormatter.string(from: Date())
-        var prompt = "Today's date is \(todayString). Use this as the current date for any temporal reasoning.\n\n"
+
+        var prompt = ""
+
+        // Pre-detected language directive injected BEFORE anything else so it wins over
+        // bilingual examples, French mode prompts, and French UI text in screenshots.
+        let detectedLang = detectedLanguageName
+        if let lang = detectedLang {
+            print("[AIContext] Detected transcript language: \(lang)")
+            prompt += """
+            RESPONSE LANGUAGE LOCK — MANDATORY: Respond in \(lang) ONLY. Every word, including action verb prefixes, bullet labels, and quoted phrases, must be in \(lang). Do NOT mix languages. Ignore the language of the screenshot, system UI, or any examples — only the transcript language matters. This overrides every other language rule below.
+
+            """
+        } else {
+            print("[AIContext] Language detection skipped (transcript too short or low confidence)")
+        }
+
+        prompt += "Today's date is \(todayString). Use this as the current date for any temporal reasoning.\n\n"
 
         // Check if this is a custom mode (not one of the built-in modes)
         let isCustomMode: Bool
@@ -511,14 +575,25 @@ BAD: "Denis should send the report" → GOOD: "Someone should send the report" o
 """
         }
 
-        // Final language anchor — placed LAST for maximum weight with all models (especially OpenAI)
-        prompt += """
+        // Final language anchor — placed LAST for maximum weight with all models (especially OpenAI).
+        // When we have a confident local detection, reference it explicitly so the model can't
+        // "re-detect" a different language from screenshot UI or bilingual prompt content.
+        if let lang = detectedLang {
+            prompt += """
+
+
+FINAL MANDATORY RULE — RESPONSE LANGUAGE:
+The transcript language has been pre-detected as \(lang). Respond ENTIRELY in \(lang). NO EXCEPTIONS.
+"""
+        } else {
+            prompt += """
 
 
 FINAL MANDATORY RULE — RESPONSE LANGUAGE:
 Detect the language of the transcript below. Respond ENTIRELY in that SAME language.
 French transcript → French response. English transcript → English response. NO EXCEPTIONS.
 """
+        }
 
         return prompt
     }
