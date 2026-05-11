@@ -4,6 +4,7 @@ import { Mic, MicOff, Square, Play, Sparkles, Copy, Check, Trash2 } from 'lucide
 import { useAppStore } from '@/stores/appStore'
 import { useOverlayStore } from '@/stores/overlayStore'
 import { startSession, stopSession } from '@/services/sessionLifecycle'
+import { toast } from '@/stores/toastStore'
 import { ContactPicker } from '@/components/overlay/ContactPicker'
 import { StatusIndicator } from '@/components/common/StatusIndicator'
 import { KeyboardShortcutBadge } from '@/components/common/KeyboardShortcutBadge'
@@ -52,6 +53,14 @@ export function LiveSessionView() {
     ? currentTranscript.split(/\s+/).filter(Boolean).length
     : 0
 
+  // Surface errors via central toast, clear from store so duplicates don't replay
+  useEffect(() => {
+    if (errorMessage) {
+      toast.error(errorMessage)
+      useAppStore.getState().setErrorMessage(null)
+    }
+  }, [errorMessage])
+
   const handleCopyTranscript = useCallback(() => {
     if (!currentTranscript) return
     navigator.clipboard.writeText(currentTranscript)
@@ -93,7 +102,7 @@ export function LiveSessionView() {
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">
-          <h2 className="text-title-sm font-semibold text-qm-text-primary">{t('liveSession.title')}</h2>
+          <h2 className="font-display text-title-sm font-semibold text-qm-text-primary tracking-tight">{t('liveSession.title')}</h2>
           <StatusIndicator
             status={isSessionActive ? 'active' : 'idle'}
             size={8}
@@ -129,17 +138,12 @@ export function LiveSessionView() {
         </div>
       </div>
 
-      {/* Error message */}
-      {errorMessage && (
-        <div className="mb-4 p-3 rounded-qm-md bg-qm-error-light text-qm-error text-body-sm">
-          {errorMessage}
-        </div>
-      )}
+      {/* Error surfaced via central toast */}
 
       {/* Content area */}
       <div className="flex-1 flex gap-4 min-h-0">
         {/* Transcript panel */}
-        <div className="flex-1 flex flex-col rounded-qm-lg bg-qm-surface-light border border-qm-border-subtle overflow-hidden">
+        <div className="flex-1 flex flex-col rounded-qm-lg bg-qm-bg-tertiary/60 shadow-qm-elev-1 overflow-hidden">
           <div className="flex items-center justify-between px-4 py-3 border-b border-qm-border-subtle">
             <div className="flex items-center gap-2">
               <span className="text-label-md text-qm-text-secondary">{t('liveSession.transcript')}</span>
@@ -188,7 +192,7 @@ export function LiveSessionView() {
         </div>
 
         {/* AI Response panel */}
-        <div className="flex-1 flex flex-col rounded-qm-lg bg-qm-surface-light border border-qm-border-subtle overflow-hidden">
+        <div className="flex-1 flex flex-col rounded-qm-lg bg-qm-bg-tertiary/60 shadow-qm-elev-1 overflow-hidden">
           <div className="flex items-center justify-between px-4 py-3 border-b border-qm-border-subtle">
             <div className="flex items-center gap-2">
               <Sparkles size={14} className="text-qm-accent" />

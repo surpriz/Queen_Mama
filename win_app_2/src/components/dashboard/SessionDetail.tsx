@@ -104,8 +104,9 @@ export function SessionDetail({ sessionId, onBack }: SessionDetailProps) {
   return (
     <div className="flex flex-col h-full overflow-y-auto">
       {/* Gradient hero header */}
-      <div className="p-6 bg-gradient-to-r from-qm-gradient-start/10 to-qm-gradient-end/10 border-b border-qm-border-subtle">
-        <div className="flex items-center gap-3">
+      <div className="relative p-6 overflow-hidden bg-gradient-to-r from-qm-gradient-start/12 to-qm-gradient-end/8 border-b border-qm-border-subtle">
+        <div className="pointer-events-none absolute -top-16 -right-16 w-56 h-56 rounded-full bg-qm-accent/18 blur-3xl" />
+        <div className="relative flex items-center gap-3">
           <button
             onClick={onBack}
             className="p-2 rounded-qm-md hover:bg-qm-surface-hover text-qm-text-secondary hover:text-qm-text-primary transition-colors"
@@ -114,10 +115,10 @@ export function SessionDetail({ sessionId, onBack }: SessionDetailProps) {
           </button>
           <div className="flex-1">
             <div className="flex items-center gap-2">
-              <h2 className="text-title-sm font-semibold text-qm-text-primary">{session.title}</h2>
+              <h2 className="font-display text-title-sm font-semibold text-qm-text-primary tracking-tight">{session.title}</h2>
               {syncBadge()}
             </div>
-            <p className="text-caption text-qm-text-tertiary">
+            <p className="text-caption text-qm-text-tertiary mt-0.5">
               {formatDate(session.startTime)}
               {duration && ` · ${formatDuration(duration)}`}
             </p>
@@ -173,9 +174,9 @@ export function SessionDetail({ sessionId, onBack }: SessionDetailProps) {
       <div className="p-6 space-y-6">
         {/* Summary */}
         {session.summary && (
-          <div className="p-4 rounded-qm-lg bg-qm-surface-light border border-qm-border-subtle">
+          <div className="qm-card p-4">
             <div className="flex items-center justify-between mb-2">
-              <h3 className="text-label-md text-qm-text-secondary">{t('sessionDetail.summary')}</h3>
+              <h3 className="text-label-md text-qm-text-secondary tracking-tight">{t('sessionDetail.summary')}</h3>
               <button
                 onClick={() => {
                   navigator.clipboard.writeText(session.summary!)

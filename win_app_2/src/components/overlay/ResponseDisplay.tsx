@@ -1,13 +1,14 @@
 import { useRef, useEffect, useState, useCallback } from 'react'
 import type { ComponentPropsWithoutRef } from 'react'
 import React from 'react'
-import { Copy, Check, Sparkles, ThumbsUp, ThumbsDown, AlertCircle } from 'lucide-react'
+import { Copy, Check, Sparkles, ThumbsUp, ThumbsDown } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { useOverlayStore } from '@/stores/overlayStore'
 import { useAppStore } from '@/stores/appStore'
 import { useLicenseStore } from '@/stores/licenseStore'
 import { Feature } from '@/types/auth'
 import { submitFeedback } from '@/services/proxy/proxyApiClient'
+import { toast } from '@/stores/toastStore'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 
@@ -197,13 +198,11 @@ export function ResponseDisplay() {
   const errorMessage = useAppStore((s) => s.errorMessage)
   const scrollRef = useRef<HTMLDivElement>(null)
 
-  // Auto-clear error messages after 4 seconds
+  // Surface error messages through central toast system, then clear from store
   useEffect(() => {
     if (errorMessage) {
-      const timer = setTimeout(() => {
-        useAppStore.getState().setErrorMessage(null)
-      }, 4000)
-      return () => clearTimeout(timer)
+      toast.error(errorMessage)
+      useAppStore.getState().setErrorMessage(null)
     }
   }, [errorMessage])
 
@@ -225,13 +224,6 @@ export function ResponseDisplay() {
 
   return (
     <div className="flex-1 min-h-0 relative overflow-hidden">
-      {/* Error toast */}
-      {errorMessage && (
-        <div className="absolute top-2 left-2 right-2 z-10 flex items-center gap-2 px-3 py-2 rounded-qm-md bg-red-500/15 border border-red-500/30 text-red-300 text-caption animate-in fade-in slide-in-from-top-1 duration-200">
-          <AlertCircle size={14} className="flex-shrink-0" />
-          <span className="truncate">{errorMessage}</span>
-        </div>
-      )}
       <div ref={scrollRef} className="h-full overflow-y-auto p-3 space-y-3">
         {(hasHistory || isProcessing || streamingContent) ? (
           <>

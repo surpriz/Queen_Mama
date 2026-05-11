@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState } from 'react'
 import { ArrowUp, Brain } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { useAppStore } from '@/stores/appStore'
@@ -6,6 +6,7 @@ import { useConfigStore } from '@/stores/configStore'
 import * as aiService from '@/services/ai/aiService'
 import { DictationButton } from './DictationButton'
 import { KeyboardShortcutBadge } from '@/components/common/KeyboardShortcutBadge'
+import { toast } from '@/stores/toastStore'
 import { cn } from '@/lib/utils'
 
 export function InputBar() {
@@ -33,17 +34,12 @@ export function InputBar() {
     }
   }
 
-  const [showSmartToast, setShowSmartToast] = useState(false)
-  const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-
   const handleToggleSmart = () => {
     const willEnable = !smartModeEnabled
     updateConfig({ smartModeEnabled: willEnable })
 
     if (willEnable) {
-      setShowSmartToast(true)
-      if (toastTimerRef.current) clearTimeout(toastTimerRef.current)
-      toastTimerRef.current = setTimeout(() => setShowSmartToast(false), 2000)
+      toast.success(t('inputBar.smartModeActivated'), undefined, 2000)
     }
   }
 
@@ -51,23 +47,8 @@ export function InputBar() {
     setInput((prev) => (prev ? `${prev} ${text}` : text))
   }
 
-  useEffect(() => {
-    return () => {
-      if (toastTimerRef.current) clearTimeout(toastTimerRef.current)
-    }
-  }, [])
-
   return (
     <div className="relative px-2 pb-2 pt-1.5">
-      {/* Smart Mode activated toast */}
-      {showSmartToast && (
-        <div className="absolute -top-8 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full bg-purple-500/20 text-purple-300 text-caption-sm font-medium whitespace-nowrap animate-qm-fade-in transition-opacity duration-500"
-          style={{ pointerEvents: 'none' }}
-        >
-          {t('inputBar.smartModeActivated')}
-        </div>
-      )}
-
       <div
         className="group/input flex items-center gap-2 px-3 bg-qm-surface-medium rounded-qm-lg transition-all duration-200 focus-within:bg-qm-surface-hover focus-within:shadow-qm-glow"
         style={{

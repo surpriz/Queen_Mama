@@ -4,6 +4,8 @@ import { fetchKnowledgeAtoms, deleteKnowledgeAtom, type KnowledgeAtom } from '@/
 import { useLicenseStore } from '@/stores/licenseStore'
 import { useAuthStore } from '@/stores/authStore'
 import { Feature } from '@/types/auth'
+import { Skeleton } from '@/components/common/Skeleton'
+import { toast } from '@/stores/toastStore'
 
 const TYPE_COLORS: Record<string, string> = {
   fact: 'bg-blue-500/20 text-blue-400',
@@ -85,8 +87,10 @@ export function KnowledgeBaseView() {
     try {
       await deleteKnowledgeAtom(atomId)
       setAtoms((prev) => prev.filter((a) => a.id !== atomId))
+      toast.success('Atom deleted')
     } catch (err) {
       console.error('Failed to delete atom:', err)
+      toast.error('Failed to delete atom', err instanceof Error ? err.message : undefined)
     }
   }, [])
 
@@ -97,10 +101,16 @@ export function KnowledgeBaseView() {
 
   if (canUseKB.type !== 'allowed') {
     return (
-      <div className="flex flex-col items-center justify-center h-full gap-4 p-6">
-        <Brain size={48} className="text-qm-text-tertiary" />
-        <h2 className="text-title-sm font-semibold text-qm-text-primary">Knowledge Base</h2>
-        <p className="text-body-sm text-qm-text-secondary text-center max-w-md">
+      <div className="flex flex-col items-center justify-center h-full gap-4 p-10 text-center">
+        <div className="relative w-28 h-28 mb-2 flex items-center justify-center">
+          <div className="absolute inset-0 rounded-full bg-gradient-to-br from-qm-gradient-start to-qm-gradient-end opacity-20 blur-2xl animate-qm-pulse" />
+          <div className="absolute inset-3 rounded-full bg-gradient-to-br from-qm-gradient-start to-qm-gradient-end opacity-35 blur-lg" />
+          <div className="relative w-16 h-16 rounded-full bg-gradient-to-br from-qm-gradient-start to-qm-gradient-end shadow-qm-glow-strong flex items-center justify-center">
+            <Brain size={26} strokeWidth={1.5} className="text-white" />
+          </div>
+        </div>
+        <h2 className="font-display text-title-md font-semibold text-qm-text-primary tracking-tight">Knowledge Base</h2>
+        <p className="text-body-sm text-qm-text-tertiary text-center max-w-md leading-relaxed">
           Knowledge Base is available on Enterprise plans. Upgrade to unlock AI-powered contextual intelligence.
         </p>
       </div>
@@ -111,11 +121,13 @@ export function KnowledgeBaseView() {
     <div className="flex flex-col h-full p-6">
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">
-          <Brain size={22} className="text-qm-accent" />
-          <h2 className="text-title-sm font-semibold text-qm-text-primary">Knowledge Base</h2>
+          <div className="flex items-center justify-center w-8 h-8 rounded-full bg-gradient-to-br from-qm-gradient-start to-qm-gradient-end shadow-qm-glow">
+            <Brain size={15} strokeWidth={1.75} className="text-white" />
+          </div>
+          <h2 className="font-display text-title-sm font-semibold text-qm-text-primary tracking-tight">Knowledge Base</h2>
         </div>
         <div className="flex items-center gap-2">
-          <span className="text-caption text-qm-text-tertiary">
+          <span className="text-caption text-qm-text-tertiary tabular-nums">
             {filtered.length} atoms
           </span>
           <button
@@ -136,32 +148,41 @@ export function KnowledgeBaseView() {
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           placeholder="Search knowledge..."
-          className="w-full pl-10 pr-4 py-2.5 rounded-qm-md bg-qm-surface-light border border-qm-border-subtle text-body-sm text-qm-text-primary placeholder:text-qm-text-disabled focus:border-qm-accent focus:outline-none"
+          className="w-full pl-10 pr-4 py-2.5 rounded-qm-md bg-qm-surface-medium text-body-sm text-qm-text-primary placeholder:text-qm-text-disabled focus:outline-none transition-all focus:shadow-qm-glow"
+          style={{ boxShadow: 'inset 0 0 0 1px rgba(255,255,255,0.06)' }}
         />
       </div>
 
       {/* Content */}
       <div className="flex-1 overflow-y-auto space-y-2">
         {isLoading ? (
-          <div className="text-center py-12 text-qm-text-tertiary text-body-sm">
-            Loading knowledge base...
+          <div className="space-y-2" aria-busy="true">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <div key={i} className="p-4 rounded-qm-lg bg-qm-bg-tertiary/60 shadow-qm-elev-1 space-y-2">
+                <div className="flex items-center gap-2">
+                  <Skeleton className="h-4 w-20 rounded-full" />
+                  <Skeleton className="h-3 w-24" />
+                </div>
+                <Skeleton className="h-3 w-full" />
+                <Skeleton className="h-3 w-[80%]" />
+              </div>
+            ))}
           </div>
         ) : error ? (
-          <div className="flex flex-col items-center justify-center py-12 gap-3">
+          <div className="flex flex-col items-center justify-center py-16 gap-3 text-center px-6">
             {(() => {
               const info = getErrorInfo(error)
+              const Icon = info.icon === 'network' ? WifiOff : AlertCircle
               return (
                 <>
-                  {info.icon === 'network' ? (
-                    <WifiOff size={32} className="text-qm-text-tertiary" />
-                  ) : (
-                    <AlertCircle size={32} className="text-qm-text-tertiary" />
-                  )}
-                  <p className="text-body-sm font-medium text-qm-text-secondary">{info.title}</p>
-                  <p className="text-caption text-qm-text-tertiary text-center max-w-sm">{info.description}</p>
+                  <div className="w-14 h-14 rounded-full bg-red-500/10 flex items-center justify-center shadow-[0_0_0_1px_rgba(239,68,68,0.2),0_4px_16px_-2px_rgba(239,68,68,0.25)]">
+                    <Icon size={22} strokeWidth={1.75} className="text-red-400" />
+                  </div>
+                  <p className="font-display text-body-lg font-semibold text-qm-text-primary tracking-tight">{info.title}</p>
+                  <p className="text-caption text-qm-text-tertiary max-w-sm leading-relaxed">{info.description}</p>
                   <button
                     onClick={loadAtoms}
-                    className="mt-2 flex items-center gap-2 px-4 py-2 rounded-qm-md bg-qm-surface-medium hover:bg-qm-surface-hover text-body-sm text-qm-text-secondary transition-colors"
+                    className="mt-2 flex items-center gap-2 px-4 py-2 rounded-qm-pill bg-gradient-to-r from-qm-gradient-start to-qm-gradient-end text-white text-body-sm font-medium hover:shadow-qm-glow-strong hover-scale transition-all"
                   >
                     <RefreshCw size={14} /> Retry
                   </button>
@@ -170,22 +191,34 @@ export function KnowledgeBaseView() {
             })()}
           </div>
         ) : filtered.length === 0 ? (
-          <div className="text-center py-12 text-qm-text-tertiary text-body-sm">
-            {searchQuery ? 'No matching atoms' : 'No knowledge atoms yet'}
+          <div className="flex flex-col items-center justify-center py-16 px-10 text-center">
+            <div className="relative w-24 h-24 mb-6 flex items-center justify-center">
+              <div className="absolute inset-0 rounded-full bg-gradient-to-br from-qm-gradient-start to-qm-gradient-end opacity-20 blur-2xl animate-qm-pulse" />
+              <div className="absolute inset-3 rounded-full bg-gradient-to-br from-qm-gradient-start to-qm-gradient-end opacity-35 blur-lg" />
+              <div className="relative w-14 h-14 rounded-full bg-gradient-to-br from-qm-gradient-start to-qm-gradient-end shadow-qm-glow-strong flex items-center justify-center">
+                <Brain size={22} strokeWidth={1.5} className="text-white" />
+              </div>
+            </div>
+            <h3 className="font-display text-title-sm font-semibold text-qm-text-primary mb-2 tracking-tight">
+              {searchQuery ? 'No matching atoms' : 'No knowledge atoms yet'}
+            </h3>
+            <p className="text-caption text-qm-text-tertiary max-w-sm leading-relaxed">
+              {searchQuery ? 'Try a different query' : 'Atoms accumulate as sessions complete'}
+            </p>
           </div>
         ) : (
           filtered.map((atom) => (
             <div
               key={atom.id}
-              className="flex items-start gap-3 p-4 rounded-qm-lg bg-qm-surface-medium hover:bg-qm-surface-hover transition-colors group"
+              className="qm-card-hover flex items-start gap-3 p-4 rounded-qm-lg bg-qm-bg-tertiary/60 shadow-qm-elev-1 group"
             >
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 mb-1.5">
-                  <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${TYPE_COLORS[atom.type] || 'bg-gray-500/20 text-gray-400'}`}>
+                  <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${TYPE_COLORS[atom.type] || 'bg-gray-500/20 text-gray-400'}`}>
                     {atom.type.replace(/_/g, ' ')}
                   </span>
                   {atom.usageCount > 0 && (
-                    <span className="text-caption-sm text-qm-text-tertiary">
+                    <span className="text-caption-sm text-qm-text-tertiary tabular-nums">
                       Used {atom.usageCount}x
                       {atom.helpfulRatio != null && ` · ${Math.round(atom.helpfulRatio * 100)}% helpful`}
                     </span>
