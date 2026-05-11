@@ -81,8 +81,11 @@ export async function generateStreamingResponse(params: AIContextParams, options
   isProcessing = true
 
   // Check cache first (skip cache in screen-only mode — each call needs a fresh screenshot)
+  // Also bypass cache on manual user click — re-clicking a tab should always regenerate,
+  // never replay an earlier identical response when the transcript tail hasn't changed.
   const isScreenOnly = !params.transcript.trim() && !!params.screenshot
-  const cached = isScreenOnly ? null : await getCachedResponse(
+  const skipCacheRead = isScreenOnly || options?.manualTrigger === true
+  const cached = skipCacheRead ? null : await getCachedResponse(
     params.transcript,
     params.mode?.id ?? null,
     params.responseType,
