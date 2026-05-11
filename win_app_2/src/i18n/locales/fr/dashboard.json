@@ -193,6 +193,22 @@
       "restartAndUpdate": "Redémarrer et mettre à jour"
     }
   },
+  "update": {
+    "banner": {
+      "readyTitle": "Nouvelle version {{version}} prête à installer",
+      "readyDescription": "Redémarrez maintenant pour obtenir les dernières améliorations et corrections.",
+      "downloadingTitle": "Téléchargement de la mise à jour… {{percent}}%",
+      "downloadingDescription": "Queen Mama sera prête à se mettre à jour dans un instant.",
+      "installNow": "Mettre à jour maintenant",
+      "later": "Plus tard",
+      "dismiss": "Fermer"
+    },
+    "toast": {
+      "availableTitle": "Mise à jour disponible",
+      "availableDescription": "La version {{version}} se télécharge en arrière-plan.",
+      "errorTitle": "Échec de la mise à jour"
+    }
+  },
   "contacts": {
     "title": "Contacts",
     "newContact": "Nouveau contact",

@@ -11,6 +11,7 @@ import { ContactsView } from './ContactsView'
 import { SettingsView } from './SettingsView'
 import { FreeWelcomeBanner } from '@/components/license/FreeWelcomeBanner'
 import { PricingModal } from '@/components/license/PricingModal'
+import { UpdateBanner } from '@/components/common/UpdateBanner'
 
 export type NavItem = 'sessions' | 'live' | 'modes' | 'contacts' | 'settings'
 
@@ -70,6 +71,9 @@ export function DashboardLayout() {
 
       {/* Main content */}
       <div className="flex-1 overflow-y-auto overflow-x-hidden pt-9 relative">
+        {/* Auto-update banner — high priority */}
+        <UpdateBanner />
+
         {/* FREE plan banner */}
         {isAuthenticated && <FreeWelcomeBanner />}
 

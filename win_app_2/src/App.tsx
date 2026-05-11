@@ -12,6 +12,7 @@ import { LoadingSpinner } from './components/common/LoadingSpinner'
 import { ToastContainer } from './components/common/ToastContainer'
 import { initializeApp } from './services/appInitializer'
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts'
+import { useUpdater } from './hooks/useUpdater'
 import { useOnboardingStore } from './stores/onboardingStore'
 import { useAuthStore } from './stores/authStore'
 
@@ -34,6 +35,9 @@ function AppContent() {
 
   // Register global keyboard shortcut handlers
   useKeyboardShortcuts()
+
+  // Subscribe to auto-updater events globally
+  useUpdater()
 
   useEffect(() => {
     const initialize = async () => {

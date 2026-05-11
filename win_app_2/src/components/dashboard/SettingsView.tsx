@@ -16,6 +16,7 @@ import {
   getLastSyncTime,
   isNetworkOnline,
 } from '@/services/sync/syncManager'
+import { useUpdaterStore } from '@/stores/updaterStore'
 
 type SettingsTab = 'account' | 'general' | 'autoAnswer' | 'proactive' | 'audio' | 'sync' | 'shortcuts' | 'updates'
 
@@ -29,9 +30,34 @@ export function SettingsView() {
   const [showSignIn, setShowSignIn] = useState(false)
   const [isSyncing, setIsSyncing] = useState(false)
   const [appVersion, setAppVersion] = useState<string>('')
-  const [updateStatus, setUpdateStatus] = useState<string>('')
   const [isCheckingUpdate, setIsCheckingUpdate] = useState(false)
-  const [updateReady, setUpdateReady] = useState(false)
+  const updaterStatus = useUpdaterStore((s) => s.status)
+  const updaterVersion = useUpdaterStore((s) => s.version)
+  const updaterPercent = useUpdaterStore((s) => s.percent)
+  const updaterError = useUpdaterStore((s) => s.errorMessage)
+  const updateReady = updaterStatus === 'downloaded'
+
+  const updateStatus = (() => {
+    switch (updaterStatus) {
+      case 'checking':
+        return t('settings.updates.checkingForUpdate')
+      case 'available':
+      case 'downloading':
+        return t('settings.updates.downloadProgress', { percent: updaterPercent })
+      case 'not-available':
+        return t('settings.updates.upToDate')
+      case 'downloaded':
+        return updaterVersion
+          ? t('settings.updates.updateDownloaded') + ` (v${updaterVersion})`
+          : t('settings.updates.updateDownloaded')
+      case 'error':
+        return updaterError
+          ? `${t('settings.updates.updateError')} — ${updaterError}`
+          : t('settings.updates.updateError')
+      default:
+        return ''
+    }
+  })()
 
   const TABS: { id: SettingsTab; label: string; icon: typeof User }[] = [
     { id: 'account', label: t('settings.tabs.account'), icon: User },
@@ -45,60 +71,25 @@ export function SettingsView() {
   ]
 
   useEffect(() => {
-    const api = (window as unknown as { electronAPI: {
-      getVersion: () => Promise<string>
-      checkForUpdates: () => Promise<boolean>
-      onUpdaterStatus: (cb: (payload: { status: string; data?: unknown }) => void) => () => void
-    } }).electronAPI
+    const api = window.electronAPI
     if (api?.getVersion) {
       api.getVersion().then((v) => setAppVersion(v)).catch(() => {})
     }
-    let cleanup: (() => void) | undefined
-    if (api?.onUpdaterStatus) {
-      cleanup = api.onUpdaterStatus((payload) => {
-        setIsCheckingUpdate(false)
-        switch (payload.status) {
-          case 'checking-for-update':
-            setUpdateStatus(t('settings.updates.checkingForUpdate'))
-            setIsCheckingUpdate(true)
-            break
-          case 'update-available':
-            setUpdateStatus(t('settings.updates.updateAvailable'))
-            break
-          case 'update-not-available':
-            setUpdateStatus(t('settings.updates.upToDate'))
-            break
-          case 'download-progress': {
-            const progress = payload.data as { percent?: number } | undefined
-            const pct = progress?.percent ? Math.round(progress.percent) : 0
-            setUpdateStatus(t('settings.updates.downloadProgress', { percent: pct }))
-            break
-          }
-          case 'update-downloaded':
-            setUpdateStatus(t('settings.updates.updateDownloaded'))
-            setUpdateReady(true)
-            break
-          case 'update-error':
-            setUpdateStatus(t('settings.updates.updateError'))
-            break
-          default:
-            break
-        }
-      })
+  }, [])
+
+  // Reset "checking" spinner once main process responds with any other status
+  useEffect(() => {
+    if (updaterStatus !== 'checking' && updaterStatus !== 'idle') {
+      setIsCheckingUpdate(false)
     }
-    return () => cleanup?.()
-  }, [t])
+  }, [updaterStatus])
 
   const handleCheckForUpdates = () => {
-    const api = (window as unknown as { electronAPI: {
-      checkForUpdates: () => Promise<boolean>
-    } }).electronAPI
+    const api = window.electronAPI
     if (api?.checkForUpdates) {
       setIsCheckingUpdate(true)
-      setUpdateStatus(t('settings.updates.checkingForUpdate'))
       api.checkForUpdates().catch(() => {
         setIsCheckingUpdate(false)
-        setUpdateStatus(t('settings.updates.updateError'))
       })
     }
   }
@@ -498,10 +489,7 @@ export function SettingsView() {
                 )}
                 {updateReady ? (
                   <button
-                    onClick={() => {
-                      const api = (window as unknown as { electronAPI: { installUpdate: () => Promise<boolean> } }).electronAPI
-                      api?.installUpdate?.()
-                    }}
+                    onClick={() => window.electronAPI?.installUpdate?.()}
                     className="w-full px-4 py-2 rounded-qm-md bg-qm-accent hover:bg-qm-accent/80 text-body-sm text-white font-medium transition-colors"
                   >
                     {t('settings.updates.restartAndUpdate')}

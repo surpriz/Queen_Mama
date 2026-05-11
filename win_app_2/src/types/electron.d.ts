@@ -170,6 +170,10 @@ export interface ElectronAPI {
 
   // Updater
   checkForUpdates: () => Promise<void>
+  installUpdate: () => Promise<boolean>
+  onUpdaterStatus: (
+    callback: (payload: { status: string; data?: unknown }) => void,
+  ) => () => void
 
   // Cross-window relay
   relay: {

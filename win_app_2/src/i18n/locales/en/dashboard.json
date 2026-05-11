@@ -193,6 +193,22 @@
       "restartAndUpdate": "Restart & Update Now"
     }
   },
+  "update": {
+    "banner": {
+      "readyTitle": "New version {{version}} ready to install",
+      "readyDescription": "Restart now to get the latest improvements and fixes.",
+      "downloadingTitle": "Downloading update… {{percent}}%",
+      "downloadingDescription": "Queen Mama will be ready to update in a moment.",
+      "installNow": "Update now",
+      "later": "Later",
+      "dismiss": "Dismiss"
+    },
+    "toast": {
+      "availableTitle": "Update available",
+      "availableDescription": "Version {{version}} is downloading in the background.",
+      "errorTitle": "Update failed"
+    }
+  },
   "contacts": {
     "title": "Contacts",
     "newContact": "New Contact",
