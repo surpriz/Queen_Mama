@@ -6,6 +6,7 @@ import { useAppStore } from '@/stores/appStore'
 import { cn } from '@/lib/utils'
 import { ModeEditor } from './ModeEditor'
 import { useModes } from '@/hooks/useModes'
+import { Skeleton } from '@/components/common/Skeleton'
 import { v4 as uuidv4 } from 'uuid'
 
 const MODE_ICONS: Record<string, typeof Briefcase> = {
@@ -217,8 +218,14 @@ export function ModesListView() {
         </div>
 
         {loading ? (
-          <div className="flex-1 flex items-center justify-center">
-            <p className="text-body-sm text-qm-text-tertiary">{t('modes.loading', { ns: 'dashboard' })}</p>
+          <div className="flex-1 overflow-y-auto px-3 pb-4 space-y-2" aria-busy="true" aria-label={t('modes.loading', { ns: 'dashboard' })}>
+            <Skeleton className="h-3 w-20 mb-1.5 ml-3" />
+            {Array.from({ length: 5 }).map((_, i) => (
+              <div key={i} className="flex items-center gap-3 px-3 py-2.5 rounded-qm-lg bg-qm-bg-tertiary/40 shadow-qm-elev-1">
+                <Skeleton className="w-8 h-8 rounded-full" />
+                <Skeleton className="h-3.5 flex-1 max-w-[60%]" />
+              </div>
+            ))}
           </div>
         ) : (
           <div className="flex-1 overflow-y-auto px-3 pb-4 space-y-4">
