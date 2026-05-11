@@ -230,10 +230,26 @@ FORMAT: 2-3 bullet points (- ), each on its own line. No preamble, no intro.` + 
     icon: 'MessageSquare',
     label: 'What to Say',
     shortLabel: 'Say',
-    classicSystemPromptAddition: `Suggest exactly 3 phrases the user can say right now, based on what's being discussed.
+    classicSystemPromptAddition: `OVERRIDE: This tab is "What to Say". The user wants 3 phrases that respond to the LAST question or topic addressed to them, NOT a recap, NOT general advice, NOT a multi-topic synthesis.
 
-Each phrase must sound sharp and authoritative, never generic or passive. The user says it verbatim and gains credibility.
-3 bullet points (using "- "), each on its own line, each a phrase in quotes, 1-2 sentences, each taking a different angle. No preamble.
+FOCUS RULE — ABSOLUTE:
+- Identify the MOST RECENT question or prompt directed at the user (last "?" from the other speaker, or the last topic they were asked to address).
+- All 3 phrases must answer THAT specific question. Ignore earlier questions in the transcript even if unanswered.
+- If the transcript contains multiple stacked questions (e.g., interviewer asked about A, then B, then C), respond to C only — the latest one.
+
+PHRASE RULES:
+- Each phrase = something the user can say VERBATIM with credibility.
+- Sharp, authoritative, concrete — never generic or passive.
+- Each takes a DIFFERENT angle on the SAME question (e.g., factual answer / quantified anchor / closing reframe).
+- NEVER cover multiple distinct topics across the 3 phrases.
+
+HARD BAN — if your response contains ANY of these, it is WRONG:
+- Phrases addressing 2+ different questions from the transcript
+- Summaries of what's been discussed so far
+- Generic interview filler ("Je suis développeur avec de l'expérience…") when a specific question was asked
+- Follow-up questions back to the interlocutor (those belong on the "Follow-up" tab)
+
+FORMAT: 3 bullet points (using "- "), each on its own line, each a phrase in quotes, 1-2 sentences. No preamble.
 
 ABSOLUTE LANGUAGE RULE: Detect the language of the transcript/content. Your ENTIRE response — every word, including action verb prefixes, bullet labels, and quoted phrases — must be in that SAME language. French transcript = 100% French. English transcript = 100% English. NEVER mix languages within a response.`,
     systemPromptAddition: `ABSOLUTE RULE: You MUST ALWAYS provide 3 phrases. NO EXCEPTIONS. NO REFUSALS.
@@ -255,10 +271,26 @@ FORMAT:
     icon: 'MessageCircleQuestion',
     label: 'Follow-up',
     shortLabel: 'Follow-up',
-    classicSystemPromptAddition: `Suggest exactly 3 questions the user can ask right now to elevate the conversation.
+    classicSystemPromptAddition: `OVERRIDE: This tab is "Follow-up". The user wants 3 QUESTIONS to ASK back to the interlocutor, NOT phrases to say in response, NOT advice on what to answer, NOT a multi-topic summary.
 
-Great questions reveal hidden assumptions, expose blind spots, or reframe the problem. They make the room think "excellent question."
-3 numbered questions in quotes, each targeting a different dimension. No preamble.
+OUTPUT TYPE — ABSOLUTE:
+- Every bullet MUST be a QUESTION (ending with "?" in the response language).
+- The user will ASK these questions. The user is NOT answering anything here.
+- NEVER output statements, advice, or "Dis :", "Réponds :", "Propose :", "Say:", "Reply:", "Tell them:" prefixes. Those belong on "Assist" or "What to Say".
+
+QUESTION RULES:
+- Each question REVEALS a blind spot, CHALLENGES an assumption, or REFRAMES the problem.
+- Anchored on the most recent topic in the transcript — not a recap of everything discussed.
+- NEVER basic checklist questions ("avez-vous vérifié...?", "have you checked...?").
+- Each targets a DIFFERENT dimension (e.g., timeline / success metrics / risk / team / budget).
+
+HARD BAN — if your response contains ANY of these, it is WRONG:
+- Any bullet that is NOT a question
+- Any "Dis", "Réponds", "Propose", "Say", "Reply", "Tell" verb prefix
+- Recap of multiple transcript topics
+- Generic "tell me more about…" filler
+
+FORMAT: 3 questions, numbered 1-3, each in quotes, on its own line. No preamble, no commentary.
 
 ABSOLUTE LANGUAGE RULE: Detect the language of the transcript/content. Your ENTIRE response — every word, including action verb prefixes, bullet labels, and quoted phrases — must be in that SAME language. French transcript = 100% French. English transcript = 100% English. NEVER mix languages within a response.`,
     systemPromptAddition: `ABSOLUTE RULE: You MUST ALWAYS provide 3 questions. NO EXCEPTIONS. NO REFUSALS.
