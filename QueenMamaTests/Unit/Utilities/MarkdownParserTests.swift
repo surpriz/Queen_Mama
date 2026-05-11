@@ -458,7 +458,7 @@ final class MarkdownParserTests: XCTestCase {
 
         // Default mode SHOULD get the classic .assist addition (not enhanced)
         XCTAssertTrue(
-            prompt.contains("live coach whispering"),
+            prompt.contains("live coach watching"),
             "Default mode should include classic .assist systemPromptAddition"
         )
     }
