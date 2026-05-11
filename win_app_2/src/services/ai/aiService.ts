@@ -8,6 +8,7 @@ import * as proxyApi from '../proxy/proxyApiClient'
 import { buildSystemPrompt, buildUserMessage, buildTitlePrompt, buildSummaryPrompt } from './aiContext'
 import { getCachedResponse, setCachedResponse, clearCache } from './responseCache'
 import { recordUsage, estimateTokens } from './tokenUsageTracker'
+import { recordUsage as recordLicenseUsage } from '../license/licenseManager'
 import { screenCaptureService } from '../screenCapture/screenCaptureService'
 import { flushBatch as flushAudioBatch, flushSystemBatch } from '../transcription/transcriptionService'
 import { transcriptBuffer } from '../transcription/transcriptBuffer'
@@ -76,6 +77,32 @@ export async function generateStreamingResponse(params: AIContextParams, options
     }
     useAppStore.getState().setProcessing(false)
     return ''
+  }
+
+  // Resolve cascade mode from user toggle + response type.
+  // - Recap responseType → "recap" cascade (recap-tuned models server-side)
+  // - smartModeEnabled toggle → "smart" cascade (Sonnet + extended thinking)
+  // - Otherwise → "standard" (fast cascade, honors selectedAIModel override)
+  // Smart toggle is silently downgraded to standard when the license blocks it.
+  const smartToggle = useConfigStore.getState().smartModeEnabled
+  let smartActive = false
+  if (params.responseType !== 'Recap' && smartToggle) {
+    const smartAccess = licenseStore.canUse(Feature.SmartMode)
+    if (smartAccess.type === 'allowed') {
+      smartActive = true
+    } else {
+      log.warn('Smart Mode requested but not allowed, falling back to standard', smartAccess)
+      if (smartAccess.type === 'limitReached') {
+        useAppStore.getState().setShowUpgradePricing(true)
+      }
+    }
+  }
+  const cascadeMode: 'standard' | 'smart' | 'recap' =
+    params.responseType === 'Recap' ? 'recap' : smartActive ? 'smart' : 'standard'
+
+  // Propagate smart flag into prompt builder so the SMART MODE directive is injected.
+  if (smartActive) {
+    params = { ...params, smartMode: true }
   }
 
   isProcessing = true
@@ -148,6 +175,7 @@ export async function generateStreamingResponse(params: AIContextParams, options
       messages,
       stream: true,
       max_tokens: maxTokens,
+      cascadeMode,
     })
 
     let isFirstChunk = true
@@ -200,6 +228,10 @@ export async function generateStreamingResponse(params: AIContextParams, options
 
     // Record usage
     licenseStore.recordAiRequestUsage()
+    if (smartActive) {
+      // Fire and forget — server-side smart_mode usage log + local counter.
+      recordLicenseUsage('smartMode').catch(() => {})
+    }
 
     // Estimate token usage from character counts (1 token ≈ 4 chars)
     const inputText = messages.map((m) => m.content).join('')

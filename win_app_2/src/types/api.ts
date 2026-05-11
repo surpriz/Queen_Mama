@@ -20,6 +20,12 @@ export interface AIProxyRequest {
   stream?: boolean
   max_tokens?: number
   temperature?: number
+  /**
+   * Cascade mode forwarded to /api/proxy/ai/stream. When omitted, backend
+   * defaults to "standard" (fast cascade). "smart" routes to Sonnet-tier with
+   * extended thinking; "recap" routes to the recap-specific cascade.
+   */
+  cascadeMode?: 'standard' | 'smart' | 'recap'
 }
 
 // Request format for /api/proxy/ai/stream endpoint
