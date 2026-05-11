@@ -217,7 +217,8 @@ final class ProxyAPIClient: @unchecked Sendable {
         systemPrompt: String,
         userMessage: String,
         screenshot: Data? = nil,
-        maxTokens: Int? = nil
+        maxTokens: Int? = nil,
+        model: String? = nil
     ) async throws -> AIProxyResponse {
         var body: [String: Any] = [
             "provider": provider,
@@ -234,6 +235,10 @@ final class ProxyAPIClient: @unchecked Sendable {
             body["maxTokens"] = maxTokens
         }
 
+        if let model = model {
+            body["model"] = model
+        }
+
         return try await post(endpoint: "/api/proxy/ai/generate", body: body)
     }
 
@@ -244,7 +249,8 @@ final class ProxyAPIClient: @unchecked Sendable {
         systemPrompt: String,
         userMessage: String,
         screenshot: Data? = nil,
-        maxTokens: Int? = nil
+        maxTokens: Int? = nil,
+        model: String? = nil
     ) -> AsyncThrowingStream<String, Error> {
         AsyncThrowingStream { continuation in
             Task {
@@ -262,6 +268,10 @@ final class ProxyAPIClient: @unchecked Sendable {
 
                     if let maxTokens = maxTokens {
                         body["maxTokens"] = maxTokens
+                    }
+
+                    if let model = model {
+                        body["model"] = model
                     }
 
                     let url = baseURL.appendingPathComponent("/api/proxy/ai/stream")

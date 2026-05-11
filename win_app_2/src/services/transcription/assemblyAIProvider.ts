@@ -10,6 +10,14 @@ export class AssemblyAIProvider implements TranscriptionProvider {
   private ws: WebSocket | null = null
   private token: string | null = null
 
+  /**
+   * Primary language for transcription. AssemblyAI v2 realtime does NOT auto-detect across
+   * languages — without `language_code` the session defaults to English, which silently
+   * degrades French calls. transcriptionService sets this from `primaryLanguage` config.
+   * Accepted values: 'en', 'fr', 'es', 'de', 'it', 'pt', 'nl' (and a few more).
+   * 'multi' is treated as 'en' here since v2 realtime has no multi sentinel.
+   */
+  language: string = 'en'
   onTranscript: ((text: string) => void) | null = null
   onInterimTranscript: ((text: string) => void) | null = null
   onError: ((error: Error) => void) | null = null
@@ -33,7 +41,10 @@ export class AssemblyAIProvider implements TranscriptionProvider {
       throw error
     }
 
-    const url = `wss://api.assemblyai.com/v2/realtime/ws?sample_rate=16000&token=${encodeURIComponent(this.token!)}`
+    // v2 realtime has no multi sentinel — fall back to English when caller passed 'multi'.
+    const langCode = !this.language || this.language === 'multi' ? 'en' : this.language
+    const url = `wss://api.assemblyai.com/v2/realtime/ws?sample_rate=16000&language_code=${encodeURIComponent(langCode)}&token=${encodeURIComponent(this.token!)}`
+    log.info(`Using language_code=${langCode}`)
 
     return new Promise<void>((resolve, reject) => {
       this.ws = new WebSocket(url)

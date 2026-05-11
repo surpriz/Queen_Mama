@@ -514,10 +514,20 @@ final class AssemblyAIProvider: TranscriptionProvider {
             throw TranscriptionError.noAPIKey
         }
 
-        // Build WebSocket URL with API key as query parameter
-        guard let url = URL(string: "\(baseURL)?sample_rate=16000") else {
+        // Build WebSocket URL with API key as query parameter.
+        // AssemblyAI v2 realtime does NOT support multi-language auto-detection — pin to
+        // the user's primary language so French calls don't fall back to English transcription.
+        // Supported codes for v2 realtime: en, en_us, fr, es, de, it, pt, nl (and a few more).
+        let primaryLanguage = ConfigurationManager.shared.primaryLanguage
+        var components = URLComponents(string: baseURL)!
+        components.queryItems = [
+            URLQueryItem(name: "sample_rate", value: "16000"),
+            URLQueryItem(name: "language_code", value: primaryLanguage),
+        ]
+        guard let url = components.url else {
             throw TranscriptionError.connectionFailed(NSError(domain: "Invalid URL", code: -1))
         }
+        print("[AssemblyAI] Using language_code=\(primaryLanguage)")
 
         var request = URLRequest(url: url)
         request.setValue(token.token, forHTTPHeaderField: "Authorization")

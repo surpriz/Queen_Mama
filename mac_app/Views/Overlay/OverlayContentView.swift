@@ -74,12 +74,14 @@ struct OverlayContentView: View {
                     showingContactPicker = true
                 },
                 onStop: {
-                    // Persist meeting cost before stopping session
-                    sessionManager.setMeetingCost(
-                        participantCount: activeParticipantCount,
-                        hourlyRate: config.meetingHourlyRate,
-                        currency: config.meetingCurrency
-                    )
+                    // Persist meeting cost before stopping session (beta opt-in)
+                    if config.meetingCostEnabled {
+                        sessionManager.setMeetingCost(
+                            participantCount: activeParticipantCount,
+                            hourlyRate: config.meetingHourlyRate,
+                            currency: config.meetingCurrency
+                        )
+                    }
                     Task { await appState.stopSession() }
                 },
                 onCopyResponse: {
@@ -672,8 +674,8 @@ struct ModernPillHeaderView: View {
                 FreeRequestCounter()
             }
 
-            // Meeting Cost Indicator (live during session)
-            if isSessionActive {
+            // Meeting Cost Indicator (live during session, beta opt-in)
+            if isSessionActive && config.meetingCostEnabled {
                 MeetingCostIndicator(
                     sessionDuration: sessionDuration,
                     participantCount: $participantCount,

@@ -74,7 +74,20 @@ final class TranscriptionService: ObservableObject {
     }
 
     private var configuredProviders: [TranscriptionProvider] {
-        providers.filter { $0.isConfigured }
+        // Skip Deepgram Flux when user's primary language is not English — the only available
+        // Flux model is `flux-general-en` (English-only). Falling back to it on a French call
+        // would silently degrade transcription. Nova-3 (multi) and AssemblyAI (language_code
+        // pinned) remain available.
+        let primaryLanguage = ConfigurationManager.shared.primaryLanguage
+        let isEnglish = primaryLanguage.lowercased().hasPrefix("en")
+        return providers.filter { provider in
+            guard provider.isConfigured else { return false }
+            if provider is DeepgramFluxProvider, !isEnglish {
+                print("[Transcription] Skipping Deepgram Flux fallback — primaryLanguage=\(primaryLanguage) not supported by flux-general-en")
+                return false
+            }
+            return true
+        }
     }
 
     private var currentActiveProvider: TranscriptionProvider?

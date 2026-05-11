@@ -16,6 +16,15 @@ final class ProxyAIProvider: AIProvider {
         self.providerName = Self.mapTypeToBackendName(provider)
     }
 
+    /// Returns the user-selected model id to send to the backend, or nil to use the default cascade.
+    /// Only applies to standard mode — Smart and Recap stay on their cascades.
+    @MainActor
+    private static func userSelectedModel(for context: AIContext) -> String? {
+        guard !context.smartMode, context.responseType != .recap else { return nil }
+        let raw = ConfigurationManager.shared.selectedAIModel
+        return AIModelChoice(rawValue: raw)?.backendValue
+    }
+
     // Map AIProviderType to backend provider names
     // Swift enum uses: "OpenAI", "Anthropic", "Google Gemini", "xAI Grok"
     // Backend expects: "openai", "anthropic", "gemini", "grok"
@@ -106,13 +115,17 @@ final class ProxyAIProvider: AIProvider {
             effectiveMaxTokens = min(configManager.maxTokens, 600)
         }
 
+        // User-selected model is only honored in standard mode (not Smart, not Recap).
+        let userModel = Self.userSelectedModel(for: context)
+
         let response = try await proxyClient.generateAIResponse(
             provider: providerName,
             smartMode: context.smartMode,
             systemPrompt: context.systemPrompt,
             userMessage: context.userMessage,
             screenshot: context.screenshot,
-            maxTokens: effectiveMaxTokens
+            maxTokens: effectiveMaxTokens,
+            model: userModel
         )
 
         let latencyMs = Int(Date().timeIntervalSince(startTime) * 1000)
@@ -185,6 +198,8 @@ final class ProxyAIProvider: AIProvider {
                 // Get values needed for streaming (on main actor)
                 let providerName = await MainActor.run { self.providerName }
                 let baseMaxTokens = await MainActor.run { self.configManager.maxTokens }
+                // User-selected model is only honored in standard mode (not Smart, not Recap).
+                let userModel: String? = await MainActor.run { Self.userSelectedModel(for: context) }
                 // Recap needs more tokens for comprehensive meeting summaries
                 // Smart mode needs full budget — thinking tokens count against max_tokens
                 // Other modes capped at 600 for concise, faster responses
@@ -209,7 +224,8 @@ final class ProxyAIProvider: AIProvider {
                         systemPrompt: context.systemPrompt,
                         userMessage: context.userMessage,
                         screenshot: context.screenshot,
-                        maxTokens: maxTokens
+                        maxTokens: maxTokens,
+                        model: userModel
                     ) {
                         continuation.yield(chunk)
                     }

@@ -5,6 +5,8 @@ import {
   getProviderApiKey,
   validateAIRequest,
   getModelForProvider,
+  USER_SELECTABLE_MODELS,
+  isUserSelectableModel,
   PROVIDER_URLS,
   type PlanTier,
   type AIProviderType,
@@ -14,6 +16,7 @@ import { checkRateLimit, getIdentifier, rateLimitResponse, rateLimitConfigs, add
 interface AIRequestBody {
   provider: AIProviderType;
   smartMode?: boolean;
+  model?: string; // Optional user-selected model (whitelisted; only honored when smartMode is false)
   systemPrompt: string;
   userMessage: string;
   screenshot?: string; // base64 encoded
@@ -58,7 +61,12 @@ export async function POST(request: Request) {
 
     // Parse request body
     const body: AIRequestBody = await request.json();
-    const { provider, smartMode = false, systemPrompt, userMessage, screenshot, maxTokens } = body;
+    const { provider, smartMode = false, model: userModel, systemPrompt, userMessage, screenshot, maxTokens } = body;
+
+    // Honor user-selected model only when smartMode is false (standard mode).
+    const userOverride = !smartMode && isUserSelectableModel(userModel)
+      ? USER_SELECTABLE_MODELS[userModel]
+      : null;
 
     if (!provider || !systemPrompt || !userMessage) {
       return NextResponse.json(
@@ -135,9 +143,30 @@ export async function POST(request: Request) {
 
     // Make request to provider
     // Smart mode always routes to Anthropic (cascade primary for smart = Sonnet 4.6 + thinking)
-    const effectiveProvider = smartMode ? "anthropic" as AIProviderType : provider;
-    const effectiveApiKey = smartMode ? (await getProviderApiKey("anthropic") || adminApiKey) : adminApiKey;
-    const effectiveModel = smartMode ? "claude-sonnet-4-6" : validation.model;
+    // User-selected model (non-smart only) overrides provider/model/apiKey.
+    let effectiveProvider: AIProviderType;
+    let effectiveApiKey: string;
+    let effectiveModel: string;
+    if (smartMode) {
+      effectiveProvider = "anthropic";
+      effectiveApiKey = (await getProviderApiKey("anthropic")) || adminApiKey;
+      effectiveModel = "claude-sonnet-4-6";
+    } else if (userOverride) {
+      const overrideKey = await getProviderApiKey(userOverride.provider);
+      if (!overrideKey) {
+        return NextResponse.json(
+          { error: "provider_not_configured", message: `${userOverride.provider} (required for selected model) is not configured by admin` },
+          { status: 503 }
+        );
+      }
+      effectiveProvider = userOverride.provider;
+      effectiveApiKey = overrideKey;
+      effectiveModel = userOverride.model;
+    } else {
+      effectiveProvider = provider;
+      effectiveApiKey = adminApiKey;
+      effectiveModel = validation.model;
+    }
 
     const startTime = Date.now();
     let aiResponse: { content: string; tokensUsed?: number };
@@ -215,8 +244,8 @@ export async function POST(request: Request) {
 
     const response = NextResponse.json({
       content: aiResponse.content,
-      provider,
-      model: validation.model,
+      provider: effectiveProvider,
+      model: effectiveModel,
       latencyMs,
       tokensUsed: aiResponse.tokensUsed,
     });
