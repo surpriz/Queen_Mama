@@ -17,8 +17,38 @@ export interface ChangelogRelease {
 
 export const changelogData: ChangelogRelease[] = [
   {
-    date: "April 2026",
+    date: "May 2026",
     isNew: true,
+    sections: [
+      {
+        category: "features",
+        changes: [
+          {
+            id: "aiModelSelector",
+            title: "Choose Your AI Model",
+            description: "Pick which AI model powers your standard responses — select directly from Settings to match your speed and reasoning preferences"
+          },
+        ],
+      },
+      {
+        category: "improvements",
+        changes: [
+          {
+            id: "languageOverride",
+            title: "Manual Language Override",
+            description: "Force AI responses into a specific language using the LANG_OVERRIDE directive in your mode prompt, bypassing automatic detection"
+          },
+          {
+            id: "frenchTranscriptionStability",
+            title: "Stabler French Transcription",
+            description: "Transcription now stays locked on French when set as primary language, preventing drift to English mid-meeting"
+          },
+        ],
+      },
+    ],
+  },
+  {
+    date: "April 2026",
     sections: [
       {
         category: "features",

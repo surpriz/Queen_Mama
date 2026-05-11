@@ -1010,6 +1010,18 @@
       "taskbarVisibility": {
         "title": "Taskbar Icon Visibility (Windows)",
         "description": "The Queen Mama icon now stays visible in the Windows taskbar when the dashboard is closed, making it easy to see the app is running"
+      },
+      "aiModelSelector": {
+        "title": "Choose Your AI Model",
+        "description": "Pick which AI model powers your standard responses — select directly from Settings to match your speed and reasoning preferences"
+      },
+      "languageOverride": {
+        "title": "Manual Language Override",
+        "description": "Force AI responses into a specific language using the LANG_OVERRIDE directive in your mode prompt, bypassing automatic detection"
+      },
+      "frenchTranscriptionStability": {
+        "title": "Stabler French Transcription",
+        "description": "Transcription now stays locked on French when set as primary language, preventing drift to English mid-meeting"
       }
     }
   },

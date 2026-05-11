@@ -1010,6 +1010,18 @@
       "taskbarVisibility": {
         "title": "Icône visible dans la barre des tâches (Windows)",
         "description": "L'icône Queen Mama reste désormais visible dans la barre des tâches Windows lorsque le tableau de bord est fermé, permettant de voir facilement que l'application est active"
+      },
+      "aiModelSelector": {
+        "title": "Choisissez votre modèle IA",
+        "description": "Sélectionnez le modèle IA qui alimente vos réponses standard — choisissez-le directement depuis les Réglages pour ajuster vitesse et qualité de raisonnement"
+      },
+      "languageOverride": {
+        "title": "Forçage manuel de la langue",
+        "description": "Imposez la langue des réponses IA avec la directive LANG_OVERRIDE dans le prompt de votre mode, contournant la détection automatique"
+      },
+      "frenchTranscriptionStability": {
+        "title": "Transcription française plus stable",
+        "description": "La transcription reste verrouillée sur le français quand il est défini comme langue principale, sans dérive vers l'anglais en cours de réunion"
       }
     }
   },
