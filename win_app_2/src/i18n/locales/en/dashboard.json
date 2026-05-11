@@ -112,6 +112,8 @@
       },
       "undetectableOverlay": "Undetectable Overlay",
       "undetectableOverlayDescription": "Hide overlay from screen sharing (Enterprise)",
+      "showLiveTranscript": "Live Transcript in Overlay",
+      "showLiveTranscriptDescription": "Display the real-time transcript at the top of the overlay during a session",
       "autoScreenCapture": "Auto Screen Capture",
       "autoScreenCaptureDescription": "Automatically capture screenshots",
       "captureInterval": "Capture Interval",

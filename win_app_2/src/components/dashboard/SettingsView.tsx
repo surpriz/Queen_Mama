@@ -9,6 +9,8 @@ import { useAuth } from '@/hooks/useAuth'
 import { useAuthStore } from '@/stores/authStore'
 import { KeyboardShortcutBadge } from '@/components/common/KeyboardShortcutBadge'
 import { SignInChoice } from '@/components/auth/SignInChoice'
+import { PricingModal } from '@/components/license/PricingModal'
+import { Feature } from '@/types/auth'
 import { cn } from '@/lib/utils'
 import {
   performFullSync,
@@ -31,6 +33,7 @@ export function SettingsView() {
   const [isSyncing, setIsSyncing] = useState(false)
   const [appVersion, setAppVersion] = useState<string>('')
   const [isCheckingUpdate, setIsCheckingUpdate] = useState(false)
+  const [showPricing, setShowPricing] = useState(false)
   const updaterStatus = useUpdaterStore((s) => s.status)
   const updaterVersion = useUpdaterStore((s) => s.version)
   const updaterPercent = useUpdaterStore((s) => s.percent)
@@ -249,7 +252,22 @@ export function SettingsView() {
                   label={t('settings.general.undetectableOverlay')}
                   description={t('settings.general.undetectableOverlayDescription')}
                   enabled={config.isUndetectabilityEnabled}
-                  onToggle={(v) => handleToggle('isUndetectabilityEnabled', v)}
+                  onToggle={(v) => {
+                    if (v) {
+                      const status = license.canUse(Feature.Undetectable)
+                      if (status.type !== 'allowed') {
+                        setShowPricing(true)
+                        return
+                      }
+                    }
+                    handleToggle('isUndetectabilityEnabled', v)
+                  }}
+                />
+                <ToggleRow
+                  label={t('settings.general.showLiveTranscript')}
+                  description={t('settings.general.showLiveTranscriptDescription')}
+                  enabled={config.showLiveTranscript}
+                  onToggle={(v) => handleToggle('showLiveTranscript', v)}
                 />
                 <ToggleRow
                   label={t('settings.general.autoScreenCapture')}
@@ -508,6 +526,7 @@ export function SettingsView() {
           )}
         </div>
       </div>
+      <PricingModal isOpen={showPricing} onClose={() => setShowPricing(false)} />
     </div>
   )
 }

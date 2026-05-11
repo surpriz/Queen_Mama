@@ -112,6 +112,8 @@
       },
       "undetectableOverlay": "Overlay indétectable",
       "undetectableOverlayDescription": "Masquer l'overlay du partage d'écran (Enterprise)",
+      "showLiveTranscript": "Transcription en direct dans l'overlay",
+      "showLiveTranscriptDescription": "Afficher la transcription en temps réel en haut de l'overlay pendant une session",
       "autoScreenCapture": "Capture d'écran auto",
       "autoScreenCaptureDescription": "Capturer automatiquement des captures d'écran",
       "captureInterval": "Intervalle de capture",

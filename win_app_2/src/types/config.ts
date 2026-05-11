@@ -9,6 +9,7 @@ export interface AppConfig {
   captureMicrophone: boolean
   autoScreenCapture: boolean
   screenCaptureIntervalSeconds: number
+  showLiveTranscript: boolean
   smartModeEnabled: boolean
   selectedAIProvider: AIProviderType
   /**
@@ -50,6 +51,7 @@ export const DEFAULT_CONFIG: AppConfig = {
   captureMicrophone: true,
   autoScreenCapture: true,
   screenCaptureIntervalSeconds: 5.0,
+  showLiveTranscript: false,
   smartModeEnabled: false,
   selectedAIProvider: 'OpenAI' as AIProviderType,
   selectedAIModel: 'auto',
