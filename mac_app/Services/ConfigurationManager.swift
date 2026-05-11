@@ -38,6 +38,13 @@ final class ConfigurationManager: ObservableObject {
         didSet { defaults.set(selectedAIProvider.rawValue, forKey: Keys.aiProvider) }
     }
 
+    /// User-selected AI model for standard (non-smart) responses.
+    /// Use `AIModelChoice.auto.rawValue` ("auto") to keep the backend default cascade.
+    /// Other values map to the whitelist in `landing/lib/ai-providers.ts`.
+    @Published var selectedAIModel: String {
+        didSet { defaults.set(selectedAIModel, forKey: Keys.selectedAIModel) }
+    }
+
     @Published var primaryLanguage: String {
         didSet { defaults.set(primaryLanguage, forKey: Keys.primaryLanguage) }
     }
@@ -120,6 +127,10 @@ final class ConfigurationManager: ObservableObject {
 
     // MARK: - Meeting Cost
 
+    @Published var meetingCostEnabled: Bool {
+        didSet { defaults.set(meetingCostEnabled, forKey: Keys.meetingCostEnabled) }
+    }
+
     @Published var meetingHourlyRate: Double {
         didSet { defaults.set(meetingHourlyRate, forKey: Keys.meetingHourlyRate) }
     }
@@ -156,6 +167,7 @@ final class ConfigurationManager: ObservableObject {
         static let screenCaptureInterval = "screen_capture_interval"
         static let smartMode = "smart_mode_enabled"
         static let aiProvider = "selected_ai_provider"
+        static let selectedAIModel = "selected_ai_model"
         static let primaryLanguage = "primary_language"
         static let shortcutToggleWidget = "shortcut_toggle_widget"
         static let shortcutAssist = "shortcut_assist"
@@ -183,6 +195,7 @@ final class ConfigurationManager: ObservableObject {
         // Overlay Transcript
         static let showTranscriptInOverlay = "show_transcript_in_overlay"
         // Meeting Cost
+        static let meetingCostEnabled = "meeting_cost_enabled"
         static let meetingHourlyRate = "meeting_hourly_rate"
         static let meetingCurrency = "meeting_currency"
         static let meetingDefaultParticipants = "meeting_default_participants"
@@ -208,6 +221,9 @@ final class ConfigurationManager: ObservableObject {
         } else {
             self.selectedAIProvider = .openai
         }
+
+        let storedModel = defaults.string(forKey: Keys.selectedAIModel) ?? AIModelChoice.auto.rawValue
+        self.selectedAIModel = AIModelChoice(rawValue: storedModel) != nil ? storedModel : AIModelChoice.auto.rawValue
 
         // Keyboard shortcuts
         self.shortcutToggleWidget = defaults.string(forKey: Keys.shortcutToggleWidget) ?? "cmd+\\"
@@ -237,7 +253,8 @@ final class ConfigurationManager: ObservableObject {
         // Overlay Transcript
         self.showTranscriptInOverlay = defaults.object(forKey: Keys.showTranscriptInOverlay) as? Bool ?? false
 
-        // Meeting Cost
+        // Meeting Cost (beta: disabled by default)
+        self.meetingCostEnabled = defaults.object(forKey: Keys.meetingCostEnabled) as? Bool ?? false
         self.meetingHourlyRate = defaults.object(forKey: Keys.meetingHourlyRate) as? Double ?? 50.0
         self.meetingCurrency = defaults.string(forKey: Keys.meetingCurrency) ?? "EUR"
         self.meetingDefaultParticipants = defaults.object(forKey: Keys.meetingDefaultParticipants) as? Int ?? 2
@@ -271,6 +288,7 @@ final class ConfigurationManager: ObservableObject {
         screenCaptureIntervalSeconds = 5.0
         smartModeEnabled = false
         selectedAIProvider = .openai
+        selectedAIModel = AIModelChoice.auto.rawValue
         primaryLanguage = "en"
         appLanguage = "system"
         selectedDisplayID = 0
@@ -296,7 +314,8 @@ final class ConfigurationManager: ObservableObject {
         meetingDetectionEnabled = true
         // Overlay Transcript
         showTranscriptInOverlay = false
-        // Meeting Cost
+        // Meeting Cost (beta: disabled by default)
+        meetingCostEnabled = false
         meetingHourlyRate = 50.0
         meetingCurrency = "EUR"
         meetingDefaultParticipants = 2
@@ -344,6 +363,51 @@ final class ConfigurationManager: ObservableObject {
             return proactiveClosingEnabled
         default:
             return false
+        }
+    }
+}
+
+/// User-selectable AI models for standard mode.
+/// Raw values match the whitelist in `landing/lib/ai-providers.ts` (`USER_SELECTABLE_MODELS`).
+/// `.auto` means: let the backend pick via its cascade — currently `gpt-5.4-mini` as primary.
+enum AIModelChoice: String, CaseIterable, Identifiable {
+    case auto       = "auto"
+    case sonnet46   = "claude-sonnet-4-6"
+    case gpt4oMini  = "gpt-4o-mini"
+    case gpt41Mini  = "gpt-4.1-mini"
+
+    var id: String { rawValue }
+
+    /// Value sent to the backend. `.auto` returns nil (no override).
+    var backendValue: String? {
+        self == .auto ? nil : rawValue
+    }
+
+    var displayName: String {
+        switch self {
+        case .auto:       return String(localized: "settings.general.aiModel.auto")
+        case .sonnet46:   return String(localized: "settings.general.aiModel.sonnet46")
+        case .gpt4oMini:  return String(localized: "settings.general.aiModel.gpt4oMini")
+        case .gpt41Mini:  return String(localized: "settings.general.aiModel.gpt41Mini")
+        }
+    }
+
+    /// Short pros/cons shown under the model name in the picker.
+    var subtitle: String {
+        switch self {
+        case .auto:       return String(localized: "settings.general.aiModel.auto.subtitle")
+        case .sonnet46:   return String(localized: "settings.general.aiModel.sonnet46.subtitle")
+        case .gpt4oMini:  return String(localized: "settings.general.aiModel.gpt4oMini.subtitle")
+        case .gpt41Mini:  return String(localized: "settings.general.aiModel.gpt41Mini.subtitle")
+        }
+    }
+
+    var iconName: String {
+        switch self {
+        case .auto:      return "wand.and.stars"
+        case .sonnet46:  return "a.circle.fill"
+        case .gpt4oMini, .gpt41Mini:
+            return "circle.hexagongrid.fill"
         }
     }
 }

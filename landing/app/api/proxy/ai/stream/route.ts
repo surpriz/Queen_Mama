@@ -59,6 +59,7 @@ interface AIStreamRequestBody {
   provider?: AIProviderType; // Optional - backend uses cascade if not specified
   smartMode?: boolean; // Deprecated in favor of cascadeMode, kept for backward compatibility
   cascadeMode?: "standard" | "smart" | "recap"; // New: explicit cascade mode selection
+  model?: string; // Optional user-selected model (whitelisted; only honored in standard mode)
   systemPrompt: string;
   userMessage: string;
   screenshot?: string; // base64 encoded
@@ -98,7 +99,7 @@ export async function POST(request: Request) {
 
     // Parse request body
     const body: AIStreamRequestBody = await request.json();
-    const { smartMode = false, cascadeMode, systemPrompt, userMessage, screenshot, maxTokens } = body;
+    const { smartMode = false, cascadeMode, model: userModel, systemPrompt, userMessage, screenshot, maxTokens } = body;
 
     // Determine cascade mode: cascadeMode takes precedence, otherwise use smartMode for backward compatibility
     const mode: "standard" | "smart" | "recap" = cascadeMode
@@ -166,8 +167,11 @@ export async function POST(request: Request) {
       );
     }
 
-    // Get model cascade for this mode
-    const cascade = await getModelCascade(mode);
+    // Get model cascade for this mode.
+    // User-selected model only takes effect in standard mode (Smart/Recap stay on cascade).
+    const cascade = await getModelCascade(mode, {
+      overrideModel: mode === "standard" ? userModel : undefined,
+    });
 
     if (cascade.length === 0) {
       return NextResponse.json(

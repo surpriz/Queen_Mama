@@ -106,8 +106,30 @@ export const TIER_LIMITS = {
 // Mode types for cascade selection
 export type CascadeMode = "standard" | "smart" | "recap";
 
-// Get model cascade for a given mode, filtered by configured providers
-export async function getModelCascade(mode: CascadeMode | boolean): Promise<CascadeModel[]> {
+// User-selectable models exposed in client UIs.
+// Only applied when cascadeMode === "standard" — Smart/Recap stay on cascade.
+// Keys are the IDs sent by clients; values describe how to dispatch.
+// "Standard (default)" is exposed in clients via the absence of `model` — backend
+// uses its standard cascade whose primary is `gpt-5.4-mini`. So `gpt-5.4-mini` is
+// intentionally NOT in this whitelist (would be a duplicate of the default).
+export const USER_SELECTABLE_MODELS: Record<string, CascadeModel> = {
+  "claude-sonnet-4-6": { provider: "anthropic", model: "claude-sonnet-4-6" },
+  "gpt-4o-mini":       { provider: "openai",    model: "gpt-4o-mini"       },
+  "gpt-4.1-mini":      { provider: "openai",    model: "gpt-4.1-mini"      },
+};
+
+export function isUserSelectableModel(id: string | undefined | null): id is keyof typeof USER_SELECTABLE_MODELS {
+  return typeof id === "string" && id in USER_SELECTABLE_MODELS;
+}
+
+// Get model cascade for a given mode, filtered by configured providers.
+// When `overrideModel` is provided AND mode === "standard", the override is placed at
+// the head of the cascade; the rest of the standard cascade is kept as fallback so a
+// transient outage of the user-picked model still yields a response.
+export async function getModelCascade(
+  mode: CascadeMode | boolean,
+  opts: { overrideModel?: string } = {}
+): Promise<CascadeModel[]> {
   // Support legacy boolean parameter (for backward compatibility)
   let cascadeMode: CascadeMode;
   if (typeof mode === "boolean") {
@@ -116,7 +138,17 @@ export async function getModelCascade(mode: CascadeMode | boolean): Promise<Casc
     cascadeMode = mode;
   }
 
-  const cascade = MODEL_CASCADE[cascadeMode];
+  let cascade: readonly CascadeModel[] = MODEL_CASCADE[cascadeMode];
+
+  if (cascadeMode === "standard" && isUserSelectableModel(opts.overrideModel)) {
+    const override = USER_SELECTABLE_MODELS[opts.overrideModel];
+    // Place override first; deduplicate same provider+model from default cascade
+    const rest = MODEL_CASCADE.standard.filter(
+      (c) => !(c.provider === override.provider && c.model === override.model)
+    );
+    cascade = [override, ...rest];
+  }
+
   const configuredProviders = await getConfiguredProviders();
 
   // Filter cascade to only include configured providers
