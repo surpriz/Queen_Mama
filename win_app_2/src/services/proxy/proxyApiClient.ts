@@ -3,6 +3,8 @@ import { getAccessToken } from '../auth/authenticationManager'
 import { createLogger } from '@/lib/logger'
 import { sleep } from '@/lib/utils'
 import type { ProxyConfig, TranscriptionToken, AIProxyRequest, AIStreamRequest, StreamChunk } from '@/types/api'
+import { useConfigStore } from '@/stores/configStore'
+import { resolveBackendModel } from '@/types/config'
 
 const log = createLogger('ProxyAPI')
 
@@ -114,6 +116,11 @@ export async function generateAIResponse(request: AIProxyRequest): Promise<strin
 
   let lastError: Error | null = null
 
+  // User-selected model is only honored in standard mode (non-smart). Generate path is used
+  // by background utilities (title, summary, etc.) — keep the user override only when the
+  // caller has not forced a specific provider via `request.model`.
+  const userModel = resolveBackendModel(useConfigStore.getState().selectedAIModel)
+
   for (const provider of GENERATE_PROVIDERS) {
     try {
       const response = await fetchWithRetry('/api/proxy/ai/generate', {
@@ -123,6 +130,7 @@ export async function generateAIResponse(request: AIProxyRequest): Promise<strin
           systemPrompt,
           userMessage: userMsg,
           maxTokens: request.max_tokens,
+          ...(userModel ? { model: userModel } : {}),
         }),
       })
 
@@ -164,7 +172,11 @@ export async function* streamAIResponse(
     throw new Error('Missing system or user message')
   }
 
-  // Convert to backend format
+  // Convert to backend format. User-selected model id is sent only when in standard cascade
+  // (Smart/Recap keep their own cascades server-side).
+  const selectedRaw = useConfigStore.getState().selectedAIModel
+  const userModel = resolveBackendModel(selectedRaw)
+  log.info(`Stream request — selectedAIModel='${selectedRaw}', sending model param='${userModel ?? '(none — cascade default)'}'`)
   const streamRequest: AIStreamRequest = {
     systemPrompt: typeof systemMessage.content === 'string'
       ? systemMessage.content
@@ -174,6 +186,7 @@ export async function* streamAIResponse(
       : userMessage.content.map((c) => c.text || '').join(''),
     maxTokens: request.max_tokens,
     cascadeMode: 'standard',
+    ...(userModel ? { model: userModel } : {}),
   }
 
   // Extract screenshot if present in user message

@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next'
 import { DisplaySelector } from './DisplaySelector'
 import { useConfigStore } from '@/stores/configStore'
 import { useLicenseStore } from '@/stores/licenseStore'
+import { AI_MODEL_OPTIONS } from '@/types/config'
 import { useAuth } from '@/hooks/useAuth'
 import { useAuthStore } from '@/stores/authStore'
 import { KeyboardShortcutBadge } from '@/components/common/KeyboardShortcutBadge'
@@ -238,6 +239,10 @@ export function SettingsView() {
                   description={t('settings.general.smartModeDescription')}
                   enabled={config.smartModeEnabled}
                   onToggle={(v) => handleToggle('smartModeEnabled', v)}
+                />
+                <AIModelSelector
+                  selected={config.selectedAIModel}
+                  onSelect={(id) => config.updateConfig({ selectedAIModel: id })}
                 />
                 <ToggleRow
                   label={t('settings.general.undetectableOverlay')}
@@ -579,6 +584,70 @@ function SliderRow({
         />
         <span className="text-body-sm text-qm-accent font-medium w-12 text-right">{displayValue}</span>
       </div>
+    </div>
+  )
+}
+
+function AIModelSelector({
+  selected,
+  onSelect,
+}: {
+  selected: string
+  onSelect: (id: string) => void
+}) {
+  const { t } = useTranslation('dashboard')
+  const [open, setOpen] = useState(false)
+
+  const selectedOpt = AI_MODEL_OPTIONS.find((o) => o.id === selected) || AI_MODEL_OPTIONS[0]
+
+  return (
+    <div className="py-2">
+      <div className="flex items-start justify-between gap-4">
+        <div className="flex-1">
+          <p className="text-body-sm text-qm-text-primary">{t('settings.general.aiModel.title')}</p>
+          <p className="text-caption text-qm-text-tertiary">{t('settings.general.aiModel.description')}</p>
+        </div>
+        <button
+          onClick={() => setOpen((v) => !v)}
+          className="flex items-center gap-2 px-3 py-1.5 rounded-qm-md bg-qm-surface-medium hover:bg-qm-surface-light text-body-sm text-qm-text-primary transition-colors flex-shrink-0"
+        >
+          <span>{t(`settings.general.aiModel.${selectedOpt.i18nKey}`)}</span>
+          <span className="text-caption text-qm-text-tertiary">{open ? '▲' : '▼'}</span>
+        </button>
+      </div>
+
+      {open && (
+        <div className="mt-2 space-y-1">
+          {AI_MODEL_OPTIONS.map((opt) => {
+            const isSel = opt.id === selected
+            return (
+              <button
+                key={opt.id}
+                onClick={() => {
+                  onSelect(opt.id)
+                  setOpen(false)
+                }}
+                className={cn(
+                  'w-full text-left px-3 py-2 rounded-qm-md transition-colors flex items-center justify-between gap-3',
+                  isSel
+                    ? 'bg-qm-accent/15 border border-qm-accent/40'
+                    : 'bg-qm-surface-light hover:bg-qm-surface-medium border border-transparent',
+                )}
+              >
+                <div className="flex-1 min-w-0">
+                  <p className={cn('text-body-sm', isSel ? 'text-qm-text-primary' : 'text-qm-text-secondary')}>
+                    {t(`settings.general.aiModel.${opt.i18nKey}`)}
+                  </p>
+                  <p className="text-caption text-qm-text-tertiary truncate">
+                    {t(`settings.general.aiModel.${opt.i18nKey}Subtitle`)}
+                  </p>
+                </div>
+                {isSel && <span className="text-qm-accent flex-shrink-0">✓</span>}
+              </button>
+            )
+          })}
+        </div>
+      )}
     </div>
   )
 }

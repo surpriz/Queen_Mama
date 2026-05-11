@@ -157,19 +157,40 @@ export interface AIContextParams {
   smartMode?: boolean
 }
 
+/**
+ * Returns true when the user opted out of automatic transcript-language enforcement by embedding
+ * `[LANG_OVERRIDE]` or `LANG_OVERRIDE:` in their custom prompt or custom mode system prompt.
+ * The user's instructions then dictate the response language. Marker is stripped before send.
+ */
+function hasLangOverride(customPrompt: string | undefined, mode: Mode | null): boolean {
+  const needles = ['[LANG_OVERRIDE]', 'LANG_OVERRIDE:']
+  if (customPrompt && needles.some((n) => customPrompt.includes(n))) return true
+  if (mode?.systemPrompt && needles.some((n) => mode.systemPrompt.includes(n))) return true
+  return false
+}
+
+function stripLangOverrideMarker(text: string): string {
+  return text.replace(/\[LANG_OVERRIDE\]/g, '').replace(/LANG_OVERRIDE:/g, '')
+}
+
 export function buildSystemPrompt(params: AIContextParams): string {
-  const { transcript, mode, responseType, smartMode } = params
+  const { transcript, mode, responseType, smartMode, customPrompt } = params
 
   // Pre-detect language so we can pin the response deterministically against bilingual
   // prompt content and French-UI screenshots (macOS parity).
   const lockedLanguage = resolveLockedLanguage(transcript)
   const diarized = hasDiarization(transcript)
   const passive = diarized && isUserPassivelyListening(transcript)
+  const langOverride = hasLangOverride(customPrompt, mode)
+  if (langOverride) {
+    console.log('[AIContext] LANG_OVERRIDE marker detected — skipping automatic language lock')
+  }
 
   let prompt = ''
 
   // LANGUAGE LOCK injected FIRST so it wins over bilingual examples and screenshot UI text.
-  if (lockedLanguage) {
+  // Skipped when the user opted into LANG_OVERRIDE — their custom prompt rules.
+  if (lockedLanguage && !langOverride) {
     console.log(`[AIContext] Locked response language: ${lockedLanguage}`)
     prompt += `RESPONSE LANGUAGE LOCK — MANDATORY: Respond in ${lockedLanguage} ONLY. Every word, including action verb prefixes, bullet labels, and quoted phrases, must be in ${lockedLanguage}. Do NOT mix languages. Ignore the language of the screenshot, system UI, or any examples — only the transcript language matters. This overrides every other language rule below.\n\n`
   }
@@ -183,9 +204,12 @@ export function buildSystemPrompt(params: AIContextParams): string {
     : false
 
   if (isCustomMode && mode) {
-    // Custom modes: ONLY the mode's prompt + language instruction
-    prompt += mode.systemPrompt
-    prompt += getLanguageInstruction()
+    // Custom modes: ONLY the mode's prompt + language instruction.
+    // Strip the LANG_OVERRIDE control marker so it doesn't reach the model verbatim.
+    prompt += stripLangOverrideMarker(mode.systemPrompt)
+    if (!langOverride) {
+      prompt += getLanguageInstruction()
+    }
   } else {
     // Built-in modes: mode prompt + responseType additions
     prompt += mode?.systemPrompt || getDefaultSystemPrompt()
@@ -200,7 +224,9 @@ export function buildSystemPrompt(params: AIContextParams): string {
       }
     }
 
-    prompt += getLanguageInstruction()
+    if (!langOverride) {
+      prompt += getLanguageInstruction()
+    }
   }
 
   // Universal anti-refusal directive - applies to ALL modes and response types
@@ -268,7 +294,10 @@ The user has been SILENT and is LISTENING, not conversing. Do NOT force them to 
   // Final language anchor — placed LAST for maximum weight with all models (especially OpenAI).
   // When we have a locked language, reference it explicitly so the model can't "re-detect"
   // a different language from screenshot UI or bilingual prompt content.
-  if (lockedLanguage) {
+  // Skipped when LANG_OVERRIDE is active — the user's custom prompt rules.
+  if (langOverride) {
+    prompt += `\n\nLANGUAGE: Follow the language instructions in the user's custom prompt above. No automatic transcript-language enforcement.`
+  } else if (lockedLanguage) {
     prompt += `\n\nFINAL MANDATORY RULE — RESPONSE LANGUAGE:
 The transcript language has been pre-detected as ${lockedLanguage}. Respond ENTIRELY in ${lockedLanguage}. NO EXCEPTIONS.`
   } else {
@@ -338,7 +367,8 @@ export function buildUserMessage(params: AIContextParams): AIMessage[] {
   const screenOnly = !hasTranscript && !!screenshot
 
   if (customPrompt?.trim()) {
-    textContent += customPrompt
+    // Strip LANG_OVERRIDE markers — control tokens for prompt builder, not for the model.
+    textContent += stripLangOverrideMarker(customPrompt).trim()
   } else if (isCustomMode) {
     textContent += 'Help me with this.'
   } else if (screenOnly) {

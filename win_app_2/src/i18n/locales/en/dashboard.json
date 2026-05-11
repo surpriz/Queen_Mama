@@ -98,6 +98,18 @@
       "title": "General",
       "smartMode": "Smart Mode",
       "smartModeDescription": "Enhanced AI reasoning (Enterprise)",
+      "aiModel": {
+        "title": "AI Model",
+        "description": "Model used for standard responses. Smart Mode keeps its own model.",
+        "auto": "Standard (default)",
+        "autoSubtitle": "Built-in cascade (GPT-5.4 mini primary) · fast and balanced",
+        "sonnet46": "Sonnet 4.6 (effort low)",
+        "sonnet46Subtitle": "Best writing quality and reasoning · slightly slower",
+        "gpt4oMini": "GPT-4o mini",
+        "gpt4oMiniSubtitle": "Very fast and cheap · less precise on complex topics",
+        "gpt41Mini": "GPT-4.1 mini",
+        "gpt41MiniSubtitle": "Strong instruction-following · slightly less creative"
+      },
       "undetectableOverlay": "Undetectable Overlay",
       "undetectableOverlayDescription": "Hide overlay from screen sharing (Enterprise)",
       "autoScreenCapture": "Auto Screen Capture",

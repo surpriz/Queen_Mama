@@ -11,6 +11,12 @@ export interface AppConfig {
   screenCaptureIntervalSeconds: number
   smartModeEnabled: boolean
   selectedAIProvider: AIProviderType
+  /**
+   * User-selected AI model for standard (non-smart) responses. Defaults to "auto" — backend
+   * cascade picks `gpt-5.4-mini` as primary. Other valid values mirror the whitelist in
+   * `landing/lib/ai-providers.ts` USER_SELECTABLE_MODELS.
+   */
+  selectedAIModel: string
   primaryLanguage: string
   uiLanguage: string
 
@@ -46,6 +52,7 @@ export const DEFAULT_CONFIG: AppConfig = {
   screenCaptureIntervalSeconds: 5.0,
   smartModeEnabled: false,
   selectedAIProvider: 'OpenAI' as AIProviderType,
+  selectedAIModel: 'auto',
   primaryLanguage: 'multi',
   uiLanguage: 'en',
 
@@ -96,4 +103,30 @@ export const ENVIRONMENTS: Record<string, AppEnvironment> = {
 export function getCurrentEnvironment(): AppEnvironment {
   const env = import.meta.env.VITE_APP_ENV || 'production'
   return ENVIRONMENTS[env] || ENVIRONMENTS.production
+}
+
+// ----------------------------------------------------------------------------
+// User-selectable AI model choices (parity with mac_app AIModelChoice).
+// Raw value `auto` = backend default cascade (currently gpt-5.4-mini primary).
+// Other raw values must match the whitelist in `landing/lib/ai-providers.ts`.
+// ----------------------------------------------------------------------------
+
+export interface AIModelOption {
+  /** Raw value persisted in config (and sent to backend; `auto` is the no-override sentinel). */
+  id: string
+  /** i18n key suffix — looked up under `settings.general.aiModel.<key>` / `.<key>Subtitle`. */
+  i18nKey: string
+}
+
+export const AI_MODEL_OPTIONS: AIModelOption[] = [
+  { id: 'auto', i18nKey: 'auto' },
+  { id: 'claude-sonnet-4-6', i18nKey: 'sonnet46' },
+  { id: 'gpt-4o-mini', i18nKey: 'gpt4oMini' },
+  { id: 'gpt-4.1-mini', i18nKey: 'gpt41Mini' },
+]
+
+/** Returns the value to send to the backend, or null for the default cascade. */
+export function resolveBackendModel(selected: string | undefined): string | null {
+  if (!selected || selected === 'auto') return null
+  return AI_MODEL_OPTIONS.some((o) => o.id === selected) ? selected : null
 }

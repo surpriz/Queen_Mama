@@ -98,6 +98,18 @@
       "title": "Général",
       "smartMode": "Mode intelligent",
       "smartModeDescription": "Raisonnement IA amélioré (Enterprise)",
+      "aiModel": {
+        "title": "Modèle IA",
+        "description": "Modèle utilisé pour les réponses standard. Le mode intelligent garde son propre modèle.",
+        "auto": "Standard (par défaut)",
+        "autoSubtitle": "Cascade par défaut (GPT-5.4 mini en tête) · rapide et équilibré",
+        "sonnet46": "Sonnet 4.6 (effort low)",
+        "sonnet46Subtitle": "Meilleure qualité rédactionnelle et raisonnement · un peu plus lent",
+        "gpt4oMini": "GPT-4o mini",
+        "gpt4oMiniSubtitle": "Très rapide et économique · moins précis sur sujets complexes",
+        "gpt41Mini": "GPT-4.1 mini",
+        "gpt41MiniSubtitle": "Suit bien les instructions · un peu moins créatif"
+      },
       "undetectableOverlay": "Overlay indétectable",
       "undetectableOverlayDescription": "Masquer l'overlay du partage d'écran (Enterprise)",
       "autoScreenCapture": "Capture d'écran auto",

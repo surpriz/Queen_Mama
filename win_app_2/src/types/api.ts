@@ -29,6 +29,11 @@ export interface AIStreamRequest {
   screenshot?: string // base64 encoded
   cascadeMode?: 'standard' | 'smart' | 'recap'
   maxTokens?: number
+  /**
+   * Optional user-selected model id (e.g. "claude-sonnet-4-6", "gpt-4o-mini", "gpt-4.1-mini").
+   * Honored by the backend only when cascadeMode === 'standard'. Smart/Recap stay on cascade.
+   */
+  model?: string
 }
 
 export interface AIMessage {
