@@ -544,16 +544,26 @@ struct AIContext: @unchecked Sendable {
 
         var prompt = ""
 
+        // LANG_OVERRIDE escape hatch — when a user-authored custom prompt (or attached custom
+        // mode) contains the marker `[LANG_OVERRIDE]` or `LANG_OVERRIDE:`, the automatic
+        // transcript-language lock is bypassed. The user prompt then dictates the response
+        // language. Useful for: bilingual coaches, intentional translation, role-play in a
+        // second language, accessibility scenarios.
+        let langOverrideActive = Self.containsLangOverrideMarker(customPrompt: customPrompt, mode: mode)
+        if langOverrideActive {
+            print("[AIContext] LANG_OVERRIDE marker detected — skipping automatic language lock")
+        }
+
         // Pre-detected language directive injected BEFORE anything else so it wins over
         // bilingual examples, French mode prompts, and French UI text in screenshots.
         let detectedLang = detectedLanguageName
-        if let lang = detectedLang {
+        if let lang = detectedLang, !langOverrideActive {
             print("[AIContext] Detected transcript language: \(lang)")
             prompt += """
             RESPONSE LANGUAGE LOCK — MANDATORY: Respond in \(lang) ONLY. Every word, including action verb prefixes, bullet labels, and quoted phrases, must be in \(lang). Do NOT mix languages. Ignore the language of the screenshot, system UI, or any examples — only the transcript language matters. This overrides every other language rule below.
 
             """
-        } else {
+        } else if !langOverrideActive {
             print("[AIContext] Language detection skipped (transcript too short or low confidence)")
         }
 
@@ -573,19 +583,34 @@ struct AIContext: @unchecked Sendable {
 
         if isCustomMode {
             // For custom modes, use ONLY the mode's system prompt
-            // This allows users to have full control over AI behavior
-            prompt += mode?.systemPrompt ?? Mode.defaultMode.systemPrompt
+            // This allows users to have full control over AI behavior.
+            // Strip the LANG_OVERRIDE control marker so it doesn't reach the model verbatim.
+            let raw = mode?.systemPrompt ?? Mode.defaultMode.systemPrompt
+            let cleaned = raw
+                .replacingOccurrences(of: "[LANG_OVERRIDE]", with: "")
+                .replacingOccurrences(of: "LANG_OVERRIDE:", with: "")
+            prompt += cleaned
             print("[AIContext] Using CUSTOM mode logic - no responseType additions")
 
-            // Add explicit instructions
-            prompt += """
+            // Add explicit instructions. When LANG_OVERRIDE is active, defer language choice
+            // to the user's custom prompt instead of forcing transcript-language matching.
+            if langOverrideActive {
+                prompt += """
 
-                CRITICAL RULES:
-                - ALWAYS be helpful. NEVER refuse to help. NEVER say "I can't help with that."
-                - Respond in the SAME language as the transcript or screen content.
-                - French content → French response. English content → English response.
-                - NEVER mix languages in your response.
-                """
+                    CRITICAL RULES:
+                    - ALWAYS be helpful. NEVER refuse to help. NEVER say "I can't help with that."
+                    - Follow the language instructions in the user's custom prompt above.
+                    """
+            } else {
+                prompt += """
+
+                    CRITICAL RULES:
+                    - ALWAYS be helpful. NEVER refuse to help. NEVER say "I can't help with that."
+                    - Respond in the SAME language as the transcript or screen content.
+                    - French content → French response. English content → English response.
+                    - NEVER mix languages in your response.
+                    """
+            }
         } else {
             // For built-in modes, use the traditional combination
             prompt += mode?.systemPrompt ?? Mode.defaultMode.systemPrompt
@@ -701,7 +726,14 @@ The user has been SILENT and is LISTENING, not conversing. Do NOT force them to 
         // Final language anchor — placed LAST for maximum weight with all models (especially OpenAI).
         // When we have a confident local detection, reference it explicitly so the model can't
         // "re-detect" a different language from screenshot UI or bilingual prompt content.
-        if let lang = detectedLang {
+        // Skipped entirely when the user opted into LANG_OVERRIDE — their custom prompt rules.
+        if langOverrideActive {
+            prompt += """
+
+
+LANGUAGE: Follow the language instructions in the user's custom prompt above. No automatic transcript-language enforcement.
+"""
+        } else if let lang = detectedLang {
             prompt += """
 
 
@@ -719,6 +751,17 @@ French transcript → French response. English transcript → English response. 
         }
 
         return prompt
+    }
+
+    /// Returns true when the user opted out of automatic transcript-language enforcement by
+    /// embedding `[LANG_OVERRIDE]` or `LANG_OVERRIDE:` in their custom prompt or custom mode
+    /// system prompt. Marker is removed from the final prompt to avoid confusing the model.
+    private static func containsLangOverrideMarker(customPrompt: String?, mode: Mode?) -> Bool {
+        let needle1 = "[LANG_OVERRIDE]"
+        let needle2 = "LANG_OVERRIDE:"
+        if let cp = customPrompt, cp.contains(needle1) || cp.contains(needle2) { return true }
+        if let m = mode, m.systemPrompt.contains(needle1) || m.systemPrompt.contains(needle2) { return true }
+        return false
     }
 
     var userMessage: String {
@@ -781,7 +824,12 @@ French transcript → French response. English transcript → English response. 
         }
 
         if let customPrompt, !customPrompt.isEmpty {
+            // Strip LANG_OVERRIDE markers — they are control tokens for the prompt builder,
+            // not content the model should see or echo.
             message += customPrompt
+                .replacingOccurrences(of: "[LANG_OVERRIDE]", with: "")
+                .replacingOccurrences(of: "LANG_OVERRIDE:", with: "")
+                .trimmingCharacters(in: .whitespacesAndNewlines)
         } else if isCustomMode {
             message += "Help me with this."
         } else {
