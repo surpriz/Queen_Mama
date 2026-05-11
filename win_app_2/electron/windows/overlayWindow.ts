@@ -1,4 +1,4 @@
-import { BrowserWindow, screen } from 'electron'
+import { BrowserWindow, screen, app } from 'electron'
 import { join } from 'path'
 import Store from 'electron-store'
 
@@ -46,8 +46,11 @@ export function createOverlayWindow(): BrowserWindow {
   overlayWindow.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true })
 
   // Hide overlay from screen capture (equivalent to macOS NSPanel.sharingType = .none)
-  // This prevents desktopCapturer from including the overlay in screenshots
-  overlayWindow.setContentProtection(true)
+  // This prevents desktopCapturer from including the overlay in screenshots.
+  // Disabled in dev so designers/devs can screenshot the overlay while iterating.
+  if (app.isPackaged) {
+    overlayWindow.setContentProtection(true)
+  }
 
   // Save size when user resizes (only when expanded)
   overlayWindow.on('resize', () => {

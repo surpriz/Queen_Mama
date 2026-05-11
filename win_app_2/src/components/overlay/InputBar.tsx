@@ -68,7 +68,13 @@ export function InputBar() {
         </div>
       )}
 
-      <div className="flex items-center gap-2 px-3 bg-qm-surface-light border border-qm-border-subtle rounded-qm-lg" style={{ height: 44 }}>
+      <div
+        className="group/input flex items-center gap-2 px-3 bg-qm-surface-medium rounded-qm-lg transition-all duration-200 focus-within:bg-qm-surface-hover focus-within:shadow-qm-glow"
+        style={{
+          height: 44,
+          boxShadow: 'inset 0 0 0 1px rgba(255,255,255,0.06), inset 0 1px 0 rgba(255,255,255,0.04)',
+        }}
+      >
         {/* Smart Mode toggle */}
         <button
           onClick={handleToggleSmart}
@@ -106,9 +112,13 @@ export function InputBar() {
         <button
           onClick={handleSubmit}
           disabled={!input.trim() || isProcessing}
-          className="flex items-center justify-center w-7 h-7 rounded-full bg-gradient-to-r from-qm-gradient-start to-qm-gradient-end text-white hover:scale-110 hover:shadow-qm-glow disabled:opacity-30 disabled:hover:scale-100 disabled:hover:shadow-none transition-all flex-shrink-0"
+          className={cn(
+            'relative flex items-center justify-center w-7 h-7 rounded-full bg-gradient-to-br from-qm-gradient-start to-qm-gradient-end text-white transition-all flex-shrink-0',
+            'disabled:opacity-25 disabled:saturate-50',
+            input.trim() && !isProcessing && 'hover:scale-110 shadow-qm-glow hover:shadow-qm-glow-strong',
+          )}
         >
-          <ArrowUp size={14} />
+          <ArrowUp size={14} strokeWidth={2.5} />
         </button>
       </div>
     </div>

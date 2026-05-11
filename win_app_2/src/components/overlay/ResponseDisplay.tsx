@@ -239,7 +239,7 @@ export function ResponseDisplay() {
             {[...responseHistory].reverse().map((entry, idx) => (
               <div
                 key={`${entry.timestamp}-${idx}`}
-                className="relative rounded-qm-md bg-qm-surface-medium/40 p-3"
+                className="relative rounded-qm-md bg-qm-bg-tertiary/55 shadow-qm-elev-1 p-3"
               >
                 {/* Top-right actions */}
                 <div className="absolute top-2 right-2 flex items-center gap-1.5">
@@ -274,7 +274,7 @@ export function ResponseDisplay() {
 
             {/* Live streaming content (not yet in history) */}
             {streamingContent && (
-              <div className="relative rounded-qm-md bg-qm-surface-medium/40 p-3">
+              <div className="relative rounded-qm-md bg-qm-bg-tertiary/55 shadow-qm-elev-1 p-3">
                 {/* Top-right actions */}
                 <div className="absolute top-2 right-2 flex items-center gap-1.5">
                   {isAutoAnswer && (
@@ -290,7 +290,7 @@ export function ResponseDisplay() {
                     // Plain text during streaming — avoids expensive Markdown re-parsing on every chunk
                     <p className="whitespace-pre-wrap m-0">
                       {streamingContent}
-                      <span className="inline-block w-1.5 h-4 bg-qm-accent animate-pulse ml-0.5" />
+                      <span className="inline-block w-[3px] h-[14px] rounded-full bg-qm-accent-light shadow-[0_0_8px_rgba(167,139,250,0.7)] animate-pulse ml-1 align-middle" />
                     </p>
                   ) : (
                     <ReactMarkdown remarkPlugins={[remarkGfm]} components={{ pre: CodeBlockWrapper }}>
@@ -309,12 +309,19 @@ export function ResponseDisplay() {
             )}
           </>
         ) : (
-          <div className="flex flex-col items-center justify-center h-full gap-2">
-            <Sparkles size={24} className="text-qm-accent" />
-            <span className="text-qm-text-secondary text-body-sm">{t('response.readyToAssist')}</span>
-            <div className="flex items-center gap-1 text-qm-text-tertiary text-caption">
-              <span>{t('response.typeQuestionOrTab')}</span>
+          <div className="flex flex-col items-center justify-center h-full gap-3 px-6 text-center">
+            <div className="relative">
+              <div className="absolute inset-0 rounded-full bg-qm-accent/30 blur-xl animate-qm-pulse" />
+              <div className="relative w-12 h-12 rounded-full bg-gradient-to-br from-qm-gradient-start to-qm-gradient-end shadow-qm-glow-strong flex items-center justify-center">
+                <Sparkles size={20} className="text-white" strokeWidth={1.75} />
+              </div>
             </div>
+            <h4 className="font-display text-body-lg font-semibold text-qm-text-primary tracking-tight">
+              {t('response.readyToAssist')}
+            </h4>
+            <span className="text-caption text-qm-text-tertiary leading-relaxed">
+              {t('response.typeQuestionOrTab')}
+            </span>
           </div>
         )}
       </div>

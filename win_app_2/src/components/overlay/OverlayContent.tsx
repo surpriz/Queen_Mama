@@ -18,7 +18,12 @@ export function OverlayContent() {
   }, [isExpanded])
 
   return (
-    <div className="flex flex-col h-full backdrop-blur-xl bg-[#1a1a2e]/85 border border-white/10 shadow-2xl rounded-2xl overflow-hidden">
+    <div className="qm-glass-strong relative flex flex-col h-full rounded-2xl overflow-hidden">
+      {/* Top edge highlight — adds glass depth */}
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/15 to-transparent" />
+      {/* Subtle accent gradient bleeding from top-left */}
+      <div className="pointer-events-none absolute -top-12 -left-12 w-48 h-48 rounded-full bg-qm-accent/20 blur-3xl" />
+
       {/* Collapsed: Pill header */}
       <PillHeader />
 

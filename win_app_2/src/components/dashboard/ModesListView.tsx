@@ -122,26 +122,30 @@ export function ModesListView() {
         key={mode.id}
         onClick={() => handleSelect(mode)}
         className={cn(
-          'flex items-center gap-3 px-3 py-3 rounded-qm-lg cursor-pointer transition-all group',
+          'qm-card-hover relative flex items-center gap-3 px-3 py-2.5 rounded-qm-lg cursor-pointer transition-all group',
           isViewing
-            ? 'bg-qm-accent/10 border border-qm-accent/30'
+            ? 'bg-qm-accent-soft shadow-qm-elev-2'
             : isActive
-              ? 'bg-emerald-500/5 border border-emerald-500/20'
-              : 'hover:bg-qm-surface-light border border-transparent',
+              ? 'bg-emerald-500/8 shadow-qm-elev-1'
+              : 'bg-qm-bg-tertiary/40 shadow-qm-elev-1',
         )}
       >
+        {/* Left accent bar when viewing */}
+        {isViewing && (
+          <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-6 rounded-r-full bg-gradient-to-b from-qm-gradient-start to-qm-gradient-end shadow-[0_0_8px_rgba(139,92,246,0.6)]" />
+        )}
         {/* Mode icon */}
         <div
           className={cn(
-            'flex items-center justify-center w-8 h-8 rounded-full flex-shrink-0',
+            'flex items-center justify-center w-8 h-8 rounded-full flex-shrink-0 transition-all',
             isViewing
-              ? 'bg-gradient-to-br from-qm-gradient-start to-qm-gradient-end'
+              ? 'bg-gradient-to-br from-qm-gradient-start to-qm-gradient-end shadow-qm-glow'
               : isActive
                 ? 'bg-emerald-500/15'
-                : 'bg-qm-surface-light',
+                : 'bg-qm-surface-light group-hover:bg-qm-surface-medium',
           )}
         >
-          <ModeIcon size={14} className={isViewing ? 'text-white' : isActive ? 'text-emerald-400' : 'text-qm-text-secondary'} />
+          <ModeIcon size={14} strokeWidth={1.75} className={isViewing ? 'text-white' : isActive ? 'text-emerald-400' : 'text-qm-text-secondary'} />
         </div>
 
         <div className="flex-1 min-w-0">
@@ -249,16 +253,17 @@ export function ModesListView() {
       <div className="flex-1 flex flex-col">
         {detailMode ? (
           <div className="flex flex-col h-full p-6 overflow-y-auto">
-            <div className="p-6 bg-gradient-to-r from-qm-gradient-start/10 to-qm-gradient-end/10 rounded-qm-lg mb-6">
-              <div className="flex items-center gap-3">
-                <div className="flex items-center justify-center w-10 h-10 rounded-full bg-gradient-to-br from-qm-gradient-start to-qm-gradient-end">
+            <div className="relative p-6 rounded-qm-lg mb-6 overflow-hidden bg-gradient-to-r from-qm-gradient-start/12 to-qm-gradient-end/8 shadow-qm-elev-2">
+              <div className="pointer-events-none absolute -top-12 -right-12 w-40 h-40 rounded-full bg-qm-accent/20 blur-3xl" />
+              <div className="relative flex items-center gap-3.5">
+                <div className="flex items-center justify-center w-11 h-11 rounded-full bg-gradient-to-br from-qm-gradient-start to-qm-gradient-end shadow-qm-glow-strong">
                   {(() => {
                     const ModeIcon = getModeIcon(detailMode.name)
-                    return <ModeIcon size={18} className="text-white" />
+                    return <ModeIcon size={18} strokeWidth={1.75} className="text-white" />
                   })()}
                 </div>
                 <div>
-                  <h3 className="text-title-sm font-semibold text-qm-text-primary">
+                  <h3 className="font-display text-title-sm font-semibold text-qm-text-primary tracking-tight">
                     {BUILT_IN_MODE_NAMES.includes(detailMode.name as (typeof BUILT_IN_MODE_NAMES)[number]) ? getBuiltInModeName(detailMode.name) : detailMode.name}
                   </h3>
                   <p className="text-caption text-qm-text-tertiary">
@@ -268,8 +273,8 @@ export function ModesListView() {
                 </div>
               </div>
             </div>
-            <div className="p-4 rounded-qm-lg bg-qm-surface-light border border-qm-border-subtle">
-              <h4 className="text-label-md text-qm-text-secondary mb-2">
+            <div className="qm-card p-4">
+              <h4 className="text-label-md text-qm-text-secondary mb-2 tracking-tight">
                 {BUILT_IN_DESCRIPTIONS[detailMode.name] ? t('modes.description', { ns: 'dashboard' }) : t('modes.systemPrompt', { ns: 'dashboard' })}
               </h4>
               <p className="text-body-sm text-qm-text-primary leading-relaxed whitespace-pre-wrap">
@@ -278,14 +283,18 @@ export function ModesListView() {
             </div>
           </div>
         ) : (
-          <div className="flex-1 flex flex-col items-center justify-center text-center p-8">
-            <div className="w-16 h-16 rounded-qm-xl bg-qm-surface-light flex items-center justify-center mb-4">
-              <Sparkles size={32} className="text-qm-accent" />
+          <div className="flex-1 flex flex-col items-center justify-center text-center p-10">
+            <div className="relative w-28 h-28 mb-7 flex items-center justify-center">
+              <div className="absolute inset-0 rounded-full bg-gradient-to-br from-qm-gradient-start to-qm-gradient-end opacity-25 blur-2xl animate-qm-pulse" />
+              <div className="absolute inset-3 rounded-full bg-gradient-to-br from-qm-gradient-start to-qm-gradient-end opacity-40 blur-lg" />
+              <div className="relative w-16 h-16 rounded-full bg-gradient-to-br from-qm-gradient-start to-qm-gradient-end shadow-qm-glow-strong flex items-center justify-center">
+                <Sparkles size={26} strokeWidth={1.5} className="text-white" />
+              </div>
             </div>
-            <h3 className="text-title-sm font-semibold text-qm-text-primary mb-2">
+            <h3 className="font-display text-title-sm font-semibold text-qm-text-primary mb-2 tracking-tight">
               {t('modes.noModeSelected', { ns: 'dashboard' })}
             </h3>
-            <p className="text-body-sm text-qm-text-tertiary">
+            <p className="text-body-sm text-qm-text-tertiary max-w-sm leading-relaxed">
               {t('modes.selectModeToView', { ns: 'dashboard' })}
             </p>
           </div>
