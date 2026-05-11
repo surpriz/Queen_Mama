@@ -106,6 +106,11 @@ export async function POST(request: Request) {
       ? cascadeMode
       : (smartMode ? "smart" : "standard");
 
+    // Debug: confirm what the client actually sent. Helps diagnose "I picked Sonnet but
+    // logs show gpt-5.4-mini" reports — either client didn't send the field (older bundle),
+    // or this server didn't hot-reload the route to read it.
+    console.log(`[AI Stream] mode=${mode} cascadeMode=${cascadeMode ?? '∅'} smartMode=${smartMode} userModel=${userModel ?? '∅'}`);
+
     if (!systemPrompt || !userMessage) {
       return NextResponse.json(
         { error: "invalid_request", message: "Missing required fields: systemPrompt, userMessage" },

@@ -176,7 +176,10 @@ export async function* streamAIResponse(
   // (Smart/Recap keep their own cascades server-side).
   const selectedRaw = useConfigStore.getState().selectedAIModel
   const userModel = resolveBackendModel(selectedRaw)
-  log.info(`Stream request — selectedAIModel='${selectedRaw}', sending model param='${userModel ?? '(none — cascade default)'}'`)
+  // Use console.warn so the message is always visible regardless of DevTools "Default levels" filter.
+  // Prefix with a unique sentinel that's trivial to grep/filter on.
+  // eslint-disable-next-line no-console
+  console.warn(`MODELDBG selectedAIModel=${JSON.stringify(selectedRaw)} sendingModel=${JSON.stringify(userModel)} configStoreKeys=${Object.keys(useConfigStore.getState()).join(',')}`)
   const streamRequest: AIStreamRequest = {
     systemPrompt: typeof systemMessage.content === 'string'
       ? systemMessage.content
