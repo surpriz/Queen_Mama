@@ -414,6 +414,9 @@ struct OverlayContentView: View {
                     case .briefing:
                         // Briefing tab doesn't trigger AI requests - it shows contact info
                         break
+                    case .translate:
+                        // Translate tab is read-only; no AI request
+                        break
                     }
                 }
 
@@ -438,6 +441,7 @@ enum TabItem: String, CaseIterable {
     case followUp = "Follow-up"
     case recap = "Recap"
     case briefing = "Briefing"
+    case translate = "Translate"
 
     var icon: String {
         switch self {
@@ -446,6 +450,7 @@ enum TabItem: String, CaseIterable {
         case .followUp: return QMDesign.Icons.followUp
         case .recap: return QMDesign.Icons.recap
         case .briefing: return "person.text.rectangle"
+        case .translate: return "globe"
         }
     }
 
@@ -456,6 +461,7 @@ enum TabItem: String, CaseIterable {
         case .followUp: return String(localized: "overlay.tab.followUp")
         case .recap: return String(localized: "overlay.tab.recap")
         case .briefing: return String(localized: "overlay.tab.briefing")
+        case .translate: return String(localized: "overlay.tab.translate")
         }
     }
 
@@ -1032,13 +1038,17 @@ struct ModernExpandedContentView: View {
 
     @ObservedObject private var config = ConfigurationManager.shared
 
-    /// Tabs to display - includes Briefing only if contact is associated
+    /// Tabs to display - includes Briefing only if contact is associated,
+    /// Translate only if translation is enabled + shown in overlay
     private var visibleTabs: [TabItem] {
+        var tabs = TabItem.alwaysVisible
         if appState.currentSessionContact != nil {
-            return TabItem.allCases
-        } else {
-            return TabItem.alwaysVisible
+            tabs.append(.briefing)
         }
+        if config.translationEnabled && config.translationShowInOverlay {
+            tabs.append(.translate)
+        }
+        return tabs
     }
 
     @State private var aiErrorDismissTask: Task<Void, Never>?
@@ -1112,16 +1122,6 @@ struct ModernExpandedContentView: View {
                     .transition(.opacity.combined(with: .move(edge: .top)))
             }
 
-            // Live Translation Strip (shows latest interlocutor translation)
-            if appState.isSessionActive && config.translationEnabled && config.translationShowInOverlay,
-               let sessionManager = appState.sessionManager {
-                OverlayTranslationStripView(
-                    sessionManager: sessionManager,
-                    translationService: appState.translationService
-                )
-                .transition(.opacity.combined(with: .move(edge: .top)))
-            }
-
             // Content Area - switches based on selected tab
             if selectedTab == .briefing {
                 // Memory Palace Briefing View
@@ -1129,6 +1129,16 @@ struct ModernExpandedContentView: View {
                     ContactBriefingView(contact: contact)
                 } else {
                     EmptyBriefingView()
+                }
+            } else if selectedTab == .translate {
+                // Live translation history
+                if let sessionManager = appState.sessionManager {
+                    OverlayTranslateTabView(
+                        sessionManager: sessionManager,
+                        translationService: appState.translationService
+                    )
+                } else {
+                    OverlayTranslateEmptyView()
                 }
             } else {
                 // Response Area (for AI tabs)
@@ -1146,13 +1156,13 @@ struct ModernExpandedContentView: View {
 
             // Action Buttons (always visible at bottom, above status/input)
             ModernTabBarView(selectedTab: $selectedTab, visibleTabs: visibleTabs) { tab in
-                if tab != .briefing {
+                if tab != .briefing && tab != .translate {
                     onSubmit()
                 }
             }
 
-            // Status & Input (non-briefing only)
-            if selectedTab != .briefing {
+            // Status & Input (hidden on briefing and translate tabs)
+            if selectedTab != .briefing && selectedTab != .translate {
                 // Status Section
                 StatusSection(
                     isSessionActive: appState.isSessionActive,
@@ -2473,65 +2483,171 @@ struct OverlayTranscriptStripView: View {
     }
 }
 
-// MARK: - Overlay Translation Strip
+// MARK: - Overlay Translate Tab
 
-struct OverlayTranslationStripView: View {
+struct OverlayTranslateTabView: View {
     @ObservedObject var sessionManager: SessionManager
     @ObservedObject var translationService: TranslationService
+    @ObservedObject private var config = ConfigurationManager.shared
 
-    private var latestEntry: TranscriptEntry? {
+    /// All interlocutor entries (translated or pending). Ordered chronologically.
+    private var entries: [TranscriptEntry] {
         sessionManager.currentSession?.entries
-            .last(where: { $0.speaker == "Interlocuteur" && $0.translatedText != nil })
+            .filter { $0.speaker == "Interlocuteur" }
+            .sorted { $0.timestamp < $1.timestamp }
+            ?? []
     }
 
-    private var pendingEntry: TranscriptEntry? {
-        // Most recent interlocutor entry without translation yet (in-flight)
-        sessionManager.currentSession?.entries
-            .last(where: { $0.speaker == "Interlocuteur" })
+    private var languagePairLabel: String {
+        let source = config.translationSourceLanguage.lowercased() == "auto"
+            ? String(localized: "settings.translation.sourceLanguage.auto")
+            : config.translationSourceLanguage
+        let target = config.translationTargetLanguage
+        return "\(source) → \(target)"
     }
 
     var body: some View {
-        Group {
-            if let entry = latestEntry, let translated = entry.translatedText {
-                HStack(alignment: .top, spacing: QMDesign.Spacing.xs) {
-                    Image(systemName: "character.bubble")
+        VStack(spacing: 0) {
+            // Header: language pair + status badge
+            HStack(spacing: QMDesign.Spacing.xs) {
+                Image(systemName: "globe")
+                    .font(.system(size: 10))
+                    .foregroundColor(QMDesign.Colors.info)
+                Text(languagePairLabel)
+                    .font(.system(size: 10, weight: .semibold))
+                    .foregroundColor(QMDesign.Colors.textSecondary)
+                Spacer()
+                if let error = translationService.lastError {
+                    Text(error.localizedDescription ?? "")
                         .font(.system(size: 9))
-                        .foregroundColor(QMDesign.Colors.textTertiary)
+                        .foregroundColor(QMDesign.Colors.warning)
+                        .lineLimit(1)
+                }
+            }
+            .padding(.horizontal, QMDesign.Spacing.sm)
+            .padding(.vertical, QMDesign.Spacing.xs)
+            .background(QMDesign.Colors.surfaceLight.opacity(0.4))
 
-                    Text(translated)
-                        .font(.system(size: 10.5, weight: .regular))
-                        .italic()
-                        .foregroundColor(QMDesign.Colors.textSecondary)
-                        .lineLimit(2)
-                        .frame(maxWidth: .infinity, alignment: .leading)
+            Divider()
+                .background(QMDesign.Colors.borderSubtle)
 
-                    Text(entry.translationTargetLang ?? "")
+            // Entries list
+            if entries.isEmpty {
+                OverlayTranslateEmptyView()
+            } else {
+                ScrollViewReader { proxy in
+                    ScrollView {
+                        LazyVStack(alignment: .leading, spacing: QMDesign.Spacing.sm) {
+                            ForEach(entries) { entry in
+                                TranslateEntryRow(entry: entry)
+                                    .id(entry.id)
+                            }
+                        }
+                        .padding(QMDesign.Spacing.sm)
+                    }
+                    .onChange(of: entries.last?.translatedText) { _, _ in
+                        if let last = entries.last {
+                            withAnimation(.easeOut(duration: 0.2)) {
+                                proxy.scrollTo(last.id, anchor: .bottom)
+                            }
+                        }
+                    }
+                    .onChange(of: entries.count) { _, _ in
+                        if let last = entries.last {
+                            withAnimation(.easeOut(duration: 0.2)) {
+                                proxy.scrollTo(last.id, anchor: .bottom)
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(QMDesign.Colors.backgroundSecondary.opacity(0.5))
+        .clipShape(RoundedRectangle(cornerRadius: QMDesign.Radius.md))
+    }
+}
+
+private struct TranslateEntryRow: View {
+    let entry: TranscriptEntry
+
+    private var timestampString: String {
+        let fmt = DateFormatter()
+        fmt.dateFormat = "HH:mm:ss"
+        return fmt.string(from: entry.timestamp)
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            HStack(spacing: 6) {
+                Text(timestampString)
+                    .font(.system(size: 9, weight: .medium, design: .monospaced))
+                    .foregroundColor(QMDesign.Colors.textTertiary)
+                if let lang = entry.translationTargetLang {
+                    Text(lang)
                         .font(.system(size: 8, weight: .bold))
                         .foregroundColor(QMDesign.Colors.info)
                         .padding(.horizontal, 4)
                         .padding(.vertical, 1)
-                        .background(
-                            Capsule().fill(QMDesign.Colors.info.opacity(0.15))
-                        )
+                        .background(Capsule().fill(QMDesign.Colors.info.opacity(0.15)))
                 }
-                .padding(.horizontal, QMDesign.Spacing.sm)
-                .padding(.vertical, QMDesign.Spacing.xs)
-                .background(QMDesign.Colors.surfaceLight.opacity(0.3))
-                .clipShape(RoundedRectangle(cornerRadius: QMDesign.Radius.sm))
-            } else if pendingEntry != nil {
-                HStack {
+            }
+
+            Text(entry.text)
+                .font(.system(size: 11))
+                .foregroundColor(QMDesign.Colors.textPrimary)
+                .fixedSize(horizontal: false, vertical: true)
+
+            if let translated = entry.translatedText {
+                HStack(alignment: .top, spacing: 4) {
+                    Image(systemName: "arrow.turn.down.right")
+                        .font(.system(size: 9))
+                        .foregroundColor(QMDesign.Colors.textTertiary)
+                    Text(translated)
+                        .font(.system(size: 11))
+                        .italic()
+                        .foregroundColor(QMDesign.Colors.textSecondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            } else {
+                HStack(spacing: 4) {
+                    Image(systemName: "arrow.turn.down.right")
+                        .font(.system(size: 9))
+                        .foregroundColor(QMDesign.Colors.textTertiary)
                     ProgressView()
                         .scaleEffect(0.5)
                     Text(String(localized: "live.translation.pending"))
                         .font(.system(size: 10))
-                        .foregroundColor(QMDesign.Colors.textTertiary)
                         .italic()
-                    Spacer()
+                        .foregroundColor(QMDesign.Colors.textTertiary)
                 }
-                .padding(.horizontal, QMDesign.Spacing.sm)
-                .padding(.vertical, QMDesign.Spacing.xs)
             }
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(QMDesign.Spacing.xs)
+        .background(
+            RoundedRectangle(cornerRadius: QMDesign.Radius.sm)
+                .fill(QMDesign.Colors.surfaceLight.opacity(0.3))
+        )
+    }
+}
+
+struct OverlayTranslateEmptyView: View {
+    var body: some View {
+        VStack(spacing: QMDesign.Spacing.xs) {
+            Image(systemName: "globe")
+                .font(.system(size: 24))
+                .foregroundColor(QMDesign.Colors.textTertiary)
+            Text(String(localized: "overlay.translate.empty.title"))
+                .font(.system(size: 12, weight: .semibold))
+                .foregroundColor(QMDesign.Colors.textSecondary)
+            Text(String(localized: "overlay.translate.empty.subtitle"))
+                .font(.system(size: 10))
+                .foregroundColor(QMDesign.Colors.textTertiary)
+                .multilineTextAlignment(.center)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .padding(QMDesign.Spacing.lg)
     }
 }
 

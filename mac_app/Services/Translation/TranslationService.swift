@@ -10,6 +10,9 @@ import Combine
 @MainActor
 final class TranslationService: ObservableObject {
     @Published private(set) var lastError: TranslationError?
+    /// Bumped after each successful translation write. Lets SwiftUI views that
+    /// read SwiftData @Relationship arrays (which don't publish) re-render.
+    @Published private(set) var updateTick: Int = 0
 
     private let cache = TranslationCache()
     private let proxyProvider: TranslationProvider
@@ -47,6 +50,7 @@ final class TranslationService: ObservableObject {
                 sourceLang: effectiveSource,
                 targetLang: targetLang
             )
+            updateTick &+= 1
             return
         }
 
@@ -68,6 +72,7 @@ final class TranslationService: ObservableObject {
                 sourceLang: result.detectedSourceLang ?? effectiveSource,
                 targetLang: targetLang
             )
+            updateTick &+= 1
             // Clear prior error on success
             if lastError != nil {
                 lastError = nil
