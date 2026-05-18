@@ -84,7 +84,11 @@ export async function makeRoomForNewAtoms(
     return limitStatus.remaining;
   }
 
-  const slotsToFree = slotsNeeded - limitStatus.remaining;
+  // Aim to end at exactly `limit - slotsNeeded` atoms after purge so the
+  // user is restored to the hard cap (handles edge case where atom count
+  // drifted above MAX_ATOMS_PER_USER due to legacy data or races).
+  const overage = Math.max(0, limitStatus.current - LIMITS.MAX_ATOMS_PER_USER);
+  const slotsToFree = slotsNeeded - limitStatus.remaining + overage;
 
   // First, try purging low-quality atoms
   const purgeResult = await purgeUserAtoms(userId, slotsToFree);

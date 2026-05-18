@@ -1022,6 +1022,42 @@
       "frenchTranscriptionStability": {
         "title": "Transcription française plus stable",
         "description": "La transcription reste verrouillée sur le français quand il est défini comme langue principale, sans dérive vers l'anglais en cours de réunion"
+      },
+      "liveTranscriptToggle": {
+        "title": "Affichage du transcript en direct",
+        "description": "Affichez ou masquez le transcript temps réel depuis les Réglages — pratique quand vous voulez que l'overlay reste focalisé sur les réponses IA"
+      },
+      "inAppPricingModal": {
+        "title": "Tarifs accessibles dans l'app",
+        "description": "Parcourez les plans et passez à un abonnement supérieur directement depuis l'application, sans quitter votre flux de travail"
+      },
+      "windowsAutoUpdate": {
+        "title": "Mises à jour automatiques (Windows)",
+        "description": "L'application Windows se met désormais à jour automatiquement, avec une notification claire dès qu'une nouvelle version est disponible"
+      },
+      "windowsUIRedesign": {
+        "title": "Interface Windows repensée",
+        "description": "L'application Windows gagne une identité visuelle plus marquée, avec une interface plus cohérente et plus soignée"
+      },
+      "aiCascadeMode": {
+        "title": "Bascule automatique entre modèles IA",
+        "description": "Si le modèle IA principal échoue, Queen Mama bascule automatiquement vers les fournisseurs de secours pour ne jamais perdre une réponse"
+      },
+      "centralToastSystem": {
+        "title": "Notifications unifiées (Windows)",
+        "description": "Les notifications passent désormais par un système central de toasts pour une expérience plus cohérente et moins bruyante"
+      },
+      "promptDifferentiation": {
+        "title": "Spécialisation accrue des onglets",
+        "description": "What to Say et Follow-up disposent désormais de prompts distincts d'Assist, donnant à chaque onglet un rôle plus clair et un résultat plus ciblé"
+      },
+      "knowledgeExtractionDedup": {
+        "title": "Plus de doublons dans la base de connaissances",
+        "description": "L'extraction de connaissances déduplique les atomes, applique un plafond et limite les ré-extractions pour éviter d'enregistrer deux fois le même fait"
+      },
+      "manualTriggerCache": {
+        "title": "Déclenchements manuels toujours frais",
+        "description": "Les déclenchements manuels d'onglet génèrent désormais systématiquement une nouvelle réponse au lieu de renvoyer du cache obsolète"
       }
     }
   },

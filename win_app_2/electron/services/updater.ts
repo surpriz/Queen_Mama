@@ -3,6 +3,9 @@ import { BrowserWindow } from 'electron'
 import { safeSendToWindow } from '../utils/ipcUtils'
 
 let mainWindow: BrowserWindow | null = null
+let periodicCheckTimer: NodeJS.Timeout | null = null
+
+const PERIODIC_CHECK_INTERVAL_MS = 4 * 60 * 60 * 1000 // 4 hours
 
 export function initAutoUpdater(window: BrowserWindow) {
   mainWindow = window
@@ -48,10 +51,17 @@ export function initAutoUpdater(window: BrowserWindow) {
     sendStatusToWindow('update-error', { message: error.message })
   })
 
-  // Check for updates after 5s delay
+  // Initial check 5s after boot
   setTimeout(() => {
     checkForUpdates()
   }, 5000)
+
+  // Periodic recheck every 4 hours while the app is running.
+  // Covers long-running sessions where the user never quits the app.
+  if (periodicCheckTimer) clearInterval(periodicCheckTimer)
+  periodicCheckTimer = setInterval(() => {
+    checkForUpdates()
+  }, PERIODIC_CHECK_INTERVAL_MS)
 }
 
 function sendStatusToWindow(status: string, data?: unknown) {

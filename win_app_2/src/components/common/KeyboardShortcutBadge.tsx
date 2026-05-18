@@ -40,15 +40,17 @@ export function KeyboardShortcutBadge({
   const isSmall = size === 'small'
 
   return (
-    <span className={cn('inline-flex items-center gap-0.5', className)}>
+    <span className={cn('inline-flex items-center gap-1', className)}>
       {keys.map((key, i) => (
         <kbd
           key={i}
           className={cn(
             'inline-flex items-center justify-center rounded-qm-xs',
-            'bg-qm-surface-medium border border-qm-border-subtle',
-            'text-qm-text-tertiary font-mono',
-            isSmall ? 'px-1 py-0.5 text-caption-sm' : 'px-1.5 py-0.5 text-caption',
+            'bg-qm-surface-medium text-qm-text-secondary font-mono font-medium',
+            'shadow-[inset_0_-1px_0_rgba(0,0,0,0.4),inset_0_1px_0_rgba(255,255,255,0.08),inset_0_0_0_1px_rgba(255,255,255,0.06)]',
+            isSmall
+              ? 'min-w-[18px] h-[18px] px-1 text-[10px] leading-none'
+              : 'min-w-[22px] h-[22px] px-1.5 text-caption leading-none',
           )}
         >
           {key}

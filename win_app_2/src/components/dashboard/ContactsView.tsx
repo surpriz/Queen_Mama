@@ -368,41 +368,58 @@ export function ContactsView() {
       {/* Contact list */}
       <div className="flex-1 overflow-y-auto space-y-2">
         {filtered.length === 0 ? (
-          <div className="text-center py-12 text-qm-text-tertiary text-body-sm">
-            {searchQuery ? t('contacts.noMatchingContacts') : t('contacts.noContactsYet')}
+          <div className="flex flex-col items-center justify-center text-center px-10 py-16">
+            <div className="relative w-24 h-24 mb-6 flex items-center justify-center">
+              <div className="absolute inset-0 rounded-full bg-gradient-to-br from-qm-gradient-start to-qm-gradient-end opacity-20 blur-2xl animate-qm-pulse" />
+              <div className="absolute inset-3 rounded-full bg-gradient-to-br from-qm-gradient-start to-qm-gradient-end opacity-35 blur-lg" />
+              <div className="relative w-14 h-14 rounded-full bg-gradient-to-br from-qm-gradient-start to-qm-gradient-end shadow-qm-glow-strong flex items-center justify-center">
+                <Users size={22} strokeWidth={1.5} className="text-white" />
+              </div>
+            </div>
+            <h3 className="font-display text-title-sm font-semibold text-qm-text-primary mb-2 tracking-tight">
+              {searchQuery ? t('contacts.noMatchingContacts') : t('contacts.noContactsYet')}
+            </h3>
+            {!searchQuery && (
+              <button
+                onClick={() => setIsCreating(true)}
+                className="mt-4 flex items-center gap-1.5 px-4 py-2 rounded-qm-pill bg-gradient-to-r from-qm-gradient-start to-qm-gradient-end text-white text-caption font-medium hover:shadow-qm-glow-strong hover-scale transition-all"
+              >
+                <Plus size={12} /> {t('contacts.newContact')}
+              </button>
+            )}
           </div>
         ) : (
           filtered.map((contact) => (
             <div
               key={contact.id}
               onClick={() => setSelectedContact(contact)}
-              className="flex items-center gap-4 p-4 rounded-qm-lg bg-qm-surface-medium hover:bg-qm-surface-hover cursor-pointer transition-colors group"
+              className="qm-card-hover flex items-center gap-4 p-4 rounded-qm-lg bg-qm-bg-tertiary/60 shadow-qm-elev-1 cursor-pointer group"
             >
               {/* Avatar with 2-letter initials + color cycling */}
-              <div className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${getAvatarColor(contact.name)}`}>
-                <span className="text-body-sm font-semibold">
+              <div className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 shadow-qm-elev-1 ${getAvatarColor(contact.name)}`}>
+                <span className="text-body-sm font-semibold tracking-tight">
                   {getInitials(contact.name)}
                 </span>
               </div>
 
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
-                  <h3 className="text-body-md font-medium text-qm-text-primary truncate">
+                  <h3 className="text-body-md font-medium text-qm-text-primary truncate tracking-tight">
                     {contact.name}
                   </h3>
                   {contact.isSynced && (
-                    <span className="text-[10px] text-green-400 bg-green-400/10 px-1.5 py-0.5 rounded">{t('contacts.synced')}</span>
+                    <span className="text-[10px] text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded-full font-medium">{t('contacts.synced')}</span>
                   )}
                 </div>
-                <div className="flex items-center gap-2 text-caption text-qm-text-tertiary">
+                <div className="flex items-center gap-2 text-caption text-qm-text-tertiary mt-0.5">
                   {contact.role && <span>{contact.role}</span>}
-                  {contact.role && contact.company && <span>·</span>}
+                  {contact.role && contact.company && <span className="opacity-50">·</span>}
                   {contact.company && <span>{contact.company}</span>}
                 </div>
               </div>
 
               <div className="text-right flex-shrink-0">
-                <p className="text-caption text-qm-text-tertiary">
+                <p className="text-caption text-qm-text-secondary tabular-nums font-medium">
                   {t('contacts.sessionCount', { count: contact.sessionCount })}
                 </p>
                 {contact.lastSeen && (

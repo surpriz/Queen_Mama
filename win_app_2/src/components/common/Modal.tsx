@@ -62,29 +62,34 @@ export function Modal({
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           transition={{ duration: 0.15 }}
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-md"
           onClick={handleBackdropClick}
         >
           <motion.div
             ref={modalRef}
-            initial={{ opacity: 0, scale: 0.95, y: 10 }}
+            initial={{ opacity: 0, scale: 0.96, y: 12 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.95, y: 10 }}
-            transition={{ duration: 0.2, ease: 'easeOut' }}
+            exit={{ opacity: 0, scale: 0.96, y: 12 }}
+            transition={{ duration: 0.22, ease: [0.34, 1.2, 0.64, 1] }}
             className={cn(
-              'relative w-full rounded-qm-xl bg-qm-bg-primary border border-qm-border-subtle shadow-2xl overflow-hidden',
+              'qm-glass-strong relative w-full rounded-qm-xl overflow-hidden',
               sizeClasses[size],
               className
             )}
           >
+            {/* Top edge highlight */}
+            <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/15 to-transparent" />
+            {/* Accent bloom top-left */}
+            <div className="pointer-events-none absolute -top-16 -left-16 w-60 h-60 rounded-full bg-qm-accent/15 blur-3xl" />
+
             {/* Header */}
             {(title || showCloseButton) && (
-              <div className="flex items-start justify-between p-6 pb-0">
+              <div className="relative flex items-start justify-between p-6 pb-0">
                 {title && (
                   <div>
-                    <h2 className="text-title-sm font-semibold text-qm-text-primary">{title}</h2>
+                    <h2 className="font-display text-title-sm font-semibold text-qm-text-primary tracking-tight">{title}</h2>
                     {subtitle && (
-                      <p className="text-body-sm text-qm-text-tertiary mt-1">{subtitle}</p>
+                      <p className="text-body-sm text-qm-text-tertiary mt-1 leading-relaxed">{subtitle}</p>
                     )}
                   </div>
                 )}
@@ -100,7 +105,7 @@ export function Modal({
             )}
 
             {/* Content */}
-            <div className="p-6">{children}</div>
+            <div className="relative p-6">{children}</div>
           </motion.div>
         </motion.div>
       )}

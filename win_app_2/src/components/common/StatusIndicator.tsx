@@ -9,6 +9,13 @@ const STATUS_COLORS: Record<StatusType, string> = {
   error: 'bg-qm-error',
 }
 
+const STATUS_GLOWS: Record<StatusType, string> = {
+  idle: '',
+  active: 'shadow-[0_0_8px_rgba(16,185,129,0.7)]',
+  processing: 'shadow-[0_0_8px_rgba(139,92,246,0.7)]',
+  error: 'shadow-[0_0_6px_rgba(239,68,68,0.6)]',
+}
+
 const PULSE_COLORS: Record<StatusType, string> = {
   idle: '',
   active: 'bg-qm-success',
@@ -45,7 +52,7 @@ export function StatusIndicator({
         />
       )}
       <span
-        className={cn('absolute rounded-full', STATUS_COLORS[status])}
+        className={cn('absolute rounded-full', STATUS_COLORS[status], STATUS_GLOWS[status])}
         style={{
           width: size,
           height: size,

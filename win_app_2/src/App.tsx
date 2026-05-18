@@ -9,8 +9,10 @@ import { NotificationPage } from './pages/NotificationPage'
 import { ReauthenticationView } from './components/auth/ReauthenticationView'
 import { ErrorBoundary } from './components/common/ErrorBoundary'
 import { LoadingSpinner } from './components/common/LoadingSpinner'
+import { ToastContainer } from './components/common/ToastContainer'
 import { initializeApp } from './services/appInitializer'
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts'
+import { useUpdater } from './hooks/useUpdater'
 import { useOnboardingStore } from './stores/onboardingStore'
 import { useAuthStore } from './stores/authStore'
 
@@ -33,6 +35,9 @@ function AppContent() {
 
   // Register global keyboard shortcut handlers
   useKeyboardShortcuts()
+
+  // Subscribe to auto-updater events globally
+  useUpdater()
 
   useEffect(() => {
     const initialize = async () => {
@@ -70,26 +75,29 @@ function AppContent() {
   }
 
   return (
-    <Routes>
-      <Route
-        path="/"
-        element={
-          launchState === 'checking' ? (
-            <div className="flex h-screen items-center justify-center bg-qm-bg-primary">
-              <LoadingSpinner size="lg" label={t('loading')} />
-            </div>
-          ) : launchState === 'dashboard' ? (
-            <DashboardPage />
-          ) : launchState === 'login' ? (
-            <ReauthenticationView onAuthenticated={handleReauthenticated} />
-          ) : (
-            <OnboardingPage />
-          )
-        }
-      />
-      <Route path="/overlay" element={<OverlayPage />} />
-      <Route path="/notification" element={<NotificationPage />} />
-    </Routes>
+    <>
+      <Routes>
+        <Route
+          path="/"
+          element={
+            launchState === 'checking' ? (
+              <div className="flex h-screen items-center justify-center bg-qm-bg-primary">
+                <LoadingSpinner size="lg" label={t('loading')} />
+              </div>
+            ) : launchState === 'dashboard' ? (
+              <DashboardPage />
+            ) : launchState === 'login' ? (
+              <ReauthenticationView onAuthenticated={handleReauthenticated} />
+            ) : (
+              <OnboardingPage />
+            )
+          }
+        />
+        <Route path="/overlay" element={<OverlayPage />} />
+        <Route path="/notification" element={<NotificationPage />} />
+      </Routes>
+      <ToastContainer />
+    </>
   )
 }
 

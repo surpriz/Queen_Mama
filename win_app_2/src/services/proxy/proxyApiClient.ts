@@ -174,12 +174,13 @@ export async function* streamAIResponse(
 
   // Convert to backend format. User-selected model id is sent only when in standard cascade
   // (Smart/Recap keep their own cascades server-side).
+  const cascadeMode: 'standard' | 'smart' | 'recap' = request.cascadeMode ?? 'standard'
   const selectedRaw = useConfigStore.getState().selectedAIModel
-  const userModel = resolveBackendModel(selectedRaw)
+  const userModel = cascadeMode === 'standard' ? resolveBackendModel(selectedRaw) : undefined
   // Use console.warn so the message is always visible regardless of DevTools "Default levels" filter.
   // Prefix with a unique sentinel that's trivial to grep/filter on.
   // eslint-disable-next-line no-console
-  console.warn(`MODELDBG selectedAIModel=${JSON.stringify(selectedRaw)} sendingModel=${JSON.stringify(userModel)} configStoreKeys=${Object.keys(useConfigStore.getState()).join(',')}`)
+  console.warn(`MODELDBG cascadeMode=${cascadeMode} selectedAIModel=${JSON.stringify(selectedRaw)} sendingModel=${JSON.stringify(userModel)} configStoreKeys=${Object.keys(useConfigStore.getState()).join(',')}`)
   const streamRequest: AIStreamRequest = {
     systemPrompt: typeof systemMessage.content === 'string'
       ? systemMessage.content
@@ -188,7 +189,7 @@ export async function* streamAIResponse(
       ? userMessage.content
       : userMessage.content.map((c) => c.text || '').join(''),
     maxTokens: request.max_tokens,
-    cascadeMode: 'standard',
+    cascadeMode,
     ...(userModel ? { model: userModel } : {}),
   }
 

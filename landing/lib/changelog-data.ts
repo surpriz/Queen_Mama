@@ -28,6 +28,26 @@ export const changelogData: ChangelogRelease[] = [
             title: "Choose Your AI Model",
             description: "Pick which AI model powers your standard responses — select directly from Settings to match your speed and reasoning preferences"
           },
+          {
+            id: "liveTranscriptToggle",
+            title: "Live Transcript Toggle",
+            description: "Show or hide the real-time transcript from Settings — useful when you want the overlay focused on AI responses only"
+          },
+          {
+            id: "inAppPricingModal",
+            title: "In-App Pricing Modal",
+            description: "Browse plans and upgrade directly from the app without leaving your workflow"
+          },
+          {
+            id: "windowsAutoUpdate",
+            title: "Windows Auto-Updates",
+            description: "The Windows app now updates itself automatically with clear notifications when a new version is ready"
+          },
+          {
+            id: "windowsUIRedesign",
+            title: "Refined Windows UI",
+            description: "The Windows app gets a deeper visual identity with a more cohesive and polished interface"
+          },
         ],
       },
       {
@@ -42,6 +62,36 @@ export const changelogData: ChangelogRelease[] = [
             id: "frenchTranscriptionStability",
             title: "Stabler French Transcription",
             description: "Transcription now stays locked on French when set as primary language, preventing drift to English mid-meeting"
+          },
+          {
+            id: "aiCascadeMode",
+            title: "AI Cascade Fallback",
+            description: "If the primary AI model fails, Queen Mama now automatically cascades through backup providers so you never lose a response"
+          },
+          {
+            id: "centralToastSystem",
+            title: "Unified Notifications (Windows)",
+            description: "Notifications now route through a single central toast system for a more consistent and less noisy experience"
+          },
+        ],
+      },
+      {
+        category: "fixes",
+        changes: [
+          {
+            id: "promptDifferentiation",
+            title: "Sharper Tab Specialization",
+            description: "What to Say and Follow-up now have distinct prompts from Assist, giving each tab a clearer purpose and more targeted output"
+          },
+          {
+            id: "knowledgeExtractionDedup",
+            title: "No More Duplicate Knowledge",
+            description: "Knowledge extraction now deduplicates atoms, enforces a cap, and throttles re-extraction to prevent the same fact from being saved twice"
+          },
+          {
+            id: "manualTriggerCache",
+            title: "Fresh Manual Triggers",
+            description: "Manual tab triggers now always generate a fresh response instead of returning stale cached output"
           },
         ],
       },

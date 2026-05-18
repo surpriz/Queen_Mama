@@ -199,7 +199,6 @@ export function registerIPCHandlers(): void {
         types: ['screen'],
         thumbnailSize: { width: 1920, height: 1080 },
       })
-      console.log(`[IPC] Screen capture: ${sources.length} sources found`)
       if (sources.length === 0) {
         console.warn('[IPC] Screen capture: desktopCapturer returned 0 sources — check Screen Recording permission')
         return null

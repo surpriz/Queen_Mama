@@ -23,33 +23,46 @@ export function TabBar({ onTabSelected }: TabBarProps) {
   return (
     <div className="px-2 pt-1 pb-1.5">
       <div className="flex items-center gap-1.5">
-        {TABS.map(({ type, label, icon: Icon }) => (
-          <button
-            key={type}
-            onClick={() => {
-              setSelectedTab(type)
-              onTabSelected?.(type)
-            }}
-            className={cn(
-              'flex flex-1 flex-col items-center justify-center gap-1 py-2 rounded-xl transition-all duration-200',
-              'active:scale-95',
-              selectedTab === type
-                ? 'bg-gradient-to-br from-qm-gradient-start/20 to-qm-gradient-end/20 border border-qm-accent/40 text-qm-accent shadow-[0_2px_8px_rgba(139,92,246,0.2)]'
-                : 'bg-qm-surface-light border border-white/10 text-qm-text-tertiary hover:text-qm-text-secondary hover:bg-qm-surface-hover hover:border-white/15',
-            )}
-            style={{ height: 44 }}
-          >
-            <Icon size={14} strokeWidth={selectedTab === type ? 2.5 : 2} />
-            <span
+        {TABS.map(({ type, label, icon: Icon }) => {
+          const isActive = selectedTab === type
+          return (
+            <button
+              key={type}
+              onClick={() => {
+                setSelectedTab(type)
+                onTabSelected?.(type)
+              }}
               className={cn(
-                'text-[9px] leading-none',
-                selectedTab === type ? 'font-semibold' : 'font-medium',
+                'group relative flex flex-1 flex-col items-center justify-center gap-1 py-2 rounded-xl transition-all duration-200 active:scale-95',
+                isActive
+                  ? 'bg-qm-accent-soft text-qm-text-primary shadow-qm-glow'
+                  : 'bg-qm-surface-light text-qm-text-tertiary hover:text-qm-text-primary hover:bg-qm-surface-hover',
               )}
+              style={{ height: 44 }}
             >
-              {label}
-            </span>
-          </button>
-        ))}
+              {/* Active indicator dot above icon */}
+              {isActive && (
+                <span className="absolute top-1.5 right-2 w-1.5 h-1.5 rounded-full bg-qm-accent-light shadow-[0_0_6px_rgba(167,139,250,0.8)]" />
+              )}
+              <Icon
+                size={14}
+                strokeWidth={isActive ? 2.25 : 1.75}
+                className={cn(
+                  'transition-transform duration-200',
+                  isActive ? 'text-qm-accent-light scale-105' : 'group-hover:scale-105',
+                )}
+              />
+              <span
+                className={cn(
+                  'text-[9px] leading-none tracking-wide transition-colors',
+                  isActive ? 'font-semibold text-qm-text-primary' : 'font-medium',
+                )}
+              >
+                {label}
+              </span>
+            </button>
+          )
+        })}
       </div>
     </div>
   )

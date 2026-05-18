@@ -16,30 +16,47 @@ const SIZE_MAP: Record<'sm' | 'md' | 'lg', number> = {
 
 export function LoadingSpinner({ size = 20, className, label }: LoadingSpinnerProps) {
   const pixelSize = typeof size === 'number' ? size : SIZE_MAP[size]
+  const stroke = Math.max(2, Math.round(pixelSize / 10))
 
   return (
     <div className={cn('flex flex-col items-center gap-2', className)}>
-      <svg
-        className="animate-spin text-qm-accent"
-        width={pixelSize}
-        height={pixelSize}
-        viewBox="0 0 24 24"
-        fill="none"
+      <div
+        className="relative"
+        style={{ width: pixelSize, height: pixelSize }}
+        role="status"
+        aria-label={label || 'Loading'}
       >
-        <circle
-          className="opacity-25"
-          cx="12"
-          cy="12"
-          r="10"
-          stroke="currentColor"
-          strokeWidth="3"
+        {/* Track ring */}
+        <div
+          className="absolute inset-0 rounded-full"
+          style={{ boxShadow: `inset 0 0 0 ${stroke}px rgba(255,255,255,0.06)` }}
         />
-        <path
-          className="opacity-75"
-          fill="currentColor"
-          d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-        />
-      </svg>
+        {/* Spinning violet→cyan gradient arc with drop-shadow glow */}
+        <svg
+          className="animate-spin absolute inset-0"
+          width={pixelSize}
+          height={pixelSize}
+          viewBox="0 0 24 24"
+          fill="none"
+          style={{ filter: 'drop-shadow(0 0 4px rgba(139,92,246,0.5))' }}
+        >
+          <defs>
+            <linearGradient id="qm-spinner-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stopColor="#7C3AED" />
+              <stop offset="100%" stopColor="#22D3EE" />
+            </linearGradient>
+          </defs>
+          <circle
+            cx="12"
+            cy="12"
+            r="10"
+            stroke="url(#qm-spinner-gradient)"
+            strokeWidth={stroke}
+            strokeLinecap="round"
+            strokeDasharray="40 80"
+          />
+        </svg>
+      </div>
       {label && <span className="text-body-sm text-qm-text-secondary">{label}</span>}
     </div>
   )

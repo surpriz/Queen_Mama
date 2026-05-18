@@ -83,14 +83,28 @@ export async function extractKnowledgeFromSession(
   }
 
   try {
-    // 1. Extract knowledge using LLM
+    // 1. Pre-flight: check atom quota BEFORE burning OpenAI tokens. If user is
+    // at or over the cap, try to free a few slots; if we can't free anything,
+    // abort early instead of looping delete/insert at the hard cap.
+    const preLimit = await checkAtomLimit(userId);
+    if (!preLimit.canCreate) {
+      const freedPreflight = await makeRoomForNewAtoms(userId, 3);
+      if (freedPreflight - preLimit.remaining <= 0) {
+        result.errors.push(
+          `Knowledge limit reached (${LIMITS.MAX_ATOMS_PER_USER}). Delete or wait for auto-cleanup.`
+        );
+        return result;
+      }
+    }
+
+    // 2. Extract knowledge using LLM
     let extractedKnowledge = await analyzeTranscript(transcript);
 
     if (extractedKnowledge.length === 0) {
       return result;
     }
 
-    // 2. Check atom limit and make room if necessary
+    // 3. Re-check atom limit and make room if necessary
     const limitStatus = await checkAtomLimit(userId);
     console.log(
       `[KnowledgeExtraction] Atom limit status: ${limitStatus.current}/${limitStatus.limit} (${limitStatus.remaining} remaining)`
@@ -119,9 +133,28 @@ export async function extractKnowledgeFromSession(
       }
     }
 
-    // 3. Generate embeddings and store atoms
+    // 4. Build a set of normalized existing-content keys ONCE so each new atom
+    // costs O(1) duplicate-check instead of an extra DB round-trip per insert.
+    const existingAtoms = await prisma.knowledgeAtom.findMany({
+      where: {
+        userId,
+        type: { in: extractedKnowledge.map((k) => k.type) },
+      },
+      select: { content: true, type: true },
+    });
+    const existingKeys = new Set(
+      existingAtoms.map((a) => `${a.type}|${normalizeContent(a.content)}`)
+    );
+
+    // 5. Generate embeddings and store atoms (skip exact-content duplicates)
     for (const knowledge of extractedKnowledge) {
       try {
+        const key = `${knowledge.type}|${normalizeContent(knowledge.content)}`;
+        if (existingKeys.has(key)) {
+          continue;
+        }
+        existingKeys.add(key); // Prevent intra-batch duplicates too
+
         // Generate embedding for the content
         const embeddingResult = await generateEmbedding(knowledge.content);
 
@@ -253,6 +286,19 @@ async function analyzeTranscript(transcript: string): Promise<ExtractedKnowledge
 }
 
 /**
+ * Normalize content for duplicate detection: lowercase, collapse whitespace,
+ * strip trailing punctuation. Catches LLM re-extractions that only differ
+ * by spacing or trailing "?"/"." variations.
+ */
+function normalizeContent(content: string): string {
+  return content
+    .toLowerCase()
+    .replace(/\s+/g, " ")
+    .trim()
+    .replace(/[?!.,;:\s]+$/g, "");
+}
+
+/**
  * Map string type to KnowledgeType enum
  */
 function mapKnowledgeType(typeStr: string): KnowledgeType {
@@ -278,6 +324,12 @@ function mapKnowledgeType(typeStr: string): KnowledgeType {
   }
 }
 
+// Per-session throttle to prevent re-extraction loops on rapid resync.
+// In-memory cache lives for the lifetime of a serverless instance; the DB
+// check below covers cross-instance throttling when atoms were created.
+const EXTRACTION_THROTTLE_MS = 30 * 60 * 1000; // 30 minutes
+const recentExtractions = new Map<string, number>();
+
 /**
  * Queue extraction for a session (to be processed in background)
  */
@@ -285,8 +337,27 @@ export async function queueExtractionForSession(
   sessionId: string,
   userId: string
 ): Promise<void> {
-  // For now, we'll trigger extraction synchronously
-  // In production, this could use a job queue (Bull, etc.)
+  // Throttle 1: in-memory (catches rapid resync within same serverless instance,
+  // including zero-atom extractions that leave no DB trace)
+  const lastTried = recentExtractions.get(sessionId);
+  if (lastTried && Date.now() - lastTried < EXTRACTION_THROTTLE_MS) {
+    return;
+  }
+
+  // Throttle 2: DB check (catches cross-instance recent extractions that produced atoms)
+  const recentAtom = await prisma.knowledgeAtom.findFirst({
+    where: {
+      sessionId,
+      createdAt: { gt: new Date(Date.now() - EXTRACTION_THROTTLE_MS) },
+    },
+    select: { id: true },
+  });
+  if (recentAtom) {
+    recentExtractions.set(sessionId, Date.now());
+    return;
+  }
+
+  recentExtractions.set(sessionId, Date.now());
   console.log(`[KnowledgeExtraction] Queuing extraction for session ${sessionId}`);
 
   // Fetch session transcript (with retry for stale DB connections on serverless)

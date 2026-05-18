@@ -14,6 +14,7 @@ import { ResponseType } from '@/types/models'
 export function ExpandedContent() {
   const { t } = useTranslation('overlay')
   const autoScreenCapture = useConfigStore((s) => s.autoScreenCapture)
+  const showLiveTranscript = useConfigStore((s) => s.showLiveTranscript)
   const isSessionActive = useAppStore((s) => s.isSessionActive)
   const currentTranscript = useAppStore((s) => s.currentTranscript)
   const { triggerByType, isProcessing } = useAiResponse()
@@ -33,7 +34,7 @@ export function ExpandedContent() {
 
   return (
     <div className="flex flex-col flex-1 min-h-0 border-t border-white/5 overflow-hidden">
-      <TranscriptPanel />
+      {showLiveTranscript && <TranscriptPanel />}
 
 
       <ResponseDisplay />

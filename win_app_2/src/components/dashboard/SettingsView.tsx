@@ -9,6 +9,8 @@ import { useAuth } from '@/hooks/useAuth'
 import { useAuthStore } from '@/stores/authStore'
 import { KeyboardShortcutBadge } from '@/components/common/KeyboardShortcutBadge'
 import { SignInChoice } from '@/components/auth/SignInChoice'
+import { PricingModal } from '@/components/license/PricingModal'
+import { Feature } from '@/types/auth'
 import { cn } from '@/lib/utils'
 import {
   performFullSync,
@@ -16,6 +18,7 @@ import {
   getLastSyncTime,
   isNetworkOnline,
 } from '@/services/sync/syncManager'
+import { useUpdaterStore } from '@/stores/updaterStore'
 
 type SettingsTab = 'account' | 'general' | 'autoAnswer' | 'proactive' | 'audio' | 'sync' | 'shortcuts' | 'updates'
 
@@ -29,9 +32,35 @@ export function SettingsView() {
   const [showSignIn, setShowSignIn] = useState(false)
   const [isSyncing, setIsSyncing] = useState(false)
   const [appVersion, setAppVersion] = useState<string>('')
-  const [updateStatus, setUpdateStatus] = useState<string>('')
   const [isCheckingUpdate, setIsCheckingUpdate] = useState(false)
-  const [updateReady, setUpdateReady] = useState(false)
+  const [showPricing, setShowPricing] = useState(false)
+  const updaterStatus = useUpdaterStore((s) => s.status)
+  const updaterVersion = useUpdaterStore((s) => s.version)
+  const updaterPercent = useUpdaterStore((s) => s.percent)
+  const updaterError = useUpdaterStore((s) => s.errorMessage)
+  const updateReady = updaterStatus === 'downloaded'
+
+  const updateStatus = (() => {
+    switch (updaterStatus) {
+      case 'checking':
+        return t('settings.updates.checkingForUpdate')
+      case 'available':
+      case 'downloading':
+        return t('settings.updates.downloadProgress', { percent: updaterPercent })
+      case 'not-available':
+        return t('settings.updates.upToDate')
+      case 'downloaded':
+        return updaterVersion
+          ? t('settings.updates.updateDownloaded') + ` (v${updaterVersion})`
+          : t('settings.updates.updateDownloaded')
+      case 'error':
+        return updaterError
+          ? `${t('settings.updates.updateError')} — ${updaterError}`
+          : t('settings.updates.updateError')
+      default:
+        return ''
+    }
+  })()
 
   const TABS: { id: SettingsTab; label: string; icon: typeof User }[] = [
     { id: 'account', label: t('settings.tabs.account'), icon: User },
@@ -45,60 +74,25 @@ export function SettingsView() {
   ]
 
   useEffect(() => {
-    const api = (window as unknown as { electronAPI: {
-      getVersion: () => Promise<string>
-      checkForUpdates: () => Promise<boolean>
-      onUpdaterStatus: (cb: (payload: { status: string; data?: unknown }) => void) => () => void
-    } }).electronAPI
+    const api = window.electronAPI
     if (api?.getVersion) {
       api.getVersion().then((v) => setAppVersion(v)).catch(() => {})
     }
-    let cleanup: (() => void) | undefined
-    if (api?.onUpdaterStatus) {
-      cleanup = api.onUpdaterStatus((payload) => {
-        setIsCheckingUpdate(false)
-        switch (payload.status) {
-          case 'checking-for-update':
-            setUpdateStatus(t('settings.updates.checkingForUpdate'))
-            setIsCheckingUpdate(true)
-            break
-          case 'update-available':
-            setUpdateStatus(t('settings.updates.updateAvailable'))
-            break
-          case 'update-not-available':
-            setUpdateStatus(t('settings.updates.upToDate'))
-            break
-          case 'download-progress': {
-            const progress = payload.data as { percent?: number } | undefined
-            const pct = progress?.percent ? Math.round(progress.percent) : 0
-            setUpdateStatus(t('settings.updates.downloadProgress', { percent: pct }))
-            break
-          }
-          case 'update-downloaded':
-            setUpdateStatus(t('settings.updates.updateDownloaded'))
-            setUpdateReady(true)
-            break
-          case 'update-error':
-            setUpdateStatus(t('settings.updates.updateError'))
-            break
-          default:
-            break
-        }
-      })
+  }, [])
+
+  // Reset "checking" spinner once main process responds with any other status
+  useEffect(() => {
+    if (updaterStatus !== 'checking' && updaterStatus !== 'idle') {
+      setIsCheckingUpdate(false)
     }
-    return () => cleanup?.()
-  }, [t])
+  }, [updaterStatus])
 
   const handleCheckForUpdates = () => {
-    const api = (window as unknown as { electronAPI: {
-      checkForUpdates: () => Promise<boolean>
-    } }).electronAPI
+    const api = window.electronAPI
     if (api?.checkForUpdates) {
       setIsCheckingUpdate(true)
-      setUpdateStatus(t('settings.updates.checkingForUpdate'))
       api.checkForUpdates().catch(() => {
         setIsCheckingUpdate(false)
-        setUpdateStatus(t('settings.updates.updateError'))
       })
     }
   }
@@ -138,23 +132,33 @@ export function SettingsView() {
     <div className="flex h-full">
       {/* Left tab sidebar */}
       <div className="w-[200px] flex flex-col border-r border-qm-border-subtle py-4">
-        <h2 className="text-title-sm font-semibold text-qm-text-primary px-4 mb-4">{t('settings.title')}</h2>
+        <h2 className="font-display text-title-sm font-semibold text-qm-text-primary px-4 mb-4 tracking-tight">{t('settings.title')}</h2>
         <nav className="flex-1 px-2 space-y-0.5">
-          {TABS.map(({ id, label, icon: Icon }) => (
+          {TABS.map(({ id, label, icon: Icon }) => {
+            const isActive = activeTab === id
+            return (
             <button
               key={id}
               onClick={() => setActiveTab(id)}
               className={cn(
-                'w-full flex items-center gap-2.5 px-3 py-2 rounded-qm-md text-body-sm transition-colors',
-                activeTab === id
-                  ? 'bg-qm-accent/10 text-qm-accent border border-qm-accent/30'
-                  : 'text-qm-text-secondary hover:bg-qm-surface-light hover:text-qm-text-primary border border-transparent',
+                'group relative w-full flex items-center gap-2.5 px-3 py-2 rounded-qm-md text-body-sm transition-all',
+                isActive
+                  ? 'bg-qm-accent-soft text-qm-text-primary'
+                  : 'text-qm-text-secondary hover:bg-qm-surface-light hover:text-qm-text-primary',
               )}
             >
-              <Icon size={15} />
-              {label}
+              <span
+                className={cn(
+                  'absolute left-0 top-1/2 -translate-y-1/2 w-[3px] rounded-r-full transition-all',
+                  isActive
+                    ? 'h-5 bg-gradient-to-b from-qm-gradient-start to-qm-gradient-end shadow-[0_0_8px_rgba(139,92,246,0.6)]'
+                    : 'h-0 bg-transparent',
+                )}
+              />
+              <Icon size={15} strokeWidth={1.75} className={isActive ? 'text-qm-accent-light' : 'text-qm-text-tertiary group-hover:text-qm-text-secondary'} />
+              <span className={cn(isActive && 'font-medium tracking-tight')}>{label}</span>
             </button>
-          ))}
+          )})}
         </nav>
 
         {/* Version + Feedback at bottom */}
@@ -180,11 +184,11 @@ export function SettingsView() {
               <h3 className="text-headline font-semibold text-qm-text-primary mb-4">{t('settings.account.title')}</h3>
               {!isAuthenticated ? (
                 showSignIn ? (
-                  <div className="p-4 rounded-qm-lg bg-qm-surface-light border border-qm-border-subtle">
+                  <div className="qm-card p-4">
                     <SignInChoice />
                   </div>
                 ) : (
-                  <div className="p-4 rounded-qm-lg bg-qm-surface-light border border-qm-border-subtle space-y-3">
+                  <div className="qm-card p-4 space-y-3">
                     <p className="text-body-sm text-qm-text-secondary">
                       {t('auth.notSignedIn', { ns: 'common' })}
                     </p>
@@ -197,7 +201,7 @@ export function SettingsView() {
                   </div>
                 )
               ) : (
-                <div className="p-4 rounded-qm-lg bg-qm-surface-light border border-qm-border-subtle space-y-3">
+                <div className="qm-card p-4 space-y-3">
                   <div className="flex justify-between items-center">
                     <span className="text-body-sm text-qm-text-secondary">{t('auth.email', { ns: 'common' })}</span>
                     <div className="flex items-center gap-2">
@@ -248,7 +252,22 @@ export function SettingsView() {
                   label={t('settings.general.undetectableOverlay')}
                   description={t('settings.general.undetectableOverlayDescription')}
                   enabled={config.isUndetectabilityEnabled}
-                  onToggle={(v) => handleToggle('isUndetectabilityEnabled', v)}
+                  onToggle={(v) => {
+                    if (v) {
+                      const status = license.canUse(Feature.Undetectable)
+                      if (status.type !== 'allowed') {
+                        setShowPricing(true)
+                        return
+                      }
+                    }
+                    handleToggle('isUndetectabilityEnabled', v)
+                  }}
+                />
+                <ToggleRow
+                  label={t('settings.general.showLiveTranscript')}
+                  description={t('settings.general.showLiveTranscriptDescription')}
+                  enabled={config.showLiveTranscript}
+                  onToggle={(v) => handleToggle('showLiveTranscript', v)}
                 />
                 <ToggleRow
                   label={t('settings.general.autoScreenCapture')}
@@ -415,7 +434,7 @@ export function SettingsView() {
           {activeTab === 'sync' && (
             <section>
               <h3 className="text-headline font-semibold text-qm-text-primary mb-4">{t('settings.sync.title')}</h3>
-              <div className="p-4 rounded-qm-lg bg-qm-surface-light border border-qm-border-subtle space-y-3">
+              <div className="qm-card p-4 space-y-3">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <span className={`w-2.5 h-2.5 rounded-full ${syncColor}`} />
@@ -473,7 +492,7 @@ export function SettingsView() {
           {activeTab === 'updates' && (
             <section>
               <h3 className="text-headline font-semibold text-qm-text-primary mb-4">{t('settings.updates.title')}</h3>
-              <div className="p-4 rounded-qm-lg bg-qm-surface-light border border-qm-border-subtle space-y-3">
+              <div className="qm-card p-4 space-y-3">
                 <div className="flex items-start justify-between py-2 gap-4">
                   <div className="flex-1">
                     <p className="text-body-sm text-qm-text-primary">{t('settings.updates.appVersion')}</p>
@@ -488,10 +507,7 @@ export function SettingsView() {
                 )}
                 {updateReady ? (
                   <button
-                    onClick={() => {
-                      const api = (window as unknown as { electronAPI: { installUpdate: () => Promise<boolean> } }).electronAPI
-                      api?.installUpdate?.()
-                    }}
+                    onClick={() => window.electronAPI?.installUpdate?.()}
                     className="w-full px-4 py-2 rounded-qm-md bg-qm-accent hover:bg-qm-accent/80 text-body-sm text-white font-medium transition-colors"
                   >
                     {t('settings.updates.restartAndUpdate')}
@@ -510,6 +526,7 @@ export function SettingsView() {
           )}
         </div>
       </div>
+      <PricingModal isOpen={showPricing} onClose={() => setShowPricing(false)} />
     </div>
   )
 }

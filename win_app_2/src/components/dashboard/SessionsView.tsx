@@ -18,7 +18,31 @@ import {
   X,
 } from 'lucide-react'
 import { useSession } from '@/hooks/useSession'
-import { formatDate, truncate, cn } from '@/lib/utils'
+import { formatDate, formatRelativeTime, truncate, cn } from '@/lib/utils'
+
+/** Hash a string into a stable accent palette index (0-4) */
+function paletteIndex(s: string): number {
+  let h = 0
+  for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0
+  return h % 5
+}
+const AVATAR_GRADIENTS = [
+  'from-violet-500 to-fuchsia-500',
+  'from-blue-500 to-cyan-400',
+  'from-emerald-500 to-teal-400',
+  'from-orange-500 to-amber-400',
+  'from-pink-500 to-rose-400',
+]
+
+/** Color-grade duration pill: short=neutral, medium=accent, long=cyan/warm */
+function durationTone(durationStr: string): { bg: string; text: string } {
+  // duration is "M:SS" or "H:MM:SS"
+  const parts = durationStr.split(':').map(Number)
+  const totalMinutes = parts.length === 3 ? parts[0] * 60 + parts[1] : parts[0] || 0
+  if (totalMinutes < 5) return { bg: 'bg-qm-surface-medium', text: 'text-qm-text-tertiary' }
+  if (totalMinutes < 30) return { bg: 'bg-qm-accent/15', text: 'text-qm-accent-light' }
+  return { bg: 'bg-qm-cyan-soft', text: 'text-qm-cyan' }
+}
 import { SessionDetail } from './SessionDetail'
 import { Modal } from '@/components/common/Modal'
 import {
@@ -298,18 +322,18 @@ export function SessionsView() {
                       : () => setSelectedSessionId(session.id)
                   }
                   className={cn(
-                    'p-4 rounded-qm-lg transition-colors group',
+                    'qm-card-hover p-4 rounded-qm-lg transition-all group relative',
                     isSelectMode && isActive ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer',
                     isSelectMode && isChecked
-                      ? 'bg-qm-accent/5 border border-qm-accent/40'
+                      ? 'bg-qm-accent-soft shadow-qm-glow'
                       : isSelected && !isSelectMode
-                        ? 'bg-qm-surface-hover border border-qm-border-medium'
-                        : 'bg-qm-surface-light hover:bg-qm-surface-medium border border-transparent',
+                        ? 'bg-qm-bg-elevated shadow-qm-elev-2'
+                        : 'bg-qm-bg-tertiary/60 shadow-qm-elev-1',
                   )}
                 >
                   {/* Title + Actions */}
                   <div className="flex items-start justify-between gap-2 mb-2">
-                    <div className="flex items-center gap-2 min-w-0">
+                    <div className="flex items-center gap-2.5 min-w-0">
                       {isSelectMode && !isActive && (
                         <button
                           onClick={(e) => handleToggleCard(e, session.id)}
@@ -322,7 +346,16 @@ export function SessionsView() {
                           )}
                         </button>
                       )}
-                      <h3 className="text-body-md font-medium text-qm-text-primary line-clamp-1 min-w-0">
+                      {/* Avatar — deterministic gradient from title */}
+                      <div
+                        className={cn(
+                          'flex items-center justify-center w-7 h-7 rounded-full bg-gradient-to-br shrink-0 text-white text-caption font-semibold shadow-qm-elev-1',
+                          AVATAR_GRADIENTS[paletteIndex(session.title || session.id)],
+                        )}
+                      >
+                        {(session.title || '?').trim().charAt(0).toUpperCase()}
+                      </div>
+                      <h3 className="text-body-md font-medium text-qm-text-primary line-clamp-1 min-w-0 tracking-tight">
                         {session.title}
                       </h3>
                     </div>
@@ -367,15 +400,21 @@ export function SessionsView() {
 
                   {/* Date + Duration + Sync badge */}
                   <div className="flex items-center gap-2 mb-2">
-                    <div className="flex items-center gap-1.5 text-caption text-qm-text-tertiary">
+                    <div
+                      className="flex items-center gap-1.5 text-caption text-qm-text-tertiary"
+                      title={formatDate(session.startTime)}
+                    >
                       <Calendar size={12} />
-                      {formatDate(session.startTime)}
+                      {formatRelativeTime(session.startTime)}
                     </div>
-                    {duration && (
-                      <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-qm-accent/20 text-qm-accent">
-                        {duration}
-                      </span>
-                    )}
+                    {duration && (() => {
+                      const tone = durationTone(duration)
+                      return (
+                        <span className={cn('px-2 py-0.5 rounded-full text-[10px] font-semibold tabular-nums', tone.bg, tone.text)}>
+                          {duration}
+                        </span>
+                      )
+                    })()}
                     {/* Sync status badge - clickable for unsynced/failed */}
                     {session.endTime && (
                       <button
@@ -429,17 +468,73 @@ export function SessionsView() {
             onBack={() => setSelectedSessionId(null)}
           />
         ) : (
-          <div className="flex-1 flex flex-col items-center justify-center text-center p-8">
-            <div className="w-16 h-16 rounded-qm-xl bg-qm-surface-light flex items-center justify-center mb-4">
-              <FileText size={32} className="text-qm-accent" />
-            </div>
-            <h3 className="text-title-sm font-semibold text-qm-text-primary mb-2">
-              {t('sessions.noSessionSelected')}
-            </h3>
-            <p className="text-body-sm text-qm-text-tertiary">
-              {t('sessions.selectSessionToView')}
-            </p>
-          </div>
+          (() => {
+            const total = filteredSessions.length
+            const totalSeconds = filteredSessions.reduce((acc, s) => {
+              if (!s.endTime) return acc
+              return acc + (new Date(s.endTime).getTime() - new Date(s.startTime).getTime()) / 1000
+            }, 0)
+            const totalMinutes = Math.round(totalSeconds / 60)
+            const avgMinutes = total > 0 ? Math.round(totalMinutes / total) : 0
+            const syncedCount = filteredSessions.filter((s) => s.syncStatus === 'synced').length
+
+            return (
+              <div className="flex-1 flex flex-col items-center justify-center p-10 overflow-hidden">
+                {/* Hero illustration: layered gradient orb with floating glyph */}
+                <div className="relative w-32 h-32 mb-8 flex items-center justify-center">
+                  <div className="absolute inset-0 rounded-full bg-gradient-to-br from-qm-gradient-start to-qm-gradient-end opacity-25 blur-2xl animate-qm-pulse" />
+                  <div className="absolute inset-3 rounded-full bg-gradient-to-br from-qm-gradient-start to-qm-gradient-end opacity-40 blur-lg" />
+                  <div className="relative w-20 h-20 rounded-full bg-gradient-to-br from-qm-gradient-start to-qm-gradient-end shadow-qm-glow-strong flex items-center justify-center">
+                    <FileText size={32} className="text-white" strokeWidth={1.5} />
+                  </div>
+                </div>
+
+                <h3 className="font-display text-[22px] font-semibold text-qm-text-primary mb-2 tracking-tight">
+                  {t('sessions.noSessionSelected')}
+                </h3>
+                <p className="text-body-sm text-qm-text-tertiary mb-10 max-w-sm text-center leading-relaxed">
+                  {t('sessions.selectSessionToView')}
+                </p>
+
+                {/* Stat cards */}
+                <div className="grid grid-cols-3 gap-3 w-full max-w-md">
+                  <div className="qm-card p-4 flex flex-col items-start gap-1">
+                    <span className="text-caption-sm text-qm-text-tertiary uppercase tracking-wider">
+                      Total
+                    </span>
+                    <span className="font-display text-[24px] font-bold text-qm-text-primary tabular-nums tracking-tight">
+                      {total}
+                    </span>
+                    <span className="text-caption-sm text-qm-text-tertiary">sessions</span>
+                  </div>
+                  <div className="qm-card p-4 flex flex-col items-start gap-1">
+                    <span className="text-caption-sm text-qm-text-tertiary uppercase tracking-wider">
+                      Time
+                    </span>
+                    <span className="font-display text-[24px] font-bold text-qm-text-primary tabular-nums tracking-tight">
+                      {totalMinutes}
+                      <span className="text-body-sm font-medium text-qm-text-tertiary ml-1">min</span>
+                    </span>
+                    <span className="text-caption-sm text-qm-text-tertiary">
+                      avg {avgMinutes}m
+                    </span>
+                  </div>
+                  <div className="qm-card p-4 flex flex-col items-start gap-1">
+                    <span className="text-caption-sm text-qm-text-tertiary uppercase tracking-wider">
+                      Synced
+                    </span>
+                    <span className="font-display text-[24px] font-bold text-qm-text-primary tabular-nums tracking-tight">
+                      {syncedCount}
+                      <span className="text-body-sm font-medium text-qm-text-tertiary ml-1">/{total}</span>
+                    </span>
+                    <span className="text-caption-sm text-emerald-400 flex items-center gap-1">
+                      <Cloud size={10} /> cloud
+                    </span>
+                  </div>
+                </div>
+              </div>
+            )
+          })()
         )}
       </div>
 
