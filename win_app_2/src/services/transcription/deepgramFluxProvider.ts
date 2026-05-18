@@ -12,8 +12,10 @@ export class DeepgramFluxProvider implements TranscriptionProvider {
   private token: string | null = null
 
   language: string = 'fr'
+  diarize: boolean = false // Enable Deepgram speaker diarization (fallback when system audio unavailable)
   onTranscript: ((text: string) => void) | null = null
   onInterimTranscript: ((text: string) => void) | null = null
+  onDiarizedTranscript: ((text: string, speaker: number) => void) | null = null
   onError: ((error: Error) => void) | null = null
 
   get isConfigured(): boolean {
@@ -44,11 +46,19 @@ export class DeepgramFluxProvider implements TranscriptionProvider {
       `${langParam}&` +
       'smart_format=true&' +
       'interim_results=true&' +
+      'punctuate=true&' +
       'encoding=linear16&' +
       'sample_rate=16000&' +
-      'channels=1'
+      'channels=1&' +
+      'endpointing=300&' +
+      'utterance_end_ms=1000&' +
+      'vad_events=true'
 
-    log.info(`Connecting to Deepgram (lang: ${lang}, tokenLen: ${this.token!.length})...`)
+    if (this.diarize) {
+      url += '&diarize=true'
+    }
+
+    log.info(`Connecting to Deepgram (lang: ${lang}, diarize: ${this.diarize}, tokenLen: ${this.token!.length})...`)
 
     return new Promise<void>((resolve, reject) => {
       // Deepgram browser auth: Sec-WebSocket-Protocol subprotocol
@@ -67,10 +77,16 @@ export class DeepgramFluxProvider implements TranscriptionProvider {
         try {
           const data = JSON.parse(event.data)
           if (data.type === 'Results') {
-            const transcript = data.channel?.alternatives?.[0]?.transcript || ''
+            const alt = data.channel?.alternatives?.[0]
+            const transcript = alt?.transcript || ''
             if (transcript.trim()) {
               if (data.is_final) {
-                this.onTranscript?.(transcript)
+                const words = alt?.words as Array<{ word?: string; speaker?: number }> | undefined
+                if (this.diarize && this.onDiarizedTranscript && words?.length && words[0]?.speaker !== undefined) {
+                  this.emitDiarizedSegments(words)
+                } else {
+                  this.onTranscript?.(transcript)
+                }
               } else {
                 this.onInterimTranscript?.(transcript)
               }
@@ -119,6 +135,29 @@ export class DeepgramFluxProvider implements TranscriptionProvider {
   sendAudio(data: ArrayBuffer): void {
     if (this.ws?.readyState === WebSocket.OPEN) {
       this.ws.send(data)
+    }
+  }
+
+  /** Group consecutive words by speaker and emit per-speaker segments */
+  private emitDiarizedSegments(words: Array<{ word?: string; speaker?: number }>): void {
+    let currentSpeaker = words[0]?.speaker ?? 0
+    let currentWords: string[] = []
+
+    for (const w of words) {
+      const speaker = w.speaker ?? 0
+      const word = w.word ?? ''
+      if (!word) continue
+
+      if (speaker !== currentSpeaker && currentWords.length > 0) {
+        this.onDiarizedTranscript?.(currentWords.join(' '), currentSpeaker)
+        currentWords = []
+        currentSpeaker = speaker
+      }
+      currentWords.push(word)
+    }
+
+    if (currentWords.length > 0) {
+      this.onDiarizedTranscript?.(currentWords.join(' '), currentSpeaker)
     }
   }
 
