@@ -11929,6 +11929,167 @@
         }
       }
     },
+    "settings.section.translation" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Translation" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Traduction" } }
+      }
+    },
+    "settings.section.translation.description" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Live interpreter" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Interprète en direct" } }
+      }
+    },
+    "settings.translation.title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Live Translation" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Traduction en direct" } }
+      }
+    },
+    "settings.translation.subtitle" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Translate the other party in real time" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Traduit l'interlocuteur en temps réel" } }
+      }
+    },
+    "settings.translation.general" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "General" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Général" } }
+      }
+    },
+    "settings.translation.enable" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Enable live translation" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Activer la traduction" } }
+      }
+    },
+    "settings.translation.enable.description" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Translate interlocutor speech as it arrives." } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Traduit le discours de l'interlocuteur en direct." } }
+      }
+    },
+    "settings.translation.showInOverlay" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Show in overlay widget" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Afficher dans le widget" } }
+      }
+    },
+    "settings.translation.showInOverlay.description" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Display the translation below the live transcript." } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Affiche la traduction sous le transcript en direct." } }
+      }
+    },
+    "settings.translation.languages" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Languages" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Langues" } }
+      }
+    },
+    "settings.translation.sourceLanguage" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Source language" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Langue source" } }
+      }
+    },
+    "settings.translation.sourceLanguage.auto" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Auto-detect" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Détection auto" } }
+      }
+    },
+    "settings.translation.targetLanguage" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Target language" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Langue cible" } }
+      }
+    },
+    "settings.translation.provider" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Provider" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Fournisseur" } }
+      }
+    },
+    "settings.translation.provider.status" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Service status" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Statut du service" } }
+      }
+    },
+    "settings.translation.provider.proxyActive" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "QueenMama service active" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Service QueenMama actif" } }
+      }
+    },
+    "settings.translation.provider.notConfigured" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Not available — contact support" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Indisponible — contacter le support" } }
+      }
+    },
+    "settings.translation.test" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Test translation" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Tester la traduction" } }
+      }
+    },
+    "settings.translation.test.success" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Translation OK — %d ms" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Traduction OK — %d ms" } }
+      }
+    },
+    "settings.translation.error.rateLimited" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Rate limited, retrying…" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Limite atteinte, nouvelle tentative…" } }
+      }
+    },
+    "settings.translation.error.quotaExceeded" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Translation quota exceeded" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Quota de traduction dépassé" } }
+      }
+    },
+    "live.translation.badge" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Translated" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Traduit" } }
+      }
+    },
+    "live.translation.pending" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Translating…" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Traduction…" } }
+      }
+    },
     "settings.section.autoAnswer" : {
       "extractionState" : "manual",
       "localizations" : {

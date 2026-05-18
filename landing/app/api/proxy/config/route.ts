@@ -4,6 +4,7 @@ import { verifyAccessToken } from "@/lib/device-auth";
 import {
   getAvailableAIProviders,
   getAvailableTranscriptionProviders,
+  getAvailableTranslationProviders,
   TIER_LIMITS,
   type PlanTier,
 } from "@/lib/ai-providers";
@@ -65,6 +66,7 @@ export async function GET(request: Request) {
     // Get available providers (configured by admin in database)
     const availableAIProviders = await getAvailableAIProviders(plan);
     const availableTranscriptionProviders = await getAvailableTranscriptionProviders(plan);
+    const availableTranslationProviders = await getAvailableTranslationProviders(plan);
 
     // Get today's usage
     const today = new Date();
@@ -97,6 +99,11 @@ export async function GET(request: Request) {
           enabled: tierConfig.transcription && availableTranscriptionProviders.length > 0,
           providers: availableTranscriptionProviders,
           tokenTTLSeconds: 900, // 15 minutes
+        },
+        translation: {
+          enabled: tierConfig.translation && availableTranslationProviders.length > 0,
+          provider: availableTranslationProviders[0] ?? null,
+          monthlyCharsLimit: tierConfig.monthlyTranslationChars,
         },
       },
       cacheTTL: 3600, // 1 hour cache

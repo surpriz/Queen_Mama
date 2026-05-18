@@ -53,6 +53,16 @@
 		100000000000000000000032 /* SystemAudioCaptureService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 100000000000000000000033 /* SystemAudioCaptureService.swift */; };
 		100000000000000000000035 /* TalkTimeIndicator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 100000000000000000000034 /* TalkTimeIndicator.swift */; };
 		100000000000000000000085 /* MeetingCostIndicator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 100000000000000000000084 /* MeetingCostIndicator.swift */; };
+		100000000000000000000087 /* TranslationProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 100000000000000000000086 /* TranslationProvider.swift */; };
+		100000000000000000000089 /* DeepLLanguage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 100000000000000000000088 /* DeepLLanguage.swift */; };
+		10000000000000000000008B /* TranslationCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = 10000000000000000000008A /* TranslationCache.swift */; };
+		10000000000000000000008D /* TranslationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 10000000000000000000008C /* TranslationService.swift */; };
+		10000000000000000000008F /* ProxyTranslationProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 10000000000000000000008E /* ProxyTranslationProvider.swift */; };
+		100000000000000000000091 /* ModernTranslationSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 100000000000000000000090 /* ModernTranslationSettingsView.swift */; };
+		100000000000000000000093 /* MockTranslationProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 100000000000000000000092 /* MockTranslationProvider.swift */; };
+		100000000000000000000095 /* TranslationCacheTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 100000000000000000000094 /* TranslationCacheTests.swift */; };
+		100000000000000000000097 /* TranslationServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 100000000000000000000096 /* TranslationServiceTests.swift */; };
+		100000000000000000000099 /* DeepLLanguageTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 100000000000000000000098 /* DeepLLanguageTests.swift */; };
 		100000000000000000000036 /* HealthCheckService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 100000000000000000000037 /* HealthCheckService.swift */; };
 		100000000000000000000038 /* Contact.swift in Sources */ = {isa = PBXBuildFile; fileRef = 100000000000000000000039 /* Contact.swift */; };
 		10000000000000000000003A /* ContactExtractionService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 10000000000000000000003B /* ContactExtractionService.swift */; };
@@ -173,6 +183,16 @@
 		100000000000000000000033 /* SystemAudioCaptureService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SystemAudioCaptureService.swift; sourceTree = "<group>"; };
 		100000000000000000000034 /* TalkTimeIndicator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TalkTimeIndicator.swift; sourceTree = "<group>"; };
 		100000000000000000000084 /* MeetingCostIndicator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MeetingCostIndicator.swift; sourceTree = "<group>"; };
+		100000000000000000000086 /* TranslationProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TranslationProvider.swift; sourceTree = "<group>"; };
+		100000000000000000000088 /* DeepLLanguage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeepLLanguage.swift; sourceTree = "<group>"; };
+		10000000000000000000008A /* TranslationCache.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TranslationCache.swift; sourceTree = "<group>"; };
+		10000000000000000000008C /* TranslationService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TranslationService.swift; sourceTree = "<group>"; };
+		10000000000000000000008E /* ProxyTranslationProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProxyTranslationProvider.swift; sourceTree = "<group>"; };
+		100000000000000000000090 /* ModernTranslationSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ModernTranslationSettingsView.swift; sourceTree = "<group>"; };
+		100000000000000000000092 /* MockTranslationProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MockTranslationProvider.swift; sourceTree = "<group>"; };
+		100000000000000000000094 /* TranslationCacheTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TranslationCacheTests.swift; sourceTree = "<group>"; };
+		100000000000000000000096 /* TranslationServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TranslationServiceTests.swift; sourceTree = "<group>"; };
+		100000000000000000000098 /* DeepLLanguageTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeepLLanguageTests.swift; sourceTree = "<group>"; };
 		100000000000000000000037 /* HealthCheckService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthCheckService.swift; sourceTree = "<group>"; };
 		100000000000000000000039 /* Contact.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Contact.swift; sourceTree = "<group>"; };
 		10000000000000000000003B /* ContactExtractionService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContactExtractionService.swift; sourceTree = "<group>"; };
@@ -307,6 +327,7 @@
 			isa = PBXGroup;
 			children = (
 				100000000000000000000051 /* MockAIProvider.swift */,
+				100000000000000000000092 /* MockTranslationProvider.swift */,
 			);
 			path = Mocks;
 			sourceTree = "<group>";
@@ -334,6 +355,9 @@
 				100000000000000000000071 /* AuthErrorClassificationTests.swift */,
 				100000000000000000000073 /* SessionManagerPersistenceTests.swift */,
 				100000000000000000000075 /* ProxyConfigAvailabilityTests.swift */,
+				100000000000000000000094 /* TranslationCacheTests.swift */,
+				100000000000000000000096 /* TranslationServiceTests.swift */,
+				100000000000000000000098 /* DeepLLanguageTests.swift */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -414,8 +438,21 @@
 				100000000000000000000047 /* MeetingDetectionService.swift */,
 				400000000000000000000008 /* Providers */,
 				496625C6D6B5E0B4CD6D694C /* Proxy */,
+				400000000000000000000020 /* Translation */,
 			);
 			path = Services;
+			sourceTree = "<group>";
+		};
+		400000000000000000000020 /* Translation */ = {
+			isa = PBXGroup;
+			children = (
+				100000000000000000000086 /* TranslationProvider.swift */,
+				100000000000000000000088 /* DeepLLanguage.swift */,
+				10000000000000000000008A /* TranslationCache.swift */,
+				10000000000000000000008C /* TranslationService.swift */,
+				10000000000000000000008E /* ProxyTranslationProvider.swift */,
+			);
+			path = Translation;
 			sourceTree = "<group>";
 		};
 		400000000000000000000006 /* Views */ = {
@@ -462,6 +499,7 @@
 				100000000000000000000012 /* LiveSessionView.swift */,
 				100000000000000000000013 /* SettingsView.swift */,
 				100000000000000000000014 /* ModesListView.swift */,
+				100000000000000000000090 /* ModernTranslationSettingsView.swift */,
 			);
 			path = Dashboard;
 			sourceTree = "<group>";
@@ -760,6 +798,12 @@
 				100000000000000000000083 /* TranscriptDeduplicator.swift in Sources */,
 				10000000000000000000007E /* PricingView.swift in Sources */,
 				100000000000000000000080 /* FreeWelcomeBannerView.swift in Sources */,
+				100000000000000000000087 /* TranslationProvider.swift in Sources */,
+				100000000000000000000089 /* DeepLLanguage.swift in Sources */,
+				10000000000000000000008B /* TranslationCache.swift in Sources */,
+				10000000000000000000008D /* TranslationService.swift in Sources */,
+				10000000000000000000008F /* ProxyTranslationProvider.swift in Sources */,
+				100000000000000000000091 /* ModernTranslationSettingsView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -788,6 +832,10 @@
 				100000000000000000000072 /* AuthErrorClassificationTests.swift in Sources */,
 				100000000000000000000074 /* SessionManagerPersistenceTests.swift in Sources */,
 				100000000000000000000076 /* ProxyConfigAvailabilityTests.swift in Sources */,
+				100000000000000000000093 /* MockTranslationProvider.swift in Sources */,
+				100000000000000000000095 /* TranslationCacheTests.swift in Sources */,
+				100000000000000000000097 /* TranslationServiceTests.swift in Sources */,
+				100000000000000000000099 /* DeepLLanguageTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

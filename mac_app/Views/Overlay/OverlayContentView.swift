@@ -1112,6 +1112,16 @@ struct ModernExpandedContentView: View {
                     .transition(.opacity.combined(with: .move(edge: .top)))
             }
 
+            // Live Translation Strip (shows latest interlocutor translation)
+            if appState.isSessionActive && config.translationEnabled && config.translationShowInOverlay,
+               let sessionManager = appState.sessionManager {
+                OverlayTranslationStripView(
+                    sessionManager: sessionManager,
+                    translationService: appState.translationService
+                )
+                .transition(.opacity.combined(with: .move(edge: .top)))
+            }
+
             // Content Area - switches based on selected tab
             if selectedTab == .briefing {
                 // Memory Palace Briefing View
@@ -2460,6 +2470,68 @@ struct OverlayTranscriptStripView: View {
             }
         }
         return result
+    }
+}
+
+// MARK: - Overlay Translation Strip
+
+struct OverlayTranslationStripView: View {
+    @ObservedObject var sessionManager: SessionManager
+    @ObservedObject var translationService: TranslationService
+
+    private var latestEntry: TranscriptEntry? {
+        sessionManager.currentSession?.entries
+            .last(where: { $0.speaker == "Interlocuteur" && $0.translatedText != nil })
+    }
+
+    private var pendingEntry: TranscriptEntry? {
+        // Most recent interlocutor entry without translation yet (in-flight)
+        sessionManager.currentSession?.entries
+            .last(where: { $0.speaker == "Interlocuteur" })
+    }
+
+    var body: some View {
+        Group {
+            if let entry = latestEntry, let translated = entry.translatedText {
+                HStack(alignment: .top, spacing: QMDesign.Spacing.xs) {
+                    Image(systemName: "character.bubble")
+                        .font(.system(size: 9))
+                        .foregroundColor(QMDesign.Colors.textTertiary)
+
+                    Text(translated)
+                        .font(.system(size: 10.5, weight: .regular))
+                        .italic()
+                        .foregroundColor(QMDesign.Colors.textSecondary)
+                        .lineLimit(2)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+
+                    Text(entry.translationTargetLang ?? "")
+                        .font(.system(size: 8, weight: .bold))
+                        .foregroundColor(QMDesign.Colors.info)
+                        .padding(.horizontal, 4)
+                        .padding(.vertical, 1)
+                        .background(
+                            Capsule().fill(QMDesign.Colors.info.opacity(0.15))
+                        )
+                }
+                .padding(.horizontal, QMDesign.Spacing.sm)
+                .padding(.vertical, QMDesign.Spacing.xs)
+                .background(QMDesign.Colors.surfaceLight.opacity(0.3))
+                .clipShape(RoundedRectangle(cornerRadius: QMDesign.Radius.sm))
+            } else if pendingEntry != nil {
+                HStack {
+                    ProgressView()
+                        .scaleEffect(0.5)
+                    Text(String(localized: "live.translation.pending"))
+                        .font(.system(size: 10))
+                        .foregroundColor(QMDesign.Colors.textTertiary)
+                        .italic()
+                    Spacer()
+                }
+                .padding(.horizontal, QMDesign.Spacing.sm)
+                .padding(.vertical, QMDesign.Spacing.xs)
+            }
+        }
     }
 }
 

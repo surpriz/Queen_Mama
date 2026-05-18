@@ -183,6 +183,7 @@ enum ApiKeyProvider {
   GROK
   ASSEMBLYAI
   MOONSHOT
+  DEEPL
 }
 
 enum UserRole {

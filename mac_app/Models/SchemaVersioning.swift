@@ -1,7 +1,7 @@
 import SwiftData
 
 enum SchemaV1: VersionedSchema {
-    static var versionIdentifier = Schema.Version(1, 0, 0)
+    static var versionIdentifier = Schema.Version(1, 1, 0)
     static var models: [any PersistentModel.Type] {
         [Session.self, TranscriptEntry.self, Mode.self, AIResponse.self,
          Contact.self, ContactNote.self, PendingFeedback.self]

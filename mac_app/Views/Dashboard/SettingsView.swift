@@ -32,6 +32,8 @@ struct SettingsView: View {
                         ModernAutoAnswerSettingsView()
                     case .audio:
                         ModernAudioSettingsView()
+                    case .translation:
+                        ModernTranslationSettingsView()
                     case .sync:
                         ModernSyncSettingsView()
                     case .shortcuts:
@@ -56,6 +58,7 @@ enum SettingsSection: String, CaseIterable {
     case general = "General"
     case autoAnswer = "Auto-Answer"
     case audio = "Audio"
+    case translation = "Translation"
     case sync = "Sync"
     case shortcuts = "Shortcuts"
     case updates = "Updates"
@@ -66,6 +69,7 @@ enum SettingsSection: String, CaseIterable {
         case .general: return "gear"
         case .autoAnswer: return "bolt.fill"
         case .audio: return "speaker.wave.2.fill"
+        case .translation: return "character.bubble"
         case .sync: return "arrow.triangle.2.circlepath"
         case .shortcuts: return "keyboard"
         case .updates: return "arrow.down.circle"
@@ -78,6 +82,7 @@ enum SettingsSection: String, CaseIterable {
         case .general: return "App preferences"
         case .autoAnswer: return "Automatic responses"
         case .audio: return "Audio capture"
+        case .translation: return "Live interpreter"
         case .sync: return "Cloud sync settings"
         case .shortcuts: return "Keyboard shortcuts"
         case .updates: return "Check for updates"
@@ -90,6 +95,7 @@ enum SettingsSection: String, CaseIterable {
         case .general: return String(localized: "settings.section.general")
         case .autoAnswer: return String(localized: "settings.section.autoAnswer")
         case .audio: return String(localized: "settings.section.audio")
+        case .translation: return String(localized: "settings.section.translation")
         case .sync: return String(localized: "settings.section.sync")
         case .shortcuts: return String(localized: "settings.section.shortcuts")
         case .updates: return String(localized: "settings.section.updates")
@@ -102,6 +108,7 @@ enum SettingsSection: String, CaseIterable {
         case .general: return String(localized: "settings.section.general.description")
         case .autoAnswer: return String(localized: "settings.section.autoAnswer.description")
         case .audio: return String(localized: "settings.section.audio.description")
+        case .translation: return String(localized: "settings.section.translation.description")
         case .sync: return String(localized: "settings.section.sync.description")
         case .shortcuts: return String(localized: "settings.section.shortcuts.description")
         case .updates: return String(localized: "settings.section.updates.description")
