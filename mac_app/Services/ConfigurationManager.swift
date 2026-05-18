@@ -125,6 +125,24 @@ final class ConfigurationManager: ObservableObject {
         didSet { defaults.set(showTranscriptInOverlay, forKey: Keys.showTranscriptInOverlay) }
     }
 
+    // MARK: - Live Translation
+
+    @Published var translationEnabled: Bool {
+        didSet { defaults.set(translationEnabled, forKey: Keys.translationEnabled) }
+    }
+
+    @Published var translationTargetLanguage: String {
+        didSet { defaults.set(translationTargetLanguage, forKey: Keys.translationTargetLang) }
+    }
+
+    @Published var translationSourceLanguage: String {
+        didSet { defaults.set(translationSourceLanguage, forKey: Keys.translationSourceLang) }
+    }
+
+    @Published var translationShowInOverlay: Bool {
+        didSet { defaults.set(translationShowInOverlay, forKey: Keys.translationShowOverlay) }
+    }
+
     // MARK: - Meeting Cost
 
     @Published var meetingCostEnabled: Bool {
@@ -199,6 +217,11 @@ final class ConfigurationManager: ObservableObject {
         static let meetingHourlyRate = "meeting_hourly_rate"
         static let meetingCurrency = "meeting_currency"
         static let meetingDefaultParticipants = "meeting_default_participants"
+        // Live Translation
+        static let translationEnabled = "translation_enabled"
+        static let translationTargetLang = "translation_target_lang"
+        static let translationSourceLang = "translation_source_lang"
+        static let translationShowOverlay = "translation_show_overlay"
     }
 
     // MARK: - Initialization
@@ -258,6 +281,12 @@ final class ConfigurationManager: ObservableObject {
         self.meetingHourlyRate = defaults.object(forKey: Keys.meetingHourlyRate) as? Double ?? 50.0
         self.meetingCurrency = defaults.string(forKey: Keys.meetingCurrency) ?? "EUR"
         self.meetingDefaultParticipants = defaults.object(forKey: Keys.meetingDefaultParticipants) as? Int ?? 2
+
+        // Live Translation
+        self.translationEnabled = defaults.object(forKey: Keys.translationEnabled) as? Bool ?? false
+        self.translationTargetLanguage = defaults.string(forKey: Keys.translationTargetLang) ?? "FR"
+        self.translationSourceLanguage = defaults.string(forKey: Keys.translationSourceLang) ?? "auto"
+        self.translationShowInOverlay = defaults.object(forKey: Keys.translationShowOverlay) as? Bool ?? true
     }
 
     // MARK: - Onboarding
@@ -319,6 +348,11 @@ final class ConfigurationManager: ObservableObject {
         meetingHourlyRate = 50.0
         meetingCurrency = "EUR"
         meetingDefaultParticipants = 2
+        // Live Translation
+        translationEnabled = false
+        translationTargetLanguage = "FR"
+        translationSourceLanguage = "auto"
+        translationShowInOverlay = true
     }
 
     // MARK: - Language Override

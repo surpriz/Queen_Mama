@@ -29,6 +29,39 @@ function ProviderBadge({ provider }: { provider: string }) {
   )
 }
 
+type TranscriptLine = { speaker: 'me' | 'them' | null; text: string }
+
+function parseTranscriptLines(transcript: string): TranscriptLine[] {
+  if (!transcript) return []
+  return transcript.split('\n').map((line) => {
+    if (line.startsWith('Moi: ')) return { speaker: 'me', text: line.slice(5) }
+    if (line.startsWith('Interlocuteur: ')) return { speaker: 'them', text: line.slice(15) }
+    return { speaker: null, text: line }
+  })
+}
+
+function TranscriptBubble({ line }: { line: TranscriptLine }) {
+  if (line.speaker === null) {
+    if (!line.text.trim()) return null
+    return <div className="text-qm-text-primary mb-2">{line.text}</div>
+  }
+  const isMe = line.speaker === 'me'
+  return (
+    <div className={cn('flex mb-2', isMe ? 'justify-end' : 'justify-start')}>
+      <div
+        className={cn(
+          'max-w-[80%] px-3 py-2 rounded-qm-md text-body-sm leading-relaxed',
+          isMe
+            ? 'bg-qm-accent text-white rounded-br-sm'
+            : 'bg-qm-surface-medium text-qm-text-primary rounded-bl-sm',
+        )}
+      >
+        {line.text}
+      </div>
+    </div>
+  )
+}
+
 export function LiveSessionView() {
   const { t } = useTranslation('dashboard')
   const {
@@ -176,17 +209,21 @@ export function LiveSessionView() {
           </div>
           <div
             ref={transcriptRef}
-            className="flex-1 p-4 overflow-y-auto text-body-md text-qm-text-primary leading-relaxed"
+            className="flex-1 p-4 overflow-y-auto text-body-md leading-relaxed"
           >
-            {currentTranscript || (
+            {currentTranscript ? (
+              parseTranscriptLines(currentTranscript).map((line, i) => (
+                <TranscriptBubble key={i} line={line} />
+              ))
+            ) : (
               <span className="text-qm-text-tertiary italic">
                 {isSessionActive ? t('liveSession.listening') : t('liveSession.startSessionForAI')}
               </span>
             )}
             {interimTranscript && (
-              <span className="text-qm-text-tertiary italic animate-pulse ml-1">
+              <div className="text-qm-text-tertiary italic animate-pulse">
                 {interimTranscript}
-              </span>
+              </div>
             )}
           </div>
         </div>

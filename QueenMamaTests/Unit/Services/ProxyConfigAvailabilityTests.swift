@@ -44,7 +44,8 @@ final class ProxyConfigAvailabilityTests: XCTestCase {
                     enabled: transcriptionEnabled,
                     providers: transcriptionProviders,
                     tokenTTLSeconds: 3600
-                )
+                ),
+                translation: nil
             ),
             cacheTTL: 300,
             configuredAt: "2026-03-03T10:00:00Z"

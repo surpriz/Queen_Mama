@@ -35,6 +35,7 @@ let audioLevelInterval: ReturnType<typeof setInterval> | null = null
 let currentSessionId: string | null = null
 let unsubscribeMoments: (() => void) | null = null
 let fullTranscript = '' // Always grows, persisted to DB via sessionMgr.updateTranscript()
+let userSpeakerIndex: number | null = null // First speaker seen in single-stream diarized fallback = mic owner = "Moi"
 
 export async function startSession(mode?: Mode | null, contact?: Contact | null): Promise<void> {
   const store = useAppStore.getState()
@@ -46,6 +47,7 @@ export async function startSession(mode?: Mode | null, contact?: Contact | null)
     store.setErrorMessage(null)
     store.setCurrentTranscript('')
     fullTranscript = ''
+    userSpeakerIndex = null
     useOverlayStore.getState().setStreamingContent('')
 
     // Broadcast session started to all windows
@@ -175,10 +177,14 @@ export async function startSession(mode?: Mode | null, contact?: Contact | null)
       },
 
       // --- DIARIZED MIC TRANSCRIPTS (fallback when system audio unavailable) ---
+      // Deepgram speaker indices are session-relative (0, 1, ...) and assigned
+      // in order of detection. The mic owner almost always speaks first after
+      // hitting "start session", so we pin the first index we see as "Moi".
       onDiarizedTranscript: (text: string, speaker: number) => {
-        // Speaker 0 = typically the other person (further from mic)
-        // Speaker 1 = the user (closer to mic)
-        const label = speaker === 1 ? 'Moi' : 'Interlocuteur'
+        if (userSpeakerIndex === null) {
+          userSpeakerIndex = speaker
+        }
+        const label = speaker === userSpeakerIndex ? 'Moi' : 'Interlocuteur'
         const labeled = `${label}: ${text}`
         fullTranscript = fullTranscript + (fullTranscript.length > 0 ? '\n' : '') + labeled
         sessionMgr.updateTranscript(fullTranscript)

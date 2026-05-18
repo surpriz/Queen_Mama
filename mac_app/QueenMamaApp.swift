@@ -215,6 +215,7 @@ struct QueenMamaApp: App {
                         .onAppear {
                             // Connect SessionManager to AppState
                             appState.sessionManager = sessionManager
+                            appState.translationService.attach(sessionManager: sessionManager)
 
                             // Show widget by default
                             OverlayWindowController.shared.showOverlay(
@@ -412,6 +413,7 @@ class AppState: ObservableObject {
     let dictationService = DictationService()
     let preGenerationService = PreGenerationService()
     let meetingDetectionService = MeetingDetectionService()
+    let translationService = TranslationService()
 
     // System Audio Service for speaker separation ("Moi" vs "Interlocuteur")
     let systemAudioService = SystemAudioCaptureService()
@@ -565,7 +567,7 @@ class AppState: ObservableObject {
                 // Register final in dedup too (interims may have been pruned)
                 self.transcriptDeduplicator.addSystemTranscript(batchedText)
 
-                self.sessionManager?.addTranscriptEntry(
+                let entryID = self.sessionManager?.addTranscriptEntryReturningID(
                     speaker: "Interlocuteur",
                     text: batchedText,
                     isFinal: true
@@ -578,6 +580,21 @@ class AppState: ObservableObject {
 
                 self.autoAnswerService.onTranscriptReceived(self.currentTranscript)
                 self.preGenerationService.onTranscriptUpdated(self.currentTranscript)
+
+                // Fire-and-forget translation. Never blocks transcript or AI flow.
+                let config = ConfigurationManager.shared
+                if config.translationEnabled, let id = entryID {
+                    let target = config.translationTargetLanguage
+                    let source = config.translationSourceLanguage
+                    Task { [weak self] in
+                        await self?.translationService.translate(
+                            entryID: id,
+                            text: batchedText,
+                            sourceLang: source,
+                            targetLang: target
+                        )
+                    }
+                }
             }
 
             // --- MIC TRANSCRIPTS → "Moi" (with bleed filtering) ---

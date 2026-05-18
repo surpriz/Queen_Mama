@@ -24,6 +24,16 @@ export const changelogData: ChangelogRelease[] = [
         category: "features",
         changes: [
           {
+            id: "liveTranslation",
+            title: "Live Translation Tab",
+            description: "Translate the other party's speech in real time directly inside the overlay — a dedicated Translate tab keeps a full history with source and target text side by side"
+          },
+          {
+            id: "speakerDiarization",
+            title: "Smarter Speaker Detection",
+            description: "Transcript now distinguishes you from the other party more reliably during meetings, with cleaner labels and fewer mix-ups"
+          },
+          {
             id: "aiModelSelector",
             title: "Choose Your AI Model",
             description: "Pick which AI model powers your standard responses — select directly from Settings to match your speed and reasoning preferences"

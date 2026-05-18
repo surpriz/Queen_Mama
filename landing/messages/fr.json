@@ -1011,6 +1011,14 @@
         "title": "Icône visible dans la barre des tâches (Windows)",
         "description": "L'icône Queen Mama reste désormais visible dans la barre des tâches Windows lorsque le tableau de bord est fermé, permettant de voir facilement que l'application est active"
       },
+      "liveTranslation": {
+        "title": "Onglet Traduction en direct",
+        "description": "Traduisez la parole de l'interlocuteur en temps réel dans l'overlay — un onglet Traduction dédié conserve l'historique complet avec texte source et cible côte à côte"
+      },
+      "speakerDiarization": {
+        "title": "Détection des locuteurs améliorée",
+        "description": "Le transcript distingue désormais plus fiablement votre voix de celle de l'interlocuteur, avec des étiquettes plus propres et moins de confusions"
+      },
       "aiModelSelector": {
         "title": "Choisissez votre modèle IA",
         "description": "Sélectionnez le modèle IA qui alimente vos réponses standard — choisissez-le directement depuis les Réglages pour ajuster vitesse et qualité de raisonnement"

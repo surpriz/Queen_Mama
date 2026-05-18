@@ -58,7 +58,7 @@ const providers: TranscriptionProvider[] = [
 ]
 
 // System audio provider (second Deepgram WebSocket for "Interlocuteur" stream)
-let systemProvider: DeepgramProvider | null = null
+let systemProvider: DeepgramProvider | DeepgramFluxProvider | null = null
 let isSystemConnected = false
 let systemBatchBuffer: ArrayBuffer[] = []
 let systemBatchBufferSize = 0
@@ -74,9 +74,9 @@ function setupProviderCallbacks(provider: TranscriptionProvider): void {
   provider.onInterimTranscript = (text) => {
     onInterimTranscript?.(text)
   }
-  // Wire diarization callback if provider supports it (DeepgramProvider)
+  // Wire diarization callback for any provider that exposes it (DeepgramProvider, DeepgramFluxProvider)
   if ('onDiarizedTranscript' in provider) {
-    (provider as DeepgramProvider).onDiarizedTranscript = (text: string, speaker: number) => {
+    (provider as { onDiarizedTranscript: ((text: string, speaker: number) => void) | null }).onDiarizedTranscript = (text: string, speaker: number) => {
       onDiarizedTranscript?.(text, speaker)
     }
   }
@@ -382,12 +382,12 @@ export function getAutoRecoveryCountdown(): number {
   return autoRecoveryCountdown
 }
 
-/** Enable Deepgram diarization on the primary mic provider (fallback when system audio unavailable) */
+/** Enable Deepgram diarization on every provider that supports it (fallback when system audio unavailable) */
 export function enableDiarization(): void {
   for (const p of providers) {
-    if (p instanceof DeepgramProvider) {
+    if (p instanceof DeepgramProvider || p instanceof DeepgramFluxProvider) {
       p.diarize = true
-      log.info('Diarization enabled on primary DeepgramProvider (fallback mode)')
+      log.info(`Diarization enabled on ${p.name} (fallback mode)`)
     }
   }
 }
@@ -396,11 +396,17 @@ export function enableDiarization(): void {
 // SYSTEM AUDIO — Second Deepgram WebSocket ("Interlocuteur")
 // ============================================================
 
-/** Connect a second Deepgram WebSocket for system audio transcription */
+/** Connect a second Deepgram WebSocket for system audio transcription.
+ *  Mirrors whichever provider class is currently active for the mic stream so
+ *  the system stream uses the same auth path (proxy or direct). */
 export async function connectSystemAudio(): Promise<void> {
   try {
     log.info('Connecting system audio WebSocket...')
-    const sysProvider = new DeepgramProvider()
+    const sysProvider: DeepgramProvider | DeepgramFluxProvider =
+      currentProvider instanceof DeepgramFluxProvider
+        ? new DeepgramFluxProvider()
+        : new DeepgramProvider()
+    log.info(`System audio provider: ${sysProvider.name}`)
     const language = useConfigStore.getState().primaryLanguage || 'multi'
     sysProvider.language = language
 

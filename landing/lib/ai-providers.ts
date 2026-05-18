@@ -5,16 +5,18 @@ import { ApiKeyProvider } from "@prisma/client";
 
 export type AIProviderType = "openai" | "anthropic" | "gemini" | "grok";
 export type TranscriptionProviderType = "deepgram" | "assemblyai";
+export type TranslationProviderType = "deepl";
 export type PlanTier = "FREE" | "PRO" | "ENTERPRISE";
 
 // Map our types to Prisma enum
-const providerToPrisma: Record<AIProviderType | TranscriptionProviderType, ApiKeyProvider> = {
+const providerToPrisma: Record<AIProviderType | TranscriptionProviderType | TranslationProviderType, ApiKeyProvider> = {
   openai: "OPENAI",
   anthropic: "ANTHROPIC",
   gemini: "GEMINI",
   grok: "GROK",
   deepgram: "DEEPGRAM",
   assemblyai: "ASSEMBLYAI",
+  deepl: "DEEPL",
 };
 
 // Model cascade configuration for resilience
@@ -77,28 +79,37 @@ export const TIER_LIMITS = {
   FREE: {
     aiProviders: ["openai", "grok", "anthropic"] as AIProviderType[], // Cascade providers
     transcriptionProviders: ["deepgram"] as TranscriptionProviderType[],
+    translationProviders: [] as TranslationProviderType[], // Not available on FREE
     maxTokens: 1000,
     smartMode: false,
     dailyAiRequests: 10,
     transcription: true,
+    translation: false,
+    monthlyTranslationChars: 0,
     screenshot: false,
   },
   PRO: {
     aiProviders: ["openai", "grok", "anthropic"] as AIProviderType[], // Cascade providers
     transcriptionProviders: ["deepgram", "assemblyai"] as TranscriptionProviderType[],
+    translationProviders: ["deepl"] as TranslationProviderType[],
     maxTokens: 4000,
     smartMode: false,
     dailyAiRequests: null, // unlimited
     transcription: true,
+    translation: true,
+    monthlyTranslationChars: 500_000, // 500K chars/mo (~10h meeting)
     screenshot: true,
   },
   ENTERPRISE: {
     aiProviders: ["openai", "grok", "anthropic"] as AIProviderType[], // Cascade providers
     transcriptionProviders: ["deepgram", "assemblyai"] as TranscriptionProviderType[],
+    translationProviders: ["deepl"] as TranslationProviderType[],
     maxTokens: 16000,
     smartMode: true, // Uses o4-mini for enhanced reasoning
     dailyAiRequests: null, // unlimited
     transcription: true,
+    translation: true,
+    monthlyTranslationChars: null, // unlimited
     screenshot: true,
   },
 } as const;
@@ -168,7 +179,7 @@ export const PROVIDER_URLS = {
 
 // Get API key for a provider from database (async)
 export async function getProviderApiKey(
-  provider: AIProviderType | TranscriptionProviderType
+  provider: AIProviderType | TranscriptionProviderType | TranslationProviderType
 ): Promise<string | null> {
   const prismaProvider = providerToPrisma[provider];
   if (!prismaProvider) return null;
@@ -177,7 +188,7 @@ export async function getProviderApiKey(
 
 // Get API key synchronously from environment (fallback for edge cases)
 export function getProviderApiKeySync(
-  provider: AIProviderType | TranscriptionProviderType
+  provider: AIProviderType | TranscriptionProviderType | TranslationProviderType
 ): string | undefined {
   // Fallback to env vars (useful during migration or if DB is down)
   switch (provider) {
@@ -193,6 +204,8 @@ export function getProviderApiKeySync(
       return process.env.DEEPGRAM_API_KEY;
     case "assemblyai":
       return process.env.ASSEMBLYAI_API_KEY;
+    case "deepl":
+      return process.env.DEEPL_API_KEY;
     default:
       return undefined;
   }
@@ -225,6 +238,20 @@ export async function getAvailableTranscriptionProviders(
   const configuredProviders = await getConfiguredProviders();
 
   return tierConfig.transcriptionProviders.filter((provider) => {
+    const prismaProvider = providerToPrisma[provider];
+    return configuredProviders.includes(prismaProvider);
+  });
+}
+
+// Get available translation providers based on tier and DB configuration
+export async function getAvailableTranslationProviders(
+  tier: PlanTier
+): Promise<TranslationProviderType[]> {
+  const tierConfig = TIER_LIMITS[tier];
+  if (!tierConfig.translation) return [];
+
+  const configuredProviders = await getConfiguredProviders();
+  return tierConfig.translationProviders.filter((provider) => {
     const prismaProvider = providerToPrisma[provider];
     return configuredProviders.includes(prismaProvider);
   });

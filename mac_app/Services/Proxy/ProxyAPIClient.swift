@@ -363,6 +363,24 @@ final class ProxyAPIClient: @unchecked Sendable {
         }
     }
 
+    // MARK: - Translation Proxy
+
+    /// Translate text through the backend proxy. Backend holds the DeepL key.
+    func translate(
+        text: String,
+        sourceLang: String?,
+        targetLang: String
+    ) async throws -> TranslationProxyResponse {
+        var body: [String: Any] = [
+            "text": text,
+            "target_lang": targetLang
+        ]
+        if let sourceLang = sourceLang, !sourceLang.isEmpty {
+            body["source_lang"] = sourceLang
+        }
+        return try await post(endpoint: "/api/proxy/translate", body: body)
+    }
+
     // MARK: - HTTP Helpers
 
     private func get<T: Decodable>(endpoint: String) async throws -> T {
@@ -581,6 +599,24 @@ struct ProxyConfig: Codable {
 struct ProxyServices: Codable {
     let ai: AIServiceConfig
     let transcription: TranscriptionServiceConfig
+    let translation: TranslationServiceConfig?
+}
+
+struct TranslationServiceConfig: Codable {
+    let enabled: Bool
+    let provider: String?
+}
+
+struct TranslationProxyResponse: Codable {
+    let translatedText: String
+    let detectedSourceLang: String?
+    let targetLang: String?
+
+    enum CodingKeys: String, CodingKey {
+        case translatedText = "translated_text"
+        case detectedSourceLang = "detected_source_lang"
+        case targetLang = "target_lang"
+    }
 }
 
 struct AIServiceConfig: Codable {
