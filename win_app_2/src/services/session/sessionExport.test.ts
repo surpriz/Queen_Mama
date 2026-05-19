@@ -28,6 +28,7 @@ const PRO_LICENSE = {
     screenshotEnabled: true,
     knowledgeBaseEnabled: false,
     proactiveSuggestionsEnabled: false,
+    liveTranslationEnabled: false,
   },
   trial: null,
   cacheTTL: 3600,

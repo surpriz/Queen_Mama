@@ -92,6 +92,9 @@ export const useLicenseStore = create<LicenseStoreState>((set, get) => ({
       case 'proactiveSuggestions':
         return features.proactiveSuggestionsEnabled ? { type: 'allowed' } : { type: 'requiresEnterprise' }
 
+      case 'liveTranslation':
+        return features.liveTranslationEnabled ? { type: 'allowed' } : { type: 'requiresEnterprise' }
+
       default:
         return { type: 'blocked' }
     }

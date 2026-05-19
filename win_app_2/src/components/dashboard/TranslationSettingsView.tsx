@@ -1,11 +1,14 @@
 import { useState } from 'react'
-import { Globe, CheckCircle2, AlertCircle } from 'lucide-react'
+import { Globe, CheckCircle2, AlertCircle, Lock } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { useConfigStore } from '@/stores/configStore'
+import { useLicenseStore } from '@/stores/licenseStore'
+import { Feature } from '@/types/auth'
 import { DEEPL_LANGUAGES } from '@/services/translation/deeplLanguage'
 import { ProxyTranslationProvider } from '@/services/translation/proxyTranslationProvider'
 import { isTranslationEnabled } from '@/services/proxy/proxyConfigManager'
 import { TranslationError } from '@/services/translation/translationProvider'
+import { UpgradePrompt } from '@/components/license/UpgradePrompt'
 import { cn } from '@/lib/utils'
 
 type TestStatus = 'idle' | 'running' | 'success' | 'failure'
@@ -14,6 +17,8 @@ export function TranslationSettingsView() {
   const { t } = useTranslation('dashboard')
   const config = useConfigStore()
   const providerEnabled = isTranslationEnabled()
+  const translationAccess = useLicenseStore((s) => s.canUse(Feature.LiveTranslation))
+  const isLicensed = translationAccess.type === 'allowed'
   const [testStatus, setTestStatus] = useState<TestStatus>('idle')
   const [testMessage, setTestMessage] = useState<string>('')
 
@@ -49,22 +54,36 @@ export function TranslationSettingsView() {
         {t('settings.translation.subtitle')}
       </p>
 
+      {!isLicensed && (
+        <div className="mb-4">
+          <UpgradePrompt access={translationAccess} />
+        </div>
+      )}
+
       {/* General */}
       <div className="qm-card p-4 space-y-3 mb-4">
         <div className="text-body-sm font-semibold text-qm-text-primary flex items-center gap-2">
           <Globe size={14} className="text-qm-accent-light" />
           {t('settings.translation.general')}
+          {!isLicensed && (
+            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-qm-accent/10 text-qm-accent text-[10px] font-medium">
+              <Lock size={9} />
+              Enterprise
+            </span>
+          )}
         </div>
         <ToggleRow
           label={t('settings.translation.enable')}
           description={`${t('settings.translation.enableDescription')} (BETA)`}
-          enabled={config.translationEnabled}
+          enabled={config.translationEnabled && isLicensed}
+          disabled={!isLicensed}
           onToggle={(v) => config.updateConfig({ translationEnabled: v })}
         />
         <ToggleRow
           label={t('settings.translation.showInOverlay')}
           description={t('settings.translation.showInOverlayDescription')}
-          enabled={config.translationShowInOverlay}
+          enabled={config.translationShowInOverlay && isLicensed}
+          disabled={!isLicensed}
           onToggle={(v) => config.updateConfig({ translationShowInOverlay: v })}
         />
       </div>
@@ -152,23 +171,28 @@ function ToggleRow({
   description,
   enabled,
   onToggle,
+  disabled = false,
 }: {
   label: string
   description: string
   enabled: boolean
   onToggle: (v: boolean) => void
+  disabled?: boolean
 }) {
   return (
-    <div className="flex items-start justify-between py-1 gap-4">
+    <div className={cn('flex items-start justify-between py-1 gap-4', disabled && 'opacity-50')}>
       <div className="flex-1">
         <p className="text-body-sm text-qm-text-primary">{label}</p>
         <p className="text-caption text-qm-text-tertiary">{description}</p>
       </div>
       <button
-        onClick={() => onToggle(!enabled)}
-        className={`relative w-11 h-6 mt-0.5 rounded-full transition-colors outline-none focus:outline-none flex-shrink-0 overflow-hidden ${
-          enabled ? 'bg-qm-accent' : 'bg-qm-surface-pressed'
-        }`}
+        onClick={() => !disabled && onToggle(!enabled)}
+        disabled={disabled}
+        className={cn(
+          'relative w-11 h-6 mt-0.5 rounded-full transition-colors outline-none focus:outline-none flex-shrink-0 overflow-hidden',
+          enabled ? 'bg-qm-accent' : 'bg-qm-surface-pressed',
+          disabled && 'cursor-not-allowed',
+        )}
       >
         <span
           className={`absolute left-0.5 top-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform ${

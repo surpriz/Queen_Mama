@@ -20,22 +20,26 @@ struct ModernTranslationSettingsView: View {
             // General Card
             SettingsCard(title: String(localized: "settings.translation.general"), icon: "character.bubble") {
                 VStack(spacing: QMDesign.Spacing.md) {
-                    ModernToggleRow(
+                    LicenseGatedToggleRow(
                         title: String(localized: "settings.translation.enable"),
                         description: String(localized: "settings.translation.enable.description") + " " + String(localized: "settings.general.betaNotice"),
                         isOn: $config.translationEnabled,
                         icon: "globe",
+                        feature: .liveTranslation,
+                        requiredTier: "Enterprise",
                         isBeta: true
                     )
 
                     Divider()
                         .background(QMDesign.Colors.borderSubtle)
 
-                    ModernToggleRow(
+                    LicenseGatedToggleRow(
                         title: String(localized: "settings.translation.showInOverlay"),
                         description: String(localized: "settings.translation.showInOverlay.description"),
                         isOn: $config.translationShowInOverlay,
-                        icon: "macwindow"
+                        icon: "macwindow",
+                        feature: .liveTranslation,
+                        requiredTier: "Enterprise"
                     )
                 }
             }

@@ -582,8 +582,11 @@ class AppState: ObservableObject {
                 self.preGenerationService.onTranscriptUpdated(self.currentTranscript)
 
                 // Fire-and-forget translation. Never blocks transcript or AI flow.
+                // Gated to Enterprise plan — Free/Pro users do not consume DeepL credits.
                 let config = ConfigurationManager.shared
-                if config.translationEnabled, let id = entryID {
+                if config.translationEnabled,
+                   LicenseManager.shared.isFeatureAvailable(.liveTranslation),
+                   let id = entryID {
                     let target = config.translationTargetLanguage
                     let source = config.translationSourceLanguage
                     Task { [weak self] in

@@ -28,6 +28,8 @@ import { transcriptBuffer, TranscriptBuffer } from '@/services/transcription/tra
 import * as dedup from '@/services/transcription/transcriptDeduplicator'
 import * as translationService from '@/services/translation/translationService'
 import * as proxyConfig from '@/services/proxy/proxyConfigManager'
+import { useLicenseStore } from '@/stores/licenseStore'
+import { Feature } from '@/types/auth'
 import type { Contact } from '@/types/models'
 
 const MAX_TRANSCRIPT_MEMORY = 50000 // 50KB - max in-memory transcript size for display
@@ -151,11 +153,14 @@ export async function startSession(mode?: Mode | null, contact?: Contact | null)
       updateTranscriptUI()
 
       // Fire-and-forget translation. Never block transcript pipeline.
+      // Gated to Enterprise plan — Free/Pro users do not consume DeepL credits.
       const userCfg = useConfigStore.getState()
+      const canUseTranslation = useLicenseStore.getState().isFeatureAvailable(Feature.LiveTranslation)
       if (
         entryId &&
         userCfg.translationEnabled &&
-        proxyConfig.isTranslationEnabled()
+        proxyConfig.isTranslationEnabled() &&
+        canUseTranslation
       ) {
         translationService
           .translate({
