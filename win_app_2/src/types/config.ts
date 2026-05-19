@@ -85,7 +85,7 @@ export const DEFAULT_CONFIG: AppConfig = {
 
   hasCompletedOnboarding: false,
 
-  translationEnabled: false,
+  translationEnabled: true,
   translationShowInOverlay: true,
   translationSourceLanguage: 'auto',
   translationTargetLanguage: 'EN-US',
