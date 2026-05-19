@@ -265,7 +265,8 @@
       "feature5": "Tous les formats d'export",
       "feature6": "Support prioritaire",
       "feature7": "Mode Smart",
-      "feature8": "Overlay indétectable"
+      "feature8": "Overlay indétectable",
+      "feature9": "Traduction en direct (DeepL)"
     },
     "enterprise": {
       "name": "Enterprise",
@@ -281,7 +282,8 @@
       "feature6": "Stockage étendu des transcriptions",
       "feature7": "Knowledge Base IA",
       "feature8": "Réponses instantanées (pré-générées)",
-      "feature9": "Support dédié"
+      "feature9": "Traduction en direct (DeepL)",
+      "feature10": "Support dédié"
     },
     "gdpr": "Données stockées en Europe de manière sécurisée (conforme RGPD)",
     "cancelAnytime": "Résiliez à tout moment. Sans condition."

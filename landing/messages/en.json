@@ -265,7 +265,8 @@
       "feature5": "All export formats",
       "feature6": "Priority support",
       "feature7": "Smart Mode",
-      "feature8": "Undetectable overlay"
+      "feature8": "Undetectable overlay",
+      "feature9": "Live Translation (DeepL)"
     },
     "enterprise": {
       "name": "Enterprise",
@@ -281,7 +282,8 @@
       "feature6": "Extended transcript storage",
       "feature7": "Knowledge Base AI",
       "feature8": "Instant responses (pre-generated)",
-      "feature9": "Dedicated support"
+      "feature9": "Live Translation (DeepL)",
+      "feature10": "Dedicated support"
     },
     "gdpr": "Data stored securely in Europe (GDPR compliant)",
     "cancelAnytime": "Cancel anytime. No questions asked."
