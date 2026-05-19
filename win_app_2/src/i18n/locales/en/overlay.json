@@ -44,7 +44,9 @@
   },
   "transcript": {
     "title": "Transcript",
-    "listening": "Listening..."
+    "listening": "Listening...",
+    "speakerMe": "Me",
+    "speakerThem": "Them"
   },
   "expandedContent": {
     "screenOnly": "Screen only",

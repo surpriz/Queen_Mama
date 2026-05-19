@@ -44,7 +44,9 @@
   },
   "transcript": {
     "title": "Transcription",
-    "listening": "Écoute en cours..."
+    "listening": "Écoute en cours...",
+    "speakerMe": "Moi",
+    "speakerThem": "Interlocuteur"
   },
   "expandedContent": {
     "screenOnly": "Écran uniquement",

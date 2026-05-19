@@ -5,6 +5,20 @@ import { useAppStore } from '@/stores/appStore'
 
 const TAIL_CHARS = 200 // Show roughly the last 3 lines of text
 
+// Replace canonical French speaker labels with the user's UI-language equivalents.
+// Storage and AI prompt keep the canonical strings; this is display-only.
+function localizeSpeakerLabels(text: string, speakerMe: string, speakerThem: string): string {
+  if (!text) return text
+  return text
+    .split('\n')
+    .map((line) => {
+      if (line.startsWith('Moi: ')) return `${speakerMe}: ${line.slice(5)}`
+      if (line.startsWith('Interlocuteur: ')) return `${speakerThem}: ${line.slice(15)}`
+      return line
+    })
+    .join('\n')
+}
+
 export function TranscriptPanel() {
   const { t } = useTranslation('overlay')
   const isSessionActive = useAppStore((s) => s.isSessionActive)
@@ -12,15 +26,19 @@ export function TranscriptPanel() {
   const interimTranscript = useAppStore((s) => s.interimTranscript)
   const audioLevel = useAppStore((s) => s.audioLevel)
 
+  const speakerMe = t('transcript.speakerMe')
+  const speakerThem = t('transcript.speakerThem')
+
   // Only show the tail of the transcript so the overlay stays readable
   const tailText = useMemo(() => {
     if (!currentTranscript) return ''
-    if (currentTranscript.length <= TAIL_CHARS) return currentTranscript
+    const localized = localizeSpeakerLabels(currentTranscript, speakerMe, speakerThem)
+    if (localized.length <= TAIL_CHARS) return localized
     // Cut at last word boundary after trimming to TAIL_CHARS
-    const sliced = currentTranscript.slice(-TAIL_CHARS)
+    const sliced = localized.slice(-TAIL_CHARS)
     const firstSpace = sliced.indexOf(' ')
     return firstSpace > 0 ? '…' + sliced.slice(firstSpace) : '…' + sliced
-  }, [currentTranscript])
+  }, [currentTranscript, speakerMe, speakerThem])
 
   if (!isSessionActive) return null
 
