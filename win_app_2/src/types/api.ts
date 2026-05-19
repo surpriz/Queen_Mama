@@ -5,6 +5,26 @@ export interface ProxyConfig {
   transcriptionProviders: string[]
   features: Record<string, boolean>
   limits: Record<string, number>
+  services?: {
+    translation?: {
+      enabled: boolean
+      provider?: string | null
+      monthlyCharsLimit?: number | null
+    }
+  }
+}
+
+export interface TranslationProxyRequest {
+  text: string
+  target_lang: string
+  source_lang?: string
+  context?: string
+}
+
+export interface TranslationProxyResponse {
+  translated_text: string
+  detected_source_lang?: string
+  target_lang: string
 }
 
 export interface TranscriptionToken {

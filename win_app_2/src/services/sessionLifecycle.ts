@@ -26,6 +26,8 @@ import * as contactDb from '@/services/contacts/contactDb'
 import { useContactStore } from '@/stores/contactStore'
 import { transcriptBuffer, TranscriptBuffer } from '@/services/transcription/transcriptBuffer'
 import * as dedup from '@/services/transcription/transcriptDeduplicator'
+import * as translationService from '@/services/translation/translationService'
+import * as proxyConfig from '@/services/proxy/proxyConfigManager'
 import type { Contact } from '@/types/models'
 
 const MAX_TRANSCRIPT_MEMORY = 50000 // 50KB - max in-memory transcript size for display
@@ -49,6 +51,8 @@ export async function startSession(mode?: Mode | null, contact?: Contact | null)
     fullTranscript = ''
     userSpeakerIndex = null
     useOverlayStore.getState().setStreamingContent('')
+    useOverlayStore.getState().clearTranslations()
+    translationService.resetContext()
 
     // Broadcast session started to all windows
     window.electronAPI?.relay?.broadcast('relay:session-state', {
@@ -139,10 +143,30 @@ export async function startSession(mode?: Mode | null, contact?: Contact | null)
       const labeled = `Interlocuteur: ${batchedText}`
       fullTranscript = fullTranscript + (fullTranscript.length > 0 ? '\n' : '') + labeled
       sessionMgr.updateTranscript(fullTranscript)
+      let entryId: string | null = null
       if (currentSessionId) {
-        sessionMgr.addTranscriptEntry('Interlocuteur', batchedText, true)
+        const entry = sessionMgr.addTranscriptEntry('Interlocuteur', batchedText, true)
+        entryId = entry.id
       }
       updateTranscriptUI()
+
+      // Fire-and-forget translation. Never block transcript pipeline.
+      const userCfg = useConfigStore.getState()
+      if (
+        entryId &&
+        userCfg.translationEnabled &&
+        proxyConfig.isTranslationEnabled()
+      ) {
+        translationService
+          .translate({
+            entryId,
+            sessionId: currentSessionId,
+            text: batchedText,
+            sourceLang: userCfg.translationSourceLanguage,
+            targetLang: userCfg.translationTargetLanguage,
+          })
+          .catch((err) => console.warn('[SessionLifecycle] Translation rejected:', err))
+      }
     })
 
     // Set up transcription callbacks (dual-stream with dedup)
@@ -462,6 +486,7 @@ function cleanup(): void {
   transcriptBuffer.stop()
   systemTranscriptBuffer.stop()
   dedup.reset()
+  translationService.resetContext()
   audioCapture.stopCapture()
   transcription.disconnect()
   screenCaptureService.stopAutoCapture()

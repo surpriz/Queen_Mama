@@ -4,10 +4,12 @@ import { useTranslation } from 'react-i18next'
 import { TabBar } from './TabBar'
 import { TranscriptPanel } from './TranscriptPanel'
 import { ResponseDisplay } from './ResponseDisplay'
+import { TranslateTab } from './TranslateTab'
 import { ActionBar } from './ActionBar'
 import { InputBar } from './InputBar'
 import { useConfigStore } from '@/stores/configStore'
 import { useAppStore } from '@/stores/appStore'
+import { useOverlayStore } from '@/stores/overlayStore'
 import { useAiResponse } from '@/hooks/useAiResponse'
 import { ResponseType } from '@/types/models'
 
@@ -17,10 +19,13 @@ export function ExpandedContent() {
   const showLiveTranscript = useConfigStore((s) => s.showLiveTranscript)
   const isSessionActive = useAppStore((s) => s.isSessionActive)
   const currentTranscript = useAppStore((s) => s.currentTranscript)
+  const selectedTab = useOverlayStore((s) => s.selectedTab)
   const { triggerByType, isProcessing } = useAiResponse()
+  const isTranslateTab = selectedTab === ResponseType.Translate
 
   const handleTabSelected = useCallback(
     (type: ResponseType) => {
+      if (type === ResponseType.Translate) return // Translate tab is passive — no AI trigger
       if (isProcessing) return
       // Allow trigger if there's transcript OR screen capture is enabled
       const hasTranscript = isSessionActive && currentTranscript.trim().length > 0
@@ -37,14 +42,14 @@ export function ExpandedContent() {
       {showLiveTranscript && <TranscriptPanel />}
 
 
-      <ResponseDisplay />
+      {isTranslateTab ? <TranslateTab /> : <ResponseDisplay />}
 
       <TabBar onTabSelected={handleTabSelected} />
 
-      <ActionBar />
+      {!isTranslateTab && <ActionBar />}
 
       {/* Input state badge when session is not active */}
-      {!isSessionActive && (
+      {!isSessionActive && !isTranslateTab && (
         <div className="px-3 py-1">
           {autoScreenCapture ? (
             <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-yellow-500/10">
@@ -60,7 +65,7 @@ export function ExpandedContent() {
         </div>
       )}
 
-      <InputBar />
+      {!isTranslateTab && <InputBar />}
     </div>
   )
 }

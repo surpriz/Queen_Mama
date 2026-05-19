@@ -43,7 +43,10 @@ export function initializeDatabase(): Database.Database {
       timestamp TEXT NOT NULL,
       speaker TEXT NOT NULL DEFAULT 'Unknown',
       text TEXT NOT NULL DEFAULT '',
-      is_final INTEGER NOT NULL DEFAULT 0
+      is_final INTEGER NOT NULL DEFAULT 0,
+      translated_text TEXT,
+      translation_source_lang TEXT,
+      translation_target_lang TEXT
     );
 
     CREATE TABLE IF NOT EXISTS ai_responses (
@@ -104,6 +107,26 @@ export function initializeDatabase(): Database.Database {
     }
   } catch (err) {
     console.error('[Database] Modes migration error:', err)
+  }
+
+  // Migrate transcript_entries: add translation columns for existing databases
+  try {
+    const cols = db.pragma('table_info(transcript_entries)') as { name: string }[]
+    const names = cols.map((c) => c.name)
+    if (!names.includes('translated_text')) {
+      db.exec(`ALTER TABLE transcript_entries ADD COLUMN translated_text TEXT`)
+      console.log('[Database] Migrated transcript_entries: added translated_text')
+    }
+    if (!names.includes('translation_source_lang')) {
+      db.exec(`ALTER TABLE transcript_entries ADD COLUMN translation_source_lang TEXT`)
+      console.log('[Database] Migrated transcript_entries: added translation_source_lang')
+    }
+    if (!names.includes('translation_target_lang')) {
+      db.exec(`ALTER TABLE transcript_entries ADD COLUMN translation_target_lang TEXT`)
+      console.log('[Database] Migrated transcript_entries: added translation_target_lang')
+    }
+  } catch (err) {
+    console.error('[Database] transcript_entries migration error:', err)
   }
 
   // Migrate contacts table: add email, sync fields for existing databases

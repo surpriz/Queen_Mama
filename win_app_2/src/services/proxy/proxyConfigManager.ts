@@ -48,3 +48,11 @@ export function getAvailableAIProviders(): string[] {
 export function getAvailableTranscriptionProviders(): string[] {
   return cachedConfig?.transcriptionProviders ?? []
 }
+
+export function isTranslationEnabled(): boolean {
+  return cachedConfig?.services?.translation?.enabled ?? false
+}
+
+export function getTranslationProvider(): string | null {
+  return cachedConfig?.services?.translation?.provider ?? null
+}

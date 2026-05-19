@@ -2,7 +2,8 @@ import { getApiBaseUrl } from '../config/appEnvironment'
 import { getAccessToken } from '../auth/authenticationManager'
 import { createLogger } from '@/lib/logger'
 import { sleep } from '@/lib/utils'
-import type { ProxyConfig, TranscriptionToken, AIProxyRequest, AIStreamRequest, StreamChunk } from '@/types/api'
+import type { ProxyConfig, TranscriptionToken, AIProxyRequest, AIStreamRequest, StreamChunk, TranslationProxyResponse } from '@/types/api'
+import { TranslationError } from '@/services/translation/translationProvider'
 import { useConfigStore } from '@/stores/configStore'
 import { resolveBackendModel } from '@/types/config'
 
@@ -78,6 +79,52 @@ export async function fetchConfig(): Promise<ProxyConfig> {
   const response = await fetchWithRetry('/api/proxy/config')
   if (!response.ok) throw new Error(`Config fetch failed: ${response.status}`)
   return response.json()
+}
+
+// Translation (DeepL via proxy)
+export async function translate(input: {
+  text: string
+  sourceLang?: string
+  targetLang: string
+  context?: string
+}): Promise<TranslationProxyResponse> {
+  const body: Record<string, string> = {
+    text: input.text,
+    target_lang: input.targetLang,
+  }
+  if (input.sourceLang && input.sourceLang.toLowerCase() !== 'auto') {
+    body.source_lang = input.sourceLang
+  }
+  if (input.context) {
+    body.context = input.context
+  }
+
+  const response = await fetchWithAuth('/api/proxy/translate', {
+    method: 'POST',
+    body: JSON.stringify(body),
+  })
+
+  if (response.ok) {
+    return response.json()
+  }
+
+  const errorBody = await response.text().catch(() => '')
+  log.warn(`Translation proxy ${response.status}: ${errorBody.slice(0, 200)}`)
+
+  switch (response.status) {
+    case 401:
+      throw new TranslationError('notConfigured', 'unauthenticated')
+    case 402:
+      throw new TranslationError('quotaExceeded', errorBody)
+    case 403:
+      throw new TranslationError('requestFailed', errorBody || 'forbidden')
+    case 429:
+      throw new TranslationError('rateLimited', errorBody)
+    case 503:
+      throw new TranslationError('notConfigured', errorBody || 'provider unavailable')
+    default:
+      throw new TranslationError('requestFailed', `HTTP ${response.status}: ${errorBody}`)
+  }
 }
 
 // Transcription Token

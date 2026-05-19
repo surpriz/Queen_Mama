@@ -23,6 +23,9 @@ export interface TranscriptEntry {
   speaker: string
   text: string
   isFinal: boolean
+  translatedText?: string | null
+  translationSourceLang?: string | null
+  translationTargetLang?: string | null
 }
 
 export interface AIResponseRecord {
@@ -42,6 +45,7 @@ export enum ResponseType {
   FollowUp = 'Follow-up',
   Recap = 'Recap',
   Custom = 'Custom',
+  Translate = 'Translate',
 }
 
 const LANGUAGE_INSTRUCTION = `
@@ -376,6 +380,13 @@ FORMAT:
     shortLabel: 'Custom',
     classicSystemPromptAddition: CUSTOM_PROMPT,
     systemPromptAddition: CUSTOM_PROMPT,
+  },
+  [ResponseType.Translate]: {
+    icon: 'Languages',
+    label: 'Translate',
+    shortLabel: 'Translate',
+    classicSystemPromptAddition: '',
+    systemPromptAddition: '',
   },
 }
 

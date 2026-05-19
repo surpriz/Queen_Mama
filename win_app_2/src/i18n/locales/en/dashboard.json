@@ -79,6 +79,7 @@
       "autoAnswer": "Auto-Answer",
       "proactive": "Proactive",
       "audio": "Audio",
+      "translation": "Translation",
       "sync": "Sync",
       "shortcuts": "Shortcuts",
       "updates": "Updates"
@@ -165,6 +166,25 @@
       "audioLevelTestDescription": "Check your microphone input",
       "startTest": "Start Test",
       "stopTest": "Stop Test"
+    },
+    "translation": {
+      "title": "Live Translation",
+      "subtitle": "Translate the interlocutor's speech in real time via DeepL.",
+      "general": "General",
+      "enable": "Enable live translation",
+      "enableDescription": "Translate the other participant's audio while a session is active.",
+      "showInOverlay": "Show Translate tab in overlay",
+      "showInOverlayDescription": "Display the dedicated Translate tab in the floating widget.",
+      "languages": "Languages",
+      "sourceLanguage": "Source language",
+      "sourceLanguageAuto": "Auto-detect",
+      "targetLanguage": "Target language",
+      "provider": "Provider",
+      "providerStatus": "DeepL via QueenMama proxy",
+      "providerActive": "Active — included in your plan",
+      "providerNotConfigured": "Not available on your plan — upgrade to Pro or higher.",
+      "test": "Test translation",
+      "testing": "Testing..."
     },
     "sync": {
       "title": "Sync",

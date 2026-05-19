@@ -180,6 +180,11 @@ const electronAPI = {
     ipcRenderer.on('relay:config', handler)
     return () => ipcRenderer.removeListener('relay:config', handler)
   },
+  onTranslationUpdate: (callback: (payload: { entryId: string; sessionId: string | null; original: string; translated: string; sourceLang: string | null; targetLang: string; timestamp: string }) => void) => {
+    const handler = (_event: Electron.IpcRendererEvent, payload: { entryId: string; sessionId: string | null; original: string; translated: string; sourceLang: string | null; targetLang: string; timestamp: string }) => callback(payload)
+    ipcRenderer.on(IPC_CHANNELS.RELAY_TRANSLATION, handler)
+    return () => ipcRenderer.removeListener(IPC_CHANNELS.RELAY_TRANSLATION, handler)
+  },
 
   // Meeting detection (main → renderer)
   onMeetingDetected: (callback: (data: { appName: string }) => void) => {

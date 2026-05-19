@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
-import { User, Settings as SettingsIcon, Zap, Volume2, Cloud, Keyboard, Download, MessageSquareText, Crosshair } from 'lucide-react'
+import { User, Settings as SettingsIcon, Zap, Volume2, Cloud, Keyboard, Download, MessageSquareText, Crosshair, Languages } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { DisplaySelector } from './DisplaySelector'
+import { TranslationSettingsView } from './TranslationSettingsView'
 import { useConfigStore } from '@/stores/configStore'
 import { useLicenseStore } from '@/stores/licenseStore'
 import { AI_MODEL_OPTIONS } from '@/types/config'
@@ -20,7 +21,7 @@ import {
 } from '@/services/sync/syncManager'
 import { useUpdaterStore } from '@/stores/updaterStore'
 
-type SettingsTab = 'account' | 'general' | 'autoAnswer' | 'proactive' | 'audio' | 'sync' | 'shortcuts' | 'updates'
+type SettingsTab = 'account' | 'general' | 'autoAnswer' | 'proactive' | 'audio' | 'translation' | 'sync' | 'shortcuts' | 'updates'
 
 export function SettingsView() {
   const { t } = useTranslation('dashboard')
@@ -68,6 +69,7 @@ export function SettingsView() {
     { id: 'autoAnswer', label: t('settings.tabs.autoAnswer'), icon: Zap },
     { id: 'proactive', label: t('settings.tabs.proactive'), icon: Crosshair },
     { id: 'audio', label: t('settings.tabs.audio'), icon: Volume2 },
+    { id: 'translation', label: t('settings.tabs.translation'), icon: Languages },
     { id: 'sync', label: t('settings.tabs.sync'), icon: Cloud },
     { id: 'shortcuts', label: t('settings.tabs.shortcuts'), icon: Keyboard },
     { id: 'updates', label: t('settings.tabs.updates'), icon: Download },
@@ -430,6 +432,8 @@ export function SettingsView() {
               </div>
             </section>
           )}
+
+          {activeTab === 'translation' && <TranslationSettingsView />}
 
           {activeTab === 'sync' && (
             <section>
