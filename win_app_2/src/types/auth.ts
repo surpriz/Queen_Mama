@@ -120,6 +120,7 @@ export interface LicenseFeatures {
   screenshotEnabled: boolean
   knowledgeBaseEnabled: boolean
   proactiveSuggestionsEnabled: boolean
+  liveTranslationEnabled: boolean
 }
 
 export interface TrialInfo {
@@ -146,6 +147,7 @@ export enum Feature {
   SessionStart = 'sessionStart',
   KnowledgeBase = 'knowledgeBase',
   ProactiveSuggestions = 'proactiveSuggestions',
+  LiveTranslation = 'liveTranslation',
 }
 
 export type FeatureAccess =
@@ -174,6 +176,7 @@ export const FREE_LICENSE: License = {
     screenshotEnabled: false,
     knowledgeBaseEnabled: false,
     proactiveSuggestionsEnabled: false,
+    liveTranslationEnabled: false,
   },
   trial: null,
   cacheTTL: 3600,

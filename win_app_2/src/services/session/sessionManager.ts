@@ -248,6 +248,41 @@ export function addTranscriptEntry(
   return entry
 }
 
+export async function updateTranscriptEntryTranslation(
+  id: string,
+  translatedText: string,
+  sourceLang: string | null,
+  targetLang: string,
+): Promise<void> {
+  // Update Zustand store immediately for any consumers reading entries
+  const store = useSessionStore.getState()
+  const session = store.currentSession
+  if (session) {
+    const updatedEntries = session.entries.map((e) =>
+      e.id === id
+        ? {
+            ...e,
+            translatedText,
+            translationSourceLang: sourceLang,
+            translationTargetLang: targetLang,
+          }
+        : e,
+    )
+    store.updateSession(session.id, { entries: updatedEntries })
+  }
+
+  try {
+    await db.query(
+      `UPDATE transcript_entries
+       SET translated_text = ?, translation_source_lang = ?, translation_target_lang = ?
+       WHERE id = ?`,
+      [translatedText, sourceLang, targetLang, id],
+    )
+  } catch (err) {
+    log.error('Failed to persist transcript entry translation', err)
+  }
+}
+
 export function setTitle(title: string): void {
   const store = useSessionStore.getState()
   const session = store.currentSession

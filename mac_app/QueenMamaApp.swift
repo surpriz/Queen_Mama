@@ -582,8 +582,11 @@ class AppState: ObservableObject {
                 self.preGenerationService.onTranscriptUpdated(self.currentTranscript)
 
                 // Fire-and-forget translation. Never blocks transcript or AI flow.
+                // Gated to Enterprise plan — Free/Pro users do not consume DeepL credits.
                 let config = ConfigurationManager.shared
-                if config.translationEnabled, let id = entryID {
+                if config.translationEnabled,
+                   LicenseManager.shared.isFeatureAvailable(.liveTranslation),
+                   let id = entryID {
                     let target = config.translationTargetLanguage
                     let source = config.translationSourceLanguage
                     Task { [weak self] in
@@ -710,6 +713,7 @@ class AppState: ObservableObject {
         autoAnswerService.reset()  // Reset auto-answer state
         autoAnswerService.resetProactiveState()  // Reset proactive state
         preGenerationService.reset()  // Reset pre-generation buffer
+        translationService.resetContext()  // Reset rolling translation context so it doesn't bleed across sessions
         dictationService.stopRecording()  // Stop dictation if active
         isSessionActive = false
 

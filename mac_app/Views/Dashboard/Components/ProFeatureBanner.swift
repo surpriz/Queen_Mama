@@ -327,6 +327,7 @@ private struct FeatureGatedModifier: ViewModifier {
         case .knowledgeBase: return "Knowledge Base"
         case .proactiveSuggestions: return "Proactive Suggestions"
         case .bufferedPreGen: return "Instant Responses"
+        case .liveTranslation: return "Live Translation"
         }
     }
 }

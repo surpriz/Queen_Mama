@@ -265,7 +265,8 @@
       "feature5": "Tous les formats d'export",
       "feature6": "Support prioritaire",
       "feature7": "Mode Smart",
-      "feature8": "Overlay indétectable"
+      "feature8": "Overlay indétectable",
+      "feature9": "Traduction en direct (DeepL)"
     },
     "enterprise": {
       "name": "Enterprise",
@@ -281,7 +282,8 @@
       "feature6": "Stockage étendu des transcriptions",
       "feature7": "Knowledge Base IA",
       "feature8": "Réponses instantanées (pré-générées)",
-      "feature9": "Support dédié"
+      "feature9": "Traduction en direct (DeepL)",
+      "feature10": "Support dédié"
     },
     "gdpr": "Données stockées en Europe de manière sécurisée (conforme RGPD)",
     "cancelAnytime": "Résiliez à tout moment. Sans condition."
@@ -1014,6 +1016,30 @@
       "liveTranslation": {
         "title": "Onglet Traduction en direct",
         "description": "Traduisez la parole de l'interlocuteur en temps réel dans l'overlay — un onglet Traduction dédié conserve l'historique complet avec texte source et cible côte à côte"
+      },
+      "windowsLiveTranslation": {
+        "title": "Traduction en direct sur Windows",
+        "description": "La traduction DeepL en temps réel est désormais disponible sur l'application Windows avec le même onglet Traduction dédié que sur macOS"
+      },
+      "translationDefaultOn": {
+        "title": "Traduction en direct activée par défaut",
+        "description": "La traduction en direct et l'onglet Traduction sont désormais activés d'emblée — rendez-vous dans Réglages → Traduction uniquement si vous souhaitez les désactiver"
+      },
+      "translationContextCoherence": {
+        "title": "Traduction plus fluide entre les chunks",
+        "description": "DeepL reçoit désormais le contexte conversationnel glissant, ce qui garde la terminologie et le phrasé cohérents d'un chunk de transcript à l'autre"
+      },
+      "responseLanguageLock": {
+        "title": "Verrouillage renforcé de la langue de réponse",
+        "description": "Les réponses IA restent désormais verrouillées sur la langue détectée de la réunion, même sur de longues sessions, sans dérive en cours de conversation"
+      },
+      "overlaySpeakerLabelsI18n": {
+        "title": "Étiquettes de locuteur localisées",
+        "description": "Les étiquettes de locuteur de l'overlay (Vous / Autre) suivent désormais la langue de l'application au lieu d'être figées en anglais"
+      },
+      "windowsConfigSync": {
+        "title": "Synchro instantanée des réglages (Windows)",
+        "description": "Modifier un réglage dans une fenêtre Windows se propage désormais instantanément vers le dashboard, l'overlay et les autres fenêtres ouvertes"
       },
       "speakerDiarization": {
         "title": "Détection des locuteurs améliorée",

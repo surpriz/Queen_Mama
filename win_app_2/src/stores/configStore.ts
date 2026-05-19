@@ -25,6 +25,9 @@ export const useConfigStore = create<ConfigStoreState>()(subscribeWithSelector((
     if ('isUndetectabilityEnabled' in partial) {
       window.electronAPI?.setDisplayAffinity(!!partial.isUndetectabilityEnabled)
     }
+    // Broadcast partial config to other windows (dashboard <-> overlay) so each
+    // window's Zustand instance stays in sync without a restart.
+    window.electronAPI?.relay?.broadcast('relay:config', partial as Record<string, unknown>)
   },
 
   resetToDefaults: () => {
@@ -80,3 +83,11 @@ useConfigStore.subscribe(
     }
   },
 )
+
+// Receive config updates broadcast from the other window. Apply directly via
+// setState so we don't re-broadcast or re-persist (avoids feedback loops).
+if (typeof window !== 'undefined' && window.electronAPI?.onConfigSync) {
+  window.electronAPI.onConfigSync((partial) => {
+    useConfigStore.setState(partial as Partial<ConfigStoreState>)
+  })
+}

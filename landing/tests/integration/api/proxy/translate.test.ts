@@ -252,6 +252,66 @@ describe("POST /api/proxy/translate", () => {
     expect(fetchMock.mock.calls[0][0]).toBe("https://api.deepl.com/v2/translate");
   });
 
+  it("forwards context to DeepL when provided", async () => {
+    prismaMock.user.findUnique.mockResolvedValue({
+      ...createTestUser(),
+      subscription: createTestSubscription({ plan: "PRO" }),
+    } as never);
+    prismaMock.usageLog.aggregate.mockResolvedValue({ _sum: { tokensUsed: 0 } } as never);
+    prismaMock.usageLog.create.mockResolvedValue({} as never);
+
+    const fetchMock = vi.fn().mockResolvedValueOnce(
+      new Response(
+        JSON.stringify({ translations: [{ text: "Hello" }] }),
+        { status: 200, headers: { "Content-Type": "application/json" } }
+      )
+    );
+    global.fetch = fetchMock;
+
+    await POST(makeRequest({
+      text: "Bonjour",
+      target_lang: "EN-US",
+      context: "Andrew est génial.",
+    }));
+
+    const callBody = (fetchMock.mock.calls[0][1] as { body: string }).body;
+    expect(callBody).toContain("context=Andrew");
+  });
+
+  it("rejects context exceeding 10000 chars", async () => {
+    const huge = "a".repeat(10_001);
+    const res = await POST(makeRequest({
+      text: "Bonjour",
+      target_lang: "EN-US",
+      context: huge,
+    }));
+    expect(res.status).toBe(400);
+    const json = await res.json();
+    expect(json.error).toBe("context_too_long");
+  });
+
+  it("omits context param when not provided", async () => {
+    prismaMock.user.findUnique.mockResolvedValue({
+      ...createTestUser(),
+      subscription: createTestSubscription({ plan: "PRO" }),
+    } as never);
+    prismaMock.usageLog.aggregate.mockResolvedValue({ _sum: { tokensUsed: 0 } } as never);
+    prismaMock.usageLog.create.mockResolvedValue({} as never);
+
+    const fetchMock = vi.fn().mockResolvedValueOnce(
+      new Response(
+        JSON.stringify({ translations: [{ text: "Hello" }] }),
+        { status: 200, headers: { "Content-Type": "application/json" } }
+      )
+    );
+    global.fetch = fetchMock;
+
+    await POST(makeRequest({ text: "Bonjour", target_lang: "EN-US" }));
+
+    const callBody = (fetchMock.mock.calls[0][1] as { body: string }).body;
+    expect(callBody).not.toContain("context=");
+  });
+
   it("ENTERPRISE plan has unlimited quota (skips aggregation)", async () => {
     prismaMock.user.findUnique.mockResolvedValue({
       ...createTestUser(),

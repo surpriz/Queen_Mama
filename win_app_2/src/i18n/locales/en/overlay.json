@@ -3,7 +3,17 @@
     "assist": "Assist",
     "whatToSay": "What to say",
     "followUp": "Follow-up",
-    "recap": "Recap"
+    "recap": "Recap",
+    "translate": "Translate"
+  },
+  "translate": {
+    "header": {
+      "auto": "AUTO"
+    },
+    "empty": {
+      "title": "No translations yet",
+      "subtitle": "Start a session — interlocutor speech will appear here translated live."
+    }
   },
   "pillHeader": {
     "dragToMove": "Drag to move",
@@ -44,7 +54,9 @@
   },
   "transcript": {
     "title": "Transcript",
-    "listening": "Listening..."
+    "listening": "Listening...",
+    "speakerMe": "Me",
+    "speakerThem": "Them"
   },
   "expandedContent": {
     "screenOnly": "Screen only",

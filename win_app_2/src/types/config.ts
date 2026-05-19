@@ -43,6 +43,14 @@ export interface AppConfig {
 
   // Onboarding
   hasCompletedOnboarding: boolean
+
+  // Live Translation (DeepL via proxy)
+  translationEnabled: boolean
+  translationShowInOverlay: boolean
+  /** DeepL source code or "auto" for auto-detect. */
+  translationSourceLanguage: string
+  /** DeepL target code (e.g. "EN-US", "FR"). */
+  translationTargetLanguage: string
 }
 
 export const DEFAULT_CONFIG: AppConfig = {
@@ -76,6 +84,11 @@ export const DEFAULT_CONFIG: AppConfig = {
   shortcutClearContext: 'ctrl+shift+r',
 
   hasCompletedOnboarding: false,
+
+  translationEnabled: true,
+  translationShowInOverlay: true,
+  translationSourceLanguage: 'auto',
+  translationTargetLanguage: 'EN-US',
 }
 
 export interface AppEnvironment {

@@ -26,6 +26,9 @@ export const transcriptEntries = sqliteTable('transcript_entries', {
   speaker: text('speaker').notNull().default('Unknown'),
   text: text('text').notNull().default(''),
   isFinal: integer('is_final', { mode: 'boolean' }).notNull().default(false),
+  translatedText: text('translated_text'),
+  translationSourceLang: text('translation_source_lang'),
+  translationTargetLang: text('translation_target_lang'),
 })
 
 export const aiResponses = sqliteTable('ai_responses', {

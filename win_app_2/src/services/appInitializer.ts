@@ -24,6 +24,7 @@ import * as contactSyncService from '@/services/contacts/contactSyncService'
 import { useContactStore } from '@/stores/contactStore'
 import { modesService } from '@/services/modes/modesService'
 import { useAppStore } from '@/stores/appStore'
+import { useConfigStore } from '@/stores/configStore'
 
 let initialized = false
 
@@ -32,6 +33,16 @@ export async function initializeApp(): Promise<void> {
   initialized = true
 
   console.log('[AppInit] Starting initialization...')
+
+  // Load persisted user config (showLiveTranscript, captureSystemAudio, etc.)
+  // Must run in every window (dashboard + overlay) so each Zustand instance
+  // reflects the user's saved preferences instead of falling back to defaults.
+  try {
+    await useConfigStore.getState().loadFromStorage()
+    console.log('[AppInit] Config loaded from storage')
+  } catch (error) {
+    console.error('[AppInit] Config load failed:', error)
+  }
 
   // 1. Initialize device ID cache (for sync)
   try {

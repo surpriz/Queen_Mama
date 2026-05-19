@@ -20,22 +20,26 @@ struct ModernTranslationSettingsView: View {
             // General Card
             SettingsCard(title: String(localized: "settings.translation.general"), icon: "character.bubble") {
                 VStack(spacing: QMDesign.Spacing.md) {
-                    ModernToggleRow(
+                    LicenseGatedToggleRow(
                         title: String(localized: "settings.translation.enable"),
                         description: String(localized: "settings.translation.enable.description") + " " + String(localized: "settings.general.betaNotice"),
                         isOn: $config.translationEnabled,
                         icon: "globe",
+                        feature: .liveTranslation,
+                        requiredTier: "Enterprise",
                         isBeta: true
                     )
 
                     Divider()
                         .background(QMDesign.Colors.borderSubtle)
 
-                    ModernToggleRow(
+                    LicenseGatedToggleRow(
                         title: String(localized: "settings.translation.showInOverlay"),
                         description: String(localized: "settings.translation.showInOverlay.description"),
                         isOn: $config.translationShowInOverlay,
-                        icon: "macwindow"
+                        icon: "macwindow",
+                        feature: .liveTranslation,
+                        requiredTier: "Enterprise"
                     )
                 }
             }
@@ -154,7 +158,7 @@ struct ModernTranslationSettingsView: View {
         Task { @MainActor in
             do {
                 let start = Date()
-                let result = try await provider.translate(text: sample, sourceLang: nil, targetLang: target)
+                let result = try await provider.translate(text: sample, sourceLang: nil, targetLang: target, context: nil)
                 let ms = Int(Date().timeIntervalSince(start) * 1000)
                 testStatus = .success
                 testMessage = String(format: String(localized: "settings.translation.test.success"), ms) + " — " + result.translatedText

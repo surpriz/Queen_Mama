@@ -20,6 +20,41 @@ final class TranslationServiceTests: XCTestCase {
         XCTAssertEqual(mock.lastTargetLang, "EN")
     }
 
+    func test_translate_firstCall_hasNilContext() async {
+        let mock = MockTranslationProvider()
+        let service = TranslationService(proxyProvider: mock)
+        await service.translate(entryID: UUID(), text: "Bonjour", sourceLang: nil, targetLang: "EN")
+        XCTAssertNil(mock.lastContext, "First call should have no context")
+    }
+
+    func test_translate_subsequentCall_passesPriorChunksAsContext() async {
+        let mock = MockTranslationProvider()
+        let service = TranslationService(proxyProvider: mock)
+        await service.translate(entryID: UUID(), text: "Bonjour", sourceLang: nil, targetLang: "EN")
+        await service.translate(entryID: UUID(), text: "comment ça va", sourceLang: nil, targetLang: "EN")
+        XCTAssertEqual(mock.lastContext, "Bonjour")
+    }
+
+    func test_translate_contextWindow_capsAtThreeChunks() async {
+        let mock = MockTranslationProvider()
+        let service = TranslationService(proxyProvider: mock)
+        await service.translate(entryID: UUID(), text: "one", sourceLang: nil, targetLang: "EN")
+        await service.translate(entryID: UUID(), text: "two", sourceLang: nil, targetLang: "EN")
+        await service.translate(entryID: UUID(), text: "three", sourceLang: nil, targetLang: "EN")
+        await service.translate(entryID: UUID(), text: "four", sourceLang: nil, targetLang: "EN")
+        // Context for "four" should contain only the 3 most recent prior chunks (one, two, three).
+        XCTAssertEqual(mock.lastContext, "one two three")
+    }
+
+    func test_resetContext_clearsBuffer() async {
+        let mock = MockTranslationProvider()
+        let service = TranslationService(proxyProvider: mock)
+        await service.translate(entryID: UUID(), text: "Bonjour", sourceLang: nil, targetLang: "EN")
+        service.resetContext()
+        await service.translate(entryID: UUID(), text: "Hello", sourceLang: nil, targetLang: "EN")
+        XCTAssertNil(mock.lastContext)
+    }
+
     func test_translate_returnsCachedOnSecondCall() async {
         let mock = MockTranslationProvider()
         let service = TranslationService(proxyProvider: mock)

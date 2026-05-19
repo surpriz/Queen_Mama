@@ -23,6 +23,9 @@ export interface TranscriptEntry {
   speaker: string
   text: string
   isFinal: boolean
+  translatedText?: string | null
+  translationSourceLang?: string | null
+  translationTargetLang?: string | null
 }
 
 export interface AIResponseRecord {
@@ -42,6 +45,7 @@ export enum ResponseType {
   FollowUp = 'Follow-up',
   Recap = 'Recap',
   Custom = 'Custom',
+  Translate = 'Translate',
 }
 
 const LANGUAGE_INSTRUCTION = `
@@ -249,6 +253,20 @@ HARD BAN — if your response contains ANY of these, it is WRONG:
 - Generic interview filler ("Je suis développeur avec de l'expérience…") when a specific question was asked
 - Follow-up questions back to the interlocutor (those belong on the "Follow-up" tab)
 
+<example>
+FRENCH TRANSCRIPT — réponse 100% française:
+- "Concrètement, on a chiffré l'impact à 12 % de marge en moins sur le Q3 — c'est notre P&L, pas un risque théorique."
+- "Si on reste sur ce schéma, on perd 90 jours de cycle face à des concurrents qui livrent en 30."
+- "La vraie question : on optimise ou on remet à plat ? Les deux n'ont pas le même budget."
+</example>
+
+<example>
+ENGLISH TRANSCRIPT — 100% English response:
+- "Concretely, we measured the impact at a 12% margin loss on Q3 — this is our P&L, not a theoretical risk."
+- "If we stay on this path, we lose 90 days of sales cycle versus competitors shipping in 30."
+- "The real question: are we optimizing or rebuilding from scratch? The two don't have the same budget."
+</example>
+
 FORMAT: 3 bullet points (using "- "), each on its own line, each a phrase in quotes, 1-2 sentences. No preamble.
 
 ABSOLUTE LANGUAGE RULE: Detect the language of the transcript/content. Your ENTIRE response — every word, including action verb prefixes, bullet labels, and quoted phrases — must be in that SAME language. French transcript = 100% French. English transcript = 100% English. NEVER mix languages within a response.`,
@@ -261,6 +279,20 @@ PHRASE RULES:
 - Enrich with domain expertise: precise facts, benchmarks, or insights that show deep knowledge
 - NEVER weak/passive phrases ("on pourrait", "il faudrait peut-être", "we could maybe")
 - Each takes a DIFFERENT angle
+
+<example>
+FRENCH TRANSCRIPT — réponse 100% française:
+- "Concrètement, on a chiffré l'impact à 12 % de marge en moins sur le Q3 — c'est notre P&L, pas un risque théorique."
+- "Si on reste sur ce schéma, on perd 90 jours de cycle face à des concurrents qui livrent en 30."
+- "La vraie question : on optimise ou on remet à plat ? Les deux n'ont pas le même budget."
+</example>
+
+<example>
+ENGLISH TRANSCRIPT — 100% English response:
+- "Concretely, we measured the impact at a 12% margin loss on Q3 — this is our P&L, not a theoretical risk."
+- "If we stay on this path, we lose 90 days of sales cycle versus competitors shipping in 30."
+- "The real question: are we optimizing or rebuilding from scratch? The two don't have the same budget."
+</example>
 
 FORMAT:
 - NO preamble. Start DIRECTLY with the first bullet.
@@ -290,6 +322,20 @@ HARD BAN — if your response contains ANY of these, it is WRONG:
 - Recap of multiple transcript topics
 - Generic "tell me more about…" filler
 
+<example>
+FRENCH TRANSCRIPT — réponse 100% française:
+1. "Quelle hypothèse tomberait en premier si le marché se retournait, et comment le détecterait-on tôt ?"
+2. "Quel KPI nous dirait, dans 90 jours, que cette décision a été la bonne ?"
+3. "Si on avait deux fois moins de budget, qu'est-ce qu'on couperait en premier — et pourquoi ?"
+</example>
+
+<example>
+ENGLISH TRANSCRIPT — 100% English response:
+1. "Which assumption would fail first under a market downturn, and how would we detect it early?"
+2. "What single KPI would tell us in 90 days that this was the right call?"
+3. "If we had half the budget, what would we cut first — and why?"
+</example>
+
 FORMAT: 3 questions, numbered 1-3, each in quotes, on its own line. No preamble, no commentary.
 
 ABSOLUTE LANGUAGE RULE: Detect the language of the transcript/content. Your ENTIRE response — every word, including action verb prefixes, bullet labels, and quoted phrases — must be in that SAME language. French transcript = 100% French. English transcript = 100% English. NEVER mix languages within a response.`,
@@ -302,6 +348,20 @@ QUESTION RULES:
 - Enrich with domain expertise: build questions from deep knowledge (regulations, benchmarks, precedents)
 - NEVER basic checklist questions ("avez-vous vérifié...?", "have you checked...?")
 - Each targets a DIFFERENT dimension
+
+<example>
+FRENCH TRANSCRIPT — réponse 100% française:
+1. "Quelle hypothèse tomberait en premier si le marché se retournait, et comment le détecterait-on tôt ?"
+2. "Quel KPI nous dirait, dans 90 jours, que cette décision a été la bonne ?"
+3. "Si on avait deux fois moins de budget, qu'est-ce qu'on couperait en premier — et pourquoi ?"
+</example>
+
+<example>
+ENGLISH TRANSCRIPT — 100% English response:
+1. "Which assumption would fail first under a market downturn, and how would we detect it early?"
+2. "What single KPI would tell us in 90 days that this was the right call?"
+3. "If we had half the budget, what would we cut first — and why?"
+</example>
 
 FORMAT:
 - NO preamble. Start directly with the questions.
@@ -320,6 +380,13 @@ FORMAT:
     shortLabel: 'Custom',
     classicSystemPromptAddition: CUSTOM_PROMPT,
     systemPromptAddition: CUSTOM_PROMPT,
+  },
+  [ResponseType.Translate]: {
+    icon: 'Languages',
+    label: 'Translate',
+    shortLabel: 'Translate',
+    classicSystemPromptAddition: '',
+    systemPromptAddition: '',
   },
 }
 

@@ -1045,7 +1045,9 @@ struct ModernExpandedContentView: View {
         if appState.currentSessionContact != nil {
             tabs.append(.briefing)
         }
-        if config.translationEnabled && config.translationShowInOverlay {
+        if config.translationEnabled
+            && config.translationShowInOverlay
+            && LicenseManager.shared.isFeatureAvailable(.liveTranslation) {
             tabs.append(.translate)
         }
         return tabs

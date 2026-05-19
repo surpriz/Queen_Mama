@@ -1,6 +1,9 @@
-import { Sparkles, MessageSquare, MessageCircleQuestion, RotateCcw } from 'lucide-react'
+import { Sparkles, MessageSquare, MessageCircleQuestion, RotateCcw, Languages } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { useOverlayStore } from '@/stores/overlayStore'
+import { useConfigStore } from '@/stores/configStore'
+import { useLicenseStore } from '@/stores/licenseStore'
+import { Feature } from '@/types/auth'
 import { ResponseType } from '@/types/models'
 import { cn } from '@/lib/utils'
 
@@ -12,13 +15,19 @@ export function TabBar({ onTabSelected }: TabBarProps) {
   const { t } = useTranslation('overlay')
   const selectedTab = useOverlayStore((s) => s.selectedTab)
   const setSelectedTab = useOverlayStore((s) => s.setSelectedTab)
+  const translationEnabled = useConfigStore((s) => s.translationEnabled)
+  const translationShowInOverlay = useConfigStore((s) => s.translationShowInOverlay)
+  const canUseTranslation = useLicenseStore((s) => s.isFeatureAvailable(Feature.LiveTranslation))
 
-  const TABS = [
+  const TABS: ReadonlyArray<{ type: ResponseType; label: string; icon: typeof Sparkles }> = [
     { type: ResponseType.Assist, label: t('tabs.assist'), icon: Sparkles },
     { type: ResponseType.WhatToSay, label: t('tabs.whatToSay'), icon: MessageSquare },
     { type: ResponseType.FollowUp, label: t('tabs.followUp'), icon: MessageCircleQuestion },
     { type: ResponseType.Recap, label: t('tabs.recap'), icon: RotateCcw },
-  ] as const
+    ...(translationEnabled && translationShowInOverlay && canUseTranslation
+      ? [{ type: ResponseType.Translate, label: t('tabs.translate'), icon: Languages }]
+      : []),
+  ]
 
   return (
     <div className="px-2 pt-1 pb-1.5">

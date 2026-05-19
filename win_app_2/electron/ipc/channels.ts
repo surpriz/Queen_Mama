@@ -85,6 +85,7 @@ export const IPC_CHANNELS = {
   RELAY_TRANSCRIPT: 'relay:transcript',
   RELAY_AI_RESPONSE: 'relay:ai-response',
   RELAY_AUDIO_LEVEL: 'relay:audio-level',
+  RELAY_TRANSLATION: 'relay:translation',
 
   // Dialog / file operations
   DIALOG_OPEN_FILE: 'dialog:open-file',

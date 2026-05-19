@@ -179,6 +179,10 @@ final class LicenseManager: ObservableObject {
         case .bufferedPreGen:
             // Buffered pre-generation is Enterprise-only
             return features.bufferedPreGenEnabled ? .allowed : .requiresEnterprise
+
+        case .liveTranslation:
+            // Live DeepL translation is Enterprise-only
+            return features.liveTranslationEnabled ? .allowed : .requiresEnterprise
         }
     }
 

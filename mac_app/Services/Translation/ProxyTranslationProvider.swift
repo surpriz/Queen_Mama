@@ -14,13 +14,14 @@ final class ProxyTranslationProvider: TranslationProvider {
         }
     }
 
-    func translate(text: String, sourceLang: String?, targetLang: String) async throws -> TranslationResult {
+    func translate(text: String, sourceLang: String?, targetLang: String, context: String?) async throws -> TranslationResult {
         let start = Date()
         do {
             let response = try await ProxyAPIClient.shared.translate(
                 text: text,
                 sourceLang: sourceLang,
-                targetLang: targetLang
+                targetLang: targetLang,
+                context: context
             )
             let latency = Int(Date().timeIntervalSince(start) * 1000)
             return TranslationResult(

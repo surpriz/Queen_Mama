@@ -6,7 +6,14 @@ protocol TranslationProvider: Sendable {
     var providerName: String { get }
     var isConfigured: Bool { get }
 
-    func translate(text: String, sourceLang: String?, targetLang: String) async throws -> TranslationResult
+    /// - Parameters:
+    ///   - text: source text to translate.
+    ///   - sourceLang: ISO 639-1 / DeepL code, or nil for auto-detect.
+    ///   - targetLang: ISO 639-1 / DeepL code (required).
+    ///   - context: optional preceding text passed to the engine for disambiguation
+    ///     (resolves pronouns, idioms split across chunks). Not translated, not billed
+    ///     as user-visible output. Pass nil if no prior context exists.
+    func translate(text: String, sourceLang: String?, targetLang: String, context: String?) async throws -> TranslationResult
 }
 
 // MARK: - Result
@@ -73,7 +80,7 @@ struct NoOpTranslationProvider: TranslationProvider {
     let providerName = "None"
     let isConfigured = false
 
-    func translate(text: String, sourceLang: String?, targetLang: String) async throws -> TranslationResult {
+    func translate(text: String, sourceLang: String?, targetLang: String, context: String?) async throws -> TranslationResult {
         throw TranslationError.notConfigured
     }
 }

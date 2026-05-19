@@ -25,6 +25,7 @@ const PLAN_FEATURES = {
     knowledgeBaseEnabled: false, // Enterprise only
     proactiveSuggestionsEnabled: false, // Enterprise only — must be present for HMAC consistency
     bufferedPreGenEnabled: false, // Enterprise only
+    liveTranslationEnabled: false, // Enterprise only — must be present for HMAC consistency
   },
   PRO: {
     smartModeEnabled: false, // Smart Mode is Enterprise only
@@ -41,6 +42,7 @@ const PLAN_FEATURES = {
     knowledgeBaseEnabled: false, // Enterprise only
     proactiveSuggestionsEnabled: false, // Enterprise only — must be present for HMAC consistency
     bufferedPreGenEnabled: false, // Enterprise only
+    liveTranslationEnabled: false, // Enterprise only — must be present for HMAC consistency
   },
   ENTERPRISE: {
     smartModeEnabled: true,
@@ -57,6 +59,7 @@ const PLAN_FEATURES = {
     knowledgeBaseEnabled: true, // Context Intelligence enabled
     proactiveSuggestionsEnabled: true,
     bufferedPreGenEnabled: true, // Instant AI responses via pre-generation
+    liveTranslationEnabled: true, // Live DeepL translation
   },
 } as const;
 

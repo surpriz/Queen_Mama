@@ -79,6 +79,7 @@
       "autoAnswer": "Réponse auto",
       "proactive": "Proactif",
       "audio": "Audio",
+      "translation": "Traduction",
       "sync": "Sync",
       "shortcuts": "Raccourcis",
       "updates": "Mises à jour"
@@ -165,6 +166,25 @@
       "audioLevelTestDescription": "Vérifier l'entrée de votre microphone",
       "startTest": "Démarrer le test",
       "stopTest": "Arrêter le test"
+    },
+    "translation": {
+      "title": "Traduction en direct",
+      "subtitle": "Traduit la voix de l'interlocuteur en temps réel via DeepL.",
+      "general": "Général",
+      "enable": "Activer la traduction en direct",
+      "enableDescription": "Traduit l'audio de l'autre participant pendant une session active.",
+      "showInOverlay": "Afficher l'onglet Traduire dans l'overlay",
+      "showInOverlayDescription": "Affiche l'onglet dédié dans le widget flottant.",
+      "languages": "Langues",
+      "sourceLanguage": "Langue source",
+      "sourceLanguageAuto": "Détection automatique",
+      "targetLanguage": "Langue cible",
+      "provider": "Fournisseur",
+      "providerStatus": "DeepL via le proxy QueenMama",
+      "providerActive": "Actif — inclus dans votre formule",
+      "providerNotConfigured": "Indisponible sur votre formule — passez à Pro ou supérieur.",
+      "test": "Tester la traduction",
+      "testing": "Test en cours..."
     },
     "sync": {
       "title": "Synchronisation",

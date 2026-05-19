@@ -283,7 +283,7 @@ final class ConfigurationManager: ObservableObject {
         self.meetingDefaultParticipants = defaults.object(forKey: Keys.meetingDefaultParticipants) as? Int ?? 2
 
         // Live Translation
-        self.translationEnabled = defaults.object(forKey: Keys.translationEnabled) as? Bool ?? false
+        self.translationEnabled = defaults.object(forKey: Keys.translationEnabled) as? Bool ?? true
         self.translationTargetLanguage = defaults.string(forKey: Keys.translationTargetLang) ?? "FR"
         self.translationSourceLanguage = defaults.string(forKey: Keys.translationSourceLang) ?? "auto"
         self.translationShowInOverlay = defaults.object(forKey: Keys.translationShowOverlay) as? Bool ?? true

@@ -24,6 +24,11 @@ export const changelogData: ChangelogRelease[] = [
         category: "features",
         changes: [
           {
+            id: "windowsLiveTranslation",
+            title: "Live Translation on Windows",
+            description: "Real-time DeepL translation is now available on the Windows app with the same dedicated Translate tab as macOS"
+          },
+          {
             id: "liveTranslation",
             title: "Live Translation Tab",
             description: "Translate the other party's speech in real time directly inside the overlay — a dedicated Translate tab keeps a full history with source and target text side by side"
@@ -63,6 +68,31 @@ export const changelogData: ChangelogRelease[] = [
       {
         category: "improvements",
         changes: [
+          {
+            id: "translationDefaultOn",
+            title: "Live Translation On by Default",
+            description: "Live Translation and the Translate tab are now enabled out of the box — open Settings → Translation only if you want to turn them off"
+          },
+          {
+            id: "translationContextCoherence",
+            title: "Smoother Translation Across Chunks",
+            description: "DeepL now receives rolling conversation context, keeping terminology and phrasing consistent across consecutive transcript chunks"
+          },
+          {
+            id: "responseLanguageLock",
+            title: "Stronger Response Language Lock",
+            description: "AI responses now stay locked to the detected meeting language even on long sessions, preventing mid-conversation language drift"
+          },
+          {
+            id: "overlaySpeakerLabelsI18n",
+            title: "Localized Overlay Speaker Labels",
+            description: "Speaker labels in the overlay (You / Other) now follow your app language instead of being hardcoded in English"
+          },
+          {
+            id: "windowsConfigSync",
+            title: "Live Settings Sync (Windows)",
+            description: "Changing a setting in any Windows window now propagates instantly across the dashboard, overlay, and other open windows"
+          },
           {
             id: "languageOverride",
             title: "Manual Language Override",
