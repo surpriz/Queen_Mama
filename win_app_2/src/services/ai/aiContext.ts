@@ -222,6 +222,19 @@ export function buildSystemPrompt(params: AIContextParams): string {
       } else {
         prompt += '\n\n' + RESPONSE_TYPE_INFO[responseType].systemPromptAddition
       }
+
+      // Inline language reinforcement for short response types (FollowUp, WhatToSay)
+      // whose prompt bodies are predominantly English and bias the model toward English
+      // output even when the transcript is French. Injected here so the rule sits
+      // INSIDE the per-type block, not only as a distant top/bottom anchor.
+      if (
+        lockedLanguage &&
+        !langOverride &&
+        (responseType === ResponseType.FollowUp || responseType === ResponseType.WhatToSay)
+      ) {
+        const unit = responseType === ResponseType.FollowUp ? 'question' : 'phrase'
+        prompt += `\n\nLANGUAGE REINFORCEMENT — INLINE RULE: Each ${unit} above MUST be written in ${lockedLanguage}. Every single word — labels, prefixes, quoted content — in ${lockedLanguage}. The rules and examples above are guidance only; do NOT echo their language. ${lockedLanguage} only.`
+      }
     }
 
     if (!langOverride) {

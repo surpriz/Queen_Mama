@@ -234,6 +234,20 @@ final class AIResponse: Identifiable {
 
                 Each phrase must sound sharp and authoritative, never generic or passive. The user says it verbatim and gains credibility.
                 3 bullet points (using "- "), each on its own line, each a phrase in quotes, 1-2 sentences, each taking a different angle. No preamble.
+
+                <example>
+                FRENCH TRANSCRIPT — réponse 100% française:
+                - "Concrètement, on a chiffré l'impact à 12 % de marge en moins sur le Q3 — ce n'est pas un risque théorique, c'est notre P&L."
+                - "Si on reste sur ce schéma, on perd 90 jours de cycle de vente face à des concurrents qui livrent en 30."
+                - "La vraie question, c'est : on optimise ou on remet à plat ? Les deux n'ont pas le même budget."
+                </example>
+
+                <example>
+                ENGLISH TRANSCRIPT — 100% English response:
+                - "Concretely, we measured the impact at a 12% margin loss on Q3 — this is not a theoretical risk, it's our P&L."
+                - "If we stay on this path, we lose 90 days of sales cycle versus competitors shipping in 30."
+                - "The real question is: are we optimizing or rebuilding from scratch? The two don't have the same budget."
+                </example>
                 """ + languageRule
 
             case .followUp:
@@ -242,6 +256,20 @@ final class AIResponse: Identifiable {
 
                 Great questions reveal hidden assumptions, expose blind spots, or reframe the problem. They make the room think "excellent question."
                 3 numbered questions in quotes, each targeting a different dimension. No preamble.
+
+                <example>
+                FRENCH TRANSCRIPT — réponse 100% française:
+                1. "Quelle hypothèse de ce plan tomberait en premier si le marché se retournait, et comment le détecterait-on tôt ?"
+                2. "Quel KPI nous dirait, dans 90 jours, que cette décision a été la bonne ?"
+                3. "Si on avait deux fois moins de budget, qu'est-ce qu'on couperait en premier — et pourquoi ?"
+                </example>
+
+                <example>
+                ENGLISH TRANSCRIPT — 100% English response:
+                1. "Which assumption in this plan would fail first under a market downturn, and how would we detect it early?"
+                2. "What single KPI would tell us in 90 days that this was the right call?"
+                3. "If we had half the budget, what would we cut first — and why?"
+                </example>
                 """ + languageRule
 
             case .recap, .custom:
@@ -292,6 +320,20 @@ final class AIResponse: Identifiable {
                 - NEVER weak/passive phrases ("on pourrait", "il faudrait peut-être", "we could maybe")
                 - Each takes a DIFFERENT angle
 
+                <example>
+                FRENCH TRANSCRIPT — réponse 100% française:
+                - "Concrètement, on a chiffré l'impact à 12 % de marge en moins sur le Q3 — c'est notre P&L, pas un risque théorique."
+                - "Si on reste sur ce schéma, on perd 90 jours de cycle face à des concurrents qui livrent en 30."
+                - "La vraie question : on optimise ou on remet à plat ? Les deux n'ont pas le même budget."
+                </example>
+
+                <example>
+                ENGLISH TRANSCRIPT — 100% English response:
+                - "Concretely, we measured the impact at a 12% margin loss on Q3 — this is our P&L, not a theoretical risk."
+                - "If we stay on this path, we lose 90 days of sales cycle versus competitors shipping in 30."
+                - "The real question: are we optimizing or rebuilding from scratch? The two don't have the same budget."
+                </example>
+
                 FORMAT:
                 - NO preamble. Start DIRECTLY with the first bullet.
                 - Exactly 3 phrases, each starting with "- " on its own line, in quotes
@@ -309,6 +351,20 @@ final class AIResponse: Identifiable {
                 - Enrich with domain expertise: build questions from deep knowledge (regulations, benchmarks, precedents)
                 - NEVER basic checklist questions ("avez-vous vérifié...?", "have you checked...?")
                 - Each targets a DIFFERENT dimension
+
+                <example>
+                FRENCH TRANSCRIPT — réponse 100% française:
+                1. "Quelle hypothèse tomberait en premier si le marché se retournait, et comment le détecterait-on tôt ?"
+                2. "Quel KPI nous dirait, dans 90 jours, que cette décision a été la bonne ?"
+                3. "Si on avait deux fois moins de budget, qu'est-ce qu'on couperait en premier — et pourquoi ?"
+                </example>
+
+                <example>
+                ENGLISH TRANSCRIPT — 100% English response:
+                1. "Which assumption would fail first under a market downturn, and how would we detect it early?"
+                2. "What single KPI would tell us in 90 days that this was the right call?"
+                3. "If we had half the budget, what would we cut first — and why?"
+                </example>
 
                 FORMAT:
                 - NO preamble. Start directly with the questions.
@@ -621,6 +677,21 @@ struct AIContext: @unchecked Sendable {
                     prompt += "\n\n" + responseType.classicSystemPromptAddition
                 } else {
                     prompt += "\n\n" + responseType.systemPromptAddition
+                }
+
+                // Inline language reinforcement for short response types (followUp,
+                // whatToSay) whose prompt bodies are English-only and bias the model
+                // toward English output even when the transcript is French. Injected
+                // here so the rule sits INSIDE the per-type block, not only as a
+                // distant top/bottom anchor.
+                if let lang = detectedLang, !langOverrideActive,
+                   responseType == .followUp || responseType == .whatToSay {
+                    let unit = responseType == .followUp ? "question" : "phrase"
+                    prompt += """
+
+
+                    LANGUAGE REINFORCEMENT — INLINE RULE: Each \(unit) above MUST be written in \(lang). Every single word — labels, prefixes, quoted content — in \(lang). The rules and examples above are guidance only; do NOT echo their language. \(lang) only.
+                    """
                 }
             }
             print("[AIContext] Using BUILT-IN mode logic with responseType: \(responseType.rawValue)")
