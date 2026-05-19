@@ -16,12 +16,14 @@ final class MockTranslationProvider: TranslationProvider, @unchecked Sendable {
     private(set) var lastText: String?
     private(set) var lastSourceLang: String?
     private(set) var lastTargetLang: String?
+    private(set) var lastContext: String?
 
-    func translate(text: String, sourceLang: String?, targetLang: String) async throws -> TranslationResult {
+    func translate(text: String, sourceLang: String?, targetLang: String, context: String?) async throws -> TranslationResult {
         callCount += 1
         lastText = text
         lastSourceLang = sourceLang
         lastTargetLang = targetLang
+        lastContext = context
 
         if artificialLatencyMs > 0 {
             try await Task.sleep(nanoseconds: UInt64(artificialLatencyMs) * 1_000_000)

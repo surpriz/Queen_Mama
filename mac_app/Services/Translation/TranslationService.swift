@@ -18,8 +18,19 @@ final class TranslationService: ObservableObject {
     private let proxyProvider: TranslationProvider
     private weak var sessionManager: SessionManager?
 
+    /// Rolling buffer of the most recent source chunks. Passed as `context` to the
+    /// translation engine so it can resolve pronouns and idioms split across chunk
+    /// boundaries. DeepL processes context with negligible latency overhead.
+    private var contextBuffer: [String] = []
+    private let contextWindow = 3
+
     init(proxyProvider: TranslationProvider = ProxyTranslationProvider()) {
         self.proxyProvider = proxyProvider
+    }
+
+    /// Reset rolling context (call when session ends or language pair changes).
+    func resetContext() {
+        contextBuffer.removeAll()
     }
 
     func attach(sessionManager: SessionManager) {
@@ -50,15 +61,19 @@ final class TranslationService: ObservableObject {
                 sourceLang: effectiveSource,
                 targetLang: targetLang
             )
+            appendToContext(trimmed)
             updateTick &+= 1
             return
         }
+
+        let context = contextBuffer.isEmpty ? nil : contextBuffer.joined(separator: " ")
 
         do {
             let result = try await activeProvider.translate(
                 text: trimmed,
                 sourceLang: effectiveSource,
-                targetLang: targetLang
+                targetLang: targetLang,
+                context: context
             )
             cache.store(
                 text: trimmed,
@@ -72,6 +87,7 @@ final class TranslationService: ObservableObject {
                 sourceLang: result.detectedSourceLang ?? effectiveSource,
                 targetLang: targetLang
             )
+            appendToContext(trimmed)
             updateTick &+= 1
             // Clear prior error on success
             if lastError != nil {
@@ -92,5 +108,12 @@ final class TranslationService: ObservableObject {
 
     var providerStatus: String {
         activeProvider.isConfigured ? activeProvider.providerName : "Not available"
+    }
+
+    private func appendToContext(_ chunk: String) {
+        contextBuffer.append(chunk)
+        if contextBuffer.count > contextWindow {
+            contextBuffer.removeFirst(contextBuffer.count - contextWindow)
+        }
     }
 }

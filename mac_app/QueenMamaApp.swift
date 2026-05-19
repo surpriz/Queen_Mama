@@ -710,6 +710,7 @@ class AppState: ObservableObject {
         autoAnswerService.reset()  // Reset auto-answer state
         autoAnswerService.resetProactiveState()  // Reset proactive state
         preGenerationService.reset()  // Reset pre-generation buffer
+        translationService.resetContext()  // Reset rolling translation context so it doesn't bleed across sessions
         dictationService.stopRecording()  // Stop dictation if active
         isSessionActive = false
 

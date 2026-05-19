@@ -14,6 +14,7 @@ const corsHeaders = {
 };
 
 const MAX_TEXT_LENGTH = 5000; // DeepL hard limit is 128KB but no single transcript chunk should exceed 5K chars
+const MAX_CONTEXT_LENGTH = 10_000; // Context is multi-chunk; cap to avoid abuse
 
 interface DeepLTranslation {
   detected_source_language?: string;
@@ -58,7 +59,7 @@ export async function POST(request: Request) {
       );
     }
 
-    let body: { text?: string; target_lang?: string; source_lang?: string };
+    let body: { text?: string; target_lang?: string; source_lang?: string; context?: string };
     try {
       body = await request.json();
     } catch {
@@ -71,6 +72,7 @@ export async function POST(request: Request) {
     const text = body.text?.trim();
     const targetLang = body.target_lang?.toUpperCase();
     const sourceLang = body.source_lang?.toUpperCase();
+    const context = body.context?.trim();
 
     if (!text) {
       return NextResponse.json(
@@ -87,6 +89,12 @@ export async function POST(request: Request) {
     if (text.length > MAX_TEXT_LENGTH) {
       return NextResponse.json(
         { error: "text_too_long", message: `text exceeds ${MAX_TEXT_LENGTH} chars` },
+        { status: 400, headers: corsHeaders }
+      );
+    }
+    if (context && context.length > MAX_CONTEXT_LENGTH) {
+      return NextResponse.json(
+        { error: "context_too_long", message: `context exceeds ${MAX_CONTEXT_LENGTH} chars` },
         { status: 400, headers: corsHeaders }
       );
     }
@@ -168,6 +176,12 @@ export async function POST(request: Request) {
     params.append("target_lang", targetLang);
     if (sourceLang && sourceLang !== "AUTO") {
       params.append("source_lang", sourceLang);
+    }
+    if (context) {
+      // DeepL `context` is preceding text used for disambiguation, NOT translated
+      // and NOT billed as user-visible output. Helps resolve pronouns / idioms
+      // split across streamed chunks. See: https://developers.deepl.com/docs/api-reference/translate
+      params.append("context", context);
     }
     params.append("preserve_formatting", "1");
 

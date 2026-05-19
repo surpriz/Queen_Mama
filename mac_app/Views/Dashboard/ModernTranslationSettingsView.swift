@@ -154,7 +154,7 @@ struct ModernTranslationSettingsView: View {
         Task { @MainActor in
             do {
                 let start = Date()
-                let result = try await provider.translate(text: sample, sourceLang: nil, targetLang: target)
+                let result = try await provider.translate(text: sample, sourceLang: nil, targetLang: target, context: nil)
                 let ms = Int(Date().timeIntervalSince(start) * 1000)
                 testStatus = .success
                 testMessage = String(format: String(localized: "settings.translation.test.success"), ms) + " — " + result.translatedText
