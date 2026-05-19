@@ -175,6 +175,11 @@ const electronAPI = {
     ipcRenderer.on('relay:license', handler)
     return () => ipcRenderer.removeListener('relay:license', handler)
   },
+  onConfigSync: (callback: (partial: Record<string, unknown>) => void) => {
+    const handler = (_event: Electron.IpcRendererEvent, partial: Record<string, unknown>) => callback(partial)
+    ipcRenderer.on('relay:config', handler)
+    return () => ipcRenderer.removeListener('relay:config', handler)
+  },
 
   // Meeting detection (main → renderer)
   onMeetingDetected: (callback: (data: { appName: string }) => void) => {
