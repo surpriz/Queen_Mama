@@ -345,13 +345,15 @@ export async function queueExtractionForSession(
   }
 
   // Throttle 2: DB check (catches cross-instance recent extractions that produced atoms)
-  const recentAtom = await prisma.knowledgeAtom.findFirst({
-    where: {
-      sessionId,
-      createdAt: { gt: new Date(Date.now() - EXTRACTION_THROTTLE_MS) },
-    },
-    select: { id: true },
-  });
+  const recentAtom = await withRetry(() =>
+    prisma.knowledgeAtom.findFirst({
+      where: {
+        sessionId,
+        createdAt: { gt: new Date(Date.now() - EXTRACTION_THROTTLE_MS) },
+      },
+      select: { id: true },
+    })
+  );
   if (recentAtom) {
     recentExtractions.set(sessionId, Date.now());
     return;
