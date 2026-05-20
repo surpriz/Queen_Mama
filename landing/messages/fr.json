@@ -1092,6 +1092,14 @@
       "manualTriggerCache": {
         "title": "Déclenchements manuels toujours frais",
         "description": "Les déclenchements manuels d'onglet génèrent désormais systématiquement une nouvelle réponse au lieu de renvoyer du cache obsolète"
+      },
+      "macAuthRefreshHardening": {
+        "title": "Moins de déconnexions sur macOS",
+        "description": "Les rafraîchissements d'authentification transitoires sont désormais retentés avec un délai progressif et ne forcent l'écran de connexion que si la session est réellement révoquée — fini les déconnexions aléatoires après la sortie de veille"
+      },
+      "landingSyncReliability": {
+        "title": "Synchronisation des sessions plus fiable",
+        "description": "La synchronisation des sessions retente automatiquement les coupures inactives de Neon — synchroniser juste après un creux d'activité ne échoue plus dès la première tentative"
       }
     }
   },
