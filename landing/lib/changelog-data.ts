@@ -133,6 +133,16 @@ export const changelogData: ChangelogRelease[] = [
             title: "Fresh Manual Triggers",
             description: "Manual tab triggers now always generate a fresh response instead of returning stale cached output"
           },
+          {
+            id: "macAuthRefreshHardening",
+            title: "Fewer macOS Sign-Outs",
+            description: "Transient auth refreshes are now retried with backoff and only force a sign-in screen when the session is genuinely revoked — no more random disconnects after the laptop wakes from sleep"
+          },
+          {
+            id: "landingSyncReliability",
+            title: "More Reliable Session Sync",
+            description: "Session sync now retries Neon's idle-disconnect drops, so syncing right after the server has been quiet no longer fails on the first attempt"
+          },
         ],
       },
     ],
