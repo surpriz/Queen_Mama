@@ -572,6 +572,11 @@ final class SyncManager: ObservableObject {
             pendingCount = pendingQueue.count
         } catch {
             print("[Sync] Failed to load queue: \(error)")
+            CrashReporter.shared.captureError(error, extras: [
+                "service": "sync",
+                "operation": "load_queue",
+                "file": queueFileURL.lastPathComponent
+            ])
         }
     }
 
@@ -581,6 +586,11 @@ final class SyncManager: ObservableObject {
             try data.write(to: queueFileURL, options: .atomic)
         } catch {
             print("[Sync] Failed to save queue: \(error)")
+            CrashReporter.shared.captureError(error, extras: [
+                "service": "sync",
+                "operation": "save_queue",
+                "queue_count": pendingQueue.count
+            ])
         }
     }
 

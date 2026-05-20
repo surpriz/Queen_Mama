@@ -48,6 +48,10 @@ final class AudioCaptureService: ObservableObject {
     // nonisolated(unsafe): written once during setup, read from audio render thread
     nonisolated(unsafe) private var audioConverter: AVAudioConverter?
 
+    // Rate-limit Sentry captures from audio tap (runs at high frequency).
+    // Capture once per session lifetime to avoid event flooding.
+    nonisolated(unsafe) private var conversionErrorCaptured = false
+
     // MARK: - Initialization
 
     init() {}
@@ -134,6 +138,7 @@ final class AudioCaptureService: ObservableObject {
         isCapturing = false
         microphoneLevel = 0
         systemAudioLevel = 0
+        conversionErrorCaptured = false
     }
 
     // MARK: - Private Methods
@@ -241,6 +246,17 @@ final class AudioCaptureService: ObservableObject {
 
             if let convError {
                 print("[AudioCapture] Conversion error: \(convError.localizedDescription)")
+                if !(self?.conversionErrorCaptured ?? true) {
+                    self?.conversionErrorCaptured = true
+                    Task { @MainActor in
+                        CrashReporter.shared.captureError(convError, extras: [
+                            "service": "audio",
+                            "operation": "tap_convert",
+                            "input_sample_rate": inputFormat.sampleRate,
+                            "target_sample_rate": floatFormat.sampleRate
+                        ])
+                    }
+                }
                 return
             }
 

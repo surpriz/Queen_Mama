@@ -1,5 +1,6 @@
 import { useState, useCallback, useRef } from 'react'
 import * as transcriptionService from '@/services/transcription/transcriptionService'
+import { captureError } from '@/services/crash/crashReporter'
 
 interface TranscriptEntry {
   text: string
@@ -52,6 +53,7 @@ export function useTranscription() {
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Transcription connection failed'
       setError(message)
+      captureError(err instanceof Error ? err : new Error(message), { source: 'use_transcription_connect' })
     }
   }, [])
 

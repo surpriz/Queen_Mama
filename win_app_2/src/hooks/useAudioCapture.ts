@@ -1,5 +1,6 @@
 import { useState, useCallback, useRef, useEffect } from 'react'
 import * as audioCaptureService from '@/services/audio/audioCaptureService'
+import { captureError } from '@/services/crash/crashReporter'
 
 export function useAudioCapture() {
   const [isCapturing, setIsCapturing] = useState(false)
@@ -27,6 +28,7 @@ export function useAudioCapture() {
       const message = err instanceof Error ? err.message : 'Failed to start audio capture'
       setError(message)
       console.error('[useAudioCapture] Start failed:', err)
+      captureError(err instanceof Error ? err : new Error(message), { source: 'use_audio_capture_start' })
     }
   }, [])
 

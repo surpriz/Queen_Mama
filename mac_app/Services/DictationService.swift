@@ -304,6 +304,10 @@ final class DictationService: ObservableObject {
                 case .failure(let error):
                     print("[Dictation] WebSocket error: \(error.localizedDescription)")
                     self.isConnected = false
+                    CrashReporter.shared.captureError(error, extras: [
+                        "service": "dictation",
+                        "operation": "websocket_receive"
+                    ])
                 }
             }
         }

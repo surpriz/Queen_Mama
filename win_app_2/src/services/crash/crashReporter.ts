@@ -97,6 +97,26 @@ export async function start(): Promise<void> {
 
     isInitialized = true
     log.info('Crash reporter initialized')
+
+    // Static tags that don't change at runtime — set once after init.
+    try {
+      const locale = navigator.language || 'unknown'
+      void setTag('locale', locale)
+    } catch { /* noop */ }
+
+    // Global safety nets for renderer — uncaught errors and unhandled promise
+    // rejections that escape every other catch must still reach Sentry.
+    if (typeof window !== 'undefined') {
+      window.addEventListener('error', (e) => {
+        const err = e.error instanceof Error ? e.error : new Error(e.message || 'window_error')
+        captureError(err, { source: 'window_error', filename: e.filename, lineno: e.lineno })
+      })
+      window.addEventListener('unhandledrejection', (e) => {
+        const err =
+          e.reason instanceof Error ? e.reason : new Error(typeof e.reason === 'string' ? e.reason : JSON.stringify(e.reason))
+        captureError(err, { source: 'unhandled_rejection' })
+      })
+    }
   } catch (error) {
     log.warn('Failed to initialize Sentry (may be expected in dev)', error)
   }

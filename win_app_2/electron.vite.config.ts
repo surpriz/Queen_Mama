@@ -47,6 +47,10 @@ export default defineConfig(({ mode }) => {
     renderer: {
       root: '.',
       build: {
+        // Generate source maps so Sentry can symbolicate renderer stack traces.
+        // For upload, install `@sentry/vite-plugin` and add it to `plugins` below
+        // with SENTRY_AUTH_TOKEN / SENTRY_ORG / SENTRY_PROJECT env vars set in CI.
+        sourcemap: true,
         rollupOptions: {
           input: {
             index: resolve(__dirname, 'index.html'),

@@ -1,5 +1,5 @@
 import { createLogger } from '@/lib/logger'
-import { captureError } from '@/services/crash/crashReporter'
+import { captureError, setTag } from '@/services/crash/crashReporter'
 import { useLicenseStore } from '@/stores/licenseStore'
 import { useAuthStore } from '@/stores/authStore'
 import * as authApi from '../auth/authApiClient'
@@ -31,6 +31,8 @@ export async function revalidate(): Promise<void> {
     licenseStore.setLicense(license)
     licenseStore.setLastValidatedAt(new Date().toISOString())
     licenseStore.setOffline(false)
+    setTag('license_tier', license.plan).catch(() => undefined)
+    setTag('license_status', license.status).catch(() => undefined)
 
     // Update usage from server
     if (license.usage) {

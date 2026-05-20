@@ -50,6 +50,11 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             // Set user context for crash reports and analytics if authenticated
             if let user = AuthenticationManager.shared.currentUser {
                 CrashReporter.shared.setUser(id: user.id, email: user.email)
+                CrashReporter.shared.setTag(key: "license_tier", value: LicenseManager.shared.currentLicense.plan.rawValue)
+                CrashReporter.shared.setTag(key: "locale", value: Locale.current.identifier)
+                if let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String {
+                    CrashReporter.shared.setTag(key: "app_version", value: version)
+                }
                 AnalyticsService.shared.identify(
                     userId: user.id,
                     email: user.email,
@@ -534,6 +539,10 @@ class AppState: ObservableObject {
                     print("[AppState] System audio WebSocket connected")
                 } catch {
                     print("[AppState] System audio WebSocket failed (continuing without): \(error.localizedDescription)")
+                    CrashReporter.shared.captureError(error, extras: [
+                        "service": "transcription",
+                        "operation": "connect_system_audio"
+                    ])
                 }
             }
 
@@ -842,6 +851,10 @@ class AppState: ObservableObject {
             print("[AppState] Auto-response generated: \(response.content.prefix(100))...")
         } catch {
             print("[AppState] Auto-response failed: \(error)")
+            CrashReporter.shared.captureError(error, extras: [
+                "service": "ai",
+                "operation": "auto_answer"
+            ])
         }
     }
 
@@ -902,6 +915,11 @@ class AppState: ObservableObject {
             )
         } catch {
             print("[AppState] Proactive response failed: \(error)")
+            CrashReporter.shared.captureError(error, extras: [
+                "service": "ai",
+                "operation": "proactive_response",
+                "moment_type": moment.type.rawValue
+            ])
             autoAnswerService.lastDetectedMoment = nil
         }
     }
