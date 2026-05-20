@@ -1,6 +1,7 @@
 import { BrowserWindow, shell, app, nativeImage } from 'electron'
 import { join } from 'path'
 import { existsSync } from 'fs'
+import { captureMessage, captureException } from '@sentry/electron/main'
 
 let mainWindow: BrowserWindow | null = null
 
@@ -48,20 +49,31 @@ export function createMainWindow(): BrowserWindow {
     mainWindow = null
   })
 
-  // Error handlers for debugging
-  mainWindow.webContents.on('crashed', (event, killed) => {
-    console.error('[MainWindow] Renderer process crashed:', { killed })
-  })
-
-  mainWindow.webContents.on('render-process-gone', (event, details) => {
+  // Error handlers — both for debugging and Sentry reporting
+  mainWindow.webContents.on('render-process-gone', (_event, details) => {
     console.error('[MainWindow] Render process gone:', details)
+    captureMessage(`renderer_gone: ${details.reason}`, {
+      level: details.reason === 'clean-exit' ? 'info' : 'fatal',
+      extra: { reason: details.reason, exitCode: details.exitCode },
+    })
   })
 
-  mainWindow.webContents.on('did-fail-load', (event, errorCode, errorDescription, validatedURL) => {
+  mainWindow.webContents.on('unresponsive', () => {
+    console.error('[MainWindow] Renderer unresponsive')
+    captureMessage('renderer_unresponsive', { level: 'warning' })
+  })
+
+  mainWindow.webContents.on('did-fail-load', (_event, errorCode, errorDescription, validatedURL, isMainFrame) => {
     console.error('[MainWindow] Failed to load:', {
       errorCode,
       errorDescription,
       validatedURL,
+    })
+    // -3 = ABORTED (normal navigation cancel), ignore.
+    if (errorCode === -3) return
+    captureMessage('did_fail_load', {
+      level: isMainFrame ? 'error' : 'warning',
+      extra: { errorCode, errorDescription, validatedURL, isMainFrame },
     })
   })
 
@@ -73,7 +85,9 @@ export function createMainWindow(): BrowserWindow {
   })
 
   mainWindow.webContents.setWindowOpenHandler((details) => {
-    shell.openExternal(details.url)
+    shell.openExternal(details.url).catch((err: Error) => {
+      captureException(err, { tags: { service: 'shell', operation: 'open_external' }, extra: { url: details.url } })
+    })
     return { action: 'deny' }
   })
 

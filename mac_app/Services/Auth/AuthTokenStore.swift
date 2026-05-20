@@ -150,13 +150,28 @@ final class AuthTokenStore {
                 return _cachedRefreshToken
             }
             // Fallback: direct Keychain read (before preloadCache is called)
-            if let token = try? getString(account: refreshTokenAccount, service: service) {
-                return token
+            do {
+                return try getString(account: refreshTokenAccount, service: service)
+            } catch KeychainError.itemNotFound {
+                // expected on first launch or after logout
+            } catch {
+                CrashReporter.shared.captureError(error, extras: [
+                    "service": "keychain",
+                    "operation": "get_refresh_token"
+                ])
             }
-            if let legacyToken = try? getString(account: refreshTokenAccount, service: legacyService) {
+            do {
+                let legacyToken = try getString(account: refreshTokenAccount, service: legacyService)
                 print("[TokenStore] Found token in legacy keychain, migrating...")
                 try? saveString(legacyToken, account: refreshTokenAccount, service: service)
                 return legacyToken
+            } catch KeychainError.itemNotFound {
+                // no legacy token — normal
+            } catch {
+                CrashReporter.shared.captureError(error, extras: [
+                    "service": "keychain",
+                    "operation": "get_refresh_token_legacy"
+                ])
             }
             return nil
         }
@@ -167,6 +182,10 @@ final class AuthTokenStore {
                     try saveString(token, account: refreshTokenAccount, service: service)
                 } catch {
                     print("[TokenStore] ⚠️ CRITICAL: Failed to save refresh token to Keychain: \(error)")
+                    CrashReporter.shared.captureError(error, extras: [
+                        "service": "keychain",
+                        "operation": "save_refresh_token"
+                    ])
                 }
             } else {
                 try? delete(account: refreshTokenAccount, service: service)
@@ -204,6 +223,10 @@ final class AuthTokenStore {
                     try saveData(data, account: userInfoAccount, service: service)
                 } catch {
                     print("[TokenStore] ⚠️ CRITICAL: Failed to save user info to Keychain: \(error)")
+                    CrashReporter.shared.captureError(error, extras: [
+                        "service": "keychain",
+                        "operation": "save_user_info"
+                    ])
                 }
             } else {
                 try? delete(account: userInfoAccount, service: service)
@@ -237,6 +260,10 @@ final class AuthTokenStore {
                     try saveString(string, account: tokenExpiryAccount, service: service)
                 } catch {
                     print("[TokenStore] ⚠️ Failed to save token expiry to Keychain: \(error)")
+                    CrashReporter.shared.captureError(error, extras: [
+                        "service": "keychain",
+                        "operation": "save_token_expiry"
+                    ])
                 }
             } else {
                 try? delete(account: tokenExpiryAccount, service: service)
@@ -356,7 +383,10 @@ final class AuthTokenStore {
         let status = SecItemCopyMatching(query as CFDictionary, &result)
 
         guard status == errSecSuccess else {
-            throw KeychainError.itemNotFound
+            if status == errSecItemNotFound {
+                throw KeychainError.itemNotFound
+            }
+            throw KeychainError.unexpectedStatus(status)
         }
 
         guard let data = result as? Data else {

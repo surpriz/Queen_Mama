@@ -1,4 +1,10 @@
 import { create } from 'zustand'
+import { captureError } from '@/services/crash/crashReporter'
+
+function reportOnboardingError(operation: string, e: unknown): void {
+  const err = e instanceof Error ? e : new Error(String(e))
+  captureError(err, { source: 'onboarding_store', operation })
+}
 
 export type OnboardingStep = 'welcome' | 'permissions' | 'account' | 'tour' | 'ready'
 
@@ -47,6 +53,7 @@ export const useOnboardingStore = create<OnboardingState>((set, get) => ({
       await window.electronAPI?.store.set(STORAGE_KEY, true)
     } catch (e) {
       console.error('[Onboarding] Failed to persist skip state:', e)
+      reportOnboardingError('persist_skip', e)
     }
     set({ currentStep: 'ready', hasCompletedOnboarding: true })
   },
@@ -56,6 +63,7 @@ export const useOnboardingStore = create<OnboardingState>((set, get) => ({
       await window.electronAPI?.store.set(STORAGE_KEY, true)
     } catch (e) {
       console.error('[Onboarding] Failed to persist completion state:', e)
+      reportOnboardingError('persist_completion', e)
     }
     set({ hasCompletedOnboarding: true })
   },
@@ -65,6 +73,7 @@ export const useOnboardingStore = create<OnboardingState>((set, get) => ({
       await window.electronAPI?.store.set(STORAGE_KEY, false)
     } catch (e) {
       console.error('[Onboarding] Failed to reset completion state:', e)
+      reportOnboardingError('reset_completion', e)
     }
     set({ currentStep: 'welcome', hasCompletedOnboarding: false })
   },
@@ -77,6 +86,7 @@ export const useOnboardingStore = create<OnboardingState>((set, get) => ({
       }
     } catch (e) {
       console.error('[Onboarding] Failed to load completion state:', e)
+      reportOnboardingError('load_completion', e)
     }
   },
 }))

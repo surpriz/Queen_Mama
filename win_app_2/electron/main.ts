@@ -1,6 +1,6 @@
 import { app, BrowserWindow, ipcMain, globalShortcut } from 'electron'
 import { execSync } from 'child_process'
-import { init as initSentry } from '@sentry/electron/main'
+import { init as initSentry, captureException } from '@sentry/electron/main'
 
 // Initialize Sentry in the main process before anything else
 if (process.env.SENTRY_DSN) {
@@ -30,6 +30,18 @@ if (process.env.SENTRY_DSN) {
     },
   })
 }
+
+// Global safety nets — catch anything that escapes try/catch in main process.
+// Sentry's auto-instrumentation does not cover all Node event-loop errors.
+process.on('uncaughtException', (err) => {
+  console.error('[Main] uncaughtException:', err)
+  captureException(err, { tags: { scope: 'main_uncaught' } })
+})
+process.on('unhandledRejection', (reason) => {
+  const err = reason instanceof Error ? reason : new Error(String(reason))
+  console.error('[Main] unhandledRejection:', err)
+  captureException(err, { tags: { scope: 'main_unhandled_rejection' } })
+})
 import {
   createMainWindow,
   getMainWindow,
@@ -157,6 +169,9 @@ if (!gotTheLock) {
       console.log('[Main] Database initialized')
     } catch (error) {
       console.error('[Main] Database initialization failed:', error)
+      captureException(error instanceof Error ? error : new Error(String(error)), {
+        tags: { service: 'database', operation: 'initialize' },
+      })
     }
 
     // Register all IPC handlers
@@ -198,6 +213,9 @@ if (!gotTheLock) {
       initAutoUpdater(mainWindow)
     } catch (error) {
       console.error('[Main] Auto-updater init failed:', error)
+      captureException(error instanceof Error ? error : new Error(String(error)), {
+        tags: { service: 'auto_updater', operation: 'init' },
+      })
     }
 
     app.on('activate', () => {

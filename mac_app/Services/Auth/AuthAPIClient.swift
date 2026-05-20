@@ -209,6 +209,13 @@ final class AuthAPIClient {
 
         if requiresAuth {
             guard let token = await getValidAccessToken() else {
+                await MainActor.run {
+                    CrashReporter.shared.addBreadcrumb(
+                        category: "auth",
+                        message: "GET \(endpoint) aborted — no valid access token",
+                        level: .warning
+                    )
+                }
                 throw AuthError.notAuthenticated
             }
             request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
@@ -230,6 +237,13 @@ final class AuthAPIClient {
 
         if requiresAuth {
             guard let token = await getValidAccessToken() else {
+                await MainActor.run {
+                    CrashReporter.shared.addBreadcrumb(
+                        category: "auth",
+                        message: "POST \(endpoint) aborted — no valid access token",
+                        level: .warning
+                    )
+                }
                 throw AuthError.notAuthenticated
             }
             request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
@@ -238,7 +252,7 @@ final class AuthAPIClient {
         return try await perform(request)
     }
 
-    private func perform<T: Decodable>(_ request: URLRequest) async throws -> T {
+    private func perform<T: Decodable>(_ request: URLRequest, retryCount: Int = 0) async throws -> T {
         let (data, response): (Data, URLResponse)
         do {
             (data, response) = try await session.data(for: request)
@@ -257,6 +271,19 @@ final class AuthAPIClient {
             return try JSONDecoder().decode(T.self, from: data)
 
         case 401:
+            // Retry once with a force-refreshed token. Skip for the refresh endpoint
+            // itself (avoid recursing on a revoked token) and for unauthenticated calls.
+            let isRefreshEndpoint = request.url?.path.hasSuffix("/api/auth/macos/refresh") ?? false
+            let hasAuthHeader = request.value(forHTTPHeaderField: "Authorization") != nil
+            if retryCount == 0 && hasAuthHeader && !isRefreshEndpoint {
+                print("[AuthAPI] 401 Unauthorized — attempting force refresh and retry")
+                if let refreshedToken = await getValidAccessToken(forceRefresh: true) {
+                    var retryRequest = request
+                    retryRequest.setValue("Bearer \(refreshedToken)", forHTTPHeaderField: "Authorization")
+                    return try await perform(retryRequest, retryCount: 1)
+                }
+            }
+
             let errorResponse = try? JSONDecoder().decode(ErrorResponse.self, from: data)
             if errorResponse?.error == "oauth_user" {
                 throw AuthError.oauthUserNeedsDeviceCode
@@ -279,33 +306,86 @@ final class AuthAPIClient {
         }
     }
 
-    private func getValidAccessToken() async -> String? {
-        // Check if we have a valid access token (MainActor-isolated tokenStore)
-        let cachedToken: String? = await MainActor.run {
-            if tokenStore.isAccessTokenValid, let token = tokenStore.accessToken {
-                return token
+    /// Returns a valid access token, refreshing if needed.
+    ///
+    /// Failure modes:
+    /// - Refresh token revoked (401 / account_blocked / device_limit): triggers
+    ///   `AuthenticationManager.handleTokenRefreshFailure` so the UI routes the user
+    ///   back to the sign-in screen, then returns nil.
+    /// - Transient failure (network error or 5xx): retries up to 3 times with
+    ///   1s / 2s / 4s backoff, then returns nil without clearing tokens so a backend
+    ///   blip does not log the user out. (Sentry: QUEEN-MAMA-MACOS-1E)
+    private func getValidAccessToken(forceRefresh: Bool = false) async -> String? {
+        // Cached path — skipped when caller explicitly requests a fresh token after 401.
+        if !forceRefresh {
+            let cachedToken: String? = await MainActor.run {
+                if tokenStore.isAccessTokenValid, let token = tokenStore.accessToken {
+                    return token
+                }
+                return nil
             }
-            return nil
+            if let cachedToken { return cachedToken }
         }
-        if let cachedToken { return cachedToken }
 
-        // Try to refresh
         guard let refreshToken = await MainActor.run(body: { tokenStore.refreshToken }) else {
+            await MainActor.run {
+                CrashReporter.shared.addBreadcrumb(
+                    category: "auth",
+                    message: "Token refresh skipped — no refresh token in store",
+                    level: .warning
+                )
+            }
             return nil
         }
 
-        do {
-            let response = try await refreshTokens(refreshToken)
-            await MainActor.run {
-                tokenStore.accessToken = response.accessToken
-                tokenStore.accessTokenExpiry = Date().addingTimeInterval(TimeInterval(response.expiresIn))
-                tokenStore.refreshToken = response.refreshToken
+        let maxAttempts = 3
+        let backoffSeconds: [UInt64] = [1, 2, 4]
+        var lastError: Error?
+
+        for attempt in 0..<maxAttempts {
+            do {
+                let response = try await refreshTokens(refreshToken)
+                await MainActor.run {
+                    tokenStore.accessToken = response.accessToken
+                    tokenStore.accessTokenExpiry = Date().addingTimeInterval(TimeInterval(response.expiresIn))
+                    tokenStore.refreshToken = response.refreshToken
+                }
+                return response.accessToken
+            } catch AuthError.invalidToken {
+                print("[AuthAPI] Refresh token rejected (401) — triggering reauth")
+                await AuthenticationManager.shared.handleTokenRefreshFailure(
+                    underlyingError: AuthError.invalidToken
+                )
+                return nil
+            } catch AuthError.accountBlocked {
+                print("[AuthAPI] Refresh blocked — account_blocked")
+                await AuthenticationManager.shared.handleTokenRefreshFailure(
+                    underlyingError: AuthError.accountBlocked
+                )
+                return nil
+            } catch AuthError.deviceLimitReached {
+                print("[AuthAPI] Refresh blocked — device_limit")
+                await AuthenticationManager.shared.handleTokenRefreshFailure(
+                    underlyingError: AuthError.deviceLimitReached
+                )
+                return nil
+            } catch {
+                lastError = error
+                print("[AuthAPI] Token refresh attempt \(attempt + 1)/\(maxAttempts) failed: \(error)")
+                if attempt < maxAttempts - 1 {
+                    try? await Task.sleep(nanoseconds: backoffSeconds[attempt] * 1_000_000_000)
+                }
             }
-            return response.accessToken
-        } catch {
-            print("[AuthAPI] Token refresh failed: \(error)")
-            return nil
         }
+
+        await MainActor.run {
+            CrashReporter.shared.addBreadcrumb(
+                category: "auth",
+                message: "Token refresh failed after \(maxAttempts) attempts: \(lastError?.localizedDescription ?? "unknown")",
+                level: .error
+            )
+        }
+        return nil
     }
 }
 

@@ -1,7 +1,8 @@
 import { useEffect, useState, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { HashRouter, Routes, Route } from 'react-router-dom'
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { QueryClient, QueryClientProvider, QueryCache, MutationCache } from '@tanstack/react-query'
+import { captureError } from '@/services/crash/crashReporter'
 import { DashboardPage } from './pages/DashboardPage'
 import { OverlayPage } from './pages/OverlayPage'
 import { OnboardingPage } from './pages/OnboardingPage'
@@ -25,6 +26,18 @@ const queryClient = new QueryClient({
       staleTime: 5 * 60 * 1000,
     },
   },
+  queryCache: new QueryCache({
+    onError: (error, query) => {
+      const err = error instanceof Error ? error : new Error(String(error))
+      captureError(err, { source: 'react_query', queryKey: query.queryKey })
+    },
+  }),
+  mutationCache: new MutationCache({
+    onError: (error, _variables, _context, mutation) => {
+      const err = error instanceof Error ? error : new Error(String(error))
+      captureError(err, { source: 'react_query_mutation', mutationKey: mutation.options.mutationKey })
+    },
+  }),
 })
 
 function AppContent() {

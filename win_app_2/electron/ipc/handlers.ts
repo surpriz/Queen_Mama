@@ -47,8 +47,15 @@ export function registerIPCHandlers(): void {
   ipcMain.handle(IPC_CHANNELS.APP_GET_PATH, (_event, name: string) => {
     return app.getPath(name as Parameters<typeof app.getPath>[0])
   })
-  ipcMain.handle(IPC_CHANNELS.APP_OPEN_EXTERNAL, (_event, url: string) => {
-    return shell.openExternal(url)
+  ipcMain.handle(IPC_CHANNELS.APP_OPEN_EXTERNAL, async (_event, url: string) => {
+    try {
+      await shell.openExternal(url)
+      return true
+    } catch (error) {
+      console.error('[IPC] APP_OPEN_EXTERNAL failed:', error)
+      Sentry.captureException(error, { extra: { ipc: 'app-open-external', url } })
+      throw error
+    }
   })
   ipcMain.on(IPC_CHANNELS.APP_QUIT, () => app.quit())
 
@@ -235,8 +242,14 @@ export function registerIPCHandlers(): void {
           types: ['screen'],
           thumbnailSize: { width: 320, height: 180 },
         })
-      } catch {
-        // Permission denied or unavailable — fall through to electron displays
+      } catch (error) {
+        // Permission denied or unavailable — fall through to electron displays.
+        // Still report so we can see if Screen Recording perms are routinely
+        // missing for a meaningful share of users.
+        Sentry.captureException(error, {
+          level: 'warning',
+          extra: { ipc: 'screen-get-displays', stage: 'desktop_capturer' },
+        })
       }
 
       // If desktopCapturer returned sources, merge with Electron display info

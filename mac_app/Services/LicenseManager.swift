@@ -263,6 +263,10 @@ final class LicenseManager: ObservableObject {
 
         guard let payloadData = signedPayload.data(using: .utf8) else {
             print("[License] Failed to encode payload for signature verification")
+            CrashReporter.shared.captureMessage(
+                "license_signature_payload_encode_failed",
+                level: .error
+            )
             return false
         }
 
@@ -278,6 +282,10 @@ final class LicenseManager: ObservableObject {
             print("[License] Signature verification failed")
             print("[License] Expected: \(computedSignature.prefix(16))...")
             print("[License] Got: \(license.signature.prefix(16))...")
+            CrashReporter.shared.captureMessage(
+                "license_signature_invalid",
+                level: .warning
+            )
         }
 
         return isValid
@@ -368,6 +376,7 @@ final class LicenseManager: ObservableObject {
             if verifyLicenseSignature(license) {
                 currentLicense = license
                 lastValidatedAt = Date()
+                CrashReporter.shared.setTag(key: "license_tier", value: license.plan.rawValue)
 
                 // Update usage from server
                 if let usage = license.usage {
