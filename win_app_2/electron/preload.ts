@@ -195,9 +195,10 @@ const electronAPI = {
   meetingDismiss: (appName: string) => ipcRenderer.send(IPC_CHANNELS.MEETING_DISMISS, appName),
 
   // Event listeners (main → renderer)
-  onSessionToggle: (callback: () => void) => {
-    ipcRenderer.on(IPC_CHANNELS.SESSION_TOGGLE, callback)
-    return () => ipcRenderer.removeListener(IPC_CHANNELS.SESSION_TOGGLE, callback)
+  onSessionToggle: (callback: (data?: { mode?: unknown }) => void) => {
+    const handler = (_event: Electron.IpcRendererEvent, data?: { mode?: unknown }) => callback(data)
+    ipcRenderer.on(IPC_CHANNELS.SESSION_TOGGLE, handler)
+    return () => ipcRenderer.removeListener(IPC_CHANNELS.SESSION_TOGGLE, handler)
   },
   onShortcutToggleWidget: (callback: () => void) => {
     ipcRenderer.on(IPC_CHANNELS.SHORTCUT_TOGGLE_WIDGET, callback)

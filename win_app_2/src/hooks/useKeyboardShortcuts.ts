@@ -9,9 +9,11 @@ import { useAppStore } from '@/stores/appStore'
  * Called from App.tsx to wire IPC shortcut events to app actions.
  */
 export function useKeyboardShortcuts(): void {
-  const handleToggleSession = useCallback(() => {
+  const handleToggleSession = useCallback((data?: { mode?: unknown }) => {
     console.log('[Shortcuts] IPC received: SESSION_TOGGLE')
-    const mode = useAppStore.getState().selectedMode
+    // Prefer mode from IPC payload (sent from overlay) so the originating
+    // window's selectedMode is honored; fall back to local store.
+    const mode = (data?.mode as ReturnType<typeof useAppStore.getState>['selectedMode']) ?? useAppStore.getState().selectedMode
     toggleSession(mode)
   }, [])
 

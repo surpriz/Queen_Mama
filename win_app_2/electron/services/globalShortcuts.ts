@@ -1,7 +1,7 @@
 import { globalShortcut } from 'electron'
 import { IPC_CHANNELS } from '../ipc/channels'
 import { toggleOverlay } from '../windows/overlayWindow'
-import { safeSendToAllWindows, safeSendToOverlayWindows } from '../utils/ipcUtils'
+import { safeSendToAllWindows, safeSendToOverlayWindows, safeSendToMainWindow } from '../utils/ipcUtils'
 
 function registerShortcut(accelerator: string, label: string, handler: () => void): void {
   const success = globalShortcut.register(accelerator, () => {
@@ -18,10 +18,12 @@ function registerShortcut(accelerator: string, label: string, handler: () => voi
 export function registerGlobalShortcuts(): void {
   console.log('[Shortcuts] Registering global shortcuts...')
 
-  // Ctrl+Shift+S: Start/Stop Session (overlay only - session lives there)
+  // Ctrl+Shift+S: Start/Stop Session — route to main window so the session
+  // lifecycle (audio capture, transcription, AI) always runs in the dashboard
+  // renderer. The overlay listens to broadcasts to stay in sync.
   registerShortcut('Ctrl+Shift+S', 'Toggle Session', () => {
-    const count = safeSendToOverlayWindows(IPC_CHANNELS.SESSION_TOGGLE)
-    console.log(`[Shortcuts] SESSION_TOGGLE sent to ${count} overlay window(s)`)
+    const ok = safeSendToMainWindow(IPC_CHANNELS.SESSION_TOGGLE)
+    console.log(`[Shortcuts] SESSION_TOGGLE sent to main window: ${ok}`)
   })
 
   // Ctrl+Shift+H: Toggle Widget Visibility (cross-platform safe)

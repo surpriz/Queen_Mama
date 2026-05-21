@@ -15,7 +15,6 @@ import { useTranslation } from 'react-i18next'
 import { useOverlayStore } from '@/stores/overlayStore'
 import { useAppStore } from '@/stores/appStore'
 import { useConfigStore } from '@/stores/configStore'
-import { toggleSession } from '@/services/sessionLifecycle'
 import {
   onMomentsDetected,
   type DetectedMoment,
@@ -116,9 +115,12 @@ export function PillHeader() {
   }, [isSessionActive])
 
   const handleToggleSession = useCallback(
-    async (e: React.MouseEvent) => {
+    (e: React.MouseEvent) => {
       e.stopPropagation()
-      await toggleSession(selectedMode)
+      // Route session toggle through the main window so the lifecycle
+      // (audio capture, transcription, AI) consistently runs in one renderer
+      // and the dashboard always sees the full session state.
+      window.electronAPI?.relay?.toMain('session:toggle', { mode: selectedMode })
     },
     [selectedMode],
   )

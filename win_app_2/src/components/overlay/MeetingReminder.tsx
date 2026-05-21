@@ -15,7 +15,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { Video, Globe, Hash, Headphones, MessageSquare, X } from 'lucide-react'
 import { useAppStore } from '@/stores/appStore'
-import { toggleSession } from '@/services/sessionLifecycle'
 import { createLogger } from '@/lib/logger'
 import { cn } from '@/lib/utils'
 
@@ -153,12 +152,13 @@ export function MeetingReminder() {
     }, 300) // matches CSS transition duration
   }, [])
 
-  const handleStartSession = useCallback(async () => {
+  const handleStartSession = useCallback(() => {
     log.info(`Starting session from meeting reminder (app: ${detectedApp})`)
     dismiss()
-    // Small delay to let the dismiss animation begin
-    setTimeout(async () => {
-      await toggleSession(selectedMode)
+    // Small delay to let the dismiss animation begin, then route through the
+    // main window so the session lifecycle runs in the dashboard renderer.
+    setTimeout(() => {
+      window.electronAPI?.relay?.toMain('session:toggle', { mode: selectedMode })
     }, 100)
   }, [detectedApp, dismiss, selectedMode])
 
