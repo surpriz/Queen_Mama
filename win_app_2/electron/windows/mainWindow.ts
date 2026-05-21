@@ -97,6 +97,14 @@ export function createMainWindow(): BrowserWindow {
     mainWindow.loadFile(join(__dirname, '../renderer/index.html'))
   }
 
+  // Auto-open DevTools on beta builds so testers can capture renderer logs.
+  // Remove once the audio-capture issue is diagnosed.
+  if (app.getVersion().includes('beta')) {
+    mainWindow.webContents.once('did-finish-load', () => {
+      mainWindow?.webContents.openDevTools({ mode: 'detach' })
+    })
+  }
+
   return mainWindow
 }
 

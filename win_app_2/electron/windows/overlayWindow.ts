@@ -83,6 +83,14 @@ export function createOverlayWindow(): BrowserWindow {
     })
   }
 
+  // Auto-open DevTools on beta builds (detached so it doesn't break the
+  // overlay layout). Remove once audio-capture is diagnosed.
+  if (app.getVersion().includes('beta')) {
+    overlayWindow.webContents.once('did-finish-load', () => {
+      overlayWindow?.webContents.openDevTools({ mode: 'detach' })
+    })
+  }
+
   // Position at top right by default
   setOverlayPosition('topRight')
 

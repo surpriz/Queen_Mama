@@ -45,6 +45,7 @@ function scalePower(rms: number): number {
 }
 
 async function captureSystemAudio(): Promise<MediaStream | null> {
+  log.info('[diag] captureSystemAudio — calling getUserMedia chromeMediaSource:desktop')
   try {
     const stream = await navigator.mediaDevices.getUserMedia({
       audio: {
@@ -65,17 +66,25 @@ async function captureSystemAudio(): Promise<MediaStream | null> {
       } as unknown as MediaTrackConstraints,
     })
 
+    log.info(`[diag] getUserMedia resolved — stream.id=${stream.id}`)
     stream.getVideoTracks().forEach((track) => track.stop())
 
     const audioTracks = stream.getAudioTracks()
+    log.info(`[diag] audio tracks count=${audioTracks.length}`)
     if (audioTracks.length === 0) {
-      log.warn('System audio: no audio tracks available')
+      log.warn('[diag] System audio: 0 audio tracks — likely missing setDisplayMediaRequestHandler')
       return null
     }
+
+    audioTracks.forEach((t, i) => {
+      log.info(`[diag] track[${i}] label="${t.label}" enabled=${t.enabled} muted=${t.muted} state=${t.readyState}`)
+    })
 
     log.info(`System audio captured: ${audioTracks.length} track(s)`)
     return new MediaStream(audioTracks)
   } catch (error) {
+    const err = error as Error
+    log.warn(`[diag] getUserMedia REJECTED — name="${err.name}" msg="${err.message}"`)
     log.warn('System audio capture not available:', error)
     return null
   }
@@ -92,6 +101,8 @@ export async function startCapture(): Promise<void> {
   const config = useConfigStore.getState()
   const useMic = config.captureMicrophone
   const useSystem = config.captureSystemAudio
+
+  log.info(`[diag] startCapture config — useMic=${useMic} useSystem=${useSystem} platform=${navigator.platform}`)
 
   if (!useMic && !useSystem) {
     log.warn('Both mic and system audio disabled, nothing to capture')
