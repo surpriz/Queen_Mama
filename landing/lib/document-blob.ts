@@ -60,6 +60,9 @@ export async function deleteDocumentBlob(pathnameOrUrl: string): Promise<void> {
  */
 export async function fetchDocumentBlob(pathname: string): Promise<Buffer> {
   const result = await get(pathname, { access: "private" });
+  if (!result || !result.stream) {
+    throw new Error(`Blob not found or has no stream: ${pathname}`);
+  }
   const chunks: Uint8Array[] = [];
   const reader = result.stream.getReader();
   while (true) {
