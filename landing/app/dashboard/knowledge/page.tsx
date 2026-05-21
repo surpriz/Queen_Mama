@@ -7,6 +7,7 @@ import { KnowledgeType } from "@prisma/client";
 import { DeleteAtomButton } from "./DeleteAtomButton";
 import { ManagementPanel } from "./ManagementPanel";
 import { LIMITS } from "@/lib/knowledge-management";
+import { DocumentsPanel } from "@/components/knowledge/DocumentsPanel";
 
 export const metadata = {
   title: "Knowledge Base - Queen Mama",
@@ -145,6 +146,9 @@ export default async function KnowledgePage() {
           Your personalized knowledge extracted from conversations
         </p>
       </div>
+
+      {/* Reference Documents */}
+      <DocumentsPanel />
 
       {/* Management Panel */}
       <ManagementPanel />

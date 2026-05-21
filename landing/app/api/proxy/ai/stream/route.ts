@@ -15,6 +15,12 @@ import {
   formatKnowledgeForPrompt,
   recordKnowledgeUsage,
 } from "@/lib/knowledge-retrieval";
+import {
+  retrieveRelevantChunks,
+  formatChunksForPrompt,
+  uniqueFilenames,
+  userHasReadyDocuments,
+} from "@/lib/document-retrieval";
 
 // Token usage tracking for cost calculation
 interface TokenUsage {
@@ -229,6 +235,39 @@ export async function POST(request: Request) {
       }
     }
 
+    // ============================================
+    // DOCUMENT RAG: Inject excerpts from user's uploaded PDFs (Enterprise)
+    // ============================================
+    const DOCUMENT_RAG_ENABLED = process.env.DOCUMENT_RAG_ENABLED !== "false";
+    let documentsUsed: string[] = [];
+
+    if (DOCUMENT_RAG_ENABLED && plan === "ENTERPRISE") {
+      try {
+        const hasDocs = await userHasReadyDocuments(user.id);
+        if (hasDocs) {
+          // Use the tail of the transcript (the bit closest to "now") as the
+          // retrieval query — that's the part most relevant to the next answer.
+          const queryText = userMessage.slice(-2000);
+          const chunks = await retrieveRelevantChunks(user.id, queryText, {
+            topK: 5,
+            minSimilarity: 0.5,
+            maxTotalTokens: 3000,
+          });
+
+          if (chunks.length > 0) {
+            enhancedSystemPrompt += formatChunksForPrompt(chunks);
+            documentsUsed = uniqueFilenames(chunks);
+            console.log(
+              `[DocumentRAG] Injected ${chunks.length} chunks from ${documentsUsed.length} doc(s) for user ${user.id}`
+            );
+          }
+        }
+      } catch (error) {
+        // Never fail the AI request because of RAG retrieval
+        console.error("[DocumentRAG] Retrieval error:", error);
+      }
+    }
+
     // Create SSE stream with cascade fallback
     const encoder = new TextEncoder();
     const userId = user.id;
@@ -343,7 +382,12 @@ export async function POST(request: Request) {
 
         if (successProvider && successModel) {
           // Send metadata with actual provider/model/effort used before completion marker
-          const metaEvent = `data: ${JSON.stringify({ provider: successProvider, model: successModel, effort: successEffort })}\n\n`;
+          const metaEvent = `data: ${JSON.stringify({
+            provider: successProvider,
+            model: successModel,
+            effort: successEffort,
+            documentsUsed,
+          })}\n\n`;
           controller.enqueue(encoder.encode(metaEvent));
           controller.enqueue(encoder.encode(`data: [DONE]\n\n`));
           streamClosed = true;

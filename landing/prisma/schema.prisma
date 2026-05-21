@@ -33,13 +33,15 @@ model User {
   refreshTokens  RefreshToken[]
 
   // Context Intelligence (Enterprise)
-  knowledgeAtoms  KnowledgeAtom[]
-  aiFeedbacks     AIFeedback[]
-  profile         UserProfile?
+  knowledgeAtoms KnowledgeAtom[]
+  aiFeedbacks    AIFeedback[]
+  profile        UserProfile?
+  documents      Document[]
+  documentChunks DocumentChunk[]
 
   // Memory Palace (Mini-CRM)
-  contacts        Contact[]
-  contactNotes    ContactNote[]
+  contacts     Contact[]
+  contactNotes ContactNote[]
 
   stripeCustomerId String? @unique
 
@@ -87,16 +89,16 @@ model VerificationToken {
 // ============================================
 
 model Device {
-  id            String    @id @default(cuid())
-  userId        String
-  name          String
-  platform      String
-  osVersion     String?
-  appVersion    String?
-  deviceId      String    @unique
-  lastSeenAt    DateTime  @default(now())
-  createdAt     DateTime  @default(now())
-  isActive      Boolean   @default(true)
+  id         String   @id @default(cuid())
+  userId     String
+  name       String
+  platform   String
+  osVersion  String?
+  appVersion String?
+  deviceId   String   @unique
+  lastSeenAt DateTime @default(now())
+  createdAt  DateTime @default(now())
+  isActive   Boolean  @default(true)
 
   user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
   refreshTokens RefreshToken[]
@@ -105,33 +107,33 @@ model Device {
 }
 
 model RefreshToken {
-  id          String    @id @default(cuid())
-  tokenHash   String    @unique
-  userId      String
-  deviceId    String
-  expiresAt   DateTime
-  createdAt   DateTime  @default(now())
-  lastUsedAt  DateTime  @default(now())
-  revokedAt   DateTime?
+  id         String    @id @default(cuid())
+  tokenHash  String    @unique
+  userId     String
+  deviceId   String
+  expiresAt  DateTime
+  createdAt  DateTime  @default(now())
+  lastUsedAt DateTime  @default(now())
+  revokedAt  DateTime?
 
-  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  device      Device    @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  device Device @relation(fields: [deviceId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@index([deviceId])
 }
 
 model DeviceAuthCode {
-  id            String    @id @default(cuid())
-  userCode      String    @unique
-  deviceCode    String    @unique
-  deviceId      String
-  deviceName    String?
-  platform      String?
-  userId        String?
-  expiresAt     DateTime
-  authorizedAt  DateTime?
-  createdAt     DateTime  @default(now())
+  id           String    @id @default(cuid())
+  userCode     String    @unique
+  deviceCode   String    @unique
+  deviceId     String
+  deviceName   String?
+  platform     String?
+  userId       String?
+  expiresAt    DateTime
+  authorizedAt DateTime?
+  createdAt    DateTime  @default(now())
 
   @@index([userCode])
   @@index([deviceCode])
@@ -161,16 +163,16 @@ model ApiKey {
 
 // System-wide API keys managed by admin (for proxy service)
 model AdminApiKey {
-  id              String         @id @default(cuid())
-  provider        ApiKeyProvider @unique
-  encryptedKey    String         @db.Text
-  keyPrefix       String         // First 8 chars for display (sk-abc...)
-  isActive        Boolean        @default(true)
-  lastUsedAt      DateTime?
-  usageCount      Int            @default(0)
-  createdAt       DateTime       @default(now())
-  updatedAt       DateTime       @updatedAt
-  createdBy       String         // Admin user ID who created it
+  id           String         @id @default(cuid())
+  provider     ApiKeyProvider @unique
+  encryptedKey String         @db.Text
+  keyPrefix    String // First 8 chars for display (sk-abc...)
+  isActive     Boolean        @default(true)
+  lastUsedAt   DateTime?
+  usageCount   Int            @default(0)
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+  createdBy    String // Admin user ID who created it
 
   @@index([provider])
 }
@@ -267,8 +269,8 @@ model SyncedSession {
 
   user           User               @relation(fields: [userId], references: [id], onDelete: Cascade)
   aiResponses    SyncedAIResponse[]
-  knowledgeAtoms KnowledgeAtom[]    // Knowledge extracted from this session
-  contacts       SessionContact[]   // Memory Palace: contacts associated with this session
+  knowledgeAtoms KnowledgeAtom[] // Knowledge extracted from this session
+  contacts       SessionContact[] // Memory Palace: contacts associated with this session
 
   @@unique([userId, deviceId, originalId])
   @@index([userId, startTime])
@@ -311,10 +313,10 @@ model UsageLog {
 // ============================================
 
 model Waitlist {
-  id        String       @id @default(cuid())
-  email     String       @unique
+  id        String           @id @default(cuid())
+  email     String           @unique
   platform  WaitlistPlatform
-  createdAt DateTime     @default(now())
+  createdAt DateTime         @default(now())
 
   @@index([platform])
 }
@@ -332,59 +334,108 @@ enum WaitlistPlatform {
 
 // Knowledge atoms extracted from user sessions
 model KnowledgeAtom {
-  id            String        @id @default(cuid())
-  userId        String
-  sessionId     String?
-  type          KnowledgeType
-  content       String        @db.Text
-  embedding     Float[]       // Vector for semantic search (pgvector)
-  metadata      Json?         // {context, outcome, confidence}
-  usageCount    Int           @default(0)
-  helpfulCount  Int           @default(0)
-  lastUsedAt    DateTime?
-  createdAt     DateTime      @default(now())
+  id           String        @id @default(cuid())
+  userId       String
+  sessionId    String?
+  type         KnowledgeType
+  content      String        @db.Text
+  embedding    Float[] // Vector for semantic search (pgvector)
+  metadata     Json? // {context, outcome, confidence}
+  usageCount   Int           @default(0)
+  helpfulCount Int           @default(0)
+  lastUsedAt   DateTime?
+  createdAt    DateTime      @default(now())
 
-  user          User          @relation(fields: [userId], references: [id], onDelete: Cascade)
-  session       SyncedSession? @relation(fields: [sessionId], references: [id], onDelete: SetNull)
+  user    User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  session SyncedSession? @relation(fields: [sessionId], references: [id], onDelete: SetNull)
 
   @@index([userId, type])
   @@index([userId, createdAt])
 }
 
 enum KnowledgeType {
-  OBJECTION_RESPONSE    // How user handles objections
-  TALKING_POINT         // Effective recurring arguments
-  QUESTION              // Pertinent questions to ask
-  CLOSING_TECHNIQUE     // Closing techniques
-  TOPIC_EXPERTISE       // Demonstrated expertise on a topic
+  OBJECTION_RESPONSE // How user handles objections
+  TALKING_POINT // Effective recurring arguments
+  QUESTION // Pertinent questions to ask
+  CLOSING_TECHNIQUE // Closing techniques
+  TOPIC_EXPERTISE // Demonstrated expertise on a topic
 }
 
 // Feedback on AI responses
 model AIFeedback {
-  id            String       @id @default(cuid())
-  userId        String
-  responseId    String?      // FK to SyncedAIResponse
-  sessionId     String?
-  isHelpful     Boolean      // Thumbs up = true, down = false
-  atomsUsed     String[]     // IDs of atoms used for this response
-  createdAt     DateTime     @default(now())
+  id         String   @id @default(cuid())
+  userId     String
+  responseId String? // FK to SyncedAIResponse
+  sessionId  String?
+  isHelpful  Boolean // Thumbs up = true, down = false
+  atomsUsed  String[] // IDs of atoms used for this response
+  createdAt  DateTime @default(now())
 
-  user          User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, createdAt])
 }
 
+// Uploaded reference documents (PDFs) for RAG (Enterprise)
+model Document {
+  id           String    @id @default(cuid())
+  userId       String
+  filename     String
+  blobUrl      String
+  blobPathname String
+  sizeBytes    Int
+  mimeType     String
+  status       DocStatus @default(UPLOADING)
+  errorMessage String?
+  pageCount    Int?
+  chunkCount   Int?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  user   User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  chunks DocumentChunk[]
+
+  @@index([userId, status])
+  @@index([userId, createdAt])
+}
+
+// Vector-embedded chunks of a Document for similarity search
+model DocumentChunk {
+  id         String   @id @default(cuid())
+  documentId String
+  userId     String // denormalized for fast per-user similarity query
+  chunkIndex Int
+  content    String   @db.Text
+  embedding  Float[] // vector(1536) via raw migration; in-memory cosine for v1
+  pageNumber Int?
+  tokenCount Int
+  createdAt  DateTime @default(now())
+
+  document Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([documentId])
+}
+
+enum DocStatus {
+  UPLOADING
+  PROCESSING
+  READY
+  FAILED
+}
+
 // User profile for personalization
 model UserProfile {
-  id              String   @id @default(cuid())
-  userId          String   @unique
-  role            String?  // "Sales Rep", "Account Manager", etc.
-  industry        String?  // "SaaS", "Finance", etc.
+  id                 String   @id @default(cuid())
+  userId             String   @unique
+  role               String? // "Sales Rep", "Account Manager", etc.
+  industry           String? // "SaaS", "Finance", etc.
   communicationStyle String? // "formal", "casual"
-  topExpertise    String[] // Mastered topics
-  updatedAt       DateTime @updatedAt
+  topExpertise       String[] // Mastered topics
+  updatedAt          DateTime @updatedAt
 
-  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 // ============================================
@@ -392,22 +443,22 @@ model UserProfile {
 // ============================================
 
 model Contact {
-  id          String   @id @default(cuid())
-  userId      String
-  firstName   String
-  lastName    String?
-  email       String?
-  company     String?
-  role        String?
-  originalId  String?
-  deviceId    String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  lastSeenAt  DateTime @default(now())
+  id         String   @id @default(cuid())
+  userId     String
+  firstName  String
+  lastName   String?
+  email      String?
+  company    String?
+  role       String?
+  originalId String?
+  deviceId   String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  lastSeenAt DateTime @default(now())
 
-  user        User              @relation(fields: [userId], references: [id], onDelete: Cascade)
-  sessions    SessionContact[]
-  notes       ContactNote[]
+  user     User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  sessions SessionContact[]
+  notes    ContactNote[]
 
   @@unique([userId, email])
   @@unique([userId, originalId])
@@ -416,27 +467,27 @@ model Contact {
 }
 
 model ContactNote {
-  id         String   @id @default(cuid())
-  contactId  String
-  userId     String
-  content    String   @db.Text
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  id        String   @id @default(cuid())
+  contactId String
+  userId    String
+  content   String   @db.Text
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  contact    Contact  @relation(fields: [contactId], references: [id], onDelete: Cascade)
-  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  contact Contact @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([contactId, createdAt])
 }
 
 model SessionContact {
-  id              String        @id @default(cuid())
-  sessionId       String
-  contactId       String
-  createdAt       DateTime      @default(now())
+  id        String   @id @default(cuid())
+  sessionId String
+  contactId String
+  createdAt DateTime @default(now())
 
-  session         SyncedSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
-  contact         Contact       @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  session SyncedSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  contact Contact       @relation(fields: [contactId], references: [id], onDelete: Cascade)
 
   @@unique([sessionId, contactId])
   @@index([sessionId])

@@ -12,6 +12,12 @@ import {
   type AIProviderType,
 } from "@/lib/ai-providers";
 import { checkRateLimit, getIdentifier, rateLimitResponse, rateLimitConfigs, addRateLimitHeaders } from "@/lib/rate-limit";
+import {
+  retrieveRelevantChunks,
+  formatChunksForPrompt,
+  uniqueFilenames,
+  userHasReadyDocuments,
+} from "@/lib/document-retrieval";
 
 interface AIRequestBody {
   provider: AIProviderType;
@@ -141,6 +147,37 @@ export async function POST(request: Request) {
     const rawMaxTokens = Math.min(maxTokens || validation.maxTokens, validation.maxTokens);
     const requestMaxTokens = smartMode ? Math.max(rawMaxTokens, 4000) : rawMaxTokens;
 
+    // ============================================
+    // DOCUMENT RAG: Inject excerpts from user's uploaded PDFs (Enterprise)
+    // ============================================
+    const DOCUMENT_RAG_ENABLED = process.env.DOCUMENT_RAG_ENABLED !== "false";
+    let enhancedSystemPrompt = systemPrompt;
+    let documentsUsed: string[] = [];
+
+    if (DOCUMENT_RAG_ENABLED && plan === "ENTERPRISE") {
+      try {
+        const hasDocs = await userHasReadyDocuments(user.id);
+        if (hasDocs) {
+          const queryText = userMessage.slice(-2000);
+          const chunks = await retrieveRelevantChunks(user.id, queryText, {
+            topK: 5,
+            minSimilarity: 0.5,
+            maxTotalTokens: 3000,
+          });
+
+          if (chunks.length > 0) {
+            enhancedSystemPrompt += formatChunksForPrompt(chunks);
+            documentsUsed = uniqueFilenames(chunks);
+            console.log(
+              `[DocumentRAG] (generate) Injected ${chunks.length} chunks from ${documentsUsed.length} doc(s) for user ${user.id}`
+            );
+          }
+        }
+      } catch (error) {
+        console.error("[DocumentRAG] (generate) Retrieval error:", error);
+      }
+    }
+
     // Make request to provider
     // Smart mode always routes to Anthropic (cascade primary for smart = Sonnet 4.6 + thinking)
     // User-selected model (non-smart only) overrides provider/model/apiKey.
@@ -179,7 +216,7 @@ export async function POST(request: Request) {
             effectiveProvider,
             effectiveApiKey,
             effectiveModel,
-            systemPrompt,
+            enhancedSystemPrompt,
             userMessage,
             screenshot,
             requestMaxTokens
@@ -189,7 +226,7 @@ export async function POST(request: Request) {
           aiResponse = await callAnthropic(
             effectiveApiKey,
             effectiveModel,
-            systemPrompt,
+            enhancedSystemPrompt,
             userMessage,
             screenshot,
             requestMaxTokens,
@@ -200,7 +237,7 @@ export async function POST(request: Request) {
           aiResponse = await callGemini(
             adminApiKey,
             validation.model,
-            systemPrompt,
+            enhancedSystemPrompt,
             userMessage,
             screenshot,
             requestMaxTokens
