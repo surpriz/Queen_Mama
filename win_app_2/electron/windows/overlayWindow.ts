@@ -45,11 +45,18 @@ export function createOverlayWindow(): BrowserWindow {
 
   overlayWindow.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true })
 
-  // Hide overlay from screen capture (equivalent to macOS NSPanel.sharingType = .none)
-  // This prevents desktopCapturer from including the overlay in screenshots.
-  // Disabled in dev so designers/devs can screenshot the overlay while iterating.
+  // Force highest always-on-top level so the overlay stays above browsers, PDF viewers,
+  // and other apps that also use floating windows. Default `floating` level is not
+  // sufficient on Windows — `screen-saver` keeps it above virtually everything.
+  overlayWindow.setAlwaysOnTop(true, 'screen-saver')
+
+  // Hide overlay from screen capture (equivalent to macOS NSPanel.sharingType = .none).
+  // Apply the user's configured value at creation to avoid a race where the window is
+  // briefly capturable before the renderer's config-load IPC arrives. Dev builds skip
+  // protection so designers/devs can screenshot the overlay while iterating.
   if (app.isPackaged) {
-    overlayWindow.setContentProtection(true)
+    const undetectable = store.get('config.isUndetectabilityEnabled') === true
+    overlayWindow.setContentProtection(undetectable)
   }
 
   // Save size when user resizes (only when expanded)

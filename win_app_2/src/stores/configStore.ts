@@ -58,10 +58,9 @@ export const useConfigStore = create<ConfigStoreState>()(subscribeWithSelector((
     }
     if (Object.keys(loaded).length > 0) {
       set(loaded)
-      // Restore content protection state on startup
-      if (loaded.isUndetectabilityEnabled) {
-        window.electronAPI?.setDisplayAffinity(true)
-      }
+      // Always sync content protection state on startup so disabling invisibility
+      // actually reverses the main-process protection set at window creation.
+      window.electronAPI?.setDisplayAffinity(!!loaded.isUndetectabilityEnabled)
       // Sync i18next with stored UI language
       if (loaded.uiLanguage && i18n.language !== loaded.uiLanguage) {
         i18n.changeLanguage(loaded.uiLanguage)
