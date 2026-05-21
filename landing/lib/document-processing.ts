@@ -10,7 +10,7 @@ import { prisma } from "@/lib/prisma";
 import { generateEmbeddingsBatch } from "@/lib/embeddings";
 import { fetchDocumentBlob } from "@/lib/document-blob";
 import { RecursiveCharacterTextSplitter } from "@langchain/textsplitters";
-import { PDFParse } from "pdf-parse";
+import { extractText } from "unpdf";
 
 const CHUNK_SIZE = 1000;
 const CHUNK_OVERLAP = 150;
@@ -28,25 +28,20 @@ interface PageMappedText {
  * for each page so we can later attribute chunks back to source pages.
  */
 async function extractPdfTextWithPages(buffer: Buffer): Promise<PageMappedText> {
-  const parser = new PDFParse({ data: new Uint8Array(buffer) });
-  try {
-    const result = await parser.getText();
-    let combined = "";
-    const pages: PageMappedText["pages"] = [];
-    for (const page of result.pages) {
-      const start = combined.length;
-      const text = page.text || "";
-      combined += (combined ? "\n\n" : "") + text;
-      pages.push({ start, end: combined.length, pageNumber: page.num });
-    }
-    if (pages.length === 0 && result.text) {
-      combined = result.text;
-      pages.push({ start: 0, end: combined.length, pageNumber: 1 });
-    }
-    return { text: combined, pages };
-  } finally {
-    await parser.destroy();
-  }
+  // unpdf returns a string per page when mergePages=false; serverless-safe
+  // (no DOMMatrix / canvas deps unlike raw pdfjs-dist).
+  const { text: perPage } = await extractText(new Uint8Array(buffer), { mergePages: false });
+
+  let combined = "";
+  const pages: PageMappedText["pages"] = [];
+  perPage.forEach((pageText, idx) => {
+    const start = combined.length;
+    const text = pageText || "";
+    combined += (combined ? "\n\n" : "") + text;
+    pages.push({ start, end: combined.length, pageNumber: idx + 1 });
+  });
+
+  return { text: combined, pages };
 }
 
 function pageForOffset(pages: PageMappedText["pages"], offset: number): number | null {

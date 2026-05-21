@@ -7,12 +7,7 @@ const withNextIntl = createNextIntlPlugin("./i18n/request.ts");
 const nextConfig: NextConfig = {
   // Vercel handles Prisma natively - no special config needed
 
-  // Keep these as regular Node modules at runtime (not webpack-bundled).
-  // pdf-parse / pdfjs-dist resolve their worker file via real disk paths,
-  // which webpack rewrites into .next chunk paths and breaks resolution.
-  serverExternalPackages: ["pdf-parse", "pdfjs-dist"],
-
-  // Performance optimizations
+// Performance optimizations
   experimental: {
     // Tree-shake unused exports from these packages
     optimizePackageImports: [
