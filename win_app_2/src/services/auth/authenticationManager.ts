@@ -111,10 +111,21 @@ export async function checkExistingAuth(): Promise<void> {
       return
     }
 
-    // Auth rejection: session expired
+    // Auth rejection: session expired. The server uses AuthError.code (e.g.
+    // `invalid_token`), but the lowercased error message is `invalid token`
+    // (with a space). Match on the structured code first, then substrings —
+    // otherwise a permanently revoked refresh_token gets retained as if the
+    // failure were transient.
     const isAuthRejection =
+      errorCode === 'invalid_token' ||
+      errorCode === 'token_revoked' ||
+      errorCode === 'token_expired' ||
+      errorCode === 'not_authenticated' ||
       errorStr.includes('invalid_token') ||
+      errorStr.includes('invalid token') ||
+      errorStr.includes('invalid refresh token') ||
       errorStr.includes('token_revoked') ||
+      errorStr.includes('token expired') ||
       errorStr.includes('401') ||
       errorStr.includes('403')
 

@@ -80,13 +80,26 @@ async function getValidAccessToken(force = false): Promise<string | null> {
     return response.accessToken
   } catch (error) {
     const errorStr = String(error).toLowerCase()
+    const errorCode = error instanceof AuthError ? error.code : undefined
+    // Server returns AuthError code `invalid_token` / `token_revoked` / `token_expired`
+    // with HTTP 401. Earlier we only matched the lowercased message (`invalid_token`
+    // with underscore) but the actual error.message from the server is `Invalid token`
+    // (with a space), so the substring check missed it and the bad refresh_token was
+    // replayed forever. Match on the structured code first, fall back to substrings.
     const isAuthRejection =
+      errorCode === 'invalid_token' ||
+      errorCode === 'token_revoked' ||
+      errorCode === 'token_expired' ||
+      errorCode === 'not_authenticated' ||
       errorStr.includes('invalid_token') ||
+      errorStr.includes('invalid token') ||
+      errorStr.includes('invalid refresh token') ||
       errorStr.includes('token_revoked') ||
+      errorStr.includes('token expired') ||
       errorStr.includes('401') ||
       errorStr.includes('403')
 
-    log.warn(`[diag] refresh FAILED — isAuthRejection=${isAuthRejection} err="${errorStr.substring(0, 200)}"`)
+    log.warn(`[diag] refresh FAILED — isAuthRejection=${isAuthRejection} code=${errorCode ?? 'none'} err="${errorStr.substring(0, 200)}"`)
 
     if (isAuthRejection) {
       log.warn('Token refresh rejected by server, session expired')
