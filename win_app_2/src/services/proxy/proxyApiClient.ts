@@ -29,9 +29,19 @@ async function fetchWithAuth(
     },
   })
 
-  // Auto-refresh on 401
+  // Auto-refresh on 401 — force a real refresh so we don't replay the same
+  // cached token the server just rejected. Without force=true, getAccessToken
+  // returns the in-memory token whenever its local expiry timestamp is still
+  // in the future, even though the server has revoked or invalidated it.
   if (response.status === 401) {
-    const newToken = await getAccessToken()
+    log.warn(`Got 401 on ${endpoint}, forcing token refresh`)
+    let newToken: string
+    try {
+      newToken = await getAccessToken(true)
+    } catch (err) {
+      log.error(`Forced refresh failed for ${endpoint}:`, err)
+      throw err
+    }
     return fetch(`${baseUrl}${endpoint}`, {
       ...options,
       headers: {

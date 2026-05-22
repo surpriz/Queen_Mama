@@ -362,8 +362,8 @@ async function clearCredentials(): Promise<void> {
   await window.electronAPI?.store.delete('auth.user')
 }
 
-export async function getAccessToken(): Promise<string> {
-  const token = await authApi.getValidAccessToken()
+export async function getAccessToken(force = false): Promise<string> {
+  const token = await authApi.getValidAccessToken(force)
   if (!token) throw new Error('Not authenticated')
   return token
 }

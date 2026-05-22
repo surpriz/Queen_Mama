@@ -58,10 +58,11 @@ function isAccessTokenValid(): boolean {
   return !!(accessToken && accessTokenExpiry && Date.now() < accessTokenExpiry - 60_000)
 }
 
-async function getValidAccessToken(): Promise<string | null> {
-  if (isAccessTokenValid()) return accessToken
+async function getValidAccessToken(force = false): Promise<string | null> {
+  if (!force && isAccessTokenValid()) return accessToken
 
-  // Try to refresh
+  // Try to refresh — when forced, skip the in-memory expiry check so that an
+  // access token rejected by the server (401) gets renewed instead of replayed.
   const refreshToken = await window.electronAPI?.secureStore.get('refresh_token')
   if (!refreshToken) return null
 
