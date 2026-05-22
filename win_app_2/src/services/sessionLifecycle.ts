@@ -95,15 +95,14 @@ export async function startSession(mode?: Mode | null, contact?: Contact | null)
       useAppStore.getState().setAudioLevel(level)
     })
 
-    // Check if system audio was captured — if not, enable Deepgram diarization as fallback
+    // Check if system audio was captured — if not, enable Deepgram diarization as fallback.
+    // For dual-stream we defer connectSystemAudio() until AFTER transcription.connect() runs:
+    // connectSystemAudio mirrors the mic provider class via `instanceof` on currentProvider,
+    // and currentProvider is only set once connect() resolves. Calling it earlier means the
+    // system stream falls back to the default DeepgramProvider (Nova-3), which on accounts
+    // configured for Flux is `isConfigured=false` and the proxy closes the WS with code 1006.
     const hasSystem = audioCapture.hasSystemAudio()
-    if (hasSystem) {
-      // Dual-stream mode: system audio → second Deepgram WS
-      transcription.connectSystemAudio().catch((err) => {
-        console.warn('[Session] System audio WebSocket failed (continuing without):', err)
-      })
-      console.log('[Session] Dual-stream diarization active')
-    } else {
+    if (!hasSystem) {
       // Fallback: enable Deepgram diarize=true on mic stream
       transcription.enableDiarization()
       console.log('[Session] System audio unavailable — using Deepgram single-stream diarization fallback')
@@ -248,6 +247,15 @@ export async function startSession(mode?: Mode | null, contact?: Contact | null)
     // Connect transcription
     transcription.resetDisconnectFlag()
     await transcription.connect()
+
+    // Now that the mic provider is selected, fire the system-audio WebSocket
+    // so it mirrors the same provider class (Flux vs Nova-3) via `instanceof`.
+    if (hasSystem) {
+      transcription.connectSystemAudio().catch((err) => {
+        console.warn('[Session] System audio WebSocket failed (continuing without):', err)
+      })
+      console.log('[Session] Dual-stream diarization active')
+    }
 
     // Start screen capture if enabled
     const appConfig = await configurationManager.load()
