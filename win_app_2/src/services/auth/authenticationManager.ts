@@ -125,6 +125,7 @@ export async function checkExistingAuth(): Promise<void> {
     } else {
       // Network/transient error - degraded mode: keep user authenticated with cached data
       // (matches macOS pattern: transparent retry on next action)
+      log.warn(`[diag] DEGRADED MODE — auth check transient err: "${errorStr.substring(0, 200)}"`)
       log.warn('Transient error during auth check, entering degraded mode:', errorStr)
       store.setAuthenticated(user)
       setSentryUser(user.id, user.email)

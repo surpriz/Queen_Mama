@@ -59,17 +59,24 @@ function isAccessTokenValid(): boolean {
 }
 
 async function getValidAccessToken(force = false): Promise<string | null> {
-  if (!force && isAccessTokenValid()) return accessToken
+  const cachedValid = isAccessTokenValid()
+  const expiryIn = accessTokenExpiry ? accessTokenExpiry - Date.now() : null
+  log.info(`[diag] getValidAccessToken force=${force} cachedValid=${cachedValid} expiryInMs=${expiryIn}`)
+
+  if (!force && cachedValid) return accessToken
 
   // Try to refresh — when forced, skip the in-memory expiry check so that an
   // access token rejected by the server (401) gets renewed instead of replayed.
   const refreshToken = await window.electronAPI?.secureStore.get('refresh_token')
+  log.info(`[diag] refresh_token present=${!!refreshToken} len=${refreshToken?.length ?? 0}`)
   if (!refreshToken) return null
 
   try {
+    log.info('[diag] calling refreshTokens API...')
     const response = await refreshTokens(refreshToken)
     setAccessToken(response.accessToken, response.expiresIn)
     await window.electronAPI?.secureStore.set('refresh_token', response.refreshToken)
+    log.info(`[diag] refresh OK — new accessToken len=${response.accessToken.length} expiresIn=${response.expiresIn}s`)
     return response.accessToken
   } catch (error) {
     const errorStr = String(error).toLowerCase()
@@ -78,6 +85,8 @@ async function getValidAccessToken(force = false): Promise<string | null> {
       errorStr.includes('token_revoked') ||
       errorStr.includes('401') ||
       errorStr.includes('403')
+
+    log.warn(`[diag] refresh FAILED — isAuthRejection=${isAuthRejection} err="${errorStr.substring(0, 200)}"`)
 
     if (isAuthRejection) {
       log.warn('Token refresh rejected by server, session expired')

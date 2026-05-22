@@ -18,6 +18,11 @@ export class DeepgramFluxProvider implements TranscriptionProvider {
   onDiarizedTranscript: ((text: string, speaker: number) => void) | null = null
   onError: ((error: Error) => void) | null = null
 
+  // Diag counters for beta builds — surfaces silent pipeline stalls
+  private audioBytesSent = 0
+  private messagesReceived = 0
+  private diagInterval: ReturnType<typeof setInterval> | null = null
+
   get isConfigured(): boolean {
     return true
   }
@@ -70,10 +75,15 @@ export class DeepgramFluxProvider implements TranscriptionProvider {
         log.info('Connected')
         addBreadcrumb('transcription', 'DeepgramFlux WebSocket connected', 'info')
         this.startKeepalive()
+        // Diag heartbeat every 5s — proves audio is flowing both ways
+        this.diagInterval = setInterval(() => {
+          log.info(`[diag] DG state=${this.ws?.readyState} audioBytesSent=${this.audioBytesSent} messagesReceived=${this.messagesReceived}`)
+        }, 5000)
         resolve()
       }
 
       this.ws.onmessage = (event) => {
+        this.messagesReceived++
         try {
           const data = JSON.parse(event.data)
           if (data.type === 'Results') {
@@ -114,7 +124,12 @@ export class DeepgramFluxProvider implements TranscriptionProvider {
 
       this.ws.onclose = (event) => {
         log.info(`Disconnected (code: ${event.code}, reason: "${event.reason}", clean: ${event.wasClean})`)
+        log.info(`[diag] close stats — audioBytesSent=${this.audioBytesSent} messagesReceived=${this.messagesReceived}`)
         this.stopKeepalive()
+        if (this.diagInterval) {
+          clearInterval(this.diagInterval)
+          this.diagInterval = null
+        }
         if (event.code !== 1000) {
           const err = new Error(`Deepgram Flux disconnected: code=${event.code} reason="${event.reason}"`)
           this.onError?.(err)
@@ -135,6 +150,7 @@ export class DeepgramFluxProvider implements TranscriptionProvider {
   sendAudio(data: ArrayBuffer): void {
     if (this.ws?.readyState === WebSocket.OPEN) {
       this.ws.send(data)
+      this.audioBytesSent += data.byteLength
     }
   }
 

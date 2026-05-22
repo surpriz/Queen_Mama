@@ -19,6 +19,7 @@ async function fetchWithAuth(
 ): Promise<Response> {
   const token = await getAccessToken()
   const baseUrl = getApiBaseUrl()
+  log.info(`[diag] fetchWithAuth ${options.method ?? 'GET'} ${endpoint} tokenLen=${token.length}`)
 
   const response = await fetch(`${baseUrl}${endpoint}`, {
     ...options,
@@ -28,6 +29,7 @@ async function fetchWithAuth(
       ...options.headers,
     },
   })
+  log.info(`[diag] response ${endpoint} status=${response.status}`)
 
   // Auto-refresh on 401 — force a real refresh so we don't replay the same
   // cached token the server just rejected. Without force=true, getAccessToken
