@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/admin";
 import { logAdminAction } from "@/lib/audit";
+import { getStripe } from "@/lib/stripe";
 
 export async function DELETE(
   request: NextRequest,
@@ -20,10 +21,15 @@ export async function DELETE(
       );
     }
 
-    // Get user info before deletion for audit log
     const user = await prisma.user.findUnique({
       where: { id },
-      select: { id: true, email: true, name: true, role: true },
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        role: true,
+        stripeCustomerId: true,
+      },
     });
 
     if (!user) {
@@ -38,10 +44,36 @@ export async function DELETE(
       targetUserRole: user.role,
     });
 
-    // Delete user (cascade will handle related records)
-    await prisma.user.delete({
-      where: { id },
-    });
+    // Clean up records not covered by Prisma cascades (no FK relation to User).
+    // Reassign AdminApiKey.createdBy to the acting admin so system keys keep working.
+    await prisma.$transaction([
+      prisma.deviceAuthCode.deleteMany({ where: { userId: id } }),
+      prisma.adminApiKey.updateMany({
+        where: { createdBy: id },
+        data: { createdBy: admin.id },
+      }),
+      ...(user.email
+        ? [
+            prisma.verificationToken.deleteMany({
+              where: { identifier: user.email },
+            }),
+            prisma.waitlist.deleteMany({ where: { email: user.email } }),
+          ]
+        : []),
+      prisma.user.delete({ where: { id } }),
+    ]);
+
+    // Delete the Stripe Customer (best-effort; non-blocking).
+    if (user.stripeCustomerId) {
+      try {
+        await getStripe().customers.del(user.stripeCustomerId);
+      } catch (stripeError) {
+        console.error(
+          `Failed to delete Stripe customer ${user.stripeCustomerId} for user ${id}:`,
+          stripeError
+        );
+      }
+    }
 
     return NextResponse.json({
       success: true,
