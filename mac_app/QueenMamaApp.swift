@@ -525,6 +525,7 @@ class AppState: ObservableObject {
 
             // Wire system audio: ScreenCaptureKit → SystemAudioService → Batch → Transcription
             screenService.systemAudioService = systemAudioService
+            systemAudioService.startMonitoring()  // Track capture health for overlay indicator
             systemAudioService.onAudioBuffer = { [weak self] buffer in
                 self?.systemAudioBatchingService.append(buffer)
             }

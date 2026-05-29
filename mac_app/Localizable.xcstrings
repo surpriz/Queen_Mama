@@ -7870,6 +7870,23 @@
         }
       }
     },
+    "overlay.status.micOnly" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mic only"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Micro seul"
+          }
+        }
+      }
+    },
     "overlay.status.noInput" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -8410,6 +8427,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Mode intelligent actif"
+          }
+        }
+      }
+    },
+    "overlay.tooltip.systemAudioDown" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The other person's audio isn't being captured — everything is tagged as you. Check System Settings → Privacy → Screen Recording and restart the app."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "L'audio de l'interlocuteur n'est pas capté — tout est attribué à vous. Vérifiez Réglages Système → Confidentialité → Enregistrement de l'écran, puis relancez l'app."
           }
         }
       }
