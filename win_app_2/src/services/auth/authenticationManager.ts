@@ -5,6 +5,7 @@ import * as authApi from './authApiClient'
 import { setOnSessionExpired } from './authApiClient'
 import { startGoogleAuth } from './googleAuthService'
 import * as licenseManager from '@/services/license/licenseManager'
+import { getApiBaseUrl } from '@/services/config/appEnvironment'
 import type { AuthUser, DeviceInfo } from '@/types/auth'
 
 const log = createLogger('Auth')
@@ -70,77 +71,60 @@ export async function checkExistingAuth(): Promise<void> {
   log.info(`Found stored credentials for: ${user.email}`)
 
   try {
-    const refreshToken = await window.electronAPI?.secureStore.get('refresh_token')
-    if (!refreshToken) {
-      store.setUnauthenticated()
-      return
-    }
+    // Refresh through the main-process single-flight (shared by all windows) so
+    // the 3 boot windows never race the one-time-use refresh token.
+    const result = await window.electronAPI?.auth.refreshToken(getApiBaseUrl())
 
-    const response = await authApi.refreshTokens(refreshToken)
-    authApi.setAccessToken(response.accessToken, response.expiresIn)
-    await window.electronAPI?.secureStore.set('refresh_token', response.refreshToken)
-
-    store.setAuthenticated(user)
-    setSentryUser(user.id, user.email)
-    addBreadcrumb('auth', 'Authentication restored from stored credentials', 'info')
-    log.info(`Authentication restored for: ${user.email}`)
-
-    // Revalidate license after restoring auth
-    licenseManager.revalidate().catch((err) => {
-      log.warn('License revalidation failed:', err)
-    })
-  } catch (error) {
-    const errorCode = error instanceof Error && 'code' in error ? (error as { code?: string }).code : ''
-    const errorStr = String(error).toLowerCase()
-
-    // Permanent errors: force full logout (matches macOS isPermanentAuthError)
-    const isPermanent =
-      errorCode === 'account_blocked' ||
-      errorCode === 'device_limit' ||
-      errorStr.includes('account_blocked') ||
-      errorStr.includes('device_limit')
-
-    if (isPermanent) {
-      log.warn('Permanent auth error, forcing logout:', errorStr)
-      captureError(
-        error instanceof Error ? error : new Error('Permanent auth error'),
-        { service: 'auth', errorCode, reason: 'permanent' },
-      )
-      await clearCredentials()
-      store.setUnauthenticated()
-      return
-    }
-
-    // Auth rejection: session expired. The server uses AuthError.code (e.g.
-    // `invalid_token`), but the lowercased error message is `invalid token`
-    // (with a space). Match on the structured code first, then substrings —
-    // otherwise a permanently revoked refresh_token gets retained as if the
-    // failure were transient.
-    const isAuthRejection =
-      errorCode === 'invalid_token' ||
-      errorCode === 'token_revoked' ||
-      errorCode === 'token_expired' ||
-      errorCode === 'not_authenticated' ||
-      errorStr.includes('invalid_token') ||
-      errorStr.includes('invalid token') ||
-      errorStr.includes('invalid refresh token') ||
-      errorStr.includes('token_revoked') ||
-      errorStr.includes('token expired') ||
-      errorStr.includes('401') ||
-      errorStr.includes('403')
-
-    if (isAuthRejection) {
-      log.warn('Server rejected credentials, session expired')
-      await clearCredentials()
-      store.setSessionExpired()
-    } else {
-      // Network/transient error - degraded mode: keep user authenticated with cached data
-      // (matches macOS pattern: transparent retry on next action)
-      log.warn(`[diag] DEGRADED MODE — auth check transient err: "${errorStr.substring(0, 200)}"`)
-      log.warn('Transient error during auth check, entering degraded mode:', errorStr)
+    if (result?.ok) {
+      authApi.setAccessToken(result.accessToken, result.expiresIn)
       store.setAuthenticated(user)
       setSentryUser(user.id, user.email)
+      addBreadcrumb('auth', 'Authentication restored from stored credentials', 'info')
+      log.info(`Authentication restored for: ${user.email}`)
+
+      // Revalidate license after restoring auth
+      licenseManager.revalidate().catch((err) => {
+        log.warn('License revalidation failed:', err)
+      })
+      return
     }
+
+    const code = result?.code ?? 'network_error'
+
+    // Permanent errors: force full logout (matches macOS isPermanentAuthError)
+    const isPermanent = code === 'account_blocked' || code === 'device_limit' || code === 'device_inactive'
+    if (isPermanent) {
+      log.warn('Permanent auth error, forcing logout:', code)
+      captureError(new Error('Permanent auth error'), { service: 'auth', errorCode: code, reason: 'permanent' })
+      await clearCredentials()
+      store.setUnauthenticated()
+      return
+    }
+
+    // Auth rejection: refresh token is dead (main already dropped it) → session expired.
+    const isAuthRejection =
+      code === 'invalid_token' ||
+      code === 'token_revoked' ||
+      code === 'token_expired' ||
+      code === 'not_authenticated' ||
+      code === 'no_token'
+    if (isAuthRejection) {
+      log.warn('Server rejected credentials, session expired:', code)
+      await clearCredentials()
+      store.setSessionExpired()
+      return
+    }
+
+    // Network/transient error - degraded mode: keep user authenticated with cached data
+    // (matches macOS pattern: transparent retry on next action)
+    log.warn(`[diag] DEGRADED MODE — auth check transient err: "${code}"`)
+    store.setAuthenticated(user)
+    setSentryUser(user.id, user.email)
+  } catch (error) {
+    // Unexpected (e.g. IPC failure) — degraded mode, retry transparently on next action.
+    log.warn('Unexpected error during auth check, entering degraded mode:', String(error))
+    store.setAuthenticated(user)
+    setSentryUser(user.id, user.email)
   }
 }
 
