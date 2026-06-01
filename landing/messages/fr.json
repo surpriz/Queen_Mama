@@ -454,8 +454,8 @@
     "badgeNew": "Nouveau",
     "entries": {
       "systemAudioHealthMonitoring": {
-        "title": "Audio interlocuteur plus fiable",
-        "description": "L'app Windows surveille la santé du flux audio système pendant la session et récupère plus vite si l'audio de l'interlocuteur se coupe"
+        "title": "Alerte audio système (macOS)",
+        "description": "L'overlay macOS détecte désormais quand l'audio système de l'interlocuteur n'est pas capté et l'indique clairement (« Micro seul »), pour qu'une coupure du flux audio ne passe jamais inaperçue"
       },
       "speakerDiarization": {
         "title": "Identification des locuteurs (macOS)",

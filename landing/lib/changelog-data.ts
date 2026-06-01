@@ -25,8 +25,8 @@ export const changelogData: ChangelogRelease[] = [
         changes: [
           {
             id: "systemAudioHealthMonitoring",
-            title: "More Reliable Interlocutor Audio",
-            description: "The Windows app now monitors system-audio health during a session and recovers faster if the other party's audio stream drops"
+            title: "System Audio Health Warning (macOS)",
+            description: "The macOS overlay now detects when the other party's system audio isn't being captured and clearly flags it (showing \"Mic only\"), so a dropped audio stream never goes unnoticed"
           },
         ],
       },
