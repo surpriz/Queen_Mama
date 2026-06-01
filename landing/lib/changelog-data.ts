@@ -17,8 +17,24 @@ export interface ChangelogRelease {
 
 export const changelogData: ChangelogRelease[] = [
   {
-    date: "May 2026",
+    date: "June 2026",
     isNew: true,
+    sections: [
+      {
+        category: "improvements",
+        changes: [
+          {
+            id: "systemAudioHealthMonitoring",
+            title: "More Reliable Interlocutor Audio",
+            description: "The Windows app now monitors system-audio health during a session and recovers faster if the other party's audio stream drops"
+          },
+        ],
+      },
+    ],
+  },
+  {
+    date: "May 2026",
+    isNew: false,
     sections: [
       {
         category: "features",

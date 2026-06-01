@@ -453,6 +453,10 @@
     },
     "badgeNew": "Nouveau",
     "entries": {
+      "systemAudioHealthMonitoring": {
+        "title": "Audio interlocuteur plus fiable",
+        "description": "L'app Windows surveille la santé du flux audio système pendant la session et récupère plus vite si l'audio de l'interlocuteur se coupe"
+      },
       "speakerDiarization": {
         "title": "Identification des locuteurs (macOS)",
         "description": "Queen Mama distingue maintenant entre vous et votre interlocuteur grâce à l'analyse audio dual-stream avec filtrage intelligent du bleed"
