@@ -61,6 +61,7 @@ struct OverlayContentView: View {
                 detectedMoment: appState.autoAnswerService.lastDetectedMoment,
                 preGenerationService: appState.preGenerationService,
                 transcriptionService: appState.transcriptionService,
+                systemAudioService: appState.systemAudioService,
                 enableScreenCapture: $enableScreenCapture,
                 isAutoAnswerEnabled: isAutoAnswerEnabled,
                 isSmartModeEnabled: isSmartModeEnabled,
@@ -541,6 +542,7 @@ struct ModernPillHeaderView: View {
     let detectedMoment: MomentDetectionService.DetectedMoment?
     @ObservedObject var preGenerationService: PreGenerationService
     @ObservedObject var transcriptionService: TranscriptionService
+    @ObservedObject var systemAudioService: SystemAudioCaptureService
     @Binding var enableScreenCapture: Bool
     @Binding var isAutoAnswerEnabled: Bool
     @Binding var isSmartModeEnabled: Bool
@@ -695,6 +697,21 @@ struct ModernPillHeaderView: View {
 
             // Status Indicators
             HStack(spacing: 4) {
+                // System Audio Down warning — shown when the interlocutor's audio
+                // isn't being captured, so everything would be tagged "Moi".
+                // Grace period (sessionDuration > 5s) avoids flashing during startup
+                // while the WebSocket connects and the first buffers arrive.
+                let systemAudioHealthy = transcriptionService.isSystemAudioConnected && systemAudioService.isReceivingAudio
+                if isSessionActive && sessionDuration > 5 && !systemAudioHealthy {
+                    StatusBadge(
+                        icon: "exclamationmark.triangle.fill",
+                        label: String(localized: "overlay.status.micOnly"),
+                        color: QMDesign.Colors.warning,
+                        isActive: true
+                    )
+                    .help(String(localized: "overlay.tooltip.systemAudioDown"))
+                }
+
                 // Proactive Moment Badge (Enterprise)
                 if let moment = detectedMoment {
                     HStack(spacing: 3) {

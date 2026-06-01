@@ -17,8 +17,24 @@ export interface ChangelogRelease {
 
 export const changelogData: ChangelogRelease[] = [
   {
-    date: "May 2026",
+    date: "June 2026",
     isNew: true,
+    sections: [
+      {
+        category: "improvements",
+        changes: [
+          {
+            id: "systemAudioHealthMonitoring",
+            title: "System Audio Health Warning (macOS)",
+            description: "The macOS overlay now detects when the other party's system audio isn't being captured and clearly flags it (showing \"Mic only\"), so a dropped audio stream never goes unnoticed"
+          },
+        ],
+      },
+    ],
+  },
+  {
+    date: "May 2026",
+    isNew: false,
     sections: [
       {
         category: "features",

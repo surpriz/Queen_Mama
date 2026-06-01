@@ -10,9 +10,22 @@ final class SystemAudioCaptureService: ObservableObject {
 
     @Published var systemAudioLevel: Float = 0.0
 
+    /// True while ScreenCaptureKit is actively delivering system audio buffers.
+    /// Distinct from the WebSocket connection — capture can be dead (e.g. Screen
+    /// Recording permission denied) while the socket is up. Drives the overlay
+    /// "system audio down" safety indicator so a silent capture failure is visible.
+    @Published private(set) var isReceivingAudio = false
+
     // MARK: - Callbacks
 
     var onAudioBuffer: ((Data) -> Void)?
+
+    // MARK: - Health Monitoring
+
+    /// Seconds without a buffer before capture is considered stalled.
+    private let bufferStaleThreshold: TimeInterval = 3.0
+    private var lastBufferAt: Date?
+    private var healthTimer: Timer?
 
     // MARK: - Private Properties
 
@@ -99,8 +112,36 @@ final class SystemAudioCaptureService: ObservableObject {
         )
     }
 
+    /// Start monitoring capture health. Call at session start.
+    func startMonitoring() {
+        stopMonitoring()
+        lastBufferAt = nil
+        isReceivingAudio = false
+        healthTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] _ in
+            Task { @MainActor in self?.evaluateHealth() }
+        }
+    }
+
+    /// Stop monitoring and clear health state. Call at session stop.
+    func stopMonitoring() {
+        healthTimer?.invalidate()
+        healthTimer = nil
+        lastBufferAt = nil
+        isReceivingAudio = false
+    }
+
+    /// Flip `isReceivingAudio` to false if no buffer arrived recently.
+    private func evaluateHealth() {
+        guard let last = lastBufferAt else {
+            isReceivingAudio = false
+            return
+        }
+        isReceivingAudio = Date().timeIntervalSince(last) < bufferStaleThreshold
+    }
+
     /// Reset the service state
     func reset() {
+        stopMonitoring()
         audioConverter = nil
         inputFormat = nil
         systemAudioLevel = 0.0
@@ -284,7 +325,11 @@ final class SystemAudioCaptureService: ObservableObject {
 
         // Update on main thread
         DispatchQueue.main.async { [weak self] in
-            self?.systemAudioLevel = meterLevel
+            guard let self = self else { return }
+            self.systemAudioLevel = meterLevel
+            // Mark capture alive — a buffer reached us (even silence counts).
+            self.lastBufferAt = Date()
+            if !self.isReceivingAudio { self.isReceivingAudio = true }
         }
     }
 

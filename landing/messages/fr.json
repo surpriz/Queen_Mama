@@ -453,6 +453,10 @@
     },
     "badgeNew": "Nouveau",
     "entries": {
+      "systemAudioHealthMonitoring": {
+        "title": "Alerte audio système (macOS)",
+        "description": "L'overlay macOS détecte désormais quand l'audio système de l'interlocuteur n'est pas capté et l'indique clairement (« Micro seul »), pour qu'une coupure du flux audio ne passe jamais inaperçue"
+      },
       "speakerDiarization": {
         "title": "Identification des locuteurs (macOS)",
         "description": "Queen Mama distingue maintenant entre vous et votre interlocuteur grâce à l'analyse audio dual-stream avec filtrage intelligent du bleed"
