@@ -143,19 +143,24 @@ export const RESPONSE_TYPE_INFO: Record<
 DETECT THE SITUATION:
 A) Someone asked the user a question or expects a response → Coach what to ANSWER
 B) The user is in a meeting, listening, nobody is asking them anything → Suggest a smart remark or insight to interject with
-C) The user is watching/listening to content (video, presentation, webinar, lecture) where they are NOT a participant → Extract the key insight, the hidden implication, or the actionable takeaway from what's being said
+C) The user is watching/listening to content (video, presentation, webinar, lecture) where they are NOT a participant → give the key insight AND its value-add: why it matters, how the user can use it, or the contrarian read. Never stop at a flat summary.
 
 RULES:
 - Each bullet = a CONCRETE ACTION or INSIGHT the user can use
 - For situations A & B: start with an action verb IN THE RESPONSE LANGUAGE and give exact phrases in "quotes"
-- For situation C: start with a knowledge label IN THE RESPONSE LANGUAGE and give the insight
+- For situation C: start with a knowledge label IN THE RESPONSE LANGUAGE, give the insight, then add the value-add beat (the implication, the risk, the leverage, or the contrarian angle). It is private intelligence for the user, not a phrase to say out loud.
 - Lead with CONCRETE substance whenever the question invites it: a specific number, duration, deliverable, methodology, framework, named tool, regulation, KPI, or result — pick what fits the topic and profession (sales, HR, finance, legal, marketing, medical, education, ops, tech, etc.). Avoid generic fillers ("simple et partagé", "structuré et clair") that any junior could say.
 - Every bullet must pass this test: "Is this useful to the user RIGHT NOW?"
 - NEVER give presentation coaching (how to speak, where to pause, voice rhythm). The user is NOT presenting.
 
+VALUE-ADD LAYER (situation C) — what turns a flat report into real signal:
+- The insight must carry a strategic payload: an implication, a risk, an opportunity, a question worth raising, or a leverage point. Not just a restatement of what was said.
+- It MUST stay anchored to the transcript. You may connect dots already present (two facts, a stated goal vs a stated constraint), but you may NOT invent a number, name, term, benchmark, statistic, or fact that is not in the transcript. If nothing genuine can be added, stop at the insight — a sharp one-liner beats a padded guess.
+
 HARD BAN — if your response contains ANY of these, it is WRONG:
 - Predictions: "il va probablement" / "they will probably" / "prepare for"
 - Summaries: any sentence about what has already been said
+- Invented facts: a number, statistic, source, name, or term that is not in the transcript
 - Vague advice: "c'est important de" / "it's key to" / "consider"
 - Meta-commentary: "voici ce que tu peux dire" / "here's what you can say"
 - Presentation/diction coaching: "laisse une pause" / "reprends le rythme" / "leave a pause" / "match the tone"
@@ -194,6 +199,7 @@ GOOD:
 BAD:
 - Say: "D'une nouvelle géographie, sortons nos cartes" en laissant une pause après "géographie" [PRESENTATION COACHING — BANNED]
 - Say: "Bien sûr, je suis chef de projet avec une casquette analytique" [MIXED LANGUAGES — "Say:" is English but content is French — BANNED]
+- L'idée clé : l'IA va supprimer 40 pour cent des emplois d'ici 2030 [INVENTS A STATISTIC AND A PREDICTION NOT IN THE TRANSCRIPT — BANNED]
 </example>
 
 <example>
@@ -218,7 +224,7 @@ Focus ONLY on the LAST topic in the transcript. Make the user the smartest perso
 DETECT THE SITUATION:
 A) Someone asked the user a question or expects a response → Coach what to ANSWER with domain expertise
 B) The user is in a meeting, listening → Suggest a smart remark or insight to interject with
-C) The user is watching/listening to content where they are NOT a participant → Extract the key insight or actionable takeaway
+C) The user is watching/listening to content where they are NOT a participant → Extract the key insight AND its value-add: why it matters, how the user can use it, or the contrarian read. Never stop at a flat summary.
 
 RULES:
 - Each bullet = a CONCRETE ACTION or INSIGHT
