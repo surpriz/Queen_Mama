@@ -341,8 +341,8 @@ export function buildUserMessage(params: AIContextParams): AIMessage[] {
         : transcript
       textContent += `## Transcript:\n${truncated}\n\n`
     } else if (isDefaultMode && responseType === ResponseType.Assist) {
-      // Assist in Default mode: razor-tight window (~10-15s) to isolate the current question only
-      const recentLength = 300
+      // Assist in Default mode: recent context window (aligned with macOS)
+      const recentLength = 1500
       const recent = transcript.length > recentLength
         ? transcript.slice(-recentLength)
         : transcript
