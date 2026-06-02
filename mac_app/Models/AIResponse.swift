@@ -239,46 +239,78 @@ final class AIResponse: Identifiable {
 
             case .whatToSay:
                 return """
-                Suggest exactly 3 phrases the user can say right now, based on what's being discussed.
+                OVERRIDE: This tab is "What to Say". The user wants 3 phrases that respond to the LAST question or topic addressed to them, NOT a recap, NOT general advice, NOT a multi-topic synthesis.
 
-                Each phrase must sound sharp and authoritative, never generic or passive. The user says it verbatim and gains credibility.
-                3 bullet points (using "- "), each on its own line, each a phrase in quotes, 1-2 sentences, each taking a different angle. No preamble.
+                FOCUS RULE — ABSOLUTE:
+                - Identify the MOST RECENT question or prompt directed at the user (last "?" from the other speaker, or the last topic they were asked to address).
+                - All 3 phrases must answer THAT specific question. Ignore earlier questions in the transcript even if unanswered.
+                - If the transcript contains multiple stacked questions (e.g., interviewer asked about A, then B, then C), respond to C only — the latest one.
+
+                PHRASE RULES:
+                - Each phrase = something the user can say VERBATIM with credibility.
+                - Sharp, authoritative, concrete — never generic or passive.
+                - Each takes a DIFFERENT angle on the SAME question (e.g., factual answer / quantified anchor / closing reframe).
+                - NEVER cover multiple distinct topics across the 3 phrases.
+
+                HARD BAN — if your response contains ANY of these, it is WRONG:
+                - Phrases addressing 2+ different questions from the transcript
+                - Summaries of what's been discussed so far
+                - Generic interview filler ("Je suis développeur avec de l'expérience…") when a specific question was asked
+                - Follow-up questions back to the interlocutor (those belong on the "Follow-up" tab)
 
                 <example>
                 FRENCH TRANSCRIPT — réponse 100% française:
-                - "Concrètement, on a chiffré l'impact à 12 % de marge en moins sur le Q3 — ce n'est pas un risque théorique, c'est notre P&L."
-                - "Si on reste sur ce schéma, on perd 90 jours de cycle de vente face à des concurrents qui livrent en 30."
-                - "La vraie question, c'est : on optimise ou on remet à plat ? Les deux n'ont pas le même budget."
+                - "Concrètement, on a chiffré l'impact à 12 % de marge en moins sur le Q3 — c'est notre P&L, pas un risque théorique."
+                - "Si on reste sur ce schéma, on perd 90 jours de cycle face à des concurrents qui livrent en 30."
+                - "La vraie question : on optimise ou on remet à plat ? Les deux n'ont pas le même budget."
                 </example>
 
                 <example>
                 ENGLISH TRANSCRIPT — 100% English response:
-                - "Concretely, we measured the impact at a 12% margin loss on Q3 — this is not a theoretical risk, it's our P&L."
+                - "Concretely, we measured the impact at a 12% margin loss on Q3 — this is our P&L, not a theoretical risk."
                 - "If we stay on this path, we lose 90 days of sales cycle versus competitors shipping in 30."
-                - "The real question is: are we optimizing or rebuilding from scratch? The two don't have the same budget."
+                - "The real question: are we optimizing or rebuilding from scratch? The two don't have the same budget."
                 </example>
+
+                FORMAT: 3 bullet points (using "- "), each on its own line, each a phrase in quotes, 1-2 sentences. No preamble.
                 """ + languageRule
 
             case .followUp:
                 return """
-                Suggest exactly 3 questions the user can ask right now to elevate the conversation.
+                OVERRIDE: This tab is "Follow-up". The user wants 3 QUESTIONS to ASK back to the interlocutor, NOT phrases to say in response, NOT advice on what to answer, NOT a multi-topic summary.
 
-                Great questions reveal hidden assumptions, expose blind spots, or reframe the problem. They make the room think "excellent question."
-                3 numbered questions in quotes, each targeting a different dimension. No preamble.
+                OUTPUT TYPE — ABSOLUTE:
+                - Every bullet MUST be a QUESTION (ending with "?" in the response language).
+                - The user will ASK these questions. The user is NOT answering anything here.
+                - NEVER output statements, advice, or "Dis :", "Réponds :", "Propose :", "Say:", "Reply:", "Tell them:" prefixes. Those belong on "Assist" or "What to Say".
+
+                QUESTION RULES:
+                - Each question REVEALS a blind spot, CHALLENGES an assumption, or REFRAMES the problem.
+                - Anchored on the most recent topic in the transcript — not a recap of everything discussed.
+                - NEVER basic checklist questions ("avez-vous vérifié...?", "have you checked...?").
+                - Each targets a DIFFERENT dimension (e.g., timeline / success metrics / risk / team / budget).
+
+                HARD BAN — if your response contains ANY of these, it is WRONG:
+                - Any bullet that is NOT a question
+                - Any "Dis", "Réponds", "Propose", "Say", "Reply", "Tell" verb prefix
+                - Recap of multiple transcript topics
+                - Generic "tell me more about…" filler
 
                 <example>
                 FRENCH TRANSCRIPT — réponse 100% française:
-                1. "Quelle hypothèse de ce plan tomberait en premier si le marché se retournait, et comment le détecterait-on tôt ?"
+                1. "Quelle hypothèse tomberait en premier si le marché se retournait, et comment le détecterait-on tôt ?"
                 2. "Quel KPI nous dirait, dans 90 jours, que cette décision a été la bonne ?"
                 3. "Si on avait deux fois moins de budget, qu'est-ce qu'on couperait en premier — et pourquoi ?"
                 </example>
 
                 <example>
                 ENGLISH TRANSCRIPT — 100% English response:
-                1. "Which assumption in this plan would fail first under a market downturn, and how would we detect it early?"
+                1. "Which assumption would fail first under a market downturn, and how would we detect it early?"
                 2. "What single KPI would tell us in 90 days that this was the right call?"
                 3. "If we had half the budget, what would we cut first — and why?"
                 </example>
+
+                FORMAT: 3 questions, numbered 1-3, each in quotes, on its own line. No preamble, no commentary.
                 """ + languageRule
 
             case .recap, .custom:

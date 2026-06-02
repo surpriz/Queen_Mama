@@ -101,8 +101,7 @@ final class ProxyAIProvider: AIProvider {
 
         // Recap needs more tokens for comprehensive meeting summaries
         // Smart mode needs full budget — thinking tokens count against max_tokens
-        // Default mode capped at 450 — room for the factual takeaway + the value-add layer
-        // Other modes capped at 600 for concise responses
+        // All non-recap modes capped at 600 — room for the factual takeaway + the value-add layer
         let isDefaultMode = context.mode?.name == "Default" || context.mode == nil
         let effectiveMaxTokens: Int
         if context.responseType == .recap {
@@ -110,7 +109,7 @@ final class ProxyAIProvider: AIProvider {
         } else if context.smartMode {
             effectiveMaxTokens = configManager.maxTokens
         } else if isDefaultMode {
-            effectiveMaxTokens = min(configManager.maxTokens, 450)
+            effectiveMaxTokens = min(configManager.maxTokens, 600)
         } else {
             effectiveMaxTokens = min(configManager.maxTokens, 600)
         }
