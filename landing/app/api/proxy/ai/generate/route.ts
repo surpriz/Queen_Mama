@@ -3,10 +3,8 @@ import { prisma } from "@/lib/prisma";
 import { verifyAccessToken } from "@/lib/device-auth";
 import {
   getProviderApiKey,
-  validateAIRequest,
-  getModelForProvider,
-  USER_SELECTABLE_MODELS,
-  isUserSelectableModel,
+  getModelCascade,
+  TIER_LIMITS,
   PROVIDER_URLS,
   type PlanTier,
   type AIProviderType,
@@ -67,16 +65,11 @@ export async function POST(request: Request) {
 
     // Parse request body
     const body: AIRequestBody = await request.json();
-    const { provider, smartMode = false, model: userModel, systemPrompt, userMessage, screenshot, maxTokens } = body;
+    const { smartMode = false, model: userModel, systemPrompt, userMessage, screenshot, maxTokens } = body;
 
-    // Honor user-selected model only when smartMode is false (standard mode).
-    const userOverride = !smartMode && isUserSelectableModel(userModel)
-      ? USER_SELECTABLE_MODELS[userModel]
-      : null;
-
-    if (!provider || !systemPrompt || !userMessage) {
+    if (!systemPrompt || !userMessage) {
       return NextResponse.json(
-        { error: "invalid_request", message: "Missing required fields: provider, systemPrompt, userMessage" },
+        { error: "invalid_request", message: "Missing required fields: systemPrompt, userMessage" },
         { status: 400 }
       );
     }
@@ -105,6 +98,15 @@ export async function POST(request: Request) {
 
     // Get plan and check limits
     const plan = (user.subscription?.plan || "FREE") as PlanTier;
+    const tierConfig = TIER_LIMITS[plan];
+
+    // Smart mode requires Enterprise
+    if (smartMode && !tierConfig.smartMode) {
+      return NextResponse.json(
+        { error: "request_denied", message: "Smart Mode requires Enterprise subscription" },
+        { status: 403 }
+      );
+    }
 
     // Get today's usage count
     const today = new Date();
@@ -118,33 +120,33 @@ export async function POST(request: Request) {
       },
     });
 
-    // Validate request (async - checks DB for configured providers)
-    const validation = await validateAIRequest({
-      tier: plan,
-      provider,
-      smartMode,
-      dailyRequestCount,
-    });
-
-    if (!validation.valid) {
+    // Check daily request limit
+    if (tierConfig.dailyAiRequests !== null && dailyRequestCount >= tierConfig.dailyAiRequests) {
       return NextResponse.json(
-        { error: "request_denied", message: validation.error },
+        { error: "request_denied", message: `Daily AI request limit reached (${tierConfig.dailyAiRequests})` },
         { status: 403 }
       );
     }
 
-    // Get admin API key from database
-    const adminApiKey = await getProviderApiKey(provider);
-    if (!adminApiKey) {
+    // Resolve the model cascade for this mode. This route used to call a SINGLE
+    // provider with no fallback — when the primary (e.g. OpenAI) failed, the whole
+    // request 502'd while the streaming route silently fell back. Mirror the stream
+    // route: try the cascade until one provider succeeds.
+    const mode: "standard" | "smart" = smartMode ? "smart" : "standard";
+    const cascade = await getModelCascade(mode, {
+      overrideModel: mode === "standard" ? userModel : undefined,
+    });
+
+    if (cascade.length === 0) {
       return NextResponse.json(
-        { error: "provider_not_configured", message: `${provider} is not configured by admin` },
+        { error: "no_providers", message: "No AI providers are configured" },
         { status: 503 }
       );
     }
 
     // Calculate tokens
     // Smart mode uses thinking which consumes part of max_tokens — enforce minimum
-    const rawMaxTokens = Math.min(maxTokens || validation.maxTokens, validation.maxTokens);
+    const rawMaxTokens = Math.min(maxTokens || tierConfig.maxTokens, tierConfig.maxTokens);
     const requestMaxTokens = smartMode ? Math.max(rawMaxTokens, 4000) : rawMaxTokens;
 
     // ============================================
@@ -178,81 +180,76 @@ export async function POST(request: Request) {
       }
     }
 
-    // Make request to provider
-    // Smart mode always routes to Anthropic (cascade primary for smart = Sonnet 4.6 + thinking)
-    // User-selected model (non-smart only) overrides provider/model/apiKey.
-    let effectiveProvider: AIProviderType;
-    let effectiveApiKey: string;
-    let effectiveModel: string;
-    if (smartMode) {
-      effectiveProvider = "anthropic";
-      effectiveApiKey = (await getProviderApiKey("anthropic")) || adminApiKey;
-      effectiveModel = "claude-sonnet-4-6";
-    } else if (userOverride) {
-      const overrideKey = await getProviderApiKey(userOverride.provider);
-      if (!overrideKey) {
-        return NextResponse.json(
-          { error: "provider_not_configured", message: `${userOverride.provider} (required for selected model) is not configured by admin` },
-          { status: 503 }
-        );
+    // Try each model in the cascade until one succeeds (resilient fallback)
+    const startTime = Date.now();
+    let aiResponse: { content: string; tokensUsed?: number } | null = null;
+    let successProvider: AIProviderType | null = null;
+    let successModel: string | null = null;
+    const errors: string[] = [];
+
+    for (const { provider: cascadeProvider, model: cascadeModel } of cascade) {
+      const apiKey = await getProviderApiKey(cascadeProvider);
+      if (!apiKey) {
+        errors.push(`${cascadeProvider}: not configured`);
+        continue;
       }
-      effectiveProvider = userOverride.provider;
-      effectiveApiKey = overrideKey;
-      effectiveModel = userOverride.model;
-    } else {
-      effectiveProvider = provider;
-      effectiveApiKey = adminApiKey;
-      effectiveModel = validation.model;
+
+      try {
+        console.log(`[AI Generate] Trying ${cascadeProvider}/${cascadeModel}...`);
+        switch (cascadeProvider) {
+          case "openai":
+          case "grok":
+            aiResponse = await callOpenAICompatible(
+              cascadeProvider,
+              apiKey,
+              cascadeModel,
+              enhancedSystemPrompt,
+              userMessage,
+              screenshot,
+              requestMaxTokens
+            );
+            break;
+          case "anthropic":
+            aiResponse = await callAnthropic(
+              apiKey,
+              cascadeModel,
+              enhancedSystemPrompt,
+              userMessage,
+              screenshot,
+              requestMaxTokens,
+              smartMode
+            );
+            break;
+          case "gemini":
+            aiResponse = await callGemini(
+              apiKey,
+              cascadeModel,
+              enhancedSystemPrompt,
+              userMessage,
+              screenshot,
+              requestMaxTokens
+            );
+            break;
+          default:
+            errors.push(`${cascadeProvider}: unsupported provider`);
+            continue;
+        }
+
+        successProvider = cascadeProvider;
+        successModel = cascadeModel;
+        console.log(`[AI Generate] Success with ${cascadeProvider}/${cascadeModel}`);
+        break;
+      } catch (error) {
+        const errorMsg = error instanceof Error ? error.message : String(error);
+        console.error(`[AI Generate] ${cascadeProvider}/${cascadeModel} failed:`, errorMsg);
+        errors.push(`${cascadeProvider}/${cascadeModel}: ${errorMsg}`);
+      }
     }
 
-    const startTime = Date.now();
-    let aiResponse: { content: string; tokensUsed?: number };
-
-    try {
-      switch (effectiveProvider) {
-        case "openai":
-        case "grok":
-          aiResponse = await callOpenAICompatible(
-            effectiveProvider,
-            effectiveApiKey,
-            effectiveModel,
-            enhancedSystemPrompt,
-            userMessage,
-            screenshot,
-            requestMaxTokens
-          );
-          break;
-        case "anthropic":
-          aiResponse = await callAnthropic(
-            effectiveApiKey,
-            effectiveModel,
-            enhancedSystemPrompt,
-            userMessage,
-            screenshot,
-            requestMaxTokens,
-            smartMode
-          );
-          break;
-        case "gemini":
-          aiResponse = await callGemini(
-            adminApiKey,
-            validation.model,
-            enhancedSystemPrompt,
-            userMessage,
-            screenshot,
-            requestMaxTokens
-          );
-          break;
-        default:
-          return NextResponse.json(
-            { error: "unsupported_provider", message: `Provider ${provider} is not supported` },
-            { status: 400 }
-          );
-      }
-    } catch (error) {
-      console.error(`AI provider ${provider} error:`, error);
+    if (!aiResponse || !successProvider || !successModel) {
+      console.error("[AI Generate] All providers failed:", errors);
       return NextResponse.json(
-        { error: "provider_error", message: `${provider} request failed` },
+        { error: "provider_error", message: "All AI providers failed. Please try again." },
         { status: 502 }
       );
     }
@@ -264,7 +261,7 @@ export async function POST(request: Request) {
       data: {
         userId: user.id,
         action: "ai_request",
-        provider,
+        provider: successProvider,
         tokensUsed: aiResponse.tokensUsed,
       },
     });
@@ -274,17 +271,18 @@ export async function POST(request: Request) {
         data: {
           userId: user.id,
           action: "smart_mode",
-          provider,
+          provider: successProvider,
         },
       });
     }
 
     const response = NextResponse.json({
       content: aiResponse.content,
-      provider: effectiveProvider,
-      model: effectiveModel,
+      provider: successProvider,
+      model: successModel,
       latencyMs,
       tokensUsed: aiResponse.tokensUsed,
+      documentsUsed,
     });
     return addRateLimitHeaders(response, initialRateLimit, rateLimitConfigs.aiProxy.maxRequests);
   } catch (error) {
