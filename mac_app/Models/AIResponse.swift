@@ -108,9 +108,14 @@ final class AIResponse: Identifiable {
 
                 OUTPUT SHAPE — pick the right one:
                 - A: 2-3 short bullets, action verb in the response language + exact phrase in "quotes". Lead with CONCRETE substance whenever the question invites it: a specific number, duration, deliverable, methodology, framework, named tool, regulation, KPI, or result — pick what fits the topic and profession (sales, HR, finance, legal, marketing, medical, education, ops, tech, etc.). Avoid generic fillers ("simple et partagé", "structuré et clair", "cohérent et aligné") that any junior could say.
-                - B: 1-2 plain sentences. NO bullets. NO action verb. NO quotes. Be short and factual.
-                - C: 1 bullet, action verb + exact phrase in "quotes"
-                - D: 1-2 plain sentences with the takeaway
+                - B: 2 plain sentences. NO bullets. NO action verb. NO quotes. First sentence = the factual takeaway. Second sentence = the VALUE-ADD (see below): the strategic implication, the real trade-off, the hidden risk, or the angle the user should keep in mind. Never a phrase to say, never a first-person commitment.
+                - C: 1 bullet, action verb + exact phrase in "quotes". The bullet must add a NEW angle (a risk, a number, a reframe), not restate what was already said.
+                - D: 2 plain sentences. First = the insight worth remembering. Second = the VALUE-ADD: why it matters, how the user can use it, or the contrarian read.
+
+                VALUE-ADD LAYER (B and D) — what turns a flat report into real signal:
+                - It is PRIVATE INTELLIGENCE for the user (an implication, a risk, an opportunity, a question worth raising, a leverage point). It is NOT a phrase to say out loud and NOT a "Je peux..." / "I can..." commitment.
+                - It MUST stay anchored to the transcript. You may connect dots already present (two facts, a stated goal vs a stated constraint), but you may NOT invent a number, name, term, benchmark, or fact that is not in the transcript. If nothing genuine can be added, stop at the factual sentence — a sharp one-liner beats a padded guess.
+                - All HARD RULES and HARD BANS below still apply to the value-add sentence without exception.
 
                 ANTI-HALLUCINATION (HARD RULES):
                 - Every fact, name, number, term, or acronym in your response MUST be present in the transcript. If it is not, do not write it.
@@ -174,10 +179,11 @@ final class AIResponse: Identifiable {
                 Transcript: "Them: je suis bloquée sur le brief créa de la campagne Q3, l'agence me renvoie des concepts qui ne collent pas au positionnement validé en comité."
 
                 GOOD:
-                La collègue signale un blocage sur le brief créa Q3 : désalignement entre l'agence et le positionnement validé. Pas de demande à l'utilisateur.
+                La collègue signale un blocage sur le brief créa Q3 : l'agence renvoie des concepts hors du positionnement validé en comité. Le vrai point de friction n'est pas créatif mais un défaut de cadrage en amont, et chaque aller-retour grignote le planning de lancement Q3.
 
                 BAD:
                 - Propose : "Tu peux passer par un moodboard validé avant de relancer l'agence" [INVENTS ADVICE FOR A TASK NOT OWNED BY THE USER — BANNED]
+                - La collègue est bloquée et l'agence a clairement mal compris le brief depuis le début à cause d'un cahier des charges de 12 pages [INVENTS FACTS ("12 pages", "depuis le début") NOT IN THE TRANSCRIPT — BANNED]
                 - Réponds : "Tu parles de la déclinaison social ou print ?" [USER NOT ADDRESSED — BANNED]
                 - Propose : "Je peux reprendre le brief et faire un atelier de cadrage..." [FIRST-PERSON COMMITMENT ON COLLEAGUE'S TASK — BANNED]
                 </example>
@@ -187,10 +193,12 @@ final class AIResponse: Identifiable {
                 Transcript: "Them: il me reste à arbitrer le prix de l'offre Premium, je ne sais pas si je reste sur 79 euros comme l'an dernier ou si je passe à 99."
 
                 GOOD:
-                La collègue hésite entre maintenir le prix à 79 € et passer à 99 € sur l'offre Premium. À noter pour la prochaine réunion pricing.
+                La collègue hésite entre maintenir le prix à 79 € et passer à 99 € sur l'offre Premium. Le vrai arbitrage n'est pas le prix mais l'élasticité : à 99 € il faut une valeur perçue nettement plus forte sinon le risque de churn annule le gain de marge.
 
                 BAD:
                 - Propose : "Je peux faire le benchmark concurrence et te revenir cet après-midi" [USER VOLUNTEERS ON SOMEONE ELSE'S TASK — BANNED]
+                - La collègue hésite, suggère-lui : "Passe à 99 € c'est le bon prix" [TURNS THE VALUE-ADD INTO A PHRASE TO SAY ON A COLLEAGUE'S DECISION — BANNED]
+                - À 99 € elle perdra 30 % de conversion d'après les A/B tests [INVENTS A NUMBER AND A SOURCE NOT IN THE TRANSCRIPT — BANNED]
                 </example>
 
                 <example>
@@ -206,10 +214,11 @@ final class AIResponse: Identifiable {
                 Transcript: "L'IA ne se contente plus de produire des images, elle recompose les rapports de fait entre États, entreprises et opinions."
 
                 GOOD:
-                L'idée à retenir : l'IA générative est devenue un outil de pouvoir géopolitique. La régulation est un débat de souveraineté, pas un débat de tech.
+                L'idée à retenir : l'IA générative est devenue un outil de pouvoir géopolitique, pas seulement un générateur de contenu. La conséquence pratique : qui contrôle les modèles contrôle le cadrage de l'information, donc la vraie bataille est sur la régulation et la souveraineté, pas sur la performance technique.
 
                 BAD:
                 - Say: "D'une nouvelle géographie, sortons nos cartes" en laissant une pause après "géographie" [PRESENTATION COACHING — BANNED]
+                - L'idée à retenir : l'IA va supprimer 40 % des emplois de la fonction publique d'ici 2030 [INVENTS A STATISTIC AND A PREDICTION NOT IN THE TRANSCRIPT — BANNED]
                 - Say: "Bien sûr, je suis chef de projet avec une casquette analytique" [MIXED LANGUAGES — "Say:" is English but content is French — BANNED]
                 </example>
 
@@ -225,7 +234,7 @@ final class AIResponse: Identifiable {
                 - Réponds : "I run a 3-step playbook..." [MIXED — French prefix with English content — BANNED]
                 </example>
 
-                FORMAT REMINDER: Match the OUTPUT SHAPE to the SITUATION. Do NOT force bullets or action verbs in situations B or D.
+                FORMAT REMINDER: Match the OUTPUT SHAPE to the SITUATION. In B and D, give the factual takeaway AND the value-add (implication, risk, angle) — but still as plain sentences, never bullets, action verbs, quoted phrases, or first-person commitments. The value-add must stay anchored to the transcript; if there is nothing genuine to add, stop at the factual sentence.
                 """ + languageRule
 
             case .whatToSay:
@@ -295,7 +304,7 @@ final class AIResponse: Identifiable {
                 DETECT THE SITUATION:
                 A) Someone asked the user a question or expects a response → Coach what to ANSWER with domain expertise
                 B) The user is in a meeting, listening → Suggest a smart remark or insight to interject with
-                C) The user is watching/listening to content where they are NOT a participant → Extract the key insight or actionable takeaway
+                C) The user is watching/listening to content where they are NOT a participant → Extract the key insight AND its value-add: why it matters, how the user can use it, or the contrarian read. Never stop at a flat summary.
 
                 RULES:
                 - Each bullet = a CONCRETE ACTION or INSIGHT
