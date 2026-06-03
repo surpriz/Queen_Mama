@@ -423,6 +423,7 @@ class AppState: ObservableObject {
     // System Audio Service for speaker separation ("Moi" vs "Interlocuteur")
     let systemAudioService = SystemAudioCaptureService()
     let transcriptDeduplicator = TranscriptDeduplicator()
+    let echoCancellationService = EchoCancellationService()  // Cancels speaker bleed from the mic before transcription
 
     // Session Manager reference (injected from QueenMamaApp)
     weak var sessionManager: SessionManager?
@@ -510,12 +511,16 @@ class AppState: ObservableObject {
             audioBatchingService.start()
             systemAudioBatchingService.start()
 
-            // Wire mic audio batching: Mic → Batch → Transcription
+            // Wire mic audio batching: Mic → AEC (remove speaker bleed) → Batch → Transcription
             audioService.onAudioBuffer = { [weak self] buffer in
-                self?.audioBatchingService.append(buffer)
-                // Send to dictation if recording
-                if self?.dictationService.isRecording == true {
-                    self?.dictationService.sendAudio(buffer)
+                guard let self = self else { return }
+                // Cancel echo (remote audio leaking from speakers into the mic) at the
+                // signal level so bleed never reaches Deepgram and can't be mis-labelled "Moi".
+                let cleaned = self.echoCancellationService.process(buffer)
+                self.audioBatchingService.append(cleaned)
+                // Send to dictation if recording (cleaned: dictation only wants the user's voice)
+                if self.dictationService.isRecording == true {
+                    self.dictationService.sendAudio(cleaned)
                 }
             }
 
@@ -527,7 +532,10 @@ class AppState: ObservableObject {
             screenService.systemAudioService = systemAudioService
             systemAudioService.startMonitoring()  // Track capture health for overlay indicator
             systemAudioService.onAudioBuffer = { [weak self] buffer in
-                self?.systemAudioBatchingService.append(buffer)
+                guard let self = self else { return }
+                // Feed system audio to the AEC as the far-end reference (echo source).
+                self.echoCancellationService.pushReference(buffer)
+                self.systemAudioBatchingService.append(buffer)
             }
             systemAudioBatchingService.onBatchReady = { [weak self] batch in
                 self?.transcriptionService.sendSystemAudio(batch)
@@ -624,8 +632,10 @@ class AppState: ObservableObject {
             transcriptionService.onDiarizedTranscript = { [weak self] (text: String, speaker: Int) in
                 guard let self = self else { return }
 
-                // Check if this mic transcript is bleed from the speakers
-                if self.transcriptDeduplicator.isMicTranscriptBleed(text) {
+                // Check if this mic transcript is bleed from the speakers.
+                // When AEC is active the bleed is already cancelled in the audio, so we
+                // skip the blanket temporal suppression (it dropped the user's own speech).
+                if self.transcriptDeduplicator.isMicTranscriptBleed(text, echoCancelled: self.echoCancellationService.isActive) {
                     print("[AppState] Dropped mic bleed: \"\(text.prefix(60))\"")
                     return
                 }
@@ -649,8 +659,8 @@ class AppState: ObservableObject {
             transcriptBuffer.onFlush = { [weak self] (batchedText: String) in
                 guard let self = self else { return }
 
-                // Check if this mic transcript is bleed from the speakers
-                if self.transcriptDeduplicator.isMicTranscriptBleed(batchedText) {
+                // Check if this mic transcript is bleed from the speakers (AEC-aware).
+                if self.transcriptDeduplicator.isMicTranscriptBleed(batchedText, echoCancelled: self.echoCancellationService.isActive) {
                     print("[AppState] Dropped mic bleed (non-diarized): \"\(batchedText.prefix(60))\"")
                     return
                 }
@@ -720,6 +730,7 @@ class AppState: ObservableObject {
         transcriptionService.disconnectSystemAudio()  // Disconnect system audio WebSocket
         systemAudioService.reset()  // Reset system audio service
         transcriptDeduplicator.reset()  // Reset dedup state
+        echoCancellationService.reset()  // Reset adaptive echo-canceller state
         autoAnswerService.reset()  // Reset auto-answer state
         autoAnswerService.resetProactiveState()  // Reset proactive state
         preGenerationService.reset()  // Reset pre-generation buffer

@@ -26,6 +26,7 @@ import * as contactDb from '@/services/contacts/contactDb'
 import { useContactStore } from '@/stores/contactStore'
 import { transcriptBuffer, TranscriptBuffer } from '@/services/transcription/transcriptBuffer'
 import * as dedup from '@/services/transcription/transcriptDeduplicator'
+import * as echoCanceller from '@/services/audio/echoCanceller'
 import * as translationService from '@/services/translation/translationService'
 import * as proxyConfig from '@/services/proxy/proxyConfigManager'
 import { useLicenseStore } from '@/stores/licenseStore'
@@ -80,13 +81,17 @@ export async function startSession(mode?: Mode | null, contact?: Contact | null)
     // Start audio capture (dual-stream: mic + system audio separately)
     await audioCapture.startCapture()
 
-    // Connect mic audio → primary Deepgram (for "Moi")
+    // Connect mic audio → AEC (remove speaker bleed) → primary Deepgram (for "Moi").
+    // Cancelling echo at the signal level keeps bleed out of Deepgram so it can't be
+    // mis-labelled "Moi".
     audioCapture.setOnMicAudioBuffer((buffer) => {
-      transcription.sendAudio(buffer)
+      transcription.sendAudio(echoCanceller.process(buffer))
     })
 
-    // Connect system audio → secondary Deepgram (for "Interlocuteur")
+    // Connect system audio → secondary Deepgram (for "Interlocuteur").
+    // Also feed it to the AEC as the far-end reference (the echo source).
     audioCapture.setOnSystemAudioBuffer((buffer) => {
+      echoCanceller.pushReference(buffer)
       transcription.sendSystemAudio(buffer)
     })
 
@@ -177,8 +182,10 @@ export async function startSession(mode?: Mode | null, contact?: Contact | null)
     transcription.setCallbacks({
       // --- MIC TRANSCRIPTS → "Moi" (with bleed filtering) ---
       onTranscript: (text: string) => {
-        // Check if this mic transcript is bleed from the speakers
-        if (dedup.isMicTranscriptBleed(text)) {
+        // Check if this mic transcript is bleed from the speakers.
+        // When AEC is active the bleed is already cancelled in the audio, so we skip the
+        // blanket temporal suppression (it dropped the user's own speech).
+        if (dedup.isMicTranscriptBleed(text, echoCanceller.isActive())) {
           console.log(`[Session] Dropped mic bleed: "${text.substring(0, 60)}"`)
           return
         }
@@ -499,6 +506,7 @@ function cleanup(): void {
   transcriptBuffer.stop()
   systemTranscriptBuffer.stop()
   dedup.reset()
+  echoCanceller.reset()
   translationService.resetContext()
   audioCapture.stopCapture()
   transcription.disconnect()
