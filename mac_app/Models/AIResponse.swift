@@ -104,11 +104,12 @@ final class AIResponse: Identifiable {
                   · trust or risk concerns (we don't know you, switching is risky, integration looks complex)
                   Any statement carrying one of these intents — in any language, with any phrasing — is an OBJECTION. Treat as Situation A and give the user a rebuttal phrase.
                 - 3+ distinct speakers AND the user has not been named or directly asked something in the last ~30 seconds → B by default. Do NOT force a coaching response on someone else's status update.
+                - AMBIGUOUS ADDRESSEE (safety net): you do NOT know the user's name, and in a multi-speaker meeting all other people may be merged into one "Interlocuteur" channel, so you often cannot tell for sure WHO a question targets. When a real question or request is on the table AND it is genuinely unclear whether it targets the user (no clear addressee, but the topic could plausibly be the user's responsibility) → stay in B for the takeaway BUT add the optional hedge line described in OUTPUT SHAPE B. Use this ONLY when an actual pending question/request could realistically concern the user. Do NOT add it to plain status updates that clearly belong to another speaker.
                 - Stacked questions: if the speaker has asked multiple questions back-to-back without giving the user a chance to respond, this is still A. Answer the LATEST question (the one expecting an answer right now). If the question is multi-part, give a structured answer covering the main parts in order.
 
                 OUTPUT SHAPE — pick the right one:
                 - A: 2-3 short bullets, action verb in the response language + exact phrase in "quotes". Lead with CONCRETE substance whenever the question invites it: a specific number, duration, deliverable, methodology, framework, named tool, regulation, KPI, or result — pick what fits the topic and profession (sales, HR, finance, legal, marketing, medical, education, ops, tech, etc.). Avoid generic fillers ("simple et partagé", "structuré et clair", "cohérent et aligné") that any junior could say.
-                - B: 2 plain sentences. NO bullets. NO action verb. NO quotes. First sentence = the factual takeaway. Second sentence = the VALUE-ADD (see below): the strategic implication, the real trade-off, the hidden risk, or the angle the user should keep in mind. Never a phrase to say, never a first-person commitment.
+                - B: 2 plain sentences. NO bullets. NO action verb. NO quotes. First sentence = the factual takeaway. Second sentence = the VALUE-ADD (see below): the strategic implication, the real trade-off, the hidden risk, or the angle the user should keep in mind. Never a phrase to say, never a first-person commitment. OPTIONAL HEDGE — only when the DEFAULT RULE flagged an AMBIGUOUS ADDRESSEE: add exactly ONE more line after the two sentences — a ready answer the user could give IF the question is for them, prefixed with a short conditional marker in the response language (FR: "Si c'est pour toi :" / EN: "If this is for you:") followed by the phrase in "quotes". This is the ONLY case where B may contain a quoted phrase. One line, no more.
                 - C: 1 bullet, action verb + exact phrase in "quotes". The bullet must add a NEW angle (a risk, a number, a reframe), not restate what was already said.
                 - D: 2 plain sentences. First = the insight worth remembering. Second = the VALUE-ADD: why it matters, how the user can use it, or the contrarian read.
 
@@ -199,6 +200,18 @@ final class AIResponse: Identifiable {
                 - Propose : "Je peux faire le benchmark concurrence et te revenir cet après-midi" [USER VOLUNTEERS ON SOMEONE ELSE'S TASK — BANNED]
                 - La collègue hésite, suggère-lui : "Passe à 99 € c'est le bon prix" [TURNS THE VALUE-ADD INTO A PHRASE TO SAY ON A COLLEAGUE'S DECISION — BANNED]
                 - À 99 € elle perdra 30 % de conversion d'après les A/B tests [INVENTS A NUMBER AND A SOURCE NOT IN THE TRANSCRIPT — BANNED]
+                </example>
+
+                <example>
+                SITUATION B with AMBIGUOUS ADDRESSEE — daily stand-up, 3+ speakers, an OPEN question is on the table without naming anyone and it could plausibly be for the user. Give the takeaway, then ONE hedge line:
+                Transcript: "Interlocuteur: du coup sur l'API de paiement, il nous faut quelqu'un pour reprendre le refacto cette semaine, qui peut le prendre ?"
+
+                GOOD:
+                Une question ouverte est posée : qui reprend le refacto de l'API de paiement cette semaine. Personne n'est nommé, l'arbitrage de charge n'est pas tranché.
+                Si c'est pour toi : "Je peux prendre le refacto de l'API paiement cette semaine si on décale ma revue de specs à vendredi."
+
+                BAD:
+                - Je peux prendre le refacto cette semaine [UNCONDITIONAL COMMITMENT — the addressee is NOT confirmed, the hedge marker "Si c'est pour toi :" is mandatory here]
                 </example>
 
                 <example>
