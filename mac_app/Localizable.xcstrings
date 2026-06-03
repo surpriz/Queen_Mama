@@ -8006,6 +8006,23 @@
         }
       }
     },
+    "overlay.noConversation" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No conversation in progress. Use Assist to analyze the screen."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pas de conversation en cours. Utilise Assist pour analyser l'écran."
+          }
+        }
+      }
+    },
     "overlay.tab.followUp" : {
       "extractionState" : "manual",
       "localizations" : {

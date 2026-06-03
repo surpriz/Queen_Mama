@@ -390,6 +390,13 @@ struct OverlayContentView: View {
                             }
                         }
                     case .whatToSay:
+                        // What to Say is conversational — with no transcript (screen-only),
+                        // there is nothing to say. Short-circuit instead of calling the AI.
+                        guard !transcriptForRequest.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+                            appState.aiService.currentResponse = String(localized: "overlay.noConversation")
+                            appState.aiService.isProcessing = false
+                            break
+                        }
                         let response = try await appState.aiService.whatToSay(
                             transcript: transcriptForRequest,
                             screenshot: screenshot,
@@ -397,6 +404,13 @@ struct OverlayContentView: View {
                         )
                         appState.aiService.currentResponse = response.content
                     case .followUp:
+                        // Follow-up needs an interlocutor — with no transcript (screen-only),
+                        // there is no one to question. Short-circuit instead of calling the AI.
+                        guard !transcriptForRequest.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+                            appState.aiService.currentResponse = String(localized: "overlay.noConversation")
+                            appState.aiService.isProcessing = false
+                            break
+                        }
                         let response = try await appState.aiService.followUpQuestions(
                             transcript: transcriptForRequest,
                             screenshot: screenshot,
