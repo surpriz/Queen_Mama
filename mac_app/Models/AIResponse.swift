@@ -239,37 +239,46 @@ final class AIResponse: Identifiable {
 
             case .whatToSay:
                 return """
-                OVERRIDE: This tab is "What to Say". The user wants 3 phrases that respond to the LAST question or topic addressed to them, NOT a recap, NOT general advice, NOT a multi-topic synthesis.
+                OVERRIDE: This tab is "What to Say". Output exactly 3 short phrases the user can say VERBATIM. NEVER describe your task, and NEVER ask the user or anyone to restate or clarify anything.
 
-                FOCUS RULE — ABSOLUTE:
+                FIRST, detect the situation:
+                A) LIVE CONVERSATION — the transcript contains a question or topic directed at the user → all 3 phrases answer the MOST RECENT one (see FOCUS RULE).
+                B) PASSIVE / SCREEN-ONLY — no conversation is happening (the user is reading a page or watching content, and often ONLY a screenshot is provided, with little or no transcript) → READ the screenshot and the visible content and give 3 sharp, sayable takes on the MOST SALIENT topics actually visible (a position, a fact, an angle a person could voice about it). Do NOT ask for a question that was never asked.
+
+                FOCUS RULE (situation A only) — ABSOLUTE:
                 - Identify the MOST RECENT question or prompt directed at the user (last "?" from the other speaker, or the last topic they were asked to address).
                 - All 3 phrases must answer THAT specific question. Ignore earlier questions in the transcript even if unanswered.
                 - If the transcript contains multiple stacked questions (e.g., interviewer asked about A, then B, then C), respond to C only — the latest one.
 
-                PHRASE RULES:
-                - Each phrase = something the user can say VERBATIM with credibility.
-                - Sharp, authoritative, concrete — never generic or passive.
-                - Each takes a DIFFERENT angle on the SAME question (e.g., factual answer / quantified anchor / closing reframe).
-                - NEVER cover multiple distinct topics across the 3 phrases.
+                PHRASE RULES (both situations):
+                - Each phrase = something the user can say VERBATIM with credibility. Sharp, authoritative, concrete — never generic or passive.
+                - In A: each takes a DIFFERENT angle on the SAME question. In B: each is a sharp take on a DIFFERENT salient point visible on screen.
 
                 HARD BAN — if your response contains ANY of these, it is WRONG:
-                - Phrases addressing 2+ different questions from the transcript
+                - Asking anyone to restate, clarify, or supply the question ("redites-moi ce que vous attendez", "donnez-moi la dernière question", "give me the last question"). If there is no question, you are in situation B: talk about the visible content instead.
+                - Phrases addressing 2+ different questions from the transcript (situation A)
                 - Summaries of what's been discussed so far
                 - Generic interview filler ("Je suis développeur avec de l'expérience…") when a specific question was asked
                 - Follow-up questions back to the interlocutor (those belong on the "Follow-up" tab)
                 - Meta-commentary about your own task, the question, or the format ("the key point is that this question is about...", "I should answer...", "the safest move is to..."). Output ONLY the phrases, never a description of what you are doing.
 
-                NO DIRECT QUESTION (the user is reading a page, watching content, or only a screenshot is provided with no conversation): there is nothing to answer. Base the 3 phrases on the MOST SALIENT topic actually visible on screen or in the content, as sharp sayable lines (a take, a fact, an angle a person could voice). Never invent a question that was not asked, and write in the language of the visible content.
-
                 <example>
-                FRENCH TRANSCRIPT — réponse 100% française:
+                SITUATION A — FRENCH, a question is directed at the user:
                 - "Concrètement, on a chiffré l'impact à 12 % de marge en moins sur le Q3 — c'est notre P&L, pas un risque théorique."
                 - "Si on reste sur ce schéma, on perd 90 jours de cycle face à des concurrents qui livrent en 30."
                 - "La vraie question : on optimise ou on remet à plat ? Les deux n'ont pas le même budget."
                 </example>
 
                 <example>
-                ENGLISH TRANSCRIPT — 100% English response:
+                SITUATION B — PASSIVE / SCREEN-ONLY, the user is reading a French news page (only a screenshot, no conversation). Respond in the page's language and ground each phrase on something actually visible.
+                Visible: a feed headlining an escalation in the Middle East, an article on AI wiping out pre-ChatGPT startups, and Microsoft offering Office paid-for-life.
+                - "L'escalade au Moyen-Orient va se lire sur les prix de l'énergie avant la fin du trimestre, c'est ça le vrai sujet derrière les titres."
+                - "Si l'IA décime les start-up d'avant ChatGPT, le risque n'est pas la techno, c'est de rester sur un modèle qu'elle rend obsolète."
+                - "Microsoft qui propose Office à vie, c'est le signe que le tout-abonnement commence à fatiguer les clients."
+                </example>
+
+                <example>
+                SITUATION A — ENGLISH, a question is directed at the user:
                 - "Concretely, we measured the impact at a 12% margin loss on Q3 — this is our P&L, not a theoretical risk."
                 - "If we stay on this path, we lose 90 days of sales cycle versus competitors shipping in 30."
                 - "The real question: are we optimizing or rebuilding from scratch? The two don't have the same budget."
@@ -280,7 +289,11 @@ final class AIResponse: Identifiable {
 
             case .followUp:
                 return """
-                OVERRIDE: This tab is "Follow-up". The user wants 3 QUESTIONS to ASK back to the interlocutor, NOT phrases to say in response, NOT advice on what to answer, NOT a multi-topic summary.
+                OVERRIDE: This tab is "Follow-up". Output exactly 3 QUESTIONS (each ending with "?"). NEVER output statements or advice.
+
+                FIRST, detect the situation:
+                A) LIVE CONVERSATION — there is an interlocutor and a topic under discussion → 3 questions to ASK the interlocutor about the MOST RECENT topic (see QUESTION RULES).
+                B) PASSIVE / SCREEN-ONLY — no interlocutor (the user is reading a page or watching content, often ONLY a screenshot is provided) → READ the screenshot and the visible content and give 3 sharp questions about the MOST SALIENT topics visible. Every question must name a CONCRETE element actually on screen (an entity, place, number, headline). A question that could fit any business meeting is WRONG here.
 
                 OUTPUT TYPE — ABSOLUTE:
                 - Every bullet MUST be a QUESTION (ending with "?" in the response language).
@@ -288,30 +301,36 @@ final class AIResponse: Identifiable {
                 - NEVER output statements, advice, or "Dis :", "Réponds :", "Propose :", "Say:", "Reply:", "Tell them:" prefixes. Those belong on "Assist" or "What to Say".
 
                 QUESTION RULES:
-                - Each question REVEALS a blind spot, CHALLENGES an assumption, or REFRAMES the problem.
-                - Anchored on the most recent topic in the transcript — not a recap of everything discussed.
+                - Each question REVEALS a blind spot, CHALLENGES an assumption, or REFRAMES the topic.
+                - In A: anchored on the most recent topic in the transcript. In B: anchored on a specific visible element.
                 - NEVER basic checklist questions ("avez-vous vérifié...?", "have you checked...?").
-                - Each targets a DIFFERENT dimension (e.g., timeline / success metrics / risk / team / budget).
+                - Each targets a DIFFERENT angle.
 
                 HARD BAN — if your response contains ANY of these, it is WRONG:
                 - Any bullet that is NOT a question
                 - Any "Dis", "Réponds", "Propose", "Say", "Reply", "Tell" verb prefix
                 - Recap of multiple transcript topics
                 - Generic "tell me more about…" filler
-                - Generic template questions copied from the examples instead of grounded in the actual transcript or visible content
+                - Generic template questions (budget / KPI / assumption / "next step") that name nothing actually present in the transcript or on screen. In situation B especially, name a visible element.
                 - Meta-commentary about your own task or reasoning. Output ONLY the questions.
 
-                NO CONVERSATION (the user is reading a page, watching content, or only a screenshot is provided): there is no interlocutor to question. Base the 3 questions on the MOST SALIENT topic actually visible on screen or in the content, and write in its language.
-
                 <example>
-                FRENCH TRANSCRIPT — réponse 100% française:
+                SITUATION A — FRENCH, live discussion:
                 1. "Quelle hypothèse tomberait en premier si le marché se retournait, et comment le détecterait-on tôt ?"
                 2. "Quel KPI nous dirait, dans 90 jours, que cette décision a été la bonne ?"
                 3. "Si on avait deux fois moins de budget, qu'est-ce qu'on couperait en premier — et pourquoi ?"
                 </example>
 
                 <example>
-                ENGLISH TRANSCRIPT — 100% English response:
+                SITUATION B — PASSIVE / SCREEN-ONLY, the user is reading a French news page (only a screenshot). Each question names something actually visible, in the page's language.
+                Visible: a feed headlining an escalation in the Middle East, an article on AI wiping out pre-ChatGPT startups, and Microsoft offering Office paid-for-life.
+                1. "Une escalade au Moyen-Orient à ce stade, ça fait monter le baril de combien et quels secteurs trinquent en premier ?"
+                2. "Si l'IA décime surtout les start-up d'avant ChatGPT, lesquelles survivent et qu'ont-elles en commun ?"
+                3. "Office payant à vie chez Microsoft, c'est un test isolé ou le début d'un vrai virage anti-abonnement ?"
+                </example>
+
+                <example>
+                SITUATION A — ENGLISH, live discussion:
                 1. "Which assumption would fail first under a market downturn, and how would we detect it early?"
                 2. "What single KPI would tell us in 90 days that this was the right call?"
                 3. "If we had half the budget, what would we cut first — and why?"
