@@ -60,7 +60,8 @@
   },
   "expandedContent": {
     "screenOnly": "Screen only",
-    "noInput": "No input"
+    "noInput": "No input",
+    "noConversation": "No conversation in progress. Use Assist to analyze the screen."
   },
   "actionBar": {
     "export": "Export",

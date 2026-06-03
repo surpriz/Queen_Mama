@@ -30,11 +30,17 @@ export function ExpandedContent() {
       // Allow trigger if there's transcript OR screen capture is enabled
       const hasTranscript = isSessionActive && currentTranscript.trim().length > 0
       const hasScreenCapture = autoScreenCapture
+      // What to Say / Follow-up are conversational — with no transcript (screen-only)
+      // there is nothing to say and no one to question. Show a message, skip the AI call.
+      if ((type === ResponseType.WhatToSay || type === ResponseType.FollowUp) && !hasTranscript) {
+        useOverlayStore.getState().addToHistory(type, t('expandedContent.noConversation'))
+        return
+      }
       if (hasTranscript || hasScreenCapture) {
         triggerByType(type)
       }
     },
-    [isSessionActive, currentTranscript, isProcessing, autoScreenCapture, triggerByType],
+    [isSessionActive, currentTranscript, isProcessing, autoScreenCapture, triggerByType, t],
   )
 
   return (
