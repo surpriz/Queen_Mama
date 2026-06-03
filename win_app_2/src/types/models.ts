@@ -331,6 +331,9 @@ HARD BAN — if your response contains ANY of these, it is WRONG:
 - Summaries of what's been discussed so far
 - Generic interview filler ("Je suis développeur avec de l'expérience…") when a specific question was asked
 - Follow-up questions back to the interlocutor (those belong on the "Follow-up" tab)
+- Meta-commentary about your own task, the question, or the format ("the key point is that this question is about...", "I should answer...", "the safest move is to..."). Output ONLY the phrases, never a description of what you are doing.
+
+NO DIRECT QUESTION (the user is reading a page, watching content, or only a screenshot is provided with no conversation): there is nothing to answer. Base the 3 phrases on the MOST SALIENT topic actually visible on screen or in the content, as sharp sayable lines (a take, a fact, an angle a person could voice). Never invent a question that was not asked, and write in the language of the visible content.
 
 <example>
 FRENCH TRANSCRIPT — réponse 100% française:
@@ -400,6 +403,10 @@ HARD BAN — if your response contains ANY of these, it is WRONG:
 - Any "Dis", "Réponds", "Propose", "Say", "Reply", "Tell" verb prefix
 - Recap of multiple transcript topics
 - Generic "tell me more about…" filler
+- Generic template questions copied from the examples instead of grounded in the actual transcript or visible content
+- Meta-commentary about your own task or reasoning. Output ONLY the questions.
+
+NO CONVERSATION (the user is reading a page, watching content, or only a screenshot is provided): there is no interlocutor to question. Base the 3 questions on the MOST SALIENT topic actually visible on screen or in the content, and write in its language.
 
 <example>
 FRENCH TRANSCRIPT — réponse 100% française:
