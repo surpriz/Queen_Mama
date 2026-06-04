@@ -63,9 +63,21 @@ final class EchoCancellationService {
     /// Re-estimate the bulk delay at most this often (samples ≈ 0.5 s).
     private let delayRefreshInterval = 8_000
 
-    /// Geigel-style double-talk threshold: freeze adaptation when the near-end sample
-    /// energy exceeds the recent far-end peak by this factor (≈ user talking over).
-    private let doubleTalkThreshold: Float = 2.0
+    /// Geigel double-talk threshold. Declare double-talk (and freeze adaptation) when a
+    /// near-end sample reaches this fraction of the recent far-end peak. Echo is an
+    /// attenuated copy of the far signal, so echo-only stays below this; the user's voice
+    /// pushes above it. Biased low (0.5) so we err toward freezing — the user's own words
+    /// must never be eaten, even at the cost of slightly slower echo re-convergence.
+    private let geigelThreshold: Float = 0.5
+
+    /// Once double-talk is detected, keep adaptation frozen for this many samples
+    /// (~0.15 s) so brief dips between syllables/glottal pulses don't re-arm the filter
+    /// mid-utterance and let it drift onto the user's voice.
+    private let hangoverSamples = 2_400
+
+    /// Minimum far-end peak (normalized) for adaptation to run at all — no reference
+    /// energy means no echo to learn, so freeze.
+    private let farActivityFloor: Float = 0.01
 
     // MARK: - State
 
@@ -81,8 +93,8 @@ final class EchoCancellationService {
     private var delaySamples = 1_600 // ~100 ms initial guess
     private var samplesSinceDelayRefresh = 0
 
-    /// Recent far-end peak magnitude for the double-talk detector.
-    private var farPeak: Float = 0
+    /// Remaining hangover samples during which adaptation stays frozen (double-talk).
+    private var dtHold = 0
 
     /// ERLE accumulation for periodic logging.
     private var erleNearAcc: Float = 0
@@ -118,11 +130,6 @@ final class EchoCancellationService {
             farWrite = (farWrite + 1) % referenceCapacity
         }
         farCount += samples.count
-
-        // Track a decaying peak for double-talk detection.
-        var blockPeak: Float = 0
-        vDSP_maxmgv(samples, 1, &blockPeak, vDSP_Length(samples.count))
-        farPeak = max(blockPeak, farPeak * 0.95)
     }
 
     /// Cancel echo from a microphone PCM16 chunk and return the cleaned PCM16.
@@ -143,9 +150,11 @@ final class EchoCancellationService {
         let available = min(farCount, referenceCapacity)
         guard available >= needed else { return data }
 
-        // Periodically refresh the bulk-delay estimate when both streams are active.
+        // Periodically refresh the bulk-delay estimate — but only outside double-talk,
+        // since the cross-correlation needs clean echo (the user's voice is uncorrelated
+        // with the reference and would bias the lag estimate).
         samplesSinceDelayRefresh += n
-        if samplesSinceDelayRefresh >= delayRefreshInterval {
+        if samplesSinceDelayRefresh >= delayRefreshInterval && dtHold == 0 {
             samplesSinceDelayRefresh = 0
             refreshDelay(near: near)
         }
@@ -155,6 +164,27 @@ final class EchoCancellationService {
         let spanLen = n + filterLength
         let endOffset = delaySamples                  // samples behind write head
         let far = linearizedFar(spanLen: spanLen, endOffset: endOffset)
+
+        // Block-level Geigel double-talk detection. Echo is an attenuated copy of the
+        // far signal, so during echo-only the mic peak stays well below the far peak;
+        // when the user speaks, the mic peak crosses the threshold fraction of it.
+        // Deciding per-block UP FRONT (mic buffers are short) is critical: a per-sample
+        // detector arms only AFTER the first supra-threshold sample, and that one onset
+        // sample would adapt with the user's voice as the error (≫ echo) and corrupt the
+        // converged filter in a single NLMS step. Freezing the whole block prevents that.
+        // The hangover (in samples) keeps the filter frozen across the following blocks.
+        var blockFarMax: Float = 0
+        vDSP_maxmgv(far, 1, &blockFarMax, vDSP_Length(spanLen))
+        var blockNearMax: Float = 0
+        vDSP_maxmgv(near, 1, &blockNearMax, vDSP_Length(n))
+        let farActive = blockFarMax > farActivityFloor
+        if blockNearMax >= geigelThreshold * blockFarMax {
+            dtHold = hangoverSamples
+        }
+        // Freeze adaptation during double-talk (and its hangover) or when there is no
+        // far-end energy to learn from. We still subtract the converged estimate, so the
+        // echo keeps being cancelled while the user's own voice passes through untouched.
+        let frozen = dtHold > 0 || !farActive
 
         var out = [Float](repeating: 0, count: n)
         var nearEnergy: Float = 0
@@ -178,11 +208,7 @@ final class EchoCancellationService {
             nearEnergy += d * d
             residEnergy += e * e
 
-            // Double-talk detector: skip the weight update when the near-end clearly
-            // dominates the reference (user is talking over the remote), so we don't
-            // adapt the filter onto the user's own voice.
-            let isDoubleTalk = abs(d) > doubleTalkThreshold * farPeak && farPeak > 0
-            if !isDoubleTalk {
+            if !frozen {
                 // NLMS update: w += mu * e * x / (||x||^2 + eps)
                 var norm: Float = 0
                 far.withUnsafeBufferPointer { fp in
@@ -200,6 +226,9 @@ final class EchoCancellationService {
                 }
             }
         }
+
+        // Age the double-talk hangover by this block's length.
+        dtHold = max(0, dtHold - n)
 
         // Accumulate ERLE (echo return loss enhancement) for diagnostics.
         erleNearAcc += nearEnergy
@@ -222,7 +251,7 @@ final class EchoCancellationService {
         farCount = 0
         delaySamples = 1_600
         samplesSinceDelayRefresh = 0
-        farPeak = 0
+        dtHold = 0
         erleNearAcc = 0
         erleResidAcc = 0
         processedBlocks = 0

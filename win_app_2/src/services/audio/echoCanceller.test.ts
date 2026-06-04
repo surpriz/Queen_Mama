@@ -8,7 +8,7 @@ import * as aec from './echoCanceller'
 
 const BLOCK = 320 // 20 ms @ 16 kHz
 const ECHO_DELAY = 1_700 // within the initial 1600 delay guess + filter length
-const ECHO_GAIN = 0.5
+const ECHO_GAIN = 0.2 // realistic speaker→mic coupling (~ -14 dB)
 const WARMUP = 200
 
 function makeReference(count: number, seed = 0x9e3779b9n): Float32Array {
@@ -93,6 +93,45 @@ describe('echoCanceller', () => {
     let nearEnergy = 0
     for (let i = 0; i < BLOCK; i++) nearEnergy += near[i] * near[i]
     expect(energy(cleaned)).toBeGreaterThan(nearEnergy * 0.4)
+  })
+
+  it('survives sustained double-talk without corrupting the filter', () => {
+    // Regression guard: one onset sample adapting with the user's voice as the error
+    // used to knock the converged filter off its optimum (dropping the user's words).
+    // After many double-talk blocks, echo cancellation must resume at full strength.
+    const dtBlocks = 60
+    const total = (WARMUP + dtBlocks + 10) * BLOCK + ECHO_DELAY
+    const far = makeReference(total)
+    const near = makeReference(70 * BLOCK, 0xabcdefn) // user voice, uncorrelated
+
+    const echoBlock = (t: number) => {
+      const m = new Float32Array(BLOCK)
+      for (let i = 0; i < BLOCK; i++) {
+        const src = t + i - ECHO_DELAY
+        m[i] = src >= 0 ? ECHO_GAIN * far[src] : 0
+      }
+      return m
+    }
+
+    for (let b = 0; b < WARMUP; b++) {
+      const t = b * BLOCK
+      aec.pushReference(aec.encodePCM16(far.subarray(t, t + BLOCK)))
+      aec.process(aec.encodePCM16(echoBlock(t)))
+    }
+    for (let k = 0; k < dtBlocks; k++) {
+      const t = (WARMUP + k) * BLOCK
+      aec.pushReference(aec.encodePCM16(far.subarray(t, t + BLOCK)))
+      const eb = echoBlock(t)
+      const m = new Float32Array(BLOCK)
+      for (let i = 0; i < BLOCK; i++) m[i] = eb[i] + near[k * BLOCK + i]
+      aec.process(aec.encodePCM16(m))
+    }
+    const t = (WARMUP + dtBlocks) * BLOCK
+    aec.pushReference(aec.encodePCM16(far.subarray(t, t + BLOCK)))
+    const micData = aec.encodePCM16(echoBlock(t))
+    const cleaned = aec.process(micData)
+    const erle = 10 * Math.log10(energy(micData) / Math.max(energy(cleaned), 1e-9))
+    expect(erle).toBeGreaterThan(30)
   })
 
   it('passes the mic signal through unchanged when no reference is fed', () => {

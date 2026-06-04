@@ -21,7 +21,7 @@ final class EchoCancellationServiceTests: XCTestCase {
     // converges without depending on the periodic cross-correlation search.
     private let blockSize = 320            // 20 ms @ 16 kHz
     private let echoDelay = 1_700          // samples (within initial guess + filterLength)
-    private let echoGain: Float = 0.5
+    private let echoGain: Float = 0.2      // realistic speaker→mic coupling (~ -14 dB)
     private let warmupBlocks = 200         // ~4 s to converge
 
     // Deterministic pseudo-random reference ("remote speaker" audio).
@@ -122,6 +122,53 @@ final class EchoCancellationServiceTests: XCTestCase {
         let residualEnergy = energy(cleaned)
         XCTAssertGreaterThan(residualEnergy, nearEnergy * 0.4,
             "Near-end speech should be preserved during double-talk")
+    }
+
+    // MARK: - Sustained double-talk (regression guard)
+
+    /// Regression guard: SUSTAINED double-talk must not corrupt the converged filter.
+    /// A single onset sample adapting with the user's voice as the error used to knock
+    /// the filter off its optimum (dropping the user's words). After many double-talk
+    /// blocks, echo cancellation must resume at full strength on clean echo-only audio.
+    func test_process_survivesSustainedDoubleTalk() {
+        let aec = EchoCancellationService()
+        let dtBlocks = 60
+        let total = (warmupBlocks + dtBlocks + 10) * blockSize + echoDelay
+        let far = makeReference(total)
+        let near = makeReference(70 * blockSize, seed: 0xABCDEF) // user voice, uncorrelated
+
+        func echoBlock(_ t: Int) -> [Float] {
+            var m = [Float](repeating: 0, count: blockSize)
+            for i in 0..<blockSize {
+                let src = t + i - echoDelay
+                m[i] = src >= 0 ? echoGain * far[src] : 0
+            }
+            return m
+        }
+
+        // Converge on clean echo.
+        for b in 0..<warmupBlocks {
+            let t = b * blockSize
+            aec.pushReference(EchoCancellationService.encodePCM16(Array(far[t..<t + blockSize])))
+            _ = aec.process(EchoCancellationService.encodePCM16(echoBlock(t)))
+        }
+        // Sustained double-talk: echo + continuous user voice.
+        for k in 0..<dtBlocks {
+            let t = (warmupBlocks + k) * blockSize
+            aec.pushReference(EchoCancellationService.encodePCM16(Array(far[t..<t + blockSize])))
+            let eb = echoBlock(t)
+            var m = [Float](repeating: 0, count: blockSize)
+            for i in 0..<blockSize { m[i] = eb[i] + near[k * blockSize + i] }
+            _ = aec.process(EchoCancellationService.encodePCM16(m))
+        }
+        // Echo-only again: the filter must still cancel (it was frozen, not corrupted).
+        let t = (warmupBlocks + dtBlocks) * blockSize
+        aec.pushReference(EchoCancellationService.encodePCM16(Array(far[t..<t + blockSize])))
+        let micData = EchoCancellationService.encodePCM16(echoBlock(t))
+        let cleaned = aec.process(micData)
+        let erle = 10 * log10(energy(micData) / max(energy(cleaned), 1e-9))
+        XCTAssertGreaterThan(erle, 30.0,
+            "Echo cancellation must survive sustained double-talk, got \(erle) dB")
     }
 
     // MARK: - Passthrough
