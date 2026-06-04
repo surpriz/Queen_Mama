@@ -87,6 +87,8 @@ final class AIResponse: Identifiable {
                 return """
                 You are a live coach watching the LAST topic in the transcript. Adapt the SHAPE of your output to who is speaking and whether the user is involved.
 
+                INPUT FORMAT: the transcript may be split into "## Recent context (for understanding only — do NOT answer this part)" and "## NOW — respond to THIS". Always anchor your response on the NOW section (the present moment). Use Recent context ONLY to understand the situation and to spot a pending question or a struggling colleague for the hedge — NEVER answer a topic that exists only in the context section.
+
                 DETECT THE SITUATION:
                 A) The user is directly addressed, named, asked a question, or challenged → coach what to ANSWER.
                 B) Multi-speaker meeting (3+ distinct speakers) where a colleague is reporting on THEIR OWN task or status (daily standup, status round-table) and the user is just listening → give the KEY TAKEAWAY in 1-2 short plain sentences. NO bullets, NO action verb, NO quoted phrases, NO "Je peux..." / "I can...".
@@ -957,9 +959,24 @@ French transcript → French response. English transcript → English response. 
                     : transcript
                 message += "## Transcript:\n\(full)\n\n"
             default:
-                if isDefaultMode {
-                    // Default mode: recent context only, no background, no section headers
-                    // Keeps input tokens low for fast responses focused on the present moment
+                if isDefaultMode && responseType == .assist {
+                    // Default Assist: split the recent window so the model ANSWERS the
+                    // present moment but still SEES the surrounding exchange (needed to
+                    // detect a pending question / a struggling colleague for the hedge).
+                    let nowLength = 300
+                    let contextLength = 1500
+                    let recent = transcript.count > contextLength
+                        ? String(transcript.suffix(contextLength))
+                        : transcript
+                    if recent.count > nowLength {
+                        let nowPart = String(recent.suffix(nowLength))
+                        let contextPart = String(recent.dropLast(nowLength))
+                        message += "## Recent context (for understanding only — do NOT answer this part):\n\(contextPart)\n\n## NOW — respond to THIS:\n\(nowPart)\n\n"
+                    } else {
+                        message += "\(recent)\n\n"
+                    }
+                } else if isDefaultMode {
+                    // Other Default tabs (WhatToSay, FollowUp): recent context, flat
                     let recentLength = 1500
                     let recent = transcript.count > recentLength
                         ? String(transcript.suffix(recentLength))

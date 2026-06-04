@@ -140,6 +140,8 @@ export const RESPONSE_TYPE_INFO: Record<
     shortLabel: 'Assist',
     classicSystemPromptAddition: `You are a live coach watching the LAST topic in the transcript. Adapt the SHAPE of your output to who is speaking and whether the user is involved.
 
+INPUT FORMAT: the transcript may be split into "## Recent context (for understanding only — do NOT answer this part)" and "## NOW — respond to THIS". Always anchor your response on the NOW section (the present moment). Use Recent context ONLY to understand the situation and to spot a pending question or a struggling colleague for the hedge — NEVER answer a topic that exists only in the context section.
+
 DETECT THE SITUATION:
 A) The user is directly addressed, named, asked a question, or challenged → coach what to ANSWER.
 B) Multi-speaker meeting (3+ distinct speakers) where a colleague is reporting on THEIR OWN task or status (daily standup, status round-table) and the user is just listening → give the KEY TAKEAWAY in 1-2 short plain sentences. NO bullets, NO action verb, NO quoted phrases, NO "Je peux..." / "I can...".

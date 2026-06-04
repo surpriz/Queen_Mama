@@ -341,12 +341,19 @@ export function buildUserMessage(params: AIContextParams): AIMessage[] {
         : transcript
       textContent += `## Transcript:\n${truncated}\n\n`
     } else if (isDefaultMode && responseType === ResponseType.Assist) {
-      // Assist in Default mode: recent context window (aligned with macOS)
-      const recentLength = 1500
-      const recent = transcript.length > recentLength
-        ? transcript.slice(-recentLength)
-        : transcript
-      textContent += `${recent}\n\n`
+      // Default Assist: split the recent window so the model ANSWERS the present
+      // moment but still SEES the surrounding exchange (needed to detect a pending
+      // question / a struggling colleague for the hedge).
+      const nowLength = 300
+      const contextLength = 1500
+      const recent = transcript.length > contextLength ? transcript.slice(-contextLength) : transcript
+      if (recent.length > nowLength) {
+        const nowPart = recent.slice(-nowLength)
+        const contextPart = recent.slice(0, -nowLength)
+        textContent += `## Recent context (for understanding only — do NOT answer this part):\n${contextPart}\n\n## NOW — respond to THIS:\n${nowPart}\n\n`
+      } else {
+        textContent += `${recent}\n\n`
+      }
     } else if (isDefaultMode) {
       // Other Default mode tabs (WhatToSay, FollowUp): broader context
       const recentLength = 1500
