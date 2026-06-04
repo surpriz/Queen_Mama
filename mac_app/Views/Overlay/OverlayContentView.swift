@@ -327,8 +327,11 @@ struct OverlayContentView: View {
                     // Recap needs full transcript for comprehensive summary
                     transcriptForRequest = freshTranscript
                 case .assist:
-                    // Assist: razor-tight window (~10-15s) to isolate the current question only
-                    transcriptForRequest = AIService.trimTranscript(freshTranscript, maxLength: 300)
+                    // Assist: recent window (~1.5 min) — wide enough to keep a pending
+                    // question + the surrounding exchange in view so situation detection
+                    // and the opportunity hedge stay stable as the meeting grows.
+                    // (300 chars dropped the question out of view mid-meeting → hedge vanished.)
+                    transcriptForRequest = AIService.trimTranscript(freshTranscript, maxLength: 1500)
                 default:
                     // WhatToSay, FollowUp use broader context
                     transcriptForRequest = AIService.trimTranscript(
