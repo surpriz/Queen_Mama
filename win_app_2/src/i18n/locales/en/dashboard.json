@@ -183,6 +183,10 @@
       "providerStatus": "DeepL via QueenMama proxy",
       "providerActive": "Active — included in your plan",
       "providerNotConfigured": "Not available on your plan — upgrade to Pro or higher.",
+      "providerChecking": "Checking availability…",
+      "providerUnavailable": "Translation service temporarily unavailable.",
+      "providerLoadError": "Couldn't check service availability.",
+      "retry": "Retry",
       "test": "Test translation",
       "testing": "Testing..."
     },

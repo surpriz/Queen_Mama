@@ -183,6 +183,10 @@
       "providerStatus": "DeepL via le proxy QueenMama",
       "providerActive": "Actif — inclus dans votre formule",
       "providerNotConfigured": "Indisponible sur votre formule — passez à Pro ou supérieur.",
+      "providerChecking": "Vérification de la disponibilité…",
+      "providerUnavailable": "Service de traduction temporairement indisponible.",
+      "providerLoadError": "Impossible de vérifier la disponibilité du service.",
+      "retry": "Réessayer",
       "test": "Tester la traduction",
       "testing": "Test en cours..."
     },
