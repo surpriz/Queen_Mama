@@ -70,6 +70,7 @@ final class ScreenCaptureService: NSObject, ObservableObject {
 
     // Screenshot deduplication for cost optimization
     private var lastScreenshotHash: String?
+    private var lastPreCaptureHash: String?
 
     // SCStream error recovery (auto-retry on display reconfiguration)
     private var streamRecoveryAttempts = 0
@@ -394,6 +395,16 @@ final class ScreenCaptureService: NSObject, ObservableObject {
             let startTime = CFAbsoluteTimeGetCurrent()
             let data = try await captureScreenshot()
             let captureTime = (CFAbsoluteTimeGetCurrent() - startTime) * 1000
+
+            // Static screen: keep the existing analysis, just refresh the cache
+            // timestamp. Skips the Vision pass (face detection) that would
+            // otherwise run every 2s on an unchanged screen.
+            let hash = data.sha256Hash()
+            if hash == lastPreCaptureHash, cachedScreenshotAnalysis != nil {
+                cachedScreenshotTimestamp = Date()
+                return
+            }
+            lastPreCaptureHash = hash
 
             // Update cache
             cachedScreenshotData = data

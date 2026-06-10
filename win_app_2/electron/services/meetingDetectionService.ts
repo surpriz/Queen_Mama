@@ -15,9 +15,12 @@
  * Uses a 30-minute cooldown per app to avoid spamming reminders.
  */
 
-import { execSync } from 'child_process'
+import { exec } from 'child_process'
+import { promisify } from 'util'
 import { IPC_CHANNELS } from '../ipc/channels'
 import { safeSendToAllWindows } from '../utils/ipcUtils'
+
+const execAsync = promisify(exec)
 
 // ---------------------------------------------------------------------------
 // Types
@@ -44,7 +47,9 @@ interface MeetingApp {
 // Configuration
 // ---------------------------------------------------------------------------
 
-const POLL_INTERVAL_MS = 15_000 // 15 seconds
+const POLL_INTERVAL_MS = 15_000 // 15 seconds (base)
+const POLL_INTERVAL_MAX_MS = 60_000 // backoff cap when nothing is detected
+const IDLE_SCANS_BEFORE_BACKOFF = 8 // ~2min of empty scans before slowing down
 const COOLDOWN_MS = 30 * 60 * 1000 // 30 minutes
 
 /**
@@ -141,9 +146,10 @@ const PS_COMMAND = [
 // Service State
 // ---------------------------------------------------------------------------
 
-let pollTimer: ReturnType<typeof setInterval> | null = null
+let pollTimer: ReturnType<typeof setTimeout> | null = null
 let isMonitoring = false
 let isSessionActive = false
+let consecutiveIdleScans = 0
 let onMeetingDetectedCallback: ((appName: string) => void) | null = null
 
 export function setOnMeetingDetected(cb: (appName: string) => void): void {
@@ -157,9 +163,11 @@ const cooldowns = new Map<string, number>()
 // Window Enumeration
 // ---------------------------------------------------------------------------
 
-function getVisibleWindows(): WindowInfo[] {
+async function getVisibleWindows(): Promise<WindowInfo[]> {
   try {
-    const stdout = execSync(PS_COMMAND, {
+    // Async exec — execSync here used to block the main-process event loop
+    // (windows, IPC, menus frozen) for up to 10s per scan.
+    const { stdout } = await execAsync(PS_COMMAND, {
       encoding: 'utf-8',
       timeout: 10_000, // 10s timeout to avoid hanging
       windowsHide: true, // hide the PowerShell console window
@@ -187,7 +195,7 @@ function getVisibleWindows(): WindowInfo[] {
 // Detection Logic
 // ---------------------------------------------------------------------------
 
-function scanForMeetings(): void {
+async function scanForMeetings(): Promise<void> {
   if (!isMonitoring) return
 
   // Skip scan if a session is already active
@@ -195,8 +203,11 @@ function scanForMeetings(): void {
     return
   }
 
-  const windows = getVisibleWindows()
-  if (windows.length === 0) return
+  const windows = await getVisibleWindows()
+  if (windows.length === 0) {
+    consecutiveIdleScans++
+    return
+  }
 
   for (const app of MEETING_APPS) {
     // Find all windows belonging to this app's processes
@@ -227,11 +238,14 @@ function scanForMeetings(): void {
     }
 
     if (detected) {
+      consecutiveIdleScans = 0 // meeting activity → back to fast polling
       triggerIfEligible(app.displayName)
       // Only trigger for the first detected app per scan cycle
       return
     }
   }
+
+  consecutiveIdleScans++
 }
 
 function triggerIfEligible(appName: string): void {
@@ -272,13 +286,24 @@ export function startMonitoring(): void {
   }
 
   isMonitoring = true
-  console.log('[MeetingDetection] Started monitoring (poll interval: 15s, cooldown: 30min)')
+  consecutiveIdleScans = 0
+  console.log('[MeetingDetection] Started monitoring (poll: 15s, backoff to 60s when idle, cooldown: 30min)')
 
-  // Immediate scan
-  scanForMeetings()
+  // Immediate scan, then adaptive polling
+  void runScanLoop()
+}
 
-  // Periodic polling
-  pollTimer = setInterval(scanForMeetings, POLL_INTERVAL_MS)
+/** setTimeout chain so the delay can adapt: 15s while active, 60s after ~2min idle. */
+async function runScanLoop(): Promise<void> {
+  if (!isMonitoring) return
+
+  await scanForMeetings()
+
+  if (!isMonitoring) return
+  const delay = consecutiveIdleScans >= IDLE_SCANS_BEFORE_BACKOFF
+    ? POLL_INTERVAL_MAX_MS
+    : POLL_INTERVAL_MS
+  pollTimer = setTimeout(() => void runScanLoop(), delay)
 }
 
 /**
@@ -290,7 +315,7 @@ export function stopMonitoring(): void {
   isMonitoring = false
 
   if (pollTimer) {
-    clearInterval(pollTimer)
+    clearTimeout(pollTimer)
     pollTimer = null
   }
 
@@ -303,6 +328,10 @@ export function stopMonitoring(): void {
  */
 export function setSessionActive(active: boolean): void {
   isSessionActive = active
+  if (!active) {
+    // Session just ended — user is around, resume fast polling
+    consecutiveIdleScans = 0
+  }
   console.log(`[MeetingDetection] Session active state updated: ${active}`)
 }
 
