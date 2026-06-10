@@ -514,6 +514,58 @@ struct StatusBadge: View {
     }
 }
 
+// MARK: - System Audio Health Badge
+
+/// Leaf view observing the transcription/system-audio services so their
+/// frequent publishes don't re-render the whole pill header.
+private struct SystemAudioHealthBadge: View {
+    @ObservedObject var transcriptionService: TranscriptionService
+    @ObservedObject var systemAudioService: SystemAudioCaptureService
+
+    var body: some View {
+        // Shown when the interlocutor's audio isn't being captured, so
+        // everything would be tagged "Moi".
+        if !(transcriptionService.isSystemAudioConnected && systemAudioService.isReceivingAudio) {
+            StatusBadge(
+                icon: "exclamationmark.triangle.fill",
+                label: String(localized: "overlay.status.micOnly"),
+                color: QMDesign.Colors.warning,
+                isActive: true
+            )
+            .help(String(localized: "overlay.tooltip.systemAudioDown"))
+        }
+    }
+}
+
+// MARK: - Pre-Generation Status Indicator
+
+/// Leaf view for the pre-gen ready/generating indicator.
+private struct PreGenStatusIndicator: View {
+    @ObservedObject var preGenerationService: PreGenerationService
+    @State private var isPulsing = false
+
+    var body: some View {
+        if case .ready = preGenerationService.state {
+            StatusBadge(
+                icon: "bolt.fill",
+                label: String(localized: "overlay.status.ready"),
+                color: QMDesign.Colors.success,
+                isActive: true
+            )
+            .help(String(localized: "overlay.tooltip.preGenReady"))
+        } else if case .generating = preGenerationService.state {
+            // Subtle pulsing dot while generating
+            Circle()
+                .fill(QMDesign.Colors.accent)
+                .frame(width: 5, height: 5)
+                .opacity(isPulsing ? 0.3 : 0.9)
+                .animation(.easeInOut(duration: 0.8).repeatForever(autoreverses: true), value: isPulsing)
+                .onAppear { isPulsing = true }
+                .onDisappear { isPulsing = false }
+        }
+    }
+}
+
 // MARK: - Free Request Counter
 
 private struct FreeRequestCounter: View {
@@ -557,9 +609,15 @@ struct ModernPillHeaderView: View {
     let isSessionActive: Bool
     let isFinalizingSession: Bool
     let detectedMoment: MomentDetectionService.DetectedMoment?
-    @ObservedObject var preGenerationService: PreGenerationService
-    @ObservedObject var transcriptionService: TranscriptionService
-    @ObservedObject var systemAudioService: SystemAudioCaptureService
+    // Plain references, NOT @ObservedObject: TranscriptionService publishes on
+    // every transcript word — observing it here re-rendered this entire 500-line
+    // header several times per second during speech. The few status indicators
+    // that need live values are extracted into small leaf views that observe
+    // the services themselves (SystemAudioHealthBadge, PreGenStatusIndicator,
+    // TranscriptionConnectionBanner).
+    let preGenerationService: PreGenerationService
+    let transcriptionService: TranscriptionService
+    let systemAudioService: SystemAudioCaptureService
     @Binding var enableScreenCapture: Bool
     @Binding var isAutoAnswerEnabled: Bool
     @Binding var isSmartModeEnabled: Bool
@@ -585,7 +643,6 @@ struct ModernPillHeaderView: View {
     @State private var isPlayPulsing = false  // Pulsing animation for play button
     @State private var showExpandPreview = false  // Hover preview state
     @State private var isMomentPulsing = false  // Pulsing animation for moment detection
-    @State private var isPreGenPulsing = false  // Pulsing animation for pre-gen ready
     @Environment(\.openWindow) private var openWindow
 
     // Observe ConfigurationManager for undetectability
@@ -714,19 +771,13 @@ struct ModernPillHeaderView: View {
 
             // Status Indicators
             HStack(spacing: 4) {
-                // System Audio Down warning — shown when the interlocutor's audio
-                // isn't being captured, so everything would be tagged "Moi".
-                // Grace period (sessionDuration > 5s) avoids flashing during startup
-                // while the WebSocket connects and the first buffers arrive.
-                let systemAudioHealthy = transcriptionService.isSystemAudioConnected && systemAudioService.isReceivingAudio
-                if isSessionActive && sessionDuration > 5 && !systemAudioHealthy {
-                    StatusBadge(
-                        icon: "exclamationmark.triangle.fill",
-                        label: String(localized: "overlay.status.micOnly"),
-                        color: QMDesign.Colors.warning,
-                        isActive: true
+                // System Audio Down warning — extracted leaf so only this badge
+                // re-renders when the services publish, not the whole header.
+                if isSessionActive && sessionDuration > 5 {
+                    SystemAudioHealthBadge(
+                        transcriptionService: transcriptionService,
+                        systemAudioService: systemAudioService
                     )
-                    .help(String(localized: "overlay.tooltip.systemAudioDown"))
                 }
 
                 // Proactive Moment Badge (Enterprise)
@@ -789,25 +840,8 @@ struct ModernPillHeaderView: View {
                     .help(String(localized: "overlay.tooltip.smartModeActive"))
                 }
 
-                // Pre-Generation Ready Indicator
-                if case .ready = preGenerationService.state {
-                    StatusBadge(
-                        icon: "bolt.fill",
-                        label: String(localized: "overlay.status.ready"),
-                        color: QMDesign.Colors.success,
-                        isActive: true
-                    )
-                    .help(String(localized: "overlay.tooltip.preGenReady"))
-                } else if case .generating = preGenerationService.state {
-                    // Subtle pulsing dot while generating
-                    Circle()
-                        .fill(QMDesign.Colors.accent)
-                        .frame(width: 5, height: 5)
-                        .opacity(isPreGenPulsing ? 0.3 : 0.9)
-                        .animation(.easeInOut(duration: 0.8).repeatForever(autoreverses: true), value: isPreGenPulsing)
-                        .onAppear { isPreGenPulsing = true }
-                        .onDisappear { isPreGenPulsing = false }
-                }
+                // Pre-Generation Ready Indicator (leaf view — observes the service itself)
+                PreGenStatusIndicator(preGenerationService: preGenerationService)
             }
 
             // Hidden Mode Toggle (Enterprise only) - Quick access to Undetectability
