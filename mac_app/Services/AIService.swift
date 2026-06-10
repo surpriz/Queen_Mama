@@ -579,9 +579,20 @@ final class AIService: ObservableObject {
                             ))
                             return
                         }
+                        // Strip speculative "next question will be..." bullets the models add
+                        // despite prompt bans. Recap is exempt: quoted transcript lines
+                        // legitimately contain words like "probablement".
+                        var finalContent = accumulatedResponse
+                        if type != .recap && type != .custom {
+                            finalContent = Self.stripPredictionBullets(accumulatedResponse)
+                            if finalContent != accumulatedResponse {
+                                self.currentResponse = finalContent
+                            }
+                        }
+
                         let response = AIResponse(
                             type: type,
-                            content: accumulatedResponse,
+                            content: finalContent,
                             provider: providerType
                         )
                         self.addResponse(response)

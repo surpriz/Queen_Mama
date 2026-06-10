@@ -35,6 +35,7 @@ import type { Contact } from '@/types/models'
 import { toast } from '@/stores/toastStore'
 import i18n from '@/i18n'
 import { withTimeout } from '@/lib/utils'
+import * as preGeneration from '@/services/ai/preGenerationService'
 
 const MAX_TRANSCRIPT_MEMORY = 50000 // 50KB - max in-memory transcript size for display
 const systemTranscriptBuffer = new TranscriptBuffer()
@@ -59,6 +60,8 @@ export async function startSession(mode?: Mode | null, contact?: Contact | null)
     useOverlayStore.getState().setStreamingContent('')
     useOverlayStore.getState().clearTranslations()
     translationService.resetContext()
+    preGeneration.reset()
+    preGeneration.configure(() => useAppStore.getState().selectedMode)
 
     // Broadcast session started to all windows
     window.electronAPI?.relay?.broadcast('relay:session-state', {
@@ -137,6 +140,7 @@ export async function startSession(mode?: Mode | null, contact?: Contact | null)
       })
 
       autoAnswer.onTranscriptReceived(fullTranscript)
+      preGeneration.onTranscriptUpdated(fullTranscript)
       const config = useConfigStore.getState()
       if (config.proactiveEnabled) {
         processTranscriptForMoments(fullTranscript)
@@ -353,7 +357,7 @@ export async function startSession(mode?: Mode | null, contact?: Contact | null)
 
       // Trigger appropriate AI response with moment context
       const momentContext = `[DETECTED: ${topMoment.type.toUpperCase()} - "${topMoment.triggerPhrase}"]\n`
-      await aiService.assist(momentContext + transcript, selectedMode)
+      await aiService.assist(momentContext + transcript, selectedMode, undefined, { skipPreGen: true })
     })
 
     // Analytics
@@ -538,6 +542,7 @@ function cleanup(): void {
   transcription.disconnect()
   screenCaptureService.stopAutoCapture()
   autoAnswer.reset()
+  preGeneration.reset()
   clearMomentState()
 
   if (unsubscribeMoments) {

@@ -12,6 +12,7 @@ import { recordUsage as recordLicenseUsage } from '../license/licenseManager'
 import { screenCaptureService } from '../screenCapture/screenCaptureService'
 import { flushBatch as flushAudioBatch, flushSystemBatch } from '../transcription/transcriptionService'
 import { transcriptBuffer } from '../transcription/transcriptBuffer'
+import * as preGeneration from './preGenerationService'
 import type { AIContextParams } from './aiContext'
 import { Feature } from '@/types/auth'
 import type { ResponseType, Mode } from '@/types/models'
@@ -230,7 +231,7 @@ export async function generateStreamingResponse(params: AIContextParams, options
     licenseStore.recordAiRequestUsage()
     if (smartActive) {
       // Fire and forget — server-side smart_mode usage log + local counter.
-      recordLicenseUsage('smartMode').catch(() => {})
+      recordLicenseUsage('smartMode').catch((e) => log.warn('Failed to record smartMode usage', e))
     }
 
     // Estimate token usage from character counts (1 token ≈ 4 chars)
@@ -280,7 +281,30 @@ export async function assist(
   transcript: string,
   mode: Mode | null,
   screenshot?: string,
+  options?: { skipPreGen?: boolean },
 ): Promise<string> {
+  // Instant Responses (Enterprise): serve the pre-generated buffer if fresh.
+  // consumeBuffer() returns null when disabled, not ready, or stale.
+  // Callers that enrich the transcript (e.g. moment context) skip the buffer —
+  // it was generated against the raw transcript.
+  const preGen = options?.skipPreGen ? null : preGeneration.consumeBuffer()
+  if (preGen) {
+    const overlayStore = useOverlayStore.getState()
+    const responseType = 'Assist' as ResponseType
+    overlayStore.addToHistory(responseType, preGen)
+    overlayStore.setStreamingContent('')
+    window.electronAPI?.relay?.broadcast('relay:ai-response', {
+      type: 'history',
+      streamingContent: '',
+      entry: { type: responseType, content: preGen, timestamp: new Date().toISOString() },
+    })
+    // The speculative generation skipped usage counting — pay for it on consume
+    useLicenseStore.getState().recordAiRequestUsage()
+    lastResponseTime = Date.now()
+    log.info(`Served from pre-gen buffer (${preGen.length} chars)`)
+    return preGen
+  }
+
   const finalScreenshot = screenshot ?? await getScreenshotIfEnabled()
   return generateStreamingResponse({
     transcript,

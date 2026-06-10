@@ -11431,6 +11431,40 @@
         }
       }
     },
+    "settings.general.contextIntelligence" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Context Intelligence"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Intelligence contextuelle"
+          }
+        }
+      }
+    },
+    "settings.general.contextIntelligence.description" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Let the AI use knowledge from your past meetings to personalize answers"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Permet à l'IA d'utiliser les connaissances de vos réunions passées pour personnaliser les réponses"
+          }
+        }
+      }
+    },
     "settings.general.detectingDisplays" : {
       "extractionState" : "manual",
       "localizations" : {

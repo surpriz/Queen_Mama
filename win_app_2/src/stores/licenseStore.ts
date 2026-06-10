@@ -95,6 +95,9 @@ export const useLicenseStore = create<LicenseStoreState>((set, get) => ({
       case 'liveTranslation':
         return features.liveTranslationEnabled ? { type: 'allowed' } : { type: 'requiresEnterprise' }
 
+      case 'bufferedPreGen':
+        return features.bufferedPreGenEnabled ? { type: 'allowed' } : { type: 'requiresEnterprise' }
+
       default:
         return { type: 'blocked' }
     }

@@ -121,6 +121,7 @@ export interface LicenseFeatures {
   knowledgeBaseEnabled: boolean
   proactiveSuggestionsEnabled: boolean
   liveTranslationEnabled: boolean
+  bufferedPreGenEnabled?: boolean
 }
 
 export interface TrialInfo {
@@ -148,6 +149,7 @@ export enum Feature {
   KnowledgeBase = 'knowledgeBase',
   ProactiveSuggestions = 'proactiveSuggestions',
   LiveTranslation = 'liveTranslation',
+  BufferedPreGen = 'bufferedPreGen',
 }
 
 export type FeatureAccess =
@@ -177,6 +179,7 @@ export const FREE_LICENSE: License = {
     knowledgeBaseEnabled: false,
     proactiveSuggestionsEnabled: false,
     liveTranslationEnabled: false,
+    bufferedPreGenEnabled: false,
   },
   trial: null,
   cacheTTL: 3600,

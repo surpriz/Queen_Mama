@@ -121,7 +121,11 @@
       "captureIntervalDescription": "Time between automatic screen captures",
       "captureDisplay": "Capture Display",
       "captureDisplayDescription": "Choose which screen to capture",
-      "refreshDisplays": "Refresh displays"
+      "refreshDisplays": "Refresh displays",
+      "contextIntelligence": "Context Intelligence",
+      "contextIntelligenceDescription": "Let the AI use knowledge from your past meetings to personalize answers (Enterprise)",
+      "instantResponses": "Instant Responses",
+      "instantResponsesDescription": "Pre-generate answers in the background so Assist appears instantly (Enterprise, beta)"
     },
     "autoAnswer": {
       "title": "Auto-Answer",

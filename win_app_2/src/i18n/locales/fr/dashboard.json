@@ -121,7 +121,11 @@
       "captureIntervalDescription": "Temps entre les captures d'écran automatiques",
       "captureDisplay": "Écran de capture",
       "captureDisplayDescription": "Choisir quel écran capturer",
-      "refreshDisplays": "Rafraîchir les écrans"
+      "refreshDisplays": "Rafraîchir les écrans",
+      "contextIntelligence": "Intelligence contextuelle",
+      "contextIntelligenceDescription": "Permet à l'IA d'utiliser les connaissances de vos réunions passées pour personnaliser les réponses (Enterprise)",
+      "instantResponses": "Réponses instantanées",
+      "instantResponsesDescription": "Pré-génère les réponses en arrière-plan pour un Assist instantané (Enterprise, bêta)"
     },
     "autoAnswer": {
       "title": "Réponse automatique",
