@@ -156,11 +156,12 @@ final class ScreenCaptureService: NSObject, ObservableObject {
         stream = SCStream(filter: filter, configuration: streamConfig, delegate: self)
 
         // Add stream output
-        streamOutput = StreamOutput()
-        try stream?.addStreamOutput(streamOutput!, type: .screen, sampleHandlerQueue: .main)
+        let output = StreamOutput()
+        streamOutput = output
+        try stream?.addStreamOutput(output, type: .screen, sampleHandlerQueue: .main)
 
         if config.captureSystemAudio {
-            try stream?.addStreamOutput(streamOutput!, type: .audio, sampleHandlerQueue: .main)
+            try stream?.addStreamOutput(output, type: .audio, sampleHandlerQueue: .main)
 
             // Wire system audio callback to SystemAudioCaptureService
             streamOutput?.onAudio = { [weak self] sampleBuffer in

@@ -15,6 +15,8 @@ const MAX_DELAY = 60000 // 60 seconds
 const MAX_RECONNECTS_IN_WINDOW = 20
 const RECONNECT_WINDOW_DURATION = 600000 // 10 minutes in ms
 const AUTO_RECOVERY_INTERVAL = 60000 // 60 seconds
+const MAX_AUTO_RECOVERY_ATTEMPTS = 5 // matches macOS — then give up until next session
+const STABILITY_CHECK_DELAY = 30000 // connection must survive 30s before budgets reset
 
 // Audio batching config (aligned with macOS 2026-03-23 optimizations)
 const BATCH_INTERVAL = 150 // ms (reduced from 400ms)
@@ -29,6 +31,8 @@ let intentionalDisconnect = false
 let reconnectTimestamps: number[] = [] // Sliding window budget
 let autoRecoveryTimer: ReturnType<typeof setInterval> | null = null
 let autoRecoveryCountdown = 0
+let autoRecoveryAttempts = 0
+let stabilityTimer: ReturnType<typeof setTimeout> | null = null
 
 // Audio batching state
 let batchBuffer: ArrayBuffer[] = []
@@ -60,6 +64,9 @@ const providers: TranscriptionProvider[] = [
 // System audio provider (second Deepgram WebSocket for "Interlocuteur" stream)
 let systemProvider: DeepgramProvider | DeepgramFluxProvider | null = null
 let isSystemConnected = false
+let isSystemReconnecting = false
+let systemReconnectAttempts = 0
+const MAX_SYSTEM_RECONNECT_ATTEMPTS = 8
 let systemBatchBuffer: ArrayBuffer[] = []
 let systemBatchBufferSize = 0
 let systemBatchTimer: ReturnType<typeof setInterval> | null = null
@@ -118,6 +125,7 @@ export function setCallbacks(callbacks: {
  */
 export function resetDisconnectFlag(): void {
   intentionalDisconnect = false
+  autoRecoveryAttempts = 0 // fresh session = fresh recovery budget
 }
 
 export async function connect(): Promise<void> {
@@ -203,6 +211,11 @@ export function disconnect(): void {
   flushBatch()
   stopBatchTimer()
   stopAutoRecovery()
+  if (stabilityTimer) {
+    clearTimeout(stabilityTimer)
+    stabilityTimer = null
+  }
+  autoRecoveryAttempts = 0
 
   // Disconnect system audio too
   disconnectSystemAudio()
@@ -334,8 +347,23 @@ async function attemptReconnect(): Promise<void> {
 function startAutoRecovery(): void {
   if (autoRecoveryTimer) return
 
+  // Cap recovery cycles (matches macOS): after that, stay down until the user
+  // restarts the session. countdown=-1 signals permanent failure to the UI.
+  if (autoRecoveryAttempts >= MAX_AUTO_RECOVERY_ATTEMPTS) {
+    log.warn(`Auto-recovery exhausted (${MAX_AUTO_RECOVERY_ATTEMPTS} attempts), giving up`)
+    captureError(new Error('Transcription auto-recovery exhausted'), {
+      service: 'transcription',
+      phase: 'auto_recovery_exhausted',
+      attempts: autoRecoveryAttempts,
+    })
+    onReconnectionBudgetExhausted?.(-1)
+    return
+  }
+
+  autoRecoveryAttempts++
   autoRecoveryCountdown = AUTO_RECOVERY_INTERVAL / 1000
-  log.info(`Starting auto-recovery: retrying in ${autoRecoveryCountdown}s`)
+  log.info(`Starting auto-recovery ${autoRecoveryAttempts}/${MAX_AUTO_RECOVERY_ATTEMPTS}: retrying in ${autoRecoveryCountdown}s`)
+  // Fired once per cycle (not every second) so the UI can show a single banner/toast
   onReconnectionBudgetExhausted?.(autoRecoveryCountdown)
 
   autoRecoveryTimer = setInterval(async () => {
@@ -352,12 +380,11 @@ function startAutoRecovery(): void {
       try {
         await connect()
         log.info('Auto-recovery: reconnected successfully')
+        scheduleStabilityCheck()
       } catch {
         log.warn('Auto-recovery: reconnection failed, restarting countdown')
         startAutoRecovery()
       }
-    } else {
-      onReconnectionBudgetExhausted?.(autoRecoveryCountdown)
     }
   }, 1000)
 }
@@ -368,6 +395,19 @@ function stopAutoRecovery(): void {
     autoRecoveryTimer = null
   }
   autoRecoveryCountdown = 0
+}
+
+/** Reset the auto-recovery budget only after the connection stays up for 30s,
+ *  so rapid connect→drop cycles can't bypass the recovery cap. */
+function scheduleStabilityCheck(): void {
+  if (stabilityTimer) clearTimeout(stabilityTimer)
+  stabilityTimer = setTimeout(() => {
+    stabilityTimer = null
+    if (isConnected) {
+      log.info('Connection stable for 30s, resetting auto-recovery budget')
+      autoRecoveryAttempts = 0
+    }
+  }, STABILITY_CHECK_DELAY)
 }
 
 export function getIsConnected(): boolean {
@@ -420,13 +460,24 @@ export async function connectSystemAudio(): Promise<void> {
     sysProvider.onError = (error) => {
       log.warn(`System audio error: ${error.message}`)
       isSystemConnected = false
+      // Without this, a mid-session drop silently kills "Interlocuteur" transcripts
+      // for the rest of the meeting.
+      if (!intentionalDisconnect) {
+        void attemptSystemReconnect()
+      }
     }
 
     await sysProvider.connect()
     systemProvider = sysProvider
     isSystemConnected = true
+    // Reset the reconnect budget only after 30s of stability so rapid
+    // connect→drop flapping can't retry forever on a 3s cycle.
+    setTimeout(() => {
+      if (isSystemConnected) systemReconnectAttempts = 0
+    }, STABILITY_CHECK_DELAY)
 
     // Start system audio batch timer
+    if (systemBatchTimer) clearInterval(systemBatchTimer)
     systemBatchTimer = setInterval(() => {
       flushSystemBatch()
     }, BATCH_INTERVAL)
@@ -436,6 +487,52 @@ export async function connectSystemAudio(): Promise<void> {
     log.warn(`System audio connection failed (continuing without): ${(error as Error).message}`)
     systemProvider = null
     isSystemConnected = false
+  }
+}
+
+/** Reconnect the system audio WebSocket with exponential backoff after a mid-session drop. */
+async function attemptSystemReconnect(): Promise<void> {
+  if (isSystemReconnecting) return
+  isSystemReconnecting = true
+
+  try {
+    while (!intentionalDisconnect && !isSystemConnected) {
+      systemReconnectAttempts++
+      if (systemReconnectAttempts > MAX_SYSTEM_RECONNECT_ATTEMPTS) {
+        log.warn('System audio: max reconnection attempts reached — "Interlocuteur" stream stays offline')
+        captureError(new Error('System audio reconnection exhausted'), {
+          service: 'transcription',
+          phase: 'system_audio_reconnect_exhausted',
+          attempts: systemReconnectAttempts,
+        })
+        return
+      }
+
+      const exponentialDelay = Math.min(MAX_DELAY, BASE_DELAY * Math.pow(2, systemReconnectAttempts - 1))
+      const delay = exponentialDelay + Math.random() * 0.5 * exponentialDelay
+      log.info(`System audio: reconnecting in ${Math.round(delay)}ms (attempt ${systemReconnectAttempts}/${MAX_SYSTEM_RECONNECT_ATTEMPTS})`)
+      await sleep(delay)
+
+      if (intentionalDisconnect) return
+
+      // Tear down the dead provider before recreating it
+      if (systemBatchTimer) {
+        clearInterval(systemBatchTimer)
+        systemBatchTimer = null
+      }
+      systemProvider?.disconnect()
+      systemProvider = null
+      systemBatchBuffer = []
+      systemBatchBufferSize = 0
+
+      await connectSystemAudio() // swallows errors; success sets isSystemConnected
+      if (isSystemConnected) {
+        log.info('System audio: reconnected successfully')
+        return
+      }
+    }
+  } finally {
+    isSystemReconnecting = false
   }
 }
 

@@ -22,7 +22,7 @@ export function useProxyConfig(): ProxyConfigSnapshot & { refresh: () => void } 
   return {
     ...snapshot,
     refresh: () => {
-      void refreshConfig().catch(() => {})
+      void refreshConfig().catch((e) => console.warn('[useProxyConfig] Config refresh failed:', e))
     },
   }
 }

@@ -3,6 +3,9 @@ import { v4 as uuidv4 } from 'uuid'
 import { ResponseType } from '@/types/models'
 import type { OverlayPosition } from '@/types/electron.d'
 import { db } from '@/db/client'
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('OverlayStore')
 
 const MAX_RESPONSES_IN_MEMORY = 50
 const MAX_TRANSLATION_ENTRIES = 500
@@ -95,7 +98,7 @@ export const useOverlayStore = create<OverlayStoreState>((set) => ({
           `INSERT INTO ai_responses (id, session_id, type, content, timestamp, is_automatic)
            VALUES (?, ?, ?, ?, ?, ?)`,
           [uuidv4(), _currentSessionId, type, content, timestamp, 0],
-        ).catch(() => {})
+        ).catch((err) => log.warn('Failed to persist AI response to DB', err))
       }
 
       return {

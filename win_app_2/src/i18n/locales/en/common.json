@@ -99,7 +99,10 @@
   },
   "error": {
     "somethingWentWrong": "Something went wrong",
-    "unexpectedError": "An unexpected error occurred"
+    "unexpectedError": "An unexpected error occurred",
+    "transcriptionRetrying": "Transcription interrupted — retrying in {{seconds}}s",
+    "transcriptionStopped": "Transcription stopped",
+    "transcriptionStoppedMessage": "The connection could not be restored. Restart the session to resume transcription."
   },
   "feedback": "Feedback",
   "giveFeedback": "Give Feedback",

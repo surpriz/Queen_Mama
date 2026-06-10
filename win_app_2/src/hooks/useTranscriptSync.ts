@@ -45,7 +45,7 @@ export function useTranscriptSync() {
           setTimeout(() => {
             useAppStore.getState().setSessionJustFinalized(false)
           }, 5000)
-        }).catch(() => {})
+        }).catch((e) => console.warn('[useTranscriptSync] Session reload after finalize failed:', e))
       }
     })
 

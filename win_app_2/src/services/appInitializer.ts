@@ -40,7 +40,9 @@ export async function initializeApp(): Promise<void> {
   // even though the license resolves correctly later. Re-fetch on every auth gain.
   useAuthStore.subscribe((state, prev) => {
     if (state.isAuthenticated && !prev.isAuthenticated) {
-      proxyConfigManager.refreshConfig().catch(() => {})
+      proxyConfigManager.refreshConfig().catch((e) =>
+        console.warn('[AppInit] Proxy config refresh after auth failed:', e),
+      )
     }
   })
 

@@ -99,9 +99,31 @@ if (process.defaultApp) {
   app.setAsDefaultProtocolClient(APP_PROTOCOL)
 }
 
+// Protocol URLs received before the renderers finish loading would be sent into
+// the void (no IPC listener yet) and the auth callback silently lost. Queue them
+// until both windows have loaded, then flush.
+let renderersReady = false
+const pendingProtocolUrls: string[] = []
+
+function waitForLoad(win: BrowserWindow | null): Promise<void> {
+  return new Promise((resolve) => {
+    if (!win || win.isDestroyed() || !win.webContents.isLoading()) {
+      resolve()
+      return
+    }
+    win.webContents.once('did-finish-load', () => resolve())
+  })
+}
+
 // Function to handle protocol URLs (queenmama://...)
 function handleProtocolUrl(url: string): void {
   console.log('[Main] Protocol URL received:', url)
+
+  if (!renderersReady) {
+    console.log('[Main] Renderers not ready, queueing protocol URL')
+    pendingProtocolUrls.push(url)
+    return
+  }
 
   // Send to all windows (main and overlay) - using safe send to prevent "Object has been destroyed" error
   safeSendToAllWindows(IPC_CHANNELS.AUTH_PROTOCOL_CALLBACK, url)
@@ -159,8 +181,8 @@ if (!gotTheLock) {
       (arg) => arg.startsWith(`${OAUTH_PROTOCOL}:`) || arg.startsWith(`${APP_PROTOCOL}://`)
     )
     if (protocolUrlFromLaunch) {
-      // Delay handling to ensure windows are ready
-      setTimeout(() => handleProtocolUrl(protocolUrlFromLaunch), 100)
+      // Queued until renderers are loaded (see handleProtocolUrl)
+      handleProtocolUrl(protocolUrlFromLaunch)
     }
 
     // Initialize database first
@@ -197,9 +219,17 @@ if (!gotTheLock) {
 
     // Create windows
     const mainWindow = createMainWindow()
-    createOverlayWindow()
+    const overlayWindow = createOverlayWindow()
     createMeetingNotificationWindow()
     createTray()
+
+    // Flush queued protocol URLs once both renderers can receive IPC
+    void Promise.all([waitForLoad(mainWindow), waitForLoad(overlayWindow)]).then(() => {
+      renderersReady = true
+      for (const url of pendingProtocolUrls.splice(0)) {
+        handleProtocolUrl(url)
+      }
+    })
 
     // Start meeting detection
     setOnMeetingDetected(() => showMeetingNotification())

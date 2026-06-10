@@ -394,9 +394,11 @@ export async function deleteSessions(ids: string[]): Promise<void> {
   } catch (err) {
     log.error('Bulk delete failed', err)
     for (const id of ids) {
-      await db.query('DELETE FROM sessions WHERE id = ?', [id]).catch(() => {})
+      await db.query('DELETE FROM sessions WHERE id = ?', [id]).catch((e) =>
+        log.warn(`Fallback delete failed for session ${id}`, e),
+      )
     }
-    await db.walCheckpoint().catch(() => {})
+    await db.walCheckpoint().catch((e) => log.warn('WAL checkpoint failed after bulk delete', e))
   }
 
   // Remote deletes - parallel, fire-and-forget

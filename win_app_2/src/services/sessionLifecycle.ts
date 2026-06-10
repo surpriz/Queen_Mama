@@ -32,6 +32,9 @@ import * as proxyConfig from '@/services/proxy/proxyConfigManager'
 import { useLicenseStore } from '@/stores/licenseStore'
 import { Feature } from '@/types/auth'
 import type { Contact } from '@/types/models'
+import { toast } from '@/stores/toastStore'
+import i18n from '@/i18n'
+import { withTimeout } from '@/lib/utils'
 
 const MAX_TRANSCRIPT_MEMORY = 50000 // 50KB - max in-memory transcript size for display
 const systemTranscriptBuffer = new TranscriptBuffer()
@@ -78,8 +81,10 @@ export async function startSession(mode?: Mode | null, contact?: Contact | null)
       useContactStore.getState().addContact(updated)
     }
 
-    // Start audio capture (dual-stream: mic + system audio separately)
-    await audioCapture.startCapture()
+    // Start audio capture (dual-stream: mic + system audio separately).
+    // getUserMedia can hang forever on Windows (pending permission dialog,
+    // locked device) — without a timeout the Start button freezes silently.
+    await withTimeout(audioCapture.startCapture(), 15000, 'Audio capture start')
 
     // Connect mic audio → AEC (remove speaker bleed) → primary Deepgram (for "Moi").
     // Cancelling echo at the signal level keeps bleed out of Deepgram so it can't be
@@ -248,6 +253,25 @@ export async function startSession(mode?: Mode | null, contact?: Contact | null)
       },
       onConnectionChanged: (connected: boolean, provider: string | null) => {
         console.log('[SessionLifecycle] Transcription connected:', connected, provider)
+        if (connected) {
+          // Clear any stale transcription error once we're back online
+          useAppStore.getState().setErrorMessage(null)
+        }
+      },
+      // Fired once per recovery cycle; countdown=-1 means recovery gave up for good.
+      // Without this the session keeps running with no transcript and no warning.
+      onReconnectionBudgetExhausted: (countdown: number) => {
+        if (countdown === -1) {
+          const msg = i18n.t('error.transcriptionStoppedMessage')
+          toast.error(i18n.t('error.transcriptionStopped'), msg, 0)
+          useAppStore.getState().setErrorMessage(msg)
+        } else {
+          toast.warning(
+            i18n.t('error.transcriptionRetrying', { seconds: countdown }),
+            undefined,
+            8000,
+          )
+        }
       },
     })
 
@@ -443,7 +467,9 @@ export async function stopSession(): Promise<void> {
           }
           console.log(`[SessionLifecycle] Extracted ${extractedContacts.length} contacts`)
           // Push newly created/updated contacts to server
-          contactSyncService.pushContacts().catch(() => {})
+          contactSyncService.pushContacts().catch((e) =>
+            console.warn('[SessionLifecycle] Contact push failed:', e),
+          )
         }
       } catch (err) {
         console.error('[SessionLifecycle] Contact extraction failed:', err)

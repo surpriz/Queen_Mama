@@ -34,7 +34,7 @@ if (typeof window !== 'undefined') {
   window.addEventListener('online', () => {
     isOnline = true
     log.info('Network online, triggering sync')
-    uploadPendingSessions().catch(() => {})
+    uploadPendingSessions().catch((e) => log.warn('Online-triggered sync failed', e))
   })
   window.addEventListener('offline', () => {
     isOnline = false
@@ -83,7 +83,7 @@ export function queueSession(session: Session): void {
 
   // Trigger immediate upload if online
   if (isOnline && !isSyncing) {
-    uploadPendingSessions().catch(() => {})
+    uploadPendingSessions().catch((e) => log.warn('Queue-triggered sync failed', e))
   }
 }
 

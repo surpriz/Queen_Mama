@@ -347,6 +347,7 @@ export async function logoutUser(allDevices: boolean = false): Promise<void> {
   }
 
   await clearCredentials()
+  await licenseManager.resetOnLogout()
   clearSentryUser()
   addBreadcrumb('auth', 'User logged out', 'info')
   store.logout()
