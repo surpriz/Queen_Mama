@@ -245,6 +245,13 @@ struct OverlayContentView: View {
         let customPrompt = inputText.trimmingCharacters(in: .whitespacesAndNewlines)
         let hasCustomPrompt = !customPrompt.isEmpty
 
+        // Stop dictation on submit — otherwise the still-open Deepgram stream
+        // keeps pushing interimText and refills the input we just cleared.
+        if appState.dictationService.isRecording {
+            appState.dictationService.stopRecording()
+        }
+        appState.dictationService.reset()
+
         if hasCustomPrompt {
             print("[Overlay] Custom prompt provided: '\(customPrompt.prefix(50))...'")
         }
@@ -1254,7 +1261,11 @@ struct ModernExpandedContentView: View {
                     isSmartModeEnabled: $isSmartModeEnabled,
                     dictationService: appState.dictationService,
                     isSessionActive: appState.isSessionActive,
-                    onSubmit: onSubmit
+                    onSubmit: onSubmit,
+                    onDictationError: { message in
+                        appState.errorMessage = message
+                        appState.isErrorRetryable = false
+                    }
                 )
             }
         }
@@ -1916,6 +1927,7 @@ struct ModernInputAreaView: View {
     @ObservedObject var dictationService: DictationService
     let isSessionActive: Bool
     let onSubmit: () -> Void
+    var onDictationError: ((String) -> Void)? = nil
 
     @State private var isHoveringSend = false
     @State private var isHoveringMic = false
@@ -1968,6 +1980,15 @@ struct ModernInputAreaView: View {
                             try await dictationService.startRecording(useSharedAudio: isSessionActive)
                         } catch {
                             print("[Dictation] Failed to start: \(error.localizedDescription)")
+                            // Surface the failure — a silently dead mic button reads as "broken app"
+                            let message: String
+                            if let captureError = error as? AudioCaptureError,
+                               case .microphonePermissionDenied = captureError {
+                                message = String(localized: "dictation.error.micPermission")
+                            } else {
+                                message = String(localized: "dictation.error.startFailed")
+                            }
+                            onDictationError?(message)
                         }
                     }
                 }
