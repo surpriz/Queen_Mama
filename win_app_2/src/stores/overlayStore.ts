@@ -31,7 +31,7 @@ interface OverlayStoreState {
   position: OverlayPosition
   isAutoAnswer: boolean
   streamingContent: string
-  responseHistory: Array<{ type: ResponseType; content: string; timestamp: string; provider?: string }>
+  responseHistory: Array<{ id?: string; type: ResponseType; content: string; timestamp: string; provider?: string; sessionId?: string | null }>
   translationEntries: TranslationEntry[]
   translationError: string | null
 
@@ -87,8 +87,9 @@ export const useOverlayStore = create<OverlayStoreState>((set) => ({
         return state
       }
       const timestamp = new Date().toISOString()
+      const id = uuidv4()
       const updated = [
-        { type, content, timestamp },
+        { id, type, content, timestamp, sessionId: _currentSessionId },
         ...state.responseHistory,
       ]
 
@@ -97,7 +98,7 @@ export const useOverlayStore = create<OverlayStoreState>((set) => ({
         db.query(
           `INSERT INTO ai_responses (id, session_id, type, content, timestamp, is_automatic)
            VALUES (?, ?, ?, ?, ?, ?)`,
-          [uuidv4(), _currentSessionId, type, content, timestamp, 0],
+          [id, _currentSessionId, type, content, timestamp, 0],
         ).catch((err) => log.warn('Failed to persist AI response to DB', err))
       }
 
