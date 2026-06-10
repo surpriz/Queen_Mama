@@ -76,6 +76,12 @@ final class ProxyConfigManager: ObservableObject {
     private var cancellables = Set<AnyCancellable>()
     private let proxyClient = ProxyAPIClient.shared
 
+    // Offline grace: last good config is persisted and reused for up to 24h
+    // when the boot-time fetch fails, so a flaky network doesn't block sessions.
+    private let configCacheKey = "proxy_config_cache"
+    private let configCacheDateKey = "proxy_config_cache_date"
+    private let configCacheMaxAge: TimeInterval = 24 * 60 * 60
+
     private init() {
         // Listen for authentication changes
         NotificationCenter.default.publisher(for: .userDidAuthenticate)
@@ -110,13 +116,41 @@ final class ProxyConfigManager: ObservableObject {
             print("[ProxyConfig] Configuration loaded: \(config?.plan ?? "unknown") plan")
             print("[ProxyConfig] AI providers: \(availableAIProviders)")
             print("[ProxyConfig] Transcription providers: \(availableTranscriptionProviders)")
+            persistConfigToCache()
         } catch {
             lastError = error
             print("[ProxyConfig] Failed to load configuration: \(error)")
+            // Offline grace: fall back to the last good config if fresh enough,
+            // instead of leaving the app unable to start a session.
+            if config == nil, let cached = loadConfigFromCache() {
+                config = cached
+                print("[ProxyConfig] Using cached configuration (offline grace, \(cached.plan) plan)")
+                isLoading = false
+                return
+            }
+            isLoading = false
             throw error
         }
 
         isLoading = false
+    }
+
+    // MARK: - Offline Cache
+
+    private func persistConfigToCache() {
+        guard let config, let data = try? JSONEncoder().encode(config) else { return }
+        UserDefaults.standard.set(data, forKey: configCacheKey)
+        UserDefaults.standard.set(Date(), forKey: configCacheDateKey)
+    }
+
+    private func loadConfigFromCache() -> ProxyConfig? {
+        guard let data = UserDefaults.standard.data(forKey: configCacheKey),
+              let date = UserDefaults.standard.object(forKey: configCacheDateKey) as? Date,
+              Date().timeIntervalSince(date) < configCacheMaxAge,
+              let cached = try? JSONDecoder().decode(ProxyConfig.self, from: data) else {
+            return nil
+        }
+        return cached
     }
 
     /// Clears the cached configuration
@@ -125,6 +159,8 @@ final class ProxyConfigManager: ObservableObject {
         lastError = nil
         proxyClient.clearConfigCache()
         proxyClient.clearTranscriptionTokenCache()
+        UserDefaults.standard.removeObject(forKey: configCacheKey)
+        UserDefaults.standard.removeObject(forKey: configCacheDateKey)
         print("[ProxyConfig] Configuration cleared")
     }
 
