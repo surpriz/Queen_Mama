@@ -277,18 +277,18 @@ private struct FeatureGatedModifier: ViewModifier {
 
     private var featureName: String {
         switch feature {
-        case .smartMode: return "Smart Mode"
-        case .customModes: return "Custom Modes"
-        case .exportMarkdown: return "Markdown Export"
-        case .exportJson: return "JSON Export"
-        case .autoAnswer: return "Auto-Answer"
-        case .sessionSync: return "Session Sync"
-        case .aiRequest: return "AI Requests"
-        case .undetectable: return "Undetectable Mode"
-        case .screenshot: return "Screenshot"
-        case .sessionStart: return "Session Start"
-        case .knowledgeBase: return "Knowledge Base"
-        case .proactiveSuggestions: return "Proactive Suggestions"
+        case .smartMode: return String(localized: "Smart Mode")
+        case .customModes: return String(localized: "Custom Modes")
+        case .exportMarkdown: return String(localized: "Markdown Export")
+        case .exportJson: return String(localized: "JSON Export")
+        case .autoAnswer: return String(localized: "Auto-Answer")
+        case .sessionSync: return String(localized: "Session Sync")
+        case .aiRequest: return String(localized: "AI Requests")
+        case .undetectable: return String(localized: "Undetectable Mode")
+        case .screenshot: return String(localized: "Screenshot")
+        case .sessionStart: return String(localized: "Session Start")
+        case .knowledgeBase: return String(localized: "Knowledge Base")
+        case .proactiveSuggestions: return String(localized: "Proactive Suggestions")
         }
     }
 }

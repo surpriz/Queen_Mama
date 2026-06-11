@@ -139,7 +139,7 @@ struct ContactPickerSheet: View {
         }
     }
 
-    private func sectionHeader(_ title: String) -> some View {
+    private func sectionHeader(_ title: LocalizedStringKey) -> some View {
         HStack {
             Text(title)
                 .font(QMDesign.Typography.caption)
@@ -283,7 +283,7 @@ struct ContactPickerSheet: View {
         }
     }
 
-    private func formField(title: String, text: Binding<String>, placeholder: String) -> some View {
+    private func formField(title: LocalizedStringKey, text: Binding<String>, placeholder: LocalizedStringKey) -> some View {
         VStack(alignment: .leading, spacing: QMDesign.Spacing.xs) {
             Text(title)
                 .font(QMDesign.Typography.caption)

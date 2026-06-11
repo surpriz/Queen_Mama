@@ -241,11 +241,11 @@ enum TabItem: String, CaseIterable {
 
     var shortLabel: String {
         switch self {
-        case .assist: return "Assist"
-        case .whatToSay: return "What to say"
-        case .followUp: return "Follow-up"
-        case .recap: return "Recap"
-        case .briefing: return "Briefing"
+        case .assist: return String(localized: "overlay.tab.assist")
+        case .whatToSay: return String(localized: "overlay.tab.whatToSay")
+        case .followUp: return String(localized: "overlay.tab.followUp")
+        case .recap: return String(localized: "overlay.tab.recap")
+        case .briefing: return String(localized: "overlay.tab.briefing")
         }
     }
 
@@ -317,7 +317,7 @@ struct IOSOverlayHeaderView: View {
                 if isSmartModeEnabled {
                     StatusBadge(
                         icon: "brain.head.profile",
-                        label: "Smart",
+                        label: String(localized: "Smart"),
                         color: QMDesign.Colors.accent,
                         isActive: true
                     )
@@ -351,6 +351,8 @@ struct IOSOverlayHeaderView: View {
                 .opacity(autoAnswerAvailable ? 1 : 0.6)
             }
             .buttonStyle(.plain)
+            .accessibilityLabel("Auto-Answer")
+            .accessibilityValue(isAutoAnswerEnabled ? "On" : "Off")
 
             // More Button (Popup Menu)
             Button(action: { showPopupMenu.toggle() }) {
@@ -364,6 +366,7 @@ struct IOSOverlayHeaderView: View {
                     )
             }
             .buttonStyle(.plain)
+            .accessibilityLabel("More options")
             .popover(isPresented: $showPopupMenu, arrowEdge: .bottom) {
                 OverlayPopupMenu(
                     isAutoAnswerEnabled: $isAutoAnswerEnabled,
@@ -407,6 +410,7 @@ struct IOSOverlayHeaderView: View {
                     }
                 }
                 .buttonStyle(.plain)
+                .accessibilityLabel("Start session")
             }
 
             // Stop Button (when session active)
@@ -422,6 +426,7 @@ struct IOSOverlayHeaderView: View {
                         )
                 }
                 .buttonStyle(.plain)
+                .accessibilityLabel("Stop session")
             }
         }
         .padding(.horizontal, QMDesign.Spacing.sm)
@@ -818,7 +823,7 @@ struct IOSResponseItemView: View {
                     HStack(spacing: 4) {
                         Image(systemName: type.icon)
                             .font(.system(size: 10, weight: .semibold))
-                        Text(type.rawValue)
+                        Text(type.localizedName)
                             .font(QMDesign.Typography.caption)
                     }
                     .foregroundStyle(QMDesign.Colors.primaryGradient)

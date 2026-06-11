@@ -235,8 +235,8 @@ struct WelcomeStepView: View {
 
 struct FeatureRow: View {
     let icon: String
-    let title: String
-    let description: String
+    let title: LocalizedStringKey
+    let description: LocalizedStringKey
 
     var body: some View {
         HStack(spacing: QMDesign.Spacing.md) {
@@ -376,8 +376,8 @@ struct PermissionsStepView: View {
 
 struct PermissionCard: View {
     let icon: String
-    let title: String
-    let description: String
+    let title: LocalizedStringKey
+    let description: LocalizedStringKey
     let isGranted: Bool
     var isOptional: Bool = false
     let onRequest: () -> Void
@@ -755,8 +755,8 @@ struct ModesTourScreen: View {
 
 struct TourScreenHeader: View {
     let icon: String
-    let title: String
-    let subtitle: String
+    let title: LocalizedStringKey
+    let subtitle: LocalizedStringKey
 
     var body: some View {
         VStack(spacing: QMDesign.Spacing.md) {
@@ -785,7 +785,7 @@ struct TourScreenHeader: View {
 
 struct TourBulletPoint: View {
     let icon: String
-    let text: String
+    let text: LocalizedStringKey
 
     var body: some View {
         HStack(spacing: QMDesign.Spacing.sm) {
@@ -806,9 +806,9 @@ struct TourBulletPoint: View {
 struct AIFeatureCard: View {
     let icon: String
     let iconColor: Color
-    let title: String
-    let description: String
-    let example: String
+    let title: LocalizedStringKey
+    let description: LocalizedStringKey
+    let example: LocalizedStringKey
 
     var body: some View {
         HStack(alignment: .top, spacing: QMDesign.Spacing.md) {
@@ -850,7 +850,7 @@ struct AIFeatureCard: View {
 struct ModeCard: View {
     let name: String
     let icon: String
-    let description: String
+    let description: LocalizedStringKey
 
     var body: some View {
         HStack(spacing: QMDesign.Spacing.md) {

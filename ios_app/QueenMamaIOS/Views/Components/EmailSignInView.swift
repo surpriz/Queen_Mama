@@ -359,7 +359,7 @@ struct EmailSignInView: View {
                     viewState = .enterPassword
                 }
             } catch {
-                errorMessage = "Failed to check email. Please try again."
+                errorMessage = String(localized: "Failed to check email. Please try again.")
             }
             isLoading = false
         }
@@ -380,7 +380,7 @@ struct EmailSignInView: View {
                 case .oauthUserNeedsGoogle, .oauthUserNeedsDeviceCode:
                     viewState = .useGoogle(email: email)
                 case .invalidCredentials:
-                    errorMessage = "Invalid password. Please try again."
+                    errorMessage = String(localized: "Invalid password. Please try again.")
                 default:
                     errorMessage = error.localizedDescription
                 }

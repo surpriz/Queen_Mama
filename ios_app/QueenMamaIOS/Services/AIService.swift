@@ -60,13 +60,13 @@ enum AILicenseError: LocalizedError {
     var errorDescription: String? {
         switch self {
         case .requiresAuthentication:
-            return "Please sign in to use AI features"
+            return String(localized: "Please sign in to use AI features")
         case .requiresEnterprise:
-            return "This feature requires an Enterprise subscription"
+            return String(localized: "This feature requires an Enterprise subscription")
         case .dailyLimitReached(let used, let limit):
-            return "Daily AI request limit reached (\(used)/\(limit)). Upgrade to continue."
+            return String(localized: "Daily AI request limit reached (\(used)/\(limit)). Upgrade to continue.")
         case .smartModeLimitReached(let used, let limit):
-            return "Smart Mode limit reached (\(used)/\(limit)). Upgrade to Enterprise for unlimited access."
+            return String(localized: "Smart Mode limit reached (\(used)/\(limit)). Upgrade to Enterprise for unlimited access.")
         }
     }
 }

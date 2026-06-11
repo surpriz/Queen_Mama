@@ -27,6 +27,7 @@ struct LiveSessionView: View {
                                 Image(systemName: "sparkles")
                                     .foregroundStyle(QMDesign.Colors.primaryGradient)
                             }
+                            .accessibilityLabel("AI Assist")
 
                             // Stop button
                             Button {
@@ -35,6 +36,7 @@ struct LiveSessionView: View {
                                 Image(systemName: "stop.circle.fill")
                                     .foregroundColor(QMDesign.Colors.error)
                             }
+                            .accessibilityLabel("Stop session")
                         }
                     }
                 }
@@ -71,6 +73,8 @@ struct ActiveSessionView: View {
                     AudioLevelBar(level: appState.audioLevel)
                         .frame(width: 60, height: 8)
                 }
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel("Microphone level")
 
                 // Word count
                 Text("\(appState.currentTranscript.split(separator: " ").count) words")

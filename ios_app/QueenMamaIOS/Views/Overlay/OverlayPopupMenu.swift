@@ -202,11 +202,11 @@ struct ModeOptionButton: View {
 // MARK: - Menu Toggle Item
 
 struct MenuToggleItem: View {
-    let title: String
+    let title: LocalizedStringKey
     let icon: String
     @Binding var isEnabled: Bool
     let accentColor: Color
-    var subtitle: String? = nil
+    var subtitle: LocalizedStringKey? = nil
 
     var body: some View {
         Button(action: { isEnabled.toggle() }) {
@@ -245,7 +245,7 @@ struct MenuToggleItem: View {
 // MARK: - Menu Action Item
 
 struct MenuActionItem: View {
-    let title: String
+    let title: LocalizedStringKey
     let icon: String
     var isDestructive: Bool = false
     let action: () -> Void
