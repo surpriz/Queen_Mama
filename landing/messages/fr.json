@@ -1,10 +1,10 @@
 {
   "Metadata": {
     "home": {
-      "title": "Queen Mama - Coaching IA pour les Conversations à Enjeux",
-      "description": "Assistant IA en temps réel pour les entretiens, appels commerciaux et réunions. Totalement indétectable en visioconférence. Téléchargement gratuit pour macOS.",
-      "ogTitle": "Queen Mama - Votre arme secrète pour les conversations à enjeux",
-      "ogDescription": "Un coaching IA qui reste invisible. Recevez des suggestions en temps réel lors d'entretiens, d'appels commerciaux et de réunions."
+      "title": "Queen Mama — Trichez sans que personne ne le voie",
+      "description": "L'IA qui vous souffle la bonne réponse en temps réel pendant vos entretiens, calls commerciaux et réunions. Invisible en visioconférence. Une longueur d'avance, à chaque conversation. Gratuit sur macOS et Windows.",
+      "ogTitle": "Trichez sans que personne ne le voie.",
+      "ogDescription": "Coaching IA en temps réel, invisible en visio. La longueur d'avance que personne ne verra venir."
     },
     "download": {
       "title": "Télécharger Queen Mama pour macOS",
@@ -98,8 +98,8 @@
   "Hero": {
     "badgeMacOS": "Disponible sur macOS",
     "badgeWindows": "Disponible sur Windows",
-    "headline": "Votre arme secrète pour les <highlight>conversations à enjeux</highlight>",
-    "subheadline": "Un coaching IA qui reste invisible. Recevez des suggestions en temps réel lors d'entretiens, d'appels commerciaux et de réunions — <bold>totalement indétectable en visioconférence.</bold>",
+    "headline": "Toujours une longueur d'avance. <highlight>Trichez sans que personne ne le voie.</highlight>",
+    "subheadline": "La bonne réponse, soufflée en temps réel — en entretien, en call commercial, en réunion. <bold>Invisible en visioconférence.</bold> Vous menez la pièce. Personne ne sait comment.",
     "pillInvisible": "Invisible en partage d'écran",
     "pillRealTimeAI": "IA en temps réel",
     "pillTranscription": "Transcription en direct",
@@ -116,8 +116,8 @@
     "widgetPlaceholder": "Posez votre question..."
   },
   "Features": {
-    "title": "Tout ce qu'il vous faut pour <highlight>réussir</highlight>",
-    "subtitle": "Des fonctionnalités puissantes conçues pour vous donner la confiance et le soutien nécessaires dans toute conversation à enjeux.",
+    "title": "Tout ce qu'il vous faut pour <highlight>gagner</highlight>",
+    "subtitle": "L'avantage déloyal, intégré à chaque call. Voici ce qui travaille pour vous pendant que vous parlez.",
     "invisibleTitle": "Invisible en partage d'écran",
     "invisibleDesc": "Restez serein en sachant que votre assistant IA reste totalement caché pendant les appels vidéo et les enregistrements d'écran. Essentiel pour les entretiens et les réunions confidentielles.",
     "aiSuggestionsTitle": "Suggestions IA en temps réel",
@@ -136,7 +136,7 @@
   },
   "Modes": {
     "title": "<highlight>Modes IA</highlight> pour chaque situation",
-    "subtitle": "Des personnalités IA préconfigurées et adaptées à des situations spécifiques. Choisissez le bon mode ou créez votre propre assistant personnalisé.",
+    "subtitle": "Un profil pour chaque salle que vous devez gagner. Choisissez votre arme — entretien, vente, examen — ou créez la vôtre.",
     "modeLabel": "Mode {name}",
     "createCustom": "Créer des modes personnalisés",
     "exampleResponse": "Exemple de réponse",
@@ -214,9 +214,9 @@
     "shortcutClearContext": "Effacer le contexte"
   },
   "Undetectable": {
-    "badge": "Confidentialité d'abord",
-    "title": "Véritablement <highlight>invisible</highlight> en partage d'écran",
-    "description": "Contrairement aux autres outils détectables en visioconférence, Queen Mama utilise les API macOS avancées pour s'exclure totalement des captures et enregistrements d'écran. Votre arme secrète reste secrète.",
+    "badge": "Personne ne le voit",
+    "title": "Ils ne sauront jamais que vous étiez <highlight>aidé</highlight>",
+    "description": "Les autres outils se font repérer. Queen Mama utilise les API natives du système pour s'effacer de chaque partage et enregistrement d'écran. Votre recruteur, votre prospect, votre boss — ils voient un écran normal. Vous, vous voyez la réponse.",
     "zoomLabel": "Réunion Zoom - Partage d'écran actif",
     "presentationPlaceholder": "Vos slides de présentation apparaissent ici",
     "widgetNotVisible": "Le widget Queen Mama N'EST PAS visible par les participants",
@@ -290,7 +290,7 @@
   },
   "FAQ": {
     "title": "Questions <highlight>fréquentes</highlight>",
-    "subtitle": "Tout ce que vous devez savoir sur Queen Mama",
+    "subtitle": "Oui, c'est autorisé. Oui, c'est invisible. Voici le reste.",
     "q1": "Comment fonctionne Queen Mama ?",
     "a1": "Queen Mama écoute vos conversations en temps réel, transcrit l'audio et fournit des suggestions alimentées par l'IA en fonction du contexte. Téléchargez simplement l'application, créez un compte et c'est parti - aucune configuration nécessaire. Nous gérons toute l'infrastructure IA et de transcription pour vous.",
     "q2": "Est-ce vraiment invisible en partage d'écran ?",
@@ -329,8 +329,8 @@
     "errorDefault": "Une erreur est survenue. Veuillez réessayer."
   },
   "CTA": {
-    "title": "Ne soyez plus jamais <highlight>pris au dépourvu</highlight>",
-    "subtitle": "Rejoignez les professionnels qui ont transformé leurs conversations à enjeux avec un coaching IA en temps réel. Téléchargez Queen Mama aujourd'hui.",
+    "title": "Soyez le <highlight>plus malin</highlight> de la pièce",
+    "subtitle": "Votre longueur d'avance est à un téléchargement. Entrez dans votre prochain call déjà devant — et laissez-les se demander comment.",
     "downloadMac": "Télécharger pour macOS",
     "downloadWindows": "Télécharger pour Windows",
     "trustNote": "macOS 14.2+ et Windows 10+ pris en charge. Gratuit pour commencer.",
