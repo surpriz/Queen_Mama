@@ -198,6 +198,10 @@ export async function POST(request: Request) {
     return NextResponse.json({
       ...responseData,
       usage: usageStats,
+      // Billing provider (STRIPE | APPLE) — intentionally OUTSIDE the
+      // HMAC-signed payload: mac/win verifiers depend on a byte-identical
+      // signed payload, so new fields must live next to usage/signature.
+      provider: subscription?.provider ?? "STRIPE",
       signature,
     });
   } catch (error) {

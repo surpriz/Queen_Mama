@@ -1,5 +1,6 @@
 import { getStripe } from "@/lib/stripe";
 import { prisma } from "@/lib/prisma";
+import { recomputeUserPlan } from "@/lib/apple-iap";
 import { Prisma } from "@prisma/client";
 import { headers } from "next/headers";
 import { NextResponse } from "next/server";
@@ -80,6 +81,7 @@ export async function POST(request: Request) {
                 userId,
                 plan,
                 status: subscription.status === "trialing" ? "TRIALING" : "ACTIVE",
+                provider: "STRIPE",
                 stripeSubscriptionId: subscription.id,
                 stripePriceId: priceId,
                 currentPeriodStart: subscription.current_period_start
@@ -92,6 +94,7 @@ export async function POST(request: Request) {
               update: {
                 plan,
                 status: subscription.status === "trialing" ? "TRIALING" : "ACTIVE",
+                provider: "STRIPE",
                 stripeSubscriptionId: subscription.id,
                 stripePriceId: priceId,
                 currentPeriodStart: subscription.current_period_start
@@ -164,17 +167,19 @@ export async function POST(request: Request) {
           where: { stripeSubscriptionId: subscription.id },
           select: { userId: true, plan: true },
         });
-        await prisma.subscription.update({
-          where: { stripeSubscriptionId: subscription.id },
-          data: { status: "CANCELED", plan: "FREE" },
+        if (!existingSub) break;
+        // Recompute the effective plan instead of blindly downgrading to FREE:
+        // an active Apple IAP subscription must survive a Stripe cancellation.
+        const { plan: newPlan } = await recomputeUserPlan(existingSub.userId, {
+          stripeOverride: { active: false },
         });
         // Log plan change for historical profitability reconstruction
-        if (existingSub && existingSub.plan !== "FREE") {
+        if (existingSub.plan !== newPlan) {
           await prisma.usageLog.create({
             data: {
               userId: existingSub.userId,
               action: "STRIPE_PLAN_CHANGED",
-              metadata: { targetUserId: existingSub.userId, oldPlan: existingSub.plan, newPlan: "FREE" },
+              metadata: { targetUserId: existingSub.userId, oldPlan: existingSub.plan, newPlan },
             },
           });
         }
