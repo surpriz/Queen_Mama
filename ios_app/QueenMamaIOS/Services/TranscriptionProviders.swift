@@ -62,6 +62,10 @@ final class DeepgramProvider: TranscriptionProvider {
     var onInterimTranscript: ((String) -> Void)?
     var onError: ((Error) -> Void)?
 
+    /// Diarized transcript callback: (transcript, speakerIndex)
+    /// Called when Deepgram returns word-level speaker labels.
+    var onDiarizedTranscript: ((String, Int) -> Void)?
+
     private let proxyClient = ProxyAPIClient.shared
     private let configManager = ProxyConfigManager.shared
     private var webSocketTask: URLSessionWebSocketTask?
@@ -126,7 +130,8 @@ final class DeepgramProvider: TranscriptionProvider {
             // Endpointing configuration for better phrase boundary detection
             URLQueryItem(name: "endpointing", value: "300"),       // 300ms silence = end of speech
             URLQueryItem(name: "utterance_end_ms", value: "1000"), // 1s silence = end of utterance
-            URLQueryItem(name: "vad_events", value: "true")        // Voice Activity Detection events
+            URLQueryItem(name: "vad_events", value: "true"),       // Voice Activity Detection events
+            URLQueryItem(name: "diarize", value: "true")           // Speaker diarization (Me vs Them)
         ]
 
         guard let url = components.url else {
@@ -321,8 +326,16 @@ final class DeepgramProvider: TranscriptionProvider {
 
             if response.isFinal == true {
                 if !transcript.isEmpty {
-                    print("[Deepgram] FINAL: \"\(transcript)\"")
-                    onTranscript?(transcript)
+                    // Try to extract speaker from diarized words
+                    if let words = alternative.words, !words.isEmpty,
+                       let onDiarized = onDiarizedTranscript {
+                        // Group consecutive words by speaker and emit per-speaker segments
+                        emitDiarizedSegments(words: words, onDiarized: onDiarized)
+                    } else {
+                        // No diarization data — fall back to plain transcript
+                        print("[Deepgram] FINAL (no speaker): \"\(transcript.prefix(80))\"")
+                        onTranscript?(transcript)
+                    }
                 }
             } else {
                 if !transcript.isEmpty {
@@ -334,6 +347,38 @@ final class DeepgramProvider: TranscriptionProvider {
             if jsonString.contains("transcript") {
                 print("[Deepgram] Parse error: \(error)")
             }
+        }
+    }
+
+    /// Group consecutive words by speaker and emit one callback per segment.
+    private func emitDiarizedSegments(words: [DiarizedWord], onDiarized: (String, Int) -> Void) {
+        var currentSpeaker: Int? = nil
+        var currentWords: [String] = []
+
+        for word in words {
+            let speaker = word.speaker ?? 0
+            let text = word.word ?? ""
+            guard !text.isEmpty else { continue }
+
+            if speaker != currentSpeaker {
+                // Flush previous segment
+                if !currentWords.isEmpty, let prevSpeaker = currentSpeaker {
+                    let segment = currentWords.joined(separator: " ")
+                    print("[Deepgram] FINAL speaker=\(prevSpeaker): \"\(segment.prefix(80))\"")
+                    onDiarized(segment, prevSpeaker)
+                }
+                currentSpeaker = speaker
+                currentWords = [text]
+            } else {
+                currentWords.append(text)
+            }
+        }
+
+        // Flush last segment
+        if !currentWords.isEmpty, let speaker = currentSpeaker {
+            let segment = currentWords.joined(separator: " ")
+            print("[Deepgram] FINAL speaker=\(speaker): \"\(segment.prefix(80))\"")
+            onDiarized(segment, speaker)
         }
     }
 
@@ -371,6 +416,14 @@ private struct Channel: Codable {
 private struct Alternative: Codable {
     let transcript: String?
     let confidence: Double?
+    let words: [DiarizedWord]?
+}
+
+private struct DiarizedWord: Codable {
+    let word: String?
+    let speaker: Int?
+    let start: Double?
+    let end: Double?
 }
 import Foundation
 

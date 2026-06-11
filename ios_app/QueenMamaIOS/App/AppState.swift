@@ -130,16 +130,42 @@ class AppState: ObservableObject {
                 }
             }
 
+            // Diarized mic transcripts — iOS has a single mic stream that picks up
+            // everyone (user + room/speakerphone). Deepgram diarization separates
+            // speakers; speaker 0 (first voice heard) is assumed to be the user.
+            // No system-audio stream exists on iOS, so the interlocutor's voice
+            // only ever arrives through the mic — never enable echo cancellation
+            // here, it would erase exactly that signal.
+            transcriptionService.onDiarizedTranscript = { [weak self] (text: String, speaker: Int) in
+                guard let self = self else { return }
+
+                let label = speaker == 0 ? "Moi" : "Interlocuteur"
+
+                self.sessionManager?.addTranscriptEntry(
+                    speaker: label,
+                    text: text,
+                    isFinal: true
+                )
+
+                self.currentTranscript += "\(label): \(text)\n"
+
+                let wordCount = text.split(separator: " ").count
+                HealthCheckService.shared.recordWordsTranscribed(wordCount)
+
+                self.autoAnswerService.onTranscriptReceived(self.currentTranscript)
+            }
+
+            // Non-diarized fallback flush → "Moi" entries
             transcriptBuffer.onFlush = { [weak self] (batchedText: String) in
                 guard let self = self else { return }
 
                 self.sessionManager?.addTranscriptEntry(
-                    speaker: "",
+                    speaker: "Moi",
                     text: batchedText,
                     isFinal: true
                 )
 
-                self.currentTranscript += "\(batchedText)\n"
+                self.currentTranscript += "Moi: \(batchedText)\n"
 
                 let wordCount = batchedText.split(separator: " ").count
                 HealthCheckService.shared.recordWordsTranscribed(wordCount)
