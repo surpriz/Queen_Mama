@@ -6,6 +6,8 @@ struct SettingsView: View {
     @ObservedObject private var authManager = AuthenticationManager.shared
     @ObservedObject private var licenseManager = LicenseManager.shared
     @Environment(\.openURL) private var openURL
+    @State private var showManageSubscriptions = false
+    @State private var showPaywall = false
 
     var body: some View {
         Form {
@@ -38,13 +40,29 @@ struct SettingsView: View {
                             .foregroundColor(QMDesign.Colors.accent)
                     }
 
-                    // Manage Subscription
-                    Button {
-                        if let url = URL(string: "\(AppEnvironment.current.apiBaseURL)/dashboard") {
-                            openURL(url)
+                    // Subscription management — provider-dependent:
+                    // Apple → native StoreKit manage sheet; Stripe → informational
+                    // only (no purchase/upgrade link: App Store rule 3.1.1);
+                    // Free → native paywall.
+                    if licenseManager.currentLicense.provider?.uppercased() == "APPLE" {
+                        Button {
+                            showManageSubscriptions = true
+                        } label: {
+                            Label("Manage Subscription", systemImage: "creditcard")
                         }
-                    } label: {
-                        Label("Manage Subscription", systemImage: "creditcard")
+                    } else if licenseManager.currentLicense.plan == .free {
+                        Button {
+                            showPaywall = true
+                        } label: {
+                            Label("Upgrade to PRO", systemImage: "crown")
+                        }
+                    } else {
+                        VStack(alignment: .leading, spacing: QMDesign.Spacing.xxxs) {
+                            Label("Subscription", systemImage: "creditcard")
+                            Text("Managed on queenmama.co")
+                                .font(QMDesign.Typography.caption)
+                                .foregroundColor(QMDesign.Colors.textSecondary)
+                        }
                     }
 
                     // Sign Out
@@ -81,7 +99,7 @@ struct SettingsView: View {
                             Text("30s").tag(30.0)
                         }
                         .pickerStyle(.segmented)
-                        .frame(width: 200)
+                        .frame(maxWidth: 220)
                     }
                 }
             }
@@ -173,5 +191,10 @@ struct SettingsView: View {
             }
         }
         .navigationTitle("Settings")
+        .manageSubscriptionsSheet(isPresented: $showManageSubscriptions)
+        .sheet(isPresented: $showPaywall) {
+            PaywallView()
+                .presentationDetents([.large])
+        }
     }
 }

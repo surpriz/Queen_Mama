@@ -12,6 +12,10 @@ class AppDelegate: NSObject, UIApplicationDelegate {
 
         // Restore authentication state on launch
         Task { @MainActor in
+            // Listen for StoreKit transaction updates (renewals, Ask-to-Buy,
+            // purchases finalized outside the app) for the app's lifetime
+            StoreKitService.shared.startTransactionListener()
+
             await AuthenticationManager.shared.checkExistingAuth()
 
             // Explicitly validate license after auth is restored
