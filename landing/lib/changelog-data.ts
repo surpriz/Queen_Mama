@@ -21,12 +21,67 @@ export const changelogData: ChangelogRelease[] = [
     isNew: true,
     sections: [
       {
+        category: "features",
+        changes: [
+          {
+            id: "iosSubscriptions",
+            title: "iOS Native Subscriptions",
+            description: "The iOS app now supports Apple in-app purchases — subscribe or change plans directly without being redirected to a browser"
+          },
+          {
+            id: "iosDiarization",
+            title: "Speaker Identification on iOS",
+            description: "The iOS app now tells you and the other party apart in the transcript, using the same dual-stream audio analysis as macOS"
+          },
+          {
+            id: "offlineResilience",
+            title: "Stays Active Offline (24h)",
+            description: "The overlay reuses its last valid proxy configuration for up to 24 hours when offline — coaching keeps working even when connectivity drops mid-call"
+          },
+        ],
+      },
+      {
         category: "improvements",
         changes: [
           {
             id: "systemAudioHealthMonitoring",
             title: "System Audio Health Warning (macOS)",
             description: "The macOS overlay now detects when the other party's system audio isn't being captured and clearly flags it (showing \"Mic only\"), so a dropped audio stream never goes unnoticed"
+          },
+          {
+            id: "contextIntelligence",
+            title: "Smarter Context Awareness",
+            description: "Context intelligence is re-enabled with improved relevance scoring — responses now track topic shifts and recover instantly after a connectivity drop"
+          },
+          {
+            id: "colleagueCoaching",
+            title: "Coaching for Your Colleague",
+            description: "Default Assist now detects when a colleague is struggling and suggests how to help them recover — not just advice for your own performance"
+          },
+          {
+            id: "richerPassiveAssist",
+            title: "Richer Screen-Only Responses",
+            description: "When there's no active conversation, AI responses now proactively surface the most useful insights from what's visible on screen"
+          },
+        ],
+      },
+      {
+        category: "fixes",
+        changes: [
+          {
+            id: "dictationAutoStop",
+            title: "Dictation Stops on Submit",
+            description: "Dictation now automatically stops when you trigger an AI request, preventing the mic from staying on unintentionally"
+          },
+          {
+            id: "aiProviderFallback",
+            title: "AI Fallback for All Tabs",
+            description: "What to Say, Follow-Up, and Recap now properly cascade through backup AI providers — no more silent failures when the primary is unavailable"
+          },
+          {
+            id: "loginStability",
+            title: "Stable Login on Startup (Windows)",
+            description: "Fixed a race condition where multiple login windows appeared at startup, sometimes causing the session to be lost"
           },
         ],
       },

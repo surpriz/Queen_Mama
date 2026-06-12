@@ -453,9 +453,45 @@
     },
     "badgeNew": "Nouveau",
     "entries": {
+      "iosSubscriptions": {
+        "title": "Abonnements natifs iOS",
+        "description": "L'app iOS prend maintenant en charge les achats intégrés Apple — abonnez-vous ou changez de plan directement sans être redirigé vers un navigateur"
+      },
+      "iosDiarization": {
+        "title": "Identification des locuteurs sur iOS",
+        "description": "L'app iOS distingue maintenant votre voix de celle de votre interlocuteur dans la transcription, avec la même analyse dual-flux que macOS"
+      },
+      "offlineResilience": {
+        "title": "Reste actif hors connexion (24h)",
+        "description": "L'overlay réutilise sa dernière configuration proxy valide jusqu'à 24h sans connexion — le coaching continue même si la connexion tombe en plein appel"
+      },
       "systemAudioHealthMonitoring": {
         "title": "Alerte audio système (macOS)",
         "description": "L'overlay macOS détecte désormais quand l'audio système de l'interlocuteur n'est pas capté et l'indique clairement (« Micro seul »), pour qu'une coupure du flux audio ne passe jamais inaperçue"
+      },
+      "contextIntelligence": {
+        "title": "Meilleure conscience du contexte",
+        "description": "L'intelligence contextuelle est réactivée avec un meilleur scoring de pertinence — les réponses suivent les changements de sujet et se rétablissent instantanément après une coupure réseau"
+      },
+      "colleagueCoaching": {
+        "title": "Coaching pour votre collègue",
+        "description": "L'assist par défaut détecte maintenant quand un collègue est en difficulté et propose des façons de l'aider — pas seulement des conseils pour vous"
+      },
+      "richerPassiveAssist": {
+        "title": "Réponses passives plus riches",
+        "description": "Sans conversation active, les réponses IA extraient et mettent en avant proactivement les informations les plus utiles visibles à l'écran"
+      },
+      "dictationAutoStop": {
+        "title": "Dictée s'arrête à la soumission",
+        "description": "La dictée s'arrête maintenant automatiquement quand vous déclenchez une requête IA, évitant que le micro reste actif involontairement"
+      },
+      "aiProviderFallback": {
+        "title": "Fallback IA pour tous les onglets",
+        "description": "Ce que dire, Suivi et Récap basculent maintenant correctement vers les fournisseurs IA de secours — plus de défaillances silencieuses quand le fournisseur principal est indisponible"
+      },
+      "loginStability": {
+        "title": "Connexion stable au démarrage (Windows)",
+        "description": "Correction d'une condition de course où plusieurs fenêtres de connexion apparaissaient au démarrage, causant parfois la perte de session"
       },
       "speakerDiarization": {
         "title": "Identification des locuteurs (macOS)",
