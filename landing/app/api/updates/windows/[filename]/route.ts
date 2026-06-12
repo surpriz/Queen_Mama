@@ -33,8 +33,11 @@ export async function GET(
 ) {
   const { filename } = await params;
 
-  // Extract version from filename (e.g., "QueenMama-Setup-1.0.9.exe" → "1.0.9")
-  const versionMatch = filename.match(/(\d+\.\d+\.\d+(?:-[a-zA-Z0-9.]+)?)/);
+  // Extract version from filename (e.g., "QueenMama-Setup-1.0.9.exe" → "1.0.9",
+  // "QueenMama-Setup-1.0.22-beta.1.exe" → "1.0.22-beta.1"). Strip extension
+  // first to prevent the greedy regex from consuming ".exe" as part of the version.
+  const baseName = filename.replace(/\.[^.]+$/, "");
+  const versionMatch = baseName.match(/(\d+\.\d+\.\d+(?:-[a-zA-Z0-9.]+)?)/);
   if (!versionMatch) {
     return new NextResponse("Invalid filename", { status: 400 });
   }
