@@ -8,6 +8,7 @@ import * as fs from 'fs'
 import Store from 'electron-store'
 import { executeQuery, executeQueryGet, executeQueryAll, walCheckpoint } from '../db/database'
 import { startOAuthServer, stopOAuthServer } from '../services/oauthServer'
+import { refreshToken as refreshAuthToken } from '../services/authTokenService'
 import { checkForUpdates, quitAndInstall } from '../services/updater'
 import { safeSendToWindow, safeSendToOverlayWindows, safeSendToMainWindow } from '../utils/ipcUtils'
 import {
@@ -96,6 +97,11 @@ export function registerIPCHandlers(): void {
 
   ipcMain.handle(IPC_CHANNELS.SECURE_STORE_HAS, (_event, key: string) => {
     return store.has(`secure.${key}`)
+  })
+
+  // Auth token refresh (single-flight, shared across all windows)
+  ipcMain.handle(IPC_CHANNELS.AUTH_REFRESH_TOKEN, (_event, apiBaseUrl: string) => {
+    return refreshAuthToken(apiBaseUrl)
   })
 
   // Settings store

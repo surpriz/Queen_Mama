@@ -241,7 +241,7 @@ struct RegistrationFormView: View {
             } catch let error as AuthError {
                 registrationError = error.errorDescription
             } catch {
-                registrationError = "Registration failed. Please try again."
+                registrationError = String(localized: "Registration failed. Please try again.")
             }
             isRegistering = false
         }
@@ -283,7 +283,7 @@ struct PasswordRequirementsView: View {
 
 private struct RequirementRow: View {
     let met: Bool
-    let text: String
+    let text: LocalizedStringKey
 
     var body: some View {
         HStack(spacing: QMDesign.Spacing.xxs) {

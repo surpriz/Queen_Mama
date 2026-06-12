@@ -13,6 +13,10 @@ const log = createLogger('Sync')
 interface SyncQueue {
   sessions: SyncSessionPayload[]
   lastSyncAt: string | null
+  // originalId → checksum of the last successfully uploaded version. Lets the
+  // periodic full sync skip unchanged sessions instead of re-uploading the
+  // whole local history every 5 minutes.
+  syncedChecksums?: Record<string, string>
 }
 
 interface ConflictResolution {
@@ -34,7 +38,7 @@ if (typeof window !== 'undefined') {
   window.addEventListener('online', () => {
     isOnline = true
     log.info('Network online, triggering sync')
-    uploadPendingSessions().catch(() => {})
+    uploadPendingSessions().catch((e) => log.warn('Online-triggered sync failed', e))
   })
   window.addEventListener('offline', () => {
     isOnline = false
@@ -83,7 +87,7 @@ export function queueSession(session: Session): void {
 
   // Trigger immediate upload if online
   if (isOnline && !isSyncing) {
-    uploadPendingSessions().catch(() => {})
+    uploadPendingSessions().catch((e) => log.warn('Queue-triggered sync failed', e))
   }
 }
 
@@ -176,6 +180,12 @@ export async function uploadPendingSessions(): Promise<{ uploaded: number; faile
           const result = await response.json()
           const syncedCount = result.synced ?? result.uploaded ?? batch.length
           uploaded += syncedCount
+          // Remember what was uploaded so the periodic full sync can skip
+          // unchanged sessions (dirty check in requeueAllLocalSessions)
+          syncQueue.syncedChecksums = syncQueue.syncedChecksums ?? {}
+          for (const item of batch) {
+            if (item.checksum) syncQueue.syncedChecksums[item.originalId] = item.checksum
+          }
           log.info(`Uploaded ${syncedCount}/${batch.length} sessions`, result)
           if (result.errors?.length) {
             log.error('Sync errors:', result.errors)
@@ -368,10 +378,11 @@ export function requeueAllLocalSessions(): number {
   isSyncing = true
 
   for (const session of sessions) {
-    if (!alreadyQueued.has(session.id) && session.endTime) {
-      queueSession(session)
-      queued++
-    }
+    if (alreadyQueued.has(session.id) || !session.endTime) continue
+    // Dirty check: skip sessions whose content hasn't changed since last upload
+    if (syncQueue.syncedChecksums?.[session.id] === generateChecksum(session)) continue
+    queueSession(session)
+    queued++
   }
 
   // Restore syncing state

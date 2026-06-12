@@ -83,33 +83,35 @@ struct QMDesign {
 
     // MARK: - Typography
 
+    // Built on system text styles so every token scales with Dynamic Type.
+    // Base sizes match the previous fixed values closely (±1pt).
     struct Typography {
         // Titles
-        static let titleLarge = Font.system(size: 28, weight: .bold)
-        static let titleMedium = Font.system(size: 22, weight: .semibold)
-        static let titleSmall = Font.system(size: 18, weight: .semibold)
+        static let titleLarge = Font.title.weight(.bold)              // ~28pt
+        static let titleMedium = Font.title2.weight(.semibold)        // ~22pt
+        static let titleSmall = Font.title3.weight(.semibold)         // ~20pt
 
         // Headlines
-        static let headline = Font.system(size: 16, weight: .semibold)
-        static let subheadline = Font.system(size: 14, weight: .medium)
+        static let headline = Font.headline                           // ~17pt semibold
+        static let subheadline = Font.subheadline.weight(.medium)     // ~15pt
 
         // Body
-        static let bodyLarge = Font.system(size: 15, weight: .regular)
-        static let bodyMedium = Font.system(size: 13, weight: .regular)
-        static let bodySmall = Font.system(size: 12, weight: .regular)
+        static let bodyLarge = Font.subheadline                       // ~15pt
+        static let bodyMedium = Font.footnote                         // ~13pt
+        static let bodySmall = Font.caption                           // ~12pt
 
         // Caption
-        static let caption = Font.system(size: 11, weight: .medium)
-        static let captionSmall = Font.system(size: 10, weight: .regular)
+        static let caption = Font.caption2.weight(.medium)            // ~11pt
+        static let captionSmall = Font.caption2                       // ~11pt
 
         // Monospace (for shortcuts, code)
-        static let mono = Font.system(size: 11, weight: .medium, design: .monospaced)
-        static let monoSmall = Font.system(size: 10, weight: .regular, design: .monospaced)
+        static let mono = Font.caption2.weight(.medium).monospaced()
+        static let monoSmall = Font.caption2.monospaced()
 
         // Labels
-        static let labelLarge = Font.system(size: 13, weight: .semibold)
-        static let labelMedium = Font.system(size: 12, weight: .medium)
-        static let labelSmall = Font.system(size: 11, weight: .medium)
+        static let labelLarge = Font.footnote.weight(.semibold)       // ~13pt
+        static let labelMedium = Font.caption.weight(.medium)         // ~12pt
+        static let labelSmall = Font.caption2.weight(.medium)         // ~11pt
     }
 
     // MARK: - Spacing

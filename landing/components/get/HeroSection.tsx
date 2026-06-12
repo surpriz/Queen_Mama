@@ -39,12 +39,12 @@ export default function HeroSection({ macDownloadUrl, winDownloadUrl }: HeroSect
             transition={{ duration: 0.6, ease: "easeOut" }}
           >
             <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-[var(--qm-text-primary)] leading-tight mb-6">
-              L&apos;argument que vous auriez dû dire...{" "}
-              <span className="gradient-text">soufflé en temps réel.</span>
+              Trichez en réunion.{" "}
+              <span className="gradient-text">Sans que personne ne le voie.</span>
             </h1>
             <p className="text-lg text-[var(--qm-text-secondary)] mb-8 max-w-xl leading-relaxed">
-              Pendant votre prochain call, les bonnes réponses s&apos;affichent
-              sur votre écran — au bon moment, sans que personne ne le voie.
+              Pendant votre prochain call, la bonne réponse s&apos;affiche sur
+              votre écran — au bon moment, invisible pour tous les autres.
             </p>
 
             <OSDownloadButtons

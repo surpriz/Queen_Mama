@@ -361,6 +361,19 @@ struct ModernGeneralSettingsView: View {
                     Divider()
                         .background(QMDesign.Colors.borderSubtle)
 
+                    // Context Intelligence (Enterprise only)
+                    LicenseGatedToggleRow(
+                        title: String(localized: "settings.general.contextIntelligence"),
+                        description: String(localized: "settings.general.contextIntelligence.description"),
+                        isOn: $config.knowledgeEnabled,
+                        icon: "sparkles",
+                        feature: .knowledgeBase,
+                        requiredTier: "Enterprise"
+                    )
+
+                    Divider()
+                        .background(QMDesign.Colors.borderSubtle)
+
                     // AI Model (Standard mode only — Smart Mode keeps its own model)
                     AIModelSelectorRow()
 

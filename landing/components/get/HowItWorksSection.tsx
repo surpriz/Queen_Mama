@@ -40,10 +40,10 @@ export default function HowItWorksSection() {
           className="text-center mb-16"
         >
           <h2 className="text-3xl sm:text-4xl font-bold text-[var(--qm-text-primary)] mb-4">
-            Prêt avant votre prochain rdv
+            Armé avant votre prochain call
           </h2>
           <p className="text-[var(--qm-text-secondary)] text-lg max-w-2xl mx-auto">
-            Trois étapes. Zéro configuration compliquée.
+            Trois étapes. Personne n&apos;y verra que du feu.
           </p>
         </motion.div>
 

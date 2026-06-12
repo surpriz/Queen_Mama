@@ -58,6 +58,20 @@ function isAccessTokenValid(): boolean {
   return !!(accessToken && accessTokenExpiry && Date.now() < accessTokenExpiry - 60_000)
 }
 
+// Auth-rejection codes mean the refresh token is dead (revoked/expired/blocked).
+// The main process already drops the token on these; the renderer just clears
+// its in-memory state and surfaces "session expired".
+const AUTH_REJECTION_CODES = new Set([
+  'invalid_token',
+  'token_revoked',
+  'token_expired',
+  'not_authenticated',
+  'device_inactive',
+  'account_blocked',
+  'device_limit',
+  'no_token',
+])
+
 async function getValidAccessToken(force = false): Promise<string | null> {
   const cachedValid = isAccessTokenValid()
   const expiryIn = accessTokenExpiry ? accessTokenExpiry - Date.now() : null
@@ -65,53 +79,35 @@ async function getValidAccessToken(force = false): Promise<string | null> {
 
   if (!force && cachedValid) return accessToken
 
-  // Try to refresh — when forced, skip the in-memory expiry check so that an
-  // access token rejected by the server (401) gets renewed instead of replayed.
-  const refreshToken = await window.electronAPI?.secureStore.get('refresh_token')
-  log.info(`[diag] refresh_token present=${!!refreshToken} len=${refreshToken?.length ?? 0}`)
-  if (!refreshToken) return null
-
-  try {
-    log.info('[diag] calling refreshTokens API...')
-    const response = await refreshTokens(refreshToken)
-    setAccessToken(response.accessToken, response.expiresIn)
-    await window.electronAPI?.secureStore.set('refresh_token', response.refreshToken)
-    log.info(`[diag] refresh OK — new accessToken len=${response.accessToken.length} expiresIn=${response.expiresIn}s`)
-    return response.accessToken
-  } catch (error) {
-    const errorStr = String(error).toLowerCase()
-    const errorCode = error instanceof AuthError ? error.code : undefined
-    // Server returns AuthError code `invalid_token` / `token_revoked` / `token_expired`
-    // with HTTP 401. Earlier we only matched the lowercased message (`invalid_token`
-    // with underscore) but the actual error.message from the server is `Invalid token`
-    // (with a space), so the substring check missed it and the bad refresh_token was
-    // replayed forever. Match on the structured code first, fall back to substrings.
-    const isAuthRejection =
-      errorCode === 'invalid_token' ||
-      errorCode === 'token_revoked' ||
-      errorCode === 'token_expired' ||
-      errorCode === 'not_authenticated' ||
-      errorStr.includes('invalid_token') ||
-      errorStr.includes('invalid token') ||
-      errorStr.includes('invalid refresh token') ||
-      errorStr.includes('token_revoked') ||
-      errorStr.includes('token expired') ||
-      errorStr.includes('401') ||
-      errorStr.includes('403')
-
-    log.warn(`[diag] refresh FAILED — isAuthRejection=${isAuthRejection} code=${errorCode ?? 'none'} err="${errorStr.substring(0, 200)}"`)
-
-    if (isAuthRejection) {
-      log.warn('Token refresh rejected by server, session expired')
-      clearTokens()
-      await window.electronAPI?.secureStore.delete('refresh_token')
-      onSessionExpiredCallback?.()
-    } else {
-      log.error('Token refresh failed (network error)', error)
-    }
-
+  // Refresh through the main-process single-flight so concurrent calls (and the
+  // 3 windows at boot) coalesce onto one /refresh request and one token write —
+  // never spending the one-time-use refresh token more than once at a time.
+  log.info('[diag] requesting refresh via main process...')
+  const result = await window.electronAPI?.auth.refreshToken(getApiBaseUrl())
+  if (!result) {
+    log.error('Token refresh failed — no response from main process')
     return null
   }
+
+  if (result.ok) {
+    setAccessToken(result.accessToken, result.expiresIn)
+    log.info(`[diag] refresh OK — new accessToken len=${result.accessToken.length} expiresIn=${result.expiresIn}s`)
+    return result.accessToken
+  }
+
+  const isAuthRejection = AUTH_REJECTION_CODES.has(result.code)
+  log.warn(`[diag] refresh FAILED — isAuthRejection=${isAuthRejection} code=${result.code}`)
+
+  if (isAuthRejection) {
+    log.warn('Token refresh rejected by server, session expired')
+    clearTokens()
+    onSessionExpiredCallback?.()
+  } else {
+    // network_error / transient — keep tokens, the next action retries.
+    log.error(`Token refresh failed (transient): ${result.code}`)
+  }
+
+  return null
 }
 
 async function fetchAPI<T>(

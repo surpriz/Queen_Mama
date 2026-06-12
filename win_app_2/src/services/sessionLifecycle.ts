@@ -26,11 +26,16 @@ import * as contactDb from '@/services/contacts/contactDb'
 import { useContactStore } from '@/stores/contactStore'
 import { transcriptBuffer, TranscriptBuffer } from '@/services/transcription/transcriptBuffer'
 import * as dedup from '@/services/transcription/transcriptDeduplicator'
+import * as echoCanceller from '@/services/audio/echoCanceller'
 import * as translationService from '@/services/translation/translationService'
 import * as proxyConfig from '@/services/proxy/proxyConfigManager'
 import { useLicenseStore } from '@/stores/licenseStore'
 import { Feature } from '@/types/auth'
 import type { Contact } from '@/types/models'
+import { toast } from '@/stores/toastStore'
+import i18n from '@/i18n'
+import { withTimeout } from '@/lib/utils'
+import * as preGeneration from '@/services/ai/preGenerationService'
 
 const MAX_TRANSCRIPT_MEMORY = 50000 // 50KB - max in-memory transcript size for display
 const systemTranscriptBuffer = new TranscriptBuffer()
@@ -55,6 +60,8 @@ export async function startSession(mode?: Mode | null, contact?: Contact | null)
     useOverlayStore.getState().setStreamingContent('')
     useOverlayStore.getState().clearTranslations()
     translationService.resetContext()
+    preGeneration.reset()
+    preGeneration.configure(() => useAppStore.getState().selectedMode)
 
     // Broadcast session started to all windows
     window.electronAPI?.relay?.broadcast('relay:session-state', {
@@ -77,16 +84,22 @@ export async function startSession(mode?: Mode | null, contact?: Contact | null)
       useContactStore.getState().addContact(updated)
     }
 
-    // Start audio capture (dual-stream: mic + system audio separately)
-    await audioCapture.startCapture()
+    // Start audio capture (dual-stream: mic + system audio separately).
+    // getUserMedia can hang forever on Windows (pending permission dialog,
+    // locked device) — without a timeout the Start button freezes silently.
+    await withTimeout(audioCapture.startCapture(), 15000, 'Audio capture start')
 
-    // Connect mic audio → primary Deepgram (for "Moi")
+    // Connect mic audio → AEC (remove speaker bleed) → primary Deepgram (for "Moi").
+    // Cancelling echo at the signal level keeps bleed out of Deepgram so it can't be
+    // mis-labelled "Moi".
     audioCapture.setOnMicAudioBuffer((buffer) => {
-      transcription.sendAudio(buffer)
+      transcription.sendAudio(echoCanceller.process(buffer))
     })
 
-    // Connect system audio → secondary Deepgram (for "Interlocuteur")
+    // Connect system audio → secondary Deepgram (for "Interlocuteur").
+    // Also feed it to the AEC as the far-end reference (the echo source).
     audioCapture.setOnSystemAudioBuffer((buffer) => {
+      echoCanceller.pushReference(buffer)
       transcription.sendSystemAudio(buffer)
     })
 
@@ -127,6 +140,7 @@ export async function startSession(mode?: Mode | null, contact?: Contact | null)
       })
 
       autoAnswer.onTranscriptReceived(fullTranscript)
+      preGeneration.onTranscriptUpdated(fullTranscript)
       const config = useConfigStore.getState()
       if (config.proactiveEnabled) {
         processTranscriptForMoments(fullTranscript)
@@ -177,8 +191,10 @@ export async function startSession(mode?: Mode | null, contact?: Contact | null)
     transcription.setCallbacks({
       // --- MIC TRANSCRIPTS → "Moi" (with bleed filtering) ---
       onTranscript: (text: string) => {
-        // Check if this mic transcript is bleed from the speakers
-        if (dedup.isMicTranscriptBleed(text)) {
+        // Check if this mic transcript is bleed from the speakers.
+        // When AEC is active the bleed is already cancelled in the audio, so we skip the
+        // blanket temporal suppression (it dropped the user's own speech).
+        if (dedup.isMicTranscriptBleed(text, echoCanceller.isActive())) {
           console.log(`[Session] Dropped mic bleed: "${text.substring(0, 60)}"`)
           return
         }
@@ -241,6 +257,25 @@ export async function startSession(mode?: Mode | null, contact?: Contact | null)
       },
       onConnectionChanged: (connected: boolean, provider: string | null) => {
         console.log('[SessionLifecycle] Transcription connected:', connected, provider)
+        if (connected) {
+          // Clear any stale transcription error once we're back online
+          useAppStore.getState().setErrorMessage(null)
+        }
+      },
+      // Fired once per recovery cycle; countdown=-1 means recovery gave up for good.
+      // Without this the session keeps running with no transcript and no warning.
+      onReconnectionBudgetExhausted: (countdown: number) => {
+        if (countdown === -1) {
+          const msg = i18n.t('error.transcriptionStoppedMessage')
+          toast.error(i18n.t('error.transcriptionStopped'), msg, 0)
+          useAppStore.getState().setErrorMessage(msg)
+        } else {
+          toast.warning(
+            i18n.t('error.transcriptionRetrying', { seconds: countdown }),
+            undefined,
+            8000,
+          )
+        }
       },
     })
 
@@ -322,7 +357,7 @@ export async function startSession(mode?: Mode | null, contact?: Contact | null)
 
       // Trigger appropriate AI response with moment context
       const momentContext = `[DETECTED: ${topMoment.type.toUpperCase()} - "${topMoment.triggerPhrase}"]\n`
-      await aiService.assist(momentContext + transcript, selectedMode)
+      await aiService.assist(momentContext + transcript, selectedMode, undefined, { skipPreGen: true })
     })
 
     // Analytics
@@ -436,7 +471,9 @@ export async function stopSession(): Promise<void> {
           }
           console.log(`[SessionLifecycle] Extracted ${extractedContacts.length} contacts`)
           // Push newly created/updated contacts to server
-          contactSyncService.pushContacts().catch(() => {})
+          contactSyncService.pushContacts().catch((e) =>
+            console.warn('[SessionLifecycle] Contact push failed:', e),
+          )
         }
       } catch (err) {
         console.error('[SessionLifecycle] Contact extraction failed:', err)
@@ -499,11 +536,13 @@ function cleanup(): void {
   transcriptBuffer.stop()
   systemTranscriptBuffer.stop()
   dedup.reset()
+  echoCanceller.reset()
   translationService.resetContext()
   audioCapture.stopCapture()
   transcription.disconnect()
   screenCaptureService.stopAutoCapture()
   autoAnswer.reset()
+  preGeneration.reset()
   clearMomentState()
 
   if (unsubscribeMoments) {

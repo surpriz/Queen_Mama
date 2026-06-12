@@ -228,15 +228,79 @@ describe("POST /api/webhooks/stripe", () => {
         },
       });
 
-      prismaMock.subscription.update.mockResolvedValue({} as never);
+      prismaMock.subscription.findUnique.mockResolvedValue({
+        id: "sub-db-id",
+        userId: "user-1",
+        plan: "PRO",
+        status: "ACTIVE",
+        provider: "STRIPE",
+        stripeSubscriptionId: "sub_123",
+      } as never);
+      prismaMock.appleTransaction.findMany.mockResolvedValue([]);
+      prismaMock.subscription.upsert.mockResolvedValue({} as never);
+      prismaMock.usageLog.create.mockResolvedValue({} as never);
 
       const res = await POST(makeRequest());
 
       expect(res.status).toBe(200);
-      expect(prismaMock.subscription.update).toHaveBeenCalledWith({
-        where: { stripeSubscriptionId: "sub_123" },
-        data: { status: "CANCELED", plan: "FREE" },
+      expect(prismaMock.subscription.upsert).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { userId: "user-1" },
+          update: expect.objectContaining({ plan: "FREE", status: "CANCELED" }),
+        })
+      );
+      expect(prismaMock.usageLog.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            action: "STRIPE_PLAN_CHANGED",
+            metadata: expect.objectContaining({ oldPlan: "PRO", newPlan: "FREE" }),
+          }),
+        })
+      );
+    });
+
+    it("keeps the plan when an active Apple subscription remains", async () => {
+      mockConstructEvent.mockReturnValue({
+        type: "customer.subscription.deleted",
+        data: {
+          object: { id: "sub_123" },
+        },
       });
+
+      prismaMock.subscription.findUnique.mockResolvedValue({
+        id: "sub-db-id",
+        userId: "user-1",
+        plan: "PRO",
+        status: "ACTIVE",
+        provider: "STRIPE",
+        stripeSubscriptionId: "sub_123",
+      } as never);
+      prismaMock.appleTransaction.findMany.mockResolvedValue([
+        {
+          originalTransactionId: "apple-1",
+          userId: "user-1",
+          productId: "com.queenmama.ios.pro.monthly",
+          status: "active",
+          expiresAt: new Date(Date.now() + 7 * 86400_000),
+          autoRenew: true,
+          environment: "Production",
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        } as never,
+      ]);
+      prismaMock.subscription.upsert.mockResolvedValue({} as never);
+
+      const res = await POST(makeRequest());
+
+      expect(res.status).toBe(200);
+      expect(prismaMock.subscription.upsert).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { userId: "user-1" },
+          update: expect.objectContaining({ plan: "PRO", provider: "APPLE" }),
+        })
+      );
+      // No plan change -> no audit log
+      expect(prismaMock.usageLog.create).not.toHaveBeenCalled();
     });
   });
 

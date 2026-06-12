@@ -1,10 +1,10 @@
 {
   "Metadata": {
     "home": {
-      "title": "Queen Mama - AI Coaching for High-Stakes Conversations",
-      "description": "Real-time AI assistant for interviews, sales calls & meetings. Completely undetectable on video calls. Download free for macOS.",
-      "ogTitle": "Queen Mama - Your Secret Weapon for High-Stakes Conversations",
-      "ogDescription": "AI coaching that stays invisible. Get real-time suggestions during interviews, sales calls, and meetings."
+      "title": "Queen Mama — Cheat Without Anyone Seeing",
+      "description": "Real-time AI that feeds you the perfect line during interviews, sales calls, and meetings. Invisible on every video call. One step ahead, every conversation. Free on macOS & Windows.",
+      "ogTitle": "Cheat without anyone seeing.",
+      "ogDescription": "Real-time AI coaching, invisible on video calls. The edge nobody sees coming."
     },
     "download": {
       "title": "Download Queen Mama for macOS",
@@ -98,8 +98,8 @@
   "Hero": {
     "badgeMacOS": "Available for macOS",
     "badgeWindows": "Available for Windows",
-    "headline": "Your Secret Weapon for <highlight>High-Stakes Conversations</highlight>",
-    "subheadline": "AI coaching that stays invisible. Get real-time suggestions during interviews, sales calls, and meetings — <bold>completely undetectable on video calls.</bold>",
+    "headline": "Always One Step Ahead. <highlight>Cheat Without Anyone Seeing.</highlight>",
+    "subheadline": "The perfect answer, fed to you in real time — during interviews, sales calls, and meetings. <bold>Invisible on every video call.</bold> You win the room. Nobody knows how.",
     "pillInvisible": "Invisible to Screen Share",
     "pillRealTimeAI": "Real-time AI",
     "pillTranscription": "Live Transcription",
@@ -116,8 +116,8 @@
     "widgetPlaceholder": "Ask anything..."
   },
   "Features": {
-    "title": "Everything You Need to <highlight>Succeed</highlight>",
-    "subtitle": "Powerful features designed to give you the confidence and support you need in any high-stakes conversation.",
+    "title": "Everything You Need to <highlight>Win</highlight>",
+    "subtitle": "The unfair advantage, built into every call. Here's what's working for you while you talk.",
     "invisibleTitle": "Invisible to Screen Sharing",
     "invisibleDesc": "Stay confident knowing your AI assistant remains completely hidden during video calls and screen recordings. Critical for interviews and confidential meetings.",
     "aiSuggestionsTitle": "Real-time AI Suggestions",
@@ -136,7 +136,7 @@
   },
   "Modes": {
     "title": "<highlight>AI Modes</highlight> for Every Scenario",
-    "subtitle": "Pre-configured AI personalities tailored for specific situations. Choose the right mode or create your own custom assistant.",
+    "subtitle": "One profile for every room you need to win. Pick your edge — interview, sales, exam — or build your own.",
     "modeLabel": "{name} Mode",
     "createCustom": "Create custom modes",
     "exampleResponse": "Example Response",
@@ -214,9 +214,9 @@
     "shortcutClearContext": "Clear Context"
   },
   "Undetectable": {
-    "badge": "Privacy First",
-    "title": "Truly <highlight>Invisible</highlight> During Screen Sharing",
-    "description": "Unlike other tools that can be spotted during video calls, Queen Mama uses advanced macOS APIs to completely exclude itself from screen captures and recordings. Your secret weapon stays secret.",
+    "badge": "Nobody Sees It",
+    "title": "They'll Never Know You Had <highlight>Help</highlight>",
+    "description": "Other tools get caught. Queen Mama uses native OS APIs to erase itself from every screen share and recording. Your interviewer, your prospect, your boss — they see a normal screen. You see the answer.",
     "zoomLabel": "Zoom Meeting - Screen Sharing Active",
     "presentationPlaceholder": "Your presentation slides appear here",
     "widgetNotVisible": "Queen Mama widget is NOT visible to participants",
@@ -290,7 +290,7 @@
   },
   "FAQ": {
     "title": "Frequently Asked <highlight>Questions</highlight>",
-    "subtitle": "Everything you need to know about Queen Mama",
+    "subtitle": "Yes, it's allowed. Yes, it's invisible. Here's everything else.",
     "q1": "How does Queen Mama work?",
     "a1": "Queen Mama listens to your conversations in real-time, transcribes the audio, and provides AI-powered suggestions based on the context. Simply download the app, create an account, and you're ready to go - no configuration needed. We handle all the AI and transcription infrastructure for you.",
     "q2": "Is it really invisible during screen sharing?",
@@ -329,8 +329,8 @@
     "errorDefault": "Something went wrong. Please try again."
   },
   "CTA": {
-    "title": "Never Be <highlight>Caught Off-Guard</highlight> Again",
-    "subtitle": "Join professionals who have transformed their high-stakes conversations with AI-powered real-time coaching. Download Queen Mama today.",
+    "title": "Be the <highlight>Smartest Person</highlight> in Every Room",
+    "subtitle": "Your unfair advantage is one download away. Walk into your next call already a step ahead — and let them wonder how.",
     "downloadMac": "Download for macOS",
     "downloadWindows": "Download for Windows",
     "trustNote": "macOS 14.2+ and Windows 10+ supported. Free to start.",
@@ -453,9 +453,45 @@
     },
     "badgeNew": "New",
     "entries": {
+      "iosSubscriptions": {
+        "title": "iOS Native Subscriptions",
+        "description": "The iOS app now supports Apple in-app purchases — subscribe or change plans directly without being redirected to a browser"
+      },
+      "iosDiarization": {
+        "title": "Speaker Identification on iOS",
+        "description": "The iOS app now tells you and the other party apart in the transcript, using the same dual-stream audio analysis as macOS"
+      },
+      "offlineResilience": {
+        "title": "Stays Active Offline (24h)",
+        "description": "The overlay reuses its last valid proxy configuration for up to 24 hours when offline — coaching keeps working even when connectivity drops mid-call"
+      },
       "systemAudioHealthMonitoring": {
         "title": "System Audio Health Warning (macOS)",
         "description": "The macOS overlay now detects when the other party's system audio isn't being captured and clearly flags it (showing \"Mic only\"), so a dropped audio stream never goes unnoticed"
+      },
+      "contextIntelligence": {
+        "title": "Smarter Context Awareness",
+        "description": "Context intelligence is re-enabled with improved relevance scoring — responses now track topic shifts and recover instantly after a connectivity drop"
+      },
+      "colleagueCoaching": {
+        "title": "Coaching for Your Colleague",
+        "description": "Default Assist now detects when a colleague is struggling and suggests how to help them recover — not just advice for your own performance"
+      },
+      "richerPassiveAssist": {
+        "title": "Richer Screen-Only Responses",
+        "description": "When there's no active conversation, AI responses now proactively surface the most useful insights from what's visible on screen"
+      },
+      "dictationAutoStop": {
+        "title": "Dictation Stops on Submit",
+        "description": "Dictation now automatically stops when you trigger an AI request, preventing the mic from staying on unintentionally"
+      },
+      "aiProviderFallback": {
+        "title": "AI Fallback for All Tabs",
+        "description": "What to Say, Follow-Up, and Recap now properly cascade through backup AI providers — no more silent failures when the primary is unavailable"
+      },
+      "loginStability": {
+        "title": "Stable Login on Startup (Windows)",
+        "description": "Fixed a race condition where multiple login windows appeared at startup, sometimes causing the session to be lost"
       },
       "speakerDiarization": {
         "title": "Speaker Identification (macOS)",

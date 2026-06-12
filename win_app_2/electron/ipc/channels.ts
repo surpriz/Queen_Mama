@@ -77,6 +77,7 @@ export const IPC_CHANNELS = {
   AUTH_PROTOCOL_CALLBACK: 'auth:protocol-callback',
   AUTH_START_OAUTH_SERVER: 'auth:start-oauth-server',
   AUTH_STOP_OAUTH_SERVER: 'auth:stop-oauth-server',
+  AUTH_REFRESH_TOKEN: 'auth:refresh-token',
 
   // Cross-window relay (main ↔ overlay)
   RELAY_TO_OVERLAY: 'relay:to-overlay',

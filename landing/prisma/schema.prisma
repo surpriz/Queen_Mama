@@ -45,6 +45,10 @@ model User {
 
   stripeCustomerId String? @unique
 
+  // Apple In-App Purchase (generated lazily server-side, sent as appAccountToken on StoreKit purchases)
+  appAccountToken   String?            @unique
+  appleTransactions AppleTransaction[]
+
   @@index([role])
   @@index([role, createdAt])
 }
@@ -199,20 +203,43 @@ enum UserRole {
 // ============================================
 
 model Subscription {
-  id                   String             @id @default(cuid())
-  userId               String             @unique
-  plan                 SubscriptionPlan   @default(FREE)
-  status               SubscriptionStatus @default(ACTIVE)
-  stripeSubscriptionId String?            @unique
+  id                   String               @id @default(cuid())
+  userId               String               @unique
+  plan                 SubscriptionPlan     @default(FREE)
+  status               SubscriptionStatus   @default(ACTIVE)
+  provider             SubscriptionProvider @default(STRIPE)
+  stripeSubscriptionId String?              @unique
   stripePriceId        String?
   currentPeriodStart   DateTime?
   currentPeriodEnd     DateTime?
-  cancelAtPeriodEnd    Boolean            @default(false)
-  createdAt            DateTime           @default(now())
-  updatedAt            DateTime           @updatedAt
+  cancelAtPeriodEnd    Boolean              @default(false)
+  createdAt            DateTime             @default(now())
+  updatedAt            DateTime             @updatedAt
 
   user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   invoices Invoice[]
+}
+
+enum SubscriptionProvider {
+  STRIPE
+  APPLE
+}
+
+// Apple StoreKit 2 auto-renewable subscription state (source: signed JWS + App Store Server Notifications V2)
+model AppleTransaction {
+  originalTransactionId String    @id
+  userId                String? // nullable: orphan rows from notifications arriving before the device claims the purchase
+  productId             String
+  status                String // active | grace | billing_retry | expired | revoked
+  expiresAt             DateTime?
+  autoRenew             Boolean   @default(true)
+  environment           String // Sandbox | Production
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
 }
 
 enum SubscriptionPlan {

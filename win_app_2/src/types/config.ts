@@ -44,6 +44,12 @@ export interface AppConfig {
   // Onboarding
   hasCompletedOnboarding: boolean
 
+  // Context Intelligence (Enterprise) — inject knowledge from past meetings into AI prompts
+  knowledgeEnabled: boolean
+
+  // Instant Responses (Enterprise, beta) — pre-generate Assist in the background
+  instantResponsesEnabled: boolean
+
   // Live Translation (DeepL via proxy)
   translationEnabled: boolean
   translationShowInOverlay: boolean
@@ -84,6 +90,9 @@ export const DEFAULT_CONFIG: AppConfig = {
   shortcutClearContext: 'ctrl+shift+r',
 
   hasCompletedOnboarding: false,
+
+  knowledgeEnabled: true,
+  instantResponsesEnabled: false,
 
   translationEnabled: true,
   translationShowInOverlay: true,

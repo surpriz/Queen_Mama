@@ -52,6 +52,10 @@ final class TranscriptionService: ObservableObject {
     var onInterimTranscript: ((String) -> Void)?
     var onError: ((Error) -> Void)?
 
+    /// Diarized transcript callback: (transcript, speakerIndex)
+    /// Called when Deepgram returns word-level speaker labels.
+    var onDiarizedTranscript: ((String, Int) -> Void)?
+
     // MARK: - Callbacks (System Audio)
 
     var onSystemTranscript: ((String) -> Void)?
@@ -102,13 +106,18 @@ final class TranscriptionService: ObservableObject {
     private let autoRecoveryInterval: TimeInterval = 60  // Retry every 60 seconds
     @Published var autoRecoveryCountdown: Int = 0
 
+    // MARK: - Sentry Throttling
+    // Prevents duplicate reports for recurring issues
+    private var lastReconnectLimitReportTime: Date?
+    private let sentryThrottleInterval: TimeInterval = 600 // Report at most once per 10 minutes
+
     // MARK: - Audio Batching Configuration
     // Accumulates audio buffers to reduce WebSocket message frequency by ~50%
 
     private var audioBatchBuffer = Data()
     private var audioBatchTimer: Timer?
-    private let batchIntervalMs: Int = 400      // Max time before flushing batch (ms)
-    private let maxBatchSize: Int = 32000       // ~1 second of 16kHz mono audio
+    private let batchIntervalMs: Int = 150      // Max time before flushing batch (ms) — reduced from 400ms for lower transcript latency
+    private let maxBatchSize: Int = 16000       // ~0.5 second of 16kHz mono audio — reduced from 32KB for more frequent flushes
 
     // MARK: - Initialization
 
@@ -271,12 +280,27 @@ final class TranscriptionService: ObservableObject {
                     self?.handleError(error)
                 }
             }
+
+            // Wire diarized transcript callback (Deepgram with diarize=true)
+            if let deepgramProvider = provider as? DeepgramProvider {
+                deepgramProvider.onDiarizedTranscript = { [weak self] transcript, speaker in
+                    Task { @MainActor in
+                        self?.handleDiarizedTranscript(transcript, speaker: speaker)
+                    }
+                }
+            }
         }
     }
 
     private func handleTranscript(_ transcript: String) {
         currentTranscript += transcript + " "
         onTranscript?(transcript)
+        interimTranscript = ""
+    }
+
+    private func handleDiarizedTranscript(_ transcript: String, speaker: Int) {
+        currentTranscript += transcript + " "
+        onDiarizedTranscript?(transcript, speaker)
         interimTranscript = ""
     }
 
@@ -339,10 +363,20 @@ final class TranscriptionService: ObservableObject {
             print("[Transcription] Session reconnect limit reached (\(reconnectTimestamps.count) reconnections in \(Int(reconnectWindowDuration))s window)")
             connectionState = .failed(reason: "Connection unstable - too many reconnections")
 
-            CrashReporter.shared.captureMessage(
-                "Transcription session reconnect limit reached (\(reconnectTimestamps.count) reconnections in \(Int(reconnectWindowDuration))s)",
-                level: .error
-            )
+            // Throttle: report to Sentry at most once per 10 minutes
+            let now = Date()
+            if lastReconnectLimitReportTime == nil || now.timeIntervalSince(lastReconnectLimitReportTime!) > sentryThrottleInterval {
+                lastReconnectLimitReportTime = now
+                CrashReporter.shared.captureMessage(
+                    "Transcription session reconnect limit reached (\(reconnectTimestamps.count) reconnections in \(Int(reconnectWindowDuration))s)",
+                    level: .error
+                )
+            } else {
+                CrashReporter.shared.addBreadcrumb(
+                    category: "transcription",
+                    message: "Reconnect limit reached (throttled) — \(reconnectTimestamps.count) reconnections"
+                )
+            }
             AnalyticsService.shared.capture("transcription_session_reconnect_limit", properties: [
                 "total_reconnects": reconnectTimestamps.count,
                 "provider": currentProvider?.rawValue ?? "unknown"
@@ -355,11 +389,20 @@ final class TranscriptionService: ObservableObject {
             print("[Transcription] Max reconnection attempts reached (\(maxReconnectAttempts))")
             connectionState = .failed(reason: "Max reconnection attempts reached")
 
-            // TRACKING: Critical - user's transcription is completely broken
-            CrashReporter.shared.captureMessage(
-                "Transcription max reconnection attempts reached",
-                level: .error
-            )
+            // Throttle: report to Sentry at most once per 10 minutes
+            let now = Date()
+            if lastReconnectLimitReportTime == nil || now.timeIntervalSince(lastReconnectLimitReportTime!) > sentryThrottleInterval {
+                lastReconnectLimitReportTime = now
+                CrashReporter.shared.captureMessage(
+                    "Transcription max reconnection attempts reached",
+                    level: .error
+                )
+            } else {
+                CrashReporter.shared.addBreadcrumb(
+                    category: "transcription",
+                    message: "Max reconnect attempts reached (throttled)"
+                )
+            }
             AnalyticsService.shared.capture("transcription_reconnect_exhausted", properties: [
                 "max_attempts": maxReconnectAttempts,
                 "provider": currentProvider?.rawValue ?? "unknown"

@@ -61,12 +61,17 @@ export function addSystemTranscript(text: string): void {
 /**
  * Check if a mic transcript is likely bleed from the speakers.
  * Returns true if the text should be dropped.
+ *
+ * @param echoCancelled when true, signal-level echo cancellation (AEC) is active, so
+ *   bleed is already removed from the mic audio. The blanket temporal suppression
+ *   (Layer 1) is then skipped — it was the cause of the user's own speech being dropped
+ *   right after the interlocutor spoke. The word-overlap layers stay on as a net.
  */
-export function isMicTranscriptBleed(text: string): boolean {
+export function isMicTranscriptBleed(text: string, echoCancelled = false): boolean {
   pruneOldEntries()
 
-  // Layer 1: Temporal suppression
-  if (lastSystemTranscriptTime !== null) {
+  // Layer 1: Temporal suppression (fallback only — skipped when AEC is active)
+  if (!echoCancelled && lastSystemTranscriptTime !== null) {
     const elapsed = Date.now() - lastSystemTranscriptTime
     if (elapsed < TEMPORAL_SUPPRESSION_WINDOW) {
       log.info(`Temporal suppression (system audio active ${(elapsed / 1000).toFixed(1)}s ago): "${text.substring(0, 60)}"`)

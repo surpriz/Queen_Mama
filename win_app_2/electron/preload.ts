@@ -134,6 +134,11 @@ const electronAPI = {
     },
     startOAuthServer: () => ipcRenderer.invoke(IPC_CHANNELS.AUTH_START_OAUTH_SERVER),
     stopOAuthServer: () => ipcRenderer.invoke(IPC_CHANNELS.AUTH_STOP_OAUTH_SERVER),
+    refreshToken: (
+      apiBaseUrl: string,
+    ): Promise<
+      { ok: true; accessToken: string; expiresIn: number } | { ok: false; code: string }
+    > => ipcRenderer.invoke(IPC_CHANNELS.AUTH_REFRESH_TOKEN, apiBaseUrl),
   },
 
   // Cross-window relay

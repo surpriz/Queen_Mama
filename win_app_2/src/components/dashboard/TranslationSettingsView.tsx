@@ -1,12 +1,12 @@
 import { useState } from 'react'
-import { Globe, CheckCircle2, AlertCircle, Lock } from 'lucide-react'
+import { Globe, CheckCircle2, AlertCircle, Lock, Loader2 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { useConfigStore } from '@/stores/configStore'
 import { useLicenseStore } from '@/stores/licenseStore'
 import { Feature } from '@/types/auth'
 import { DEEPL_LANGUAGES } from '@/services/translation/deeplLanguage'
 import { ProxyTranslationProvider } from '@/services/translation/proxyTranslationProvider'
-import { isTranslationEnabled } from '@/services/proxy/proxyConfigManager'
+import { useProxyConfig } from '@/hooks/useProxyConfig'
 import { TranslationError } from '@/services/translation/translationProvider'
 import { UpgradePrompt } from '@/components/license/UpgradePrompt'
 import { cn } from '@/lib/utils'
@@ -16,7 +16,10 @@ type TestStatus = 'idle' | 'running' | 'success' | 'failure'
 export function TranslationSettingsView() {
   const { t } = useTranslation('dashboard')
   const config = useConfigStore()
-  const providerEnabled = isTranslationEnabled()
+  const { config: proxyConfig, status: configStatus, refresh: refreshProxyConfig } = useProxyConfig()
+  const providerEnabled = proxyConfig?.services?.translation?.enabled ?? false
+  const configLoading = configStatus === 'idle' || configStatus === 'loading'
+  const configError = configStatus === 'error'
   const translationAccess = useLicenseStore((s) => s.canUse(Feature.LiveTranslation))
   const isLicensed = translationAccess.type === 'allowed'
   const [testStatus, setTestStatus] = useState<TestStatus>('idle')
@@ -122,7 +125,11 @@ export function TranslationSettingsView() {
           {t('settings.translation.provider')}
         </div>
         <div className="flex items-start gap-2">
-          {providerEnabled ? (
+          {!isLicensed ? (
+            <Lock size={16} className="text-qm-text-tertiary mt-0.5" />
+          ) : configLoading ? (
+            <Loader2 size={16} className="text-qm-text-tertiary mt-0.5 animate-spin" />
+          ) : providerEnabled ? (
             <CheckCircle2 size={16} className="text-qm-accent mt-0.5" />
           ) : (
             <AlertCircle size={16} className="text-qm-text-tertiary mt-0.5" />
@@ -132,10 +139,24 @@ export function TranslationSettingsView() {
               {t('settings.translation.providerStatus')}
             </p>
             <p className="text-caption text-qm-text-tertiary">
-              {providerEnabled
-                ? t('settings.translation.providerActive')
-                : t('settings.translation.providerNotConfigured')}
+              {!isLicensed
+                ? t('settings.translation.providerNotConfigured')
+                : configLoading
+                  ? t('settings.translation.providerChecking')
+                  : configError
+                    ? t('settings.translation.providerLoadError')
+                    : providerEnabled
+                      ? t('settings.translation.providerActive')
+                      : t('settings.translation.providerUnavailable')}
             </p>
+            {isLicensed && configError && (
+              <button
+                onClick={refreshProxyConfig}
+                className="mt-1 text-caption text-qm-accent hover:underline"
+              >
+                {t('settings.translation.retry')}
+              </button>
+            )}
           </div>
         </div>
         {providerEnabled && (

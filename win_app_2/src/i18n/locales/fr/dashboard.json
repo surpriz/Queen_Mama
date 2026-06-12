@@ -121,7 +121,11 @@
       "captureIntervalDescription": "Temps entre les captures d'écran automatiques",
       "captureDisplay": "Écran de capture",
       "captureDisplayDescription": "Choisir quel écran capturer",
-      "refreshDisplays": "Rafraîchir les écrans"
+      "refreshDisplays": "Rafraîchir les écrans",
+      "contextIntelligence": "Intelligence contextuelle",
+      "contextIntelligenceDescription": "Permet à l'IA d'utiliser les connaissances de vos réunions passées pour personnaliser les réponses (Enterprise)",
+      "instantResponses": "Réponses instantanées",
+      "instantResponsesDescription": "Pré-génère les réponses en arrière-plan pour un Assist instantané (Enterprise, bêta)"
     },
     "autoAnswer": {
       "title": "Réponse automatique",
@@ -183,6 +187,10 @@
       "providerStatus": "DeepL via le proxy QueenMama",
       "providerActive": "Actif — inclus dans votre formule",
       "providerNotConfigured": "Indisponible sur votre formule — passez à Pro ou supérieur.",
+      "providerChecking": "Vérification de la disponibilité…",
+      "providerUnavailable": "Service de traduction temporairement indisponible.",
+      "providerLoadError": "Impossible de vérifier la disponibilité du service.",
+      "retry": "Réessayer",
       "test": "Tester la traduction",
       "testing": "Test en cours..."
     },

@@ -239,6 +239,11 @@ final class ProxyAPIClient: @unchecked Sendable {
             body["model"] = model
         }
 
+        let knowledgeEnabled = await ConfigurationManager.shared.knowledgeEnabled
+        if !knowledgeEnabled {
+            body["disableKnowledge"] = true
+        }
+
         return try await post(endpoint: "/api/proxy/ai/generate", body: body)
     }
 
@@ -272,6 +277,11 @@ final class ProxyAPIClient: @unchecked Sendable {
 
                     if let model = model {
                         body["model"] = model
+                    }
+
+                    let knowledgeEnabled = await ConfigurationManager.shared.knowledgeEnabled
+                    if !knowledgeEnabled {
+                        body["disableKnowledge"] = true
                     }
 
                     let url = baseURL.appendingPathComponent("/api/proxy/ai/stream")

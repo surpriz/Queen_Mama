@@ -229,7 +229,9 @@ class OverlayWindowController: NSObject, ObservableObject, NSWindowDelegate {
         }
 
         hostingView = NSHostingView(rootView: wrappedView)
-        hostingView?.frame = panel!.contentView!.bounds
+        if let bounds = panel?.contentView?.bounds {
+            hostingView?.frame = bounds
+        }
         hostingView?.autoresizingMask = [.width, .height]
 
         panel?.contentView = hostingView

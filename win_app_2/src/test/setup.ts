@@ -21,6 +21,12 @@ const mockElectronAPI = {
     delete: vi.fn().mockResolvedValue(undefined),
     has: vi.fn().mockResolvedValue(false),
   },
+  auth: {
+    refreshToken: vi.fn().mockResolvedValue({ ok: false, code: 'no_token' }),
+    onProtocolCallback: vi.fn(),
+    startOAuthServer: vi.fn().mockResolvedValue({ success: true }),
+    stopOAuthServer: vi.fn().mockResolvedValue({ success: true }),
+  },
   openExternal: vi.fn().mockResolvedValue(undefined),
   dialog: {
     showSaveDialog: vi.fn().mockResolvedValue({ canceled: true }),

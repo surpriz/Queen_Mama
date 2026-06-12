@@ -106,17 +106,19 @@ function FeedbackButtons({ responseId, sessionId }: { responseId: string; sessio
   const [feedback, setFeedback] = useState<'positive' | 'negative' | null>(null)
   const canUseKB = useLicenseStore((s) => s.canUse)(Feature.KnowledgeBase).type === 'allowed'
 
-  if (!canUseKB) return null
-
   const handleFeedback = useCallback(async (isHelpful: boolean) => {
     const rating = isHelpful ? 'positive' : 'negative'
     setFeedback(rating)
     try {
       await submitFeedback(responseId, sessionId, isHelpful)
-    } catch {
-      // Silently fail - feedback is not critical
+    } catch (err) {
+      console.warn('[Feedback] Submit failed:', err)
     }
   }, [responseId, sessionId])
+
+  // After the hooks — early returns before useCallback break the hook order
+  // when the license state changes mid-session
+  if (!canUseKB) return null
 
   return (
     <>
@@ -241,7 +243,10 @@ export function ResponseDisplay() {
                     </span>
                   )}
                   {entry.provider && <ProviderBadge provider={entry.provider} />}
-                  <FeedbackButtons responseId={entry.timestamp} sessionId="" />
+                  <FeedbackButtons
+                    responseId={entry.id ?? entry.timestamp}
+                    sessionId={entry.sessionId ?? ''}
+                  />
                   <CopyButton text={entry.content} />
                 </div>
 

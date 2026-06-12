@@ -60,6 +60,8 @@ export interface AIStreamRequest {
    * Honored by the backend only when cascadeMode === 'standard'. Smart/Recap stay on cascade.
    */
   model?: string
+  /** Opt out of Context Intelligence (knowledge atom injection) for this request. */
+  disableKnowledge?: boolean
 }
 
 export interface AIMessage {

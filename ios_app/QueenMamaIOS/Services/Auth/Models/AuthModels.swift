@@ -115,6 +115,9 @@ struct License: Codable, Equatable {
     let validatedAt: String
     let usage: UsageStats?
     let signature: String
+    /// Billing provider ("STRIPE" | "APPLE"). Sent OUTSIDE the HMAC-signed payload
+    /// (like usage/signature) so existing signature verification stays untouched.
+    let provider: String?
 
     static let free = License(
         valid: true,
@@ -125,7 +128,8 @@ struct License: Codable, Equatable {
         cacheTTL: 86400,
         validatedAt: ISO8601DateFormatter().string(from: Date()),
         usage: nil,
-        signature: ""
+        signature: "",
+        provider: nil
     )
 }
 
@@ -312,15 +316,15 @@ enum FeatureAccess: Equatable {
         case .allowed:
             return ""
         case .limitReached(let used, let limit):
-            return "Daily limit reached (\(used)/\(limit)). Upgrade to continue."
+            return String(localized: "Daily limit reached (\(used)/\(limit)). Upgrade to continue.")
         case .requiresPro:
-            return "This feature requires a PRO subscription."
+            return String(localized: "This feature requires a PRO subscription.")
         case .requiresEnterprise:
-            return "This feature requires an Enterprise subscription."
+            return String(localized: "This feature requires an Enterprise subscription.")
         case .requiresAuth:
-            return "Please sign in to use this feature."
+            return String(localized: "Please sign in to use this feature.")
         case .blocked:
-            return "Please sign in to access Queen Mama features."
+            return String(localized: "Please sign in to access Queen Mama features.")
         }
     }
 }
@@ -346,31 +350,31 @@ enum AuthError: LocalizedError {
     var errorDescription: String? {
         switch self {
         case .notAuthenticated:
-            return "Please sign in to continue"
+            return String(localized: "Please sign in to continue")
         case .invalidCredentials:
-            return "Invalid email or password"
+            return String(localized: "Invalid email or password")
         case .accountBlocked:
-            return "Your account has been blocked"
+            return String(localized: "Your account has been blocked")
         case .oauthUserNeedsDeviceCode:
-            return "Please use the device code flow to sign in"
+            return String(localized: "Please use the device code flow to sign in")
         case .oauthUserNeedsGoogle:
-            return "This account uses Google Sign-In. Please sign in with Google."
+            return String(localized: "This account uses Google Sign-In. Please sign in with Google.")
         case .credentialsAccountExists:
-            return "This email already has a password account. Please sign in with email and password."
+            return String(localized: "This email already has a password account. Please sign in with email and password.")
         case .deviceLimitReached:
-            return "Maximum device limit reached"
+            return String(localized: "Maximum device limit reached")
         case .networkError(let error):
-            return "Network error: \(error.localizedDescription)"
+            return String(localized: "Network error: \(error.localizedDescription)")
         case .serverError(let message):
             return message
         case .tokenExpired:
-            return "Session expired. Please sign in again."
+            return String(localized: "Session expired. Please sign in again.")
         case .invalidToken:
-            return "Invalid session. Please sign in again."
+            return String(localized: "Invalid session. Please sign in again.")
         case .emailAlreadyExists:
-            return "An account with this email already exists. Try signing in instead."
+            return String(localized: "An account with this email already exists. Try signing in instead.")
         case .oauthAccountExists:
-            return "This email uses Google Sign-In. Please sign in with Google."
+            return String(localized: "This email uses Google Sign-In. Please sign in with Google.")
         case .weakPassword(let message):
             return message
         }

@@ -90,22 +90,23 @@ final class ContactExtractionService {
 
     private var extractionSystemPrompt: String {
         """
-        Tu es un assistant d'extraction de contacts. Ton rôle est d'analyser des transcriptions de conversations et d'extraire les informations de contact de l'interlocuteur.
+        You are a contact extraction assistant. Your role is to analyze conversation transcripts (in any language) and extract the contact information of the other party.
 
-        RÈGLES:
-        1. Extrais UNIQUEMENT les informations mentionnées explicitement dans la conversation
-        2. NE JAMAIS inventer ou deviner des informations
-        3. Si une information n'est pas mentionnée, laisse le champ vide
-        4. Évalue ta confiance (0.0 à 1.0) basée sur la clarté des informations trouvées
-        5. Suggère des notes pertinentes basées sur le contenu de la conversation
+        RULES:
+        1. Extract ONLY information explicitly mentioned in the conversation
+        2. NEVER invent or guess information
+        3. If a piece of information is not mentioned, leave the field empty
+        4. Rate your confidence (0.0 to 1.0) based on how clear the found information is
+        5. Suggest relevant notes based on the conversation content
+        6. Write the suggested notes in the SAME LANGUAGE as the conversation
 
-        RÉPONDS UNIQUEMENT EN JSON avec ce format exact:
+        RESPOND ONLY IN JSON with this exact format:
         {
-            "firstName": "string ou null",
-            "lastName": "string ou null",
-            "email": "string ou null",
-            "company": "string ou null",
-            "role": "string ou null",
+            "firstName": "string or null",
+            "lastName": "string or null",
+            "email": "string or null",
+            "company": "string or null",
+            "role": "string or null",
             "confidence": 0.0-1.0,
             "suggestedNotes": ["note1", "note2"]
         }
@@ -117,13 +118,13 @@ final class ContactExtractionService {
         let trimmedTranscript = String(transcript.suffix(5000))
 
         return """
-        Analyse cette transcription et extrais les informations de contact de l'interlocuteur:
+        Analyze this transcript and extract the other party's contact information:
 
         ---
         \(trimmedTranscript)
         ---
 
-        Extrais les informations en JSON.
+        Extract the information as JSON.
         """
     }
 

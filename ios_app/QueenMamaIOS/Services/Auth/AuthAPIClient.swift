@@ -163,6 +163,32 @@ final class AuthAPIClient {
         )
     }
 
+    // MARK: - Apple In-App Purchases
+
+    /// Sends a signed StoreKit transaction (JWS) to the backend, which verifies
+    /// it with Apple and reconciles the user's subscription.
+    func syncAppleTransaction(signedTransaction: String) async throws {
+        let body: [String: String] = [
+            "signedTransaction": signedTransaction
+        ]
+
+        let _: EmptyResponse = try await post(
+            endpoint: "/api/billing/apple/transaction",
+            body: body,
+            requiresAuth: true
+        )
+    }
+
+    /// Fetches the backend-issued UUID used to tag StoreKit purchases
+    /// (StoreKit appAccountToken), generating it server-side on first call.
+    func fetchAppAccountToken() async throws -> String {
+        let response: AppAccountTokenResponse = try await get(
+            endpoint: "/api/billing/apple/app-account-token",
+            requiresAuth: true
+        )
+        return response.appAccountToken
+    }
+
     // MARK: - Usage Recording
 
     /// Records feature usage to server for server-side tracking
@@ -313,6 +339,10 @@ private struct RegistrationErrorResponse: Decodable {
 }
 
 private struct EmptyResponse: Decodable {}
+
+private struct AppAccountTokenResponse: Decodable {
+    let appAccountToken: String
+}
 
 struct UsageRecordResponse: Decodable {
     let success: Bool

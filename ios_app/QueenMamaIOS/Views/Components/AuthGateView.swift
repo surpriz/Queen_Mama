@@ -79,7 +79,7 @@ struct UnauthenticatedOverlay: View {
 
 private struct FeatureBadge: View {
     let icon: String
-    let text: String
+    let text: LocalizedStringKey
 
     var body: some View {
         HStack(spacing: QMDesign.Spacing.xs) {

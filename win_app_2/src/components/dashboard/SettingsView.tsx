@@ -272,6 +272,27 @@ export function SettingsView() {
                   onToggle={(v) => handleToggle('showLiveTranscript', v)}
                 />
                 <ToggleRow
+                  label={t('settings.general.contextIntelligence')}
+                  description={t('settings.general.contextIntelligenceDescription')}
+                  enabled={config.knowledgeEnabled}
+                  onToggle={(v) => handleToggle('knowledgeEnabled', v)}
+                />
+                <ToggleRow
+                  label={t('settings.general.instantResponses')}
+                  description={t('settings.general.instantResponsesDescription')}
+                  enabled={config.instantResponsesEnabled}
+                  onToggle={(v) => {
+                    if (v) {
+                      const status = license.canUse(Feature.BufferedPreGen)
+                      if (status.type !== 'allowed') {
+                        setShowPricing(true)
+                        return
+                      }
+                    }
+                    handleToggle('instantResponsesEnabled', v)
+                  }}
+                />
+                <ToggleRow
                   label={t('settings.general.autoScreenCapture')}
                   description={t('settings.general.autoScreenCaptureDescription')}
                   enabled={config.autoScreenCapture}

@@ -34,6 +34,18 @@ export async function initializeApp(): Promise<void> {
 
   console.log('[AppInit] Starting initialization...')
 
+  // Refresh proxy config whenever auth transitions to authenticated. The boot
+  // fetch (step 5) is gated on auth being ready in time; on a slow token refresh
+  // it gets skipped, leaving translation/config disabled for the whole session
+  // even though the license resolves correctly later. Re-fetch on every auth gain.
+  useAuthStore.subscribe((state, prev) => {
+    if (state.isAuthenticated && !prev.isAuthenticated) {
+      proxyConfigManager.refreshConfig().catch((e) =>
+        console.warn('[AppInit] Proxy config refresh after auth failed:', e),
+      )
+    }
+  })
+
   // Load persisted user config (showLiveTranscript, captureSystemAudio, etc.)
   // Must run in every window (dashboard + overlay) so each Zustand instance
   // reflects the user's saved preferences instead of falling back to defaults.

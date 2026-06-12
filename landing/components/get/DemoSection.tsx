@@ -112,10 +112,10 @@ export default function DemoSection() {
           className="text-center mb-12"
         >
           <h2 className="text-3xl sm:text-4xl font-bold text-[var(--qm-text-primary)] mb-4">
-            Votre prochain call, avec Queen Mama
+            Votre prochain call, avec un coup d&apos;avance
           </h2>
           <p className="text-[var(--qm-text-secondary)] text-lg">
-            Voici ce qui se passe sur votre écran pendant que vous parlez.
+            Voici ce que vous voyez pendant que les autres rament.
           </p>
         </motion.div>
 

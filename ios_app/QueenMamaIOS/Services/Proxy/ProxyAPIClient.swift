@@ -18,6 +18,12 @@ final class ProxyAPIClient: @unchecked Sendable {
     // Cache for transcription tokens (in-memory + Keychain persistence)
     private var cachedTranscriptionToken: TranscriptionToken?
 
+    // Deduplication of concurrent token refresh operations.
+    // Refresh tokens are one-time-use: concurrent callers must join the in-flight
+    // refresh instead of each burning the same token.
+    private var activeRefreshTask: Task<String?, Never>?
+    private let refreshTaskLock = NSLock()
+
     // Keychain keys for token persistence
     private enum KeychainKeys {
         static let transcriptionToken = "transcription_token"
@@ -445,23 +451,52 @@ final class ProxyAPIClient: @unchecked Sendable {
         }
         if let cachedToken { return cachedToken }
 
-        // Try to refresh
-        guard let refreshToken = await MainActor.run(body: { tokenStore.refreshToken }) else {
-            return nil
+        // Deduplicate concurrent refreshes: if one is already in-flight, join it.
+        // This prevents multiple callers from each using the same refresh token — after the first
+        // call rotates it, subsequent calls with the old token would fail.
+        // No suspension point between the check and the set, so this is safe under Swift cooperative threading.
+        let existingTask: Task<String?, Never>? = refreshTaskLock.withLock { activeRefreshTask }
+        if let existingTask {
+            return await existingTask.value
         }
 
-        do {
-            let response = try await AuthAPIClient.shared.refreshTokens(refreshToken)
-            await MainActor.run {
-                tokenStore.accessToken = response.accessToken
-                tokenStore.accessTokenExpiry = Date().addingTimeInterval(TimeInterval(response.expiresIn))
-                tokenStore.refreshToken = response.refreshToken
+        let task = Task<String?, Never> {
+            defer {
+                refreshTaskLock.withLock { activeRefreshTask = nil }
             }
-            return response.accessToken
-        } catch {
-            print("[ProxyAPI] Token refresh failed: \(error)")
+
+            guard let refreshToken = await MainActor.run(body: { tokenStore.refreshToken }) else {
+                return nil
+            }
+
+            for attempt in 1...2 {
+                do {
+                    let response = try await AuthAPIClient.shared.refreshTokens(refreshToken)
+                    await MainActor.run {
+                        tokenStore.accessToken = response.accessToken
+                        tokenStore.accessTokenExpiry = Date().addingTimeInterval(TimeInterval(response.expiresIn))
+                        tokenStore.refreshToken = response.refreshToken
+                    }
+                    return response.accessToken
+                } catch {
+                    print("[ProxyAPI] Token refresh failed (attempt \(attempt)/2): \(error)")
+                    if attempt < 2 {
+                        try? await Task.sleep(nanoseconds: 2_000_000_000) // 2s before retry
+                    } else {
+                        await MainActor.run {
+                            CrashReporter.shared.addBreadcrumb(
+                                category: "proxy_auth",
+                                message: "Token refresh failed after 2 attempts: \(error.localizedDescription)",
+                                level: .warning
+                            )
+                        }
+                    }
+                }
+            }
             return nil
         }
+        refreshTaskLock.withLock { activeRefreshTask = task }
+        return await task.value
     }
 }
 

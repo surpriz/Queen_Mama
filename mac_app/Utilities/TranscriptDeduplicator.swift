@@ -61,12 +61,19 @@ final class TranscriptDeduplicator {
 
     /// Check if a mic transcript is likely bleed from the speakers.
     /// Returns `true` if the text should be dropped.
-    func isMicTranscriptBleed(_ text: String) -> Bool {
+    ///
+    /// - Parameter echoCancelled: when `true`, signal-level echo cancellation (AEC) is
+    ///   active, so bleed has already been removed from the mic audio. In that case the
+    ///   blanket temporal suppression (Layer 1) is skipped — it was the cause of the
+    ///   user's own speech being dropped right after the interlocutor spoke. The
+    ///   word-overlap layers stay on as a net for any residual echo.
+    func isMicTranscriptBleed(_ text: String, echoCancelled: Bool = false) -> Bool {
         pruneOldEntries()
 
-        // Layer 1: Temporal suppression
-        // If system audio was active recently, the mic is almost certainly hearing bleed
-        if let lastTime = lastSystemTranscriptTime,
+        // Layer 1: Temporal suppression (fallback only — skipped when AEC is active).
+        // If system audio was active recently, the mic is almost certainly hearing bleed.
+        if !echoCancelled,
+           let lastTime = lastSystemTranscriptTime,
            Date().timeIntervalSince(lastTime) < temporalSuppressionWindow {
             let preview = text.prefix(60)
             print("[Dedup] Temporal suppression (system audio active \(String(format: "%.1f", Date().timeIntervalSince(lastTime)))s ago): \"\(preview)\"")

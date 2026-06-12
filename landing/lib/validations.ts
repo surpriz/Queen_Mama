@@ -140,6 +140,14 @@ export const licenseValidateSchema = z.object({
 });
 
 // ===========================================
+// APPLE IN-APP PURCHASE SCHEMAS
+// ===========================================
+
+export const appleTransactionSchema = z.object({
+  signedTransaction: z.string().min(1, "Signed transaction is required"),
+});
+
+// ===========================================
 // SESSION SYNC SCHEMAS
 // ===========================================
 

@@ -1,0 +1,10 @@
+/* Localized versions of Info.plist keys */
+
+/* Bundle display name */
+"CFBundleDisplayName" = "Queen Mama";
+
+/* Bundle name */
+"CFBundleName" = "Queen Mama";
+
+/* Microphone permission description */
+"NSMicrophoneUsageDescription" = "Queen Mama a besoin d'accéder au micro pour transcrire vos appels et réunions en temps réel et vous fournir une assistance IA.";

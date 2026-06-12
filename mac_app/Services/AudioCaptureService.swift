@@ -170,20 +170,16 @@ final class AudioCaptureService: ObservableObject {
         }
 
         // Create converter to float format first
-        audioConverter = AVAudioConverter(from: inputFormat, to: floatFormat)
-
-        if audioConverter == nil {
+        guard let converter = AVAudioConverter(from: inputFormat, to: floatFormat) else {
             print("[AudioCapture] Failed to create audio converter")
             throw AudioCaptureError.formatMismatch
         }
+        audioConverter = converter
 
         print("[AudioCapture] Audio converter created successfully")
 
         // Calculate buffer sizes - use larger buffer for stability
         let bufferSize: AVAudioFrameCount = 4096
-
-        // Capture converter reference for use on audio thread
-        let converter = audioConverter!
 
         // Install tap on input node
         // IMPORTANT: All audio processing happens HERE on the audio render thread

@@ -231,7 +231,7 @@ struct SignInChoiceView: View {
             } catch let error as AuthError {
                 switch error {
                 case .credentialsAccountExists:
-                    errorMessage = "This email uses password login. Please sign in with email instead."
+                    errorMessage = String(localized: "This email uses password login. Please sign in with email instead.")
                 default:
                     errorMessage = error.localizedDescription
                 }

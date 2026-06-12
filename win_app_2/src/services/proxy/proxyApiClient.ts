@@ -250,6 +250,7 @@ export async function* streamAIResponse(
     maxTokens: request.max_tokens,
     cascadeMode,
     ...(userModel ? { model: userModel } : {}),
+    ...(useConfigStore.getState().knowledgeEnabled ? {} : { disableKnowledge: true }),
   }
 
   // Extract screenshot if present in user message

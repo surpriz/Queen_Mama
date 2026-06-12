@@ -37,7 +37,6 @@
 		100000000000000000000080 /* FreeWelcomeBannerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 10000000000000000000007F /* FreeWelcomeBannerView.swift */; };
 		00000000000000000000001C /* OverlayPopupMenu.swift in Sources */ = {isa = PBXBuildFile; fileRef = 10000000000000000000001E /* OverlayPopupMenu.swift */; };
 		00000000000000000000001D /* OnboardingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 10000000000000000000001F /* OnboardingView.swift */; };
-		000000000000000000000021 /* ResponseCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = 100000000000000000000023 /* ResponseCache.swift */; };
 		000000000000000000000022 /* TokenUsageTracker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 100000000000000000000024 /* TokenUsageTracker.swift */; };
 		000000000000000000000025 /* CrashReporter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 100000000000000000000025 /* CrashReporter.swift */; };
 		000000000000000000000026 /* Logger.swift in Sources */ = {isa = PBXBuildFile; fileRef = 100000000000000000000026 /* Logger.swift */; };
@@ -108,7 +107,6 @@
 		100000000000000000000058 /* AIContextTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 100000000000000000000057 /* AIContextTests.swift */; };
 		10000000000000000000005A /* LicenseModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 100000000000000000000059 /* LicenseModelTests.swift */; };
 		10000000000000000000005C /* TranscriptBufferTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 10000000000000000000005B /* TranscriptBufferTests.swift */; };
-		10000000000000000000005E /* ResponseCacheTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 10000000000000000000005D /* ResponseCacheTests.swift */; };
 		100000000000000000000060 /* AIServiceLogicTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 10000000000000000000005F /* AIServiceLogicTests.swift */; };
 		100000000000000000000062 /* SessionModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 100000000000000000000061 /* SessionModelTests.swift */; };
 		100000000000000000000064 /* ContactModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 100000000000000000000063 /* ContactModelTests.swift */; };
@@ -123,6 +121,8 @@
 		100000000000000000000078 /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = 100000000000000000000077 /* Localizable.xcstrings */; };
 		10000000000000000000007A /* AppMoveHelper.swift in Sources */ = {isa = PBXBuildFile; fileRef = 100000000000000000000079 /* AppMoveHelper.swift */; };
 		100000000000000000000083 /* TranscriptDeduplicator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 100000000000000000000082 /* TranscriptDeduplicator.swift */; };
+		10000000000000000000009B /* EchoCancellationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 10000000000000000000009A /* EchoCancellationService.swift */; };
+		10000000000000000000009D /* EchoCancellationServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 10000000000000000000009C /* EchoCancellationServiceTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -168,7 +168,6 @@
 		10000000000000000000007F /* FreeWelcomeBannerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FreeWelcomeBannerView.swift; sourceTree = "<group>"; };
 		10000000000000000000001E /* OverlayPopupMenu.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OverlayPopupMenu.swift; sourceTree = "<group>"; };
 		10000000000000000000001F /* OnboardingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingView.swift; sourceTree = "<group>"; };
-		100000000000000000000023 /* ResponseCache.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ResponseCache.swift; sourceTree = "<group>"; };
 		100000000000000000000024 /* TokenUsageTracker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TokenUsageTracker.swift; sourceTree = "<group>"; };
 		100000000000000000000025 /* CrashReporter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CrashReporter.swift; sourceTree = "<group>"; };
 		100000000000000000000026 /* Logger.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Logger.swift; sourceTree = "<group>"; };
@@ -237,7 +236,7 @@
 		100000000000000000000057 /* AIContextTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIContextTests.swift; sourceTree = "<group>"; };
 		100000000000000000000059 /* LicenseModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LicenseModelTests.swift; sourceTree = "<group>"; };
 		10000000000000000000005B /* TranscriptBufferTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TranscriptBufferTests.swift; sourceTree = "<group>"; };
-		10000000000000000000005D /* ResponseCacheTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ResponseCacheTests.swift; sourceTree = "<group>"; };
+		10000000000000000000009C /* EchoCancellationServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EchoCancellationServiceTests.swift; sourceTree = "<group>"; };
 		10000000000000000000005F /* AIServiceLogicTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIServiceLogicTests.swift; sourceTree = "<group>"; };
 		100000000000000000000061 /* SessionModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionModelTests.swift; sourceTree = "<group>"; };
 		100000000000000000000063 /* ContactModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContactModelTests.swift; sourceTree = "<group>"; };
@@ -252,6 +251,7 @@
 		100000000000000000000077 /* Localizable.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = Localizable.xcstrings; sourceTree = "<group>"; };
 		100000000000000000000079 /* AppMoveHelper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppMoveHelper.swift; sourceTree = "<group>"; };
 		100000000000000000000082 /* TranscriptDeduplicator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TranscriptDeduplicator.swift; sourceTree = "<group>"; };
+		10000000000000000000009A /* EchoCancellationService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EchoCancellationService.swift; sourceTree = "<group>"; };
 		200000000000000000000002 /* QueenMamaTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = QueenMamaTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
@@ -348,7 +348,7 @@
 				100000000000000000000053 /* MomentDetectionServiceTests.swift */,
 				100000000000000000000055 /* AutoAnswerServiceTests.swift */,
 				10000000000000000000005B /* TranscriptBufferTests.swift */,
-				10000000000000000000005D /* ResponseCacheTests.swift */,
+				10000000000000000000009C /* EchoCancellationServiceTests.swift */,
 				10000000000000000000005F /* AIServiceLogicTests.swift */,
 				100000000000000000000067 /* TranscriptionConnectionStateTests.swift */,
 				10000000000000000000006B /* HealthCheckServiceTests.swift */,
@@ -423,7 +423,6 @@
 				10000000000000000000000B /* SessionManager.swift */,
 				10000000000000000000001D /* AutoAnswerService.swift */,
 				10000000000000000000007B /* PreGenerationService.swift */,
-				100000000000000000000023 /* ResponseCache.swift */,
 				100000000000000000000024 /* TokenUsageTracker.swift */,
 				100000000000000000000025 /* CrashReporter.swift */,
 				100000000000000000000027 /* SecureStorage.swift */,
@@ -477,6 +476,7 @@
 				40000000000000000000000B /* Extensions */,
 				AED67FF476044F25BA92C2A6 /* MarkdownRenderer.swift */,
 				100000000000000000000082 /* TranscriptDeduplicator.swift */,
+				10000000000000000000009A /* EchoCancellationService.swift */,
 			);
 			path = Utilities;
 			sourceTree = "<group>";
@@ -731,7 +731,6 @@
 				000000000000000000000009 /* TranscriptionService.swift in Sources */,
 				00000000000000000000000A /* AIService.swift in Sources */,
 				00000000000000000000000B /* SessionManager.swift in Sources */,
-				000000000000000000000021 /* ResponseCache.swift in Sources */,
 				000000000000000000000022 /* TokenUsageTracker.swift in Sources */,
 				00000000000000000000000C /* AIProvider.swift in Sources */,
 				000000000000000000000010 /* DashboardView.swift in Sources */,
@@ -796,6 +795,7 @@
 				10000000000000000000004A /* MeetingReminderPanel.swift in Sources */,
 				10000000000000000000007A /* AppMoveHelper.swift in Sources */,
 				100000000000000000000083 /* TranscriptDeduplicator.swift in Sources */,
+				10000000000000000000009B /* EchoCancellationService.swift in Sources */,
 				10000000000000000000007E /* PricingView.swift in Sources */,
 				100000000000000000000080 /* FreeWelcomeBannerView.swift in Sources */,
 				100000000000000000000087 /* TranslationProvider.swift in Sources */,
@@ -820,7 +820,7 @@
 				100000000000000000000058 /* AIContextTests.swift in Sources */,
 				10000000000000000000005A /* LicenseModelTests.swift in Sources */,
 				10000000000000000000005C /* TranscriptBufferTests.swift in Sources */,
-				10000000000000000000005E /* ResponseCacheTests.swift in Sources */,
+				10000000000000000000009D /* EchoCancellationServiceTests.swift in Sources */,
 				100000000000000000000060 /* AIServiceLogicTests.swift in Sources */,
 				100000000000000000000062 /* SessionModelTests.swift in Sources */,
 				100000000000000000000064 /* ContactModelTests.swift in Sources */,

@@ -34,6 +34,11 @@ final class ConfigurationManager: ObservableObject {
         didSet { defaults.set(smartModeEnabled, forKey: Keys.smartMode) }
     }
 
+    /// Context Intelligence (Enterprise): inject knowledge from past meetings into AI prompts.
+    @Published var knowledgeEnabled: Bool {
+        didSet { defaults.set(knowledgeEnabled, forKey: Keys.knowledgeEnabled) }
+    }
+
     @Published var selectedAIProvider: AIProviderType {
         didSet { defaults.set(selectedAIProvider.rawValue, forKey: Keys.aiProvider) }
     }
@@ -184,6 +189,7 @@ final class ConfigurationManager: ObservableObject {
         static let autoScreenCapture = "auto_screen_capture"
         static let screenCaptureInterval = "screen_capture_interval"
         static let smartMode = "smart_mode_enabled"
+        static let knowledgeEnabled = "knowledge_enabled"
         static let aiProvider = "selected_ai_provider"
         static let selectedAIModel = "selected_ai_model"
         static let primaryLanguage = "primary_language"
@@ -234,6 +240,7 @@ final class ConfigurationManager: ObservableObject {
         self.autoScreenCapture = defaults.object(forKey: Keys.autoScreenCapture) as? Bool ?? true
         self.screenCaptureIntervalSeconds = defaults.object(forKey: Keys.screenCaptureInterval) as? Double ?? 5.0
         self.smartModeEnabled = defaults.object(forKey: Keys.smartMode) as? Bool ?? false
+        self.knowledgeEnabled = defaults.object(forKey: Keys.knowledgeEnabled) as? Bool ?? true
         self.primaryLanguage = defaults.string(forKey: Keys.primaryLanguage) ?? "en"
         self.appLanguage = defaults.string(forKey: Keys.appLanguage) ?? "system"
         self.selectedDisplayID = defaults.object(forKey: Keys.selectedDisplayID) as? UInt32 ?? 0
@@ -316,6 +323,7 @@ final class ConfigurationManager: ObservableObject {
         autoScreenCapture = true
         screenCaptureIntervalSeconds = 5.0
         smartModeEnabled = false
+        knowledgeEnabled = true
         selectedAIProvider = .openai
         selectedAIModel = AIModelChoice.auto.rawValue
         primaryLanguage = "en"

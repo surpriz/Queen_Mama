@@ -70,6 +70,7 @@ final class ScreenCaptureService: NSObject, ObservableObject {
 
     // Screenshot deduplication for cost optimization
     private var lastScreenshotHash: String?
+    private var lastPreCaptureHash: String?
 
     // SCStream error recovery (auto-retry on display reconfiguration)
     private var streamRecoveryAttempts = 0
@@ -156,11 +157,12 @@ final class ScreenCaptureService: NSObject, ObservableObject {
         stream = SCStream(filter: filter, configuration: streamConfig, delegate: self)
 
         // Add stream output
-        streamOutput = StreamOutput()
-        try stream?.addStreamOutput(streamOutput!, type: .screen, sampleHandlerQueue: .main)
+        let output = StreamOutput()
+        streamOutput = output
+        try stream?.addStreamOutput(output, type: .screen, sampleHandlerQueue: .main)
 
         if config.captureSystemAudio {
-            try stream?.addStreamOutput(streamOutput!, type: .audio, sampleHandlerQueue: .main)
+            try stream?.addStreamOutput(output, type: .audio, sampleHandlerQueue: .main)
 
             // Wire system audio callback to SystemAudioCaptureService
             streamOutput?.onAudio = { [weak self] sampleBuffer in
@@ -393,6 +395,16 @@ final class ScreenCaptureService: NSObject, ObservableObject {
             let startTime = CFAbsoluteTimeGetCurrent()
             let data = try await captureScreenshot()
             let captureTime = (CFAbsoluteTimeGetCurrent() - startTime) * 1000
+
+            // Static screen: keep the existing analysis, just refresh the cache
+            // timestamp. Skips the Vision pass (face detection) that would
+            // otherwise run every 2s on an unchanged screen.
+            let hash = data.sha256Hash()
+            if hash == lastPreCaptureHash, cachedScreenshotAnalysis != nil {
+                cachedScreenshotTimestamp = Date()
+                return
+            }
+            lastPreCaptureHash = hash
 
             // Update cache
             cachedScreenshotData = data

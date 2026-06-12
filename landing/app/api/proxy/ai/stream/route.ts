@@ -70,6 +70,7 @@ interface AIStreamRequestBody {
   userMessage: string;
   screenshot?: string; // base64 encoded
   maxTokens?: number;
+  disableKnowledge?: boolean; // Per-request opt-out of Context Intelligence injection
 }
 
 /**
@@ -105,7 +106,7 @@ export async function POST(request: Request) {
 
     // Parse request body
     const body: AIStreamRequestBody = await request.json();
-    const { smartMode = false, cascadeMode, model: userModel, systemPrompt, userMessage, screenshot, maxTokens } = body;
+    const { smartMode = false, cascadeMode, model: userModel, systemPrompt, userMessage, screenshot, maxTokens, disableKnowledge = false } = body;
 
     // Determine cascade mode: cascadeMode takes precedence, otherwise use smartMode for backward compatibility
     const mode: "standard" | "smart" | "recap" = cascadeMode
@@ -200,24 +201,24 @@ export async function POST(request: Request) {
     // ============================================
     // CONTEXT INTELLIGENCE: Inject personalized knowledge for Enterprise
     // ============================================
-    // TEMPORARILY DISABLED: Knowledge injection was causing irrelevant context
-    // from past conversations to appear in AI responses. Re-enable after:
-    // 1. Increasing minSimilarity threshold (0.4 → 0.65)
-    // 2. Adding user toggle to disable Knowledge per-session
-    // 3. Running migrations on Neon Prod for KnowledgeAtom table
+    // Re-enabled with a 0.65 similarity floor (was 0.4 — too permissive,
+    // surfaced irrelevant past-conversation context). Clients can opt out
+    // per request via `disableKnowledge`. Kill switch: KNOWLEDGE_FEATURE_ENABLED=false.
+    // Requires the KnowledgeAtom migration (20260126102852) on the target DB;
+    // retrieval failures are caught and never block the request.
     // ============================================
     let enhancedSystemPrompt = systemPrompt;
     let usedAtomIds: string[] = [];
 
-    const KNOWLEDGE_FEATURE_ENABLED = false; // Toggle to re-enable
+    const KNOWLEDGE_FEATURE_ENABLED = process.env.KNOWLEDGE_FEATURE_ENABLED !== "false";
 
-    if (KNOWLEDGE_FEATURE_ENABLED && plan === "ENTERPRISE") {
+    if (KNOWLEDGE_FEATURE_ENABLED && !disableKnowledge && plan === "ENTERPRISE") {
       try {
         console.log(`[AI Stream] Context Intelligence: Searching knowledge for Enterprise user ${user.id}`);
         const relevantKnowledge = await retrieveRelevantKnowledge(
           user.id,
           userMessage,
-          { maxResults: 5, minSimilarity: 0.4, boostHelpful: true }
+          { maxResults: 5, minSimilarity: 0.65, boostHelpful: true }
         );
 
         if (relevantKnowledge.length > 0) {

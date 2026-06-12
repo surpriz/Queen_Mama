@@ -124,6 +124,26 @@ export function stopPeriodicRevalidation(): void {
   }
 }
 
+/** Reset license state on logout: drop to FREE, clear the on-disk cache and
+ *  broadcast to all windows. Without the broadcast the overlay keeps showing
+ *  the previous account's plan until the next revalidation (up to 60 min). */
+export async function resetOnLogout(): Promise<void> {
+  const licenseStore = useLicenseStore.getState()
+  licenseStore.setLicense(FREE_LICENSE)
+  licenseStore.setOffline(false)
+  useLicenseStore.setState({ smartModeUsedToday: 0, aiRequestsToday: 0 })
+
+  try {
+    await window.electronAPI?.store.delete('cached_license')
+    await window.electronAPI?.store.delete('cached_license_expiry')
+  } catch (e) {
+    log.warn('Failed to clear cached license on logout', e)
+  }
+
+  broadcastLicenseState()
+  log.info('License reset to FREE on logout')
+}
+
 export async function recordUsage(feature: string, provider?: string): Promise<void> {
   const licenseStore = useLicenseStore.getState()
 
