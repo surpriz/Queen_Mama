@@ -199,16 +199,15 @@ jobs:
           fi
           echo "🌐 App environment: $APP_ENV"
 
+          # Signing is configured in the project's Release config (app target
+          # only). Passing PROVISIONING_PROFILE_SPECIFIER on the command line
+          # would apply it to SPM resource bundles (PostHog), which reject it.
           xcodebuild archive \
             -project $XCODE_PROJECT \
             -scheme $SCHEME \
             -destination 'generic/platform=iOS' \
             -configuration Release \
             -archivePath $RUNNER_TEMP/QueenMamaIOS.xcarchive \
-            CODE_SIGN_STYLE=Manual \
-            CODE_SIGN_IDENTITY="Apple Distribution" \
-            PROVISIONING_PROFILE_SPECIFIER="${profile_name}" \
-            DEVELOPMENT_TEAM=$TEAM_ID \
             APP_ENVIRONMENT=$APP_ENV \
             -skipPackagePluginValidation \
             -skipMacroValidation
