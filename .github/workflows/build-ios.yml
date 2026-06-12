@@ -213,7 +213,8 @@ jobs:
             -skipMacroValidation
 
       - name: Upload dSYMs to Sentry
-        if: ${{ vars.SENTRY_ORG != '' }}
+        if: ${{ vars.SENTRY_ORG != '' && vars.SENTRY_PROJECT_IOS != '' }}
+        continue-on-error: true
         env:
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
           SENTRY_ORG: ${{ vars.SENTRY_ORG }}
@@ -335,7 +336,8 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Finalize Sentry Release
-        if: ${{ vars.SENTRY_ORG != '' }}
+        if: ${{ vars.SENTRY_ORG != '' && vars.SENTRY_PROJECT_IOS != '' }}
+        continue-on-error: true
         env:
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
           SENTRY_ORG: ${{ vars.SENTRY_ORG }}
