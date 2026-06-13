@@ -109,9 +109,12 @@ struct SettingsView: View {
                 HStack {
                     Text("Transcription Language")
                     Spacer()
-                    Text("French")
+                    Text("Automatic")
                         .foregroundColor(QMDesign.Colors.textSecondary)
                 }
+                Text("Detected automatically, including multilingual meetings.")
+                    .font(QMDesign.Typography.caption)
+                    .foregroundColor(QMDesign.Colors.textTertiary)
 
                 HStack {
                     Text("Sample Rate")
