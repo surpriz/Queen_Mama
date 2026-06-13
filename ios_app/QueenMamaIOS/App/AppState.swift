@@ -87,6 +87,17 @@ class AppState: ObservableObject {
         do {
             let startTime = CFAbsoluteTimeGetCurrent()
 
+            // Transcription providers come from the proxy config (/api/proxy/config),
+            // which is a SEPARATE fetch from the license (/api/license/validate).
+            // If the config fetch failed or never ran at launch, config stays nil,
+            // every provider reports isConfigured == false, and connect() throws
+            // allProvidersFailed — which the catch below turns into a stopped
+            // session ~1s after start. Lazily load it here before connecting.
+            if ProxyConfigManager.shared.config == nil {
+                print("[AppState] Proxy config missing — loading before transcription connect")
+                try await ProxyConfigManager.shared.refreshConfig()
+            }
+
             async let audioStart: () = audioService.startCapture()
             async let transcriptionStart: () = transcriptionService.connect()
 
