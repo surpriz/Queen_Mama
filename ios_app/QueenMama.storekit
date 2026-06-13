@@ -89,6 +89,62 @@
           "winbackOffers" : [
 
           ]
+        },
+        {
+          "adHocOffers" : [
+
+          ],
+          "codeOffers" : [
+
+          ],
+          "displayPrice" : "39.99",
+          "familyShareable" : false,
+          "groupNumber" : 2,
+          "internalID" : "E1A72C04-5B96-4D28-A3F7-2C8E0B4D65A7",
+          "introductoryOffer" : null,
+          "localizations" : [
+            {
+              "description" : "Everything in Pro, plus live translation, Smart Mode, Auto-Answer",
+              "displayName" : "Enterprise Monthly",
+              "locale" : "en_US"
+            }
+          ],
+          "productID" : "com.queenmama.ios.enterprise.monthly",
+          "recurringSubscriptionPeriod" : "P1M",
+          "referenceName" : "Enterprise Monthly",
+          "subscriptionGroupID" : "A7D43F18-26B5-4E09-8C72-1F9E0B3D54A6",
+          "type" : "RecurringSubscription",
+          "winbackOffers" : [
+
+          ]
+        },
+        {
+          "adHocOffers" : [
+
+          ],
+          "codeOffers" : [
+
+          ],
+          "displayPrice" : "399.00",
+          "familyShareable" : false,
+          "groupNumber" : 2,
+          "internalID" : "F2B83D15-6CA7-4E39-B4A8-3D9F1C5E76B8",
+          "introductoryOffer" : null,
+          "localizations" : [
+            {
+              "description" : "Everything in Pro, plus live translation, Smart Mode, Auto-Answer",
+              "displayName" : "Enterprise Yearly",
+              "locale" : "en_US"
+            }
+          ],
+          "productID" : "com.queenmama.ios.enterprise.yearly",
+          "recurringSubscriptionPeriod" : "P1Y",
+          "referenceName" : "Enterprise Yearly",
+          "subscriptionGroupID" : "A7D43F18-26B5-4E09-8C72-1F9E0B3D54A6",
+          "type" : "RecurringSubscription",
+          "winbackOffers" : [
+
+          ]
         }
       ]
     }

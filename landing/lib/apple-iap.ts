@@ -22,11 +22,13 @@ export const APPLE_BUNDLE_ID =
 
 /**
  * Maps App Store product identifiers to subscription plans.
- * Both iOS products are PRO tier (monthly/yearly billing).
+ * Pro and Enterprise are both self-serve auto-renewable tiers (monthly/yearly).
  */
 export const PRODUCT_PLAN_MAP: Record<string, SubscriptionPlan> = {
   "com.queenmama.ios.pro.monthly": "PRO",
   "com.queenmama.ios.pro.yearly": "PRO",
+  "com.queenmama.ios.enterprise.monthly": "ENTERPRISE",
+  "com.queenmama.ios.enterprise.yearly": "ENTERPRISE",
 };
 
 const PLAN_RANK: Record<SubscriptionPlan, number> = {

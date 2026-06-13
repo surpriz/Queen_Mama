@@ -69,12 +69,12 @@ struct PaywallView: View {
             }
             .accessibilityHidden(true)
 
-            Text("Upgrade to PRO")
+            Text("Choose your plan")
                 .font(QMDesign.Typography.titleMedium)
                 .foregroundColor(QMDesign.Colors.textPrimary)
 
             if let feature = feature {
-                Text("\"\(feature)\" requires a PRO subscription")
+                Text("\"\(feature)\" requires an upgrade")
                     .font(QMDesign.Typography.bodySmall)
                     .foregroundColor(QMDesign.Colors.textSecondary)
                     .multilineTextAlignment(.center)
@@ -83,11 +83,28 @@ struct PaywallView: View {
     }
 
     private var benefits: some View {
-        VStack(alignment: .leading, spacing: QMDesign.Spacing.sm) {
-            PaywallBenefitRow(icon: "folder.badge.plus", text: "Create custom AI modes")
-            PaywallBenefitRow(icon: "icloud.and.arrow.up", text: "Cloud session sync")
-            PaywallBenefitRow(icon: "doc.richtext", text: "Export to Markdown & JSON")
-            PaywallBenefitRow(icon: "infinity", text: "Unlimited AI requests")
+        VStack(alignment: .leading, spacing: QMDesign.Spacing.md) {
+            VStack(alignment: .leading, spacing: QMDesign.Spacing.sm) {
+                Text("PRO")
+                    .font(QMDesign.Typography.labelSmall)
+                    .foregroundStyle(QMDesign.Colors.primaryGradient)
+                PaywallBenefitRow(icon: "folder.badge.plus", text: "Create custom AI modes")
+                PaywallBenefitRow(icon: "icloud.and.arrow.up", text: "Cloud session sync")
+                PaywallBenefitRow(icon: "doc.richtext", text: "Export to Markdown & JSON")
+                PaywallBenefitRow(icon: "infinity", text: "Unlimited AI requests")
+            }
+
+            Divider().overlay(QMDesign.Colors.borderSubtle)
+
+            VStack(alignment: .leading, spacing: QMDesign.Spacing.sm) {
+                Text("ENTERPRISE — everything in Pro, plus:")
+                    .font(QMDesign.Typography.labelSmall)
+                    .foregroundColor(QMDesign.Colors.accent)
+                PaywallBenefitRow(icon: "character.bubble", text: "Live DeepL translation")
+                PaywallBenefitRow(icon: "brain.head.profile", text: "Smart Mode")
+                PaywallBenefitRow(icon: "bolt.fill", text: "Auto-Answer & proactive suggestions")
+                PaywallBenefitRow(icon: "sparkles", text: "Instant buffered responses")
+            }
         }
         .padding(QMDesign.Spacing.lg)
         .background(
