@@ -13,39 +13,46 @@ struct SignInChoiceView: View {
     @State private var errorMessage = ""
 
     var body: some View {
-        VStack(spacing: QMDesign.Spacing.xl) {
-            Spacer()
+        // ScrollView so long content (registration form on small devices like
+        // the iPhone 16e) is fully reachable — previously the submit button was
+        // clipped off-screen with no way to scroll. minHeight keeps the content
+        // vertically centered when it's short enough to fit.
+        GeometryReader { proxy in
+            ScrollView {
+                VStack(spacing: QMDesign.Spacing.xl) {
+                    // Header
+                    headerSection
 
-            // Header
-            headerSection
-
-            // Content based on navigation state
-            if showEmailSignIn {
-                EmailSignInView(
-                    onAuthenticated: onAuthenticated,
-                    onBack: { showEmailSignIn = false },
-                    onSwitchToGoogle: {
-                        showEmailSignIn = false
-                        signInWithGoogle()
+                    // Content based on navigation state
+                    if showEmailSignIn {
+                        EmailSignInView(
+                            onAuthenticated: onAuthenticated,
+                            onBack: { showEmailSignIn = false },
+                            onSwitchToGoogle: {
+                                showEmailSignIn = false
+                                signInWithGoogle()
+                            }
+                        )
+                        .transition(.move(edge: .trailing).combined(with: .opacity))
+                    } else if showRegistrationForm {
+                        RegistrationFormView(showRegistrationForm: $showRegistrationForm)
+                            .transition(.move(edge: .trailing).combined(with: .opacity))
+                    } else {
+                        mainSignInOptions
+                            .transition(.move(edge: .leading).combined(with: .opacity))
                     }
-                )
-                .transition(.move(edge: .trailing).combined(with: .opacity))
-            } else if showRegistrationForm {
-                RegistrationFormView(showRegistrationForm: $showRegistrationForm)
-                    .transition(.move(edge: .trailing).combined(with: .opacity))
-            } else {
-                mainSignInOptions
-                    .transition(.move(edge: .leading).combined(with: .opacity))
-            }
 
-            Spacer()
-
-            // Skip option
-            if allowSkip && !showEmailSignIn && !showRegistrationForm {
-                skipButton
+                    // Skip option
+                    if allowSkip && !showEmailSignIn && !showRegistrationForm {
+                        skipButton
+                    }
+                }
+                .padding(.horizontal, QMDesign.Spacing.lg)
+                .padding(.vertical, QMDesign.Spacing.xl)
+                .frame(maxWidth: .infinity, minHeight: proxy.size.height)
             }
+            .scrollDismissesKeyboard(.interactively)
         }
-        .padding(.horizontal, QMDesign.Spacing.lg)
         .animation(QMDesign.Animation.smooth, value: showEmailSignIn)
         .animation(QMDesign.Animation.smooth, value: showRegistrationForm)
         .onChange(of: authManager.authState) { oldState, newState in
