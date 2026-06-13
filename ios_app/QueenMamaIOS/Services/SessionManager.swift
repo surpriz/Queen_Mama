@@ -155,6 +155,42 @@ final class SessionManager: ObservableObject {
         dbHelper.save(context: modelContext, immediate: false)
     }
 
+    /// Appends a transcript entry and returns its id, useful to update it asynchronously
+    /// (e.g. write back a translation result once it arrives).
+    func addTranscriptEntryReturningID(speaker: String, text: String, isFinal: Bool) -> UUID? {
+        guard let session = currentSession else { return nil }
+
+        let entry = TranscriptEntry(
+            speaker: speaker,
+            text: text,
+            isFinal: isFinal
+        )
+
+        session.entries.append(entry)
+
+        if isFinal {
+            if speaker.isEmpty {
+                session.transcript += "\(text)\n"
+            } else {
+                session.transcript += "\(speaker): \(text)\n"
+            }
+        }
+
+        dbHelper.save(context: modelContext, immediate: false)
+        return entry.id
+    }
+
+    /// Writes an async translation result back onto an existing TranscriptEntry.
+    /// Silently no-ops if the session was closed or the entry no longer exists.
+    func updateTranscriptEntry(id: UUID, translation: String, sourceLang: String?, targetLang: String) {
+        guard let session = currentSession else { return }
+        guard let entry = session.entries.first(where: { $0.id == id }) else { return }
+        entry.translatedText = translation
+        entry.translationSourceLang = sourceLang
+        entry.translationTargetLang = targetLang
+        dbHelper.save(context: modelContext, immediate: false)
+    }
+
     func setTitle(_ title: String) {
         currentSession?.title = title
         // Use immediate save for title (happens once per session)

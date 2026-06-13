@@ -289,6 +289,7 @@ private struct FeatureGatedModifier: ViewModifier {
         case .sessionStart: return String(localized: "Session Start")
         case .knowledgeBase: return String(localized: "Knowledge Base")
         case .proactiveSuggestions: return String(localized: "Proactive Suggestions")
+        case .liveTranslation: return String(localized: "Live Translation")
         }
     }
 }

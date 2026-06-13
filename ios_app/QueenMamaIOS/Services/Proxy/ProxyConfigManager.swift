@@ -25,6 +25,11 @@ final class ProxyConfigManager: ObservableObject {
         config?.services.transcription.enabled ?? false
     }
 
+    /// Whether the translation service (DeepL proxy) is available and configured
+    var isTranslationEnabled: Bool {
+        config?.services.translation?.enabled ?? false
+    }
+
     /// Available AI providers based on user's plan
     var availableAIProviders: [String] {
         config?.services.ai.providers ?? []

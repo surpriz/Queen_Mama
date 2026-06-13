@@ -75,18 +75,29 @@ final class TranscriptEntry {
     var text: String
     var isFinal: Bool
 
+    // Live translation (filled async after the entry is created; nil if disabled or in-flight).
+    var translatedText: String?
+    var translationSourceLang: String?
+    var translationTargetLang: String?
+
     init(
         id: UUID = UUID(),
         timestamp: Date = Date(),
         speaker: String = "",
         text: String = "",
-        isFinal: Bool = false
+        isFinal: Bool = false,
+        translatedText: String? = nil,
+        translationSourceLang: String? = nil,
+        translationTargetLang: String? = nil
     ) {
         self.id = id
         self.timestamp = timestamp
         self.speaker = speaker
         self.text = text
         self.isFinal = isFinal
+        self.translatedText = translatedText
+        self.translationSourceLang = translationSourceLang
+        self.translationTargetLang = translationTargetLang
     }
 
     var formattedTimestamp: String {

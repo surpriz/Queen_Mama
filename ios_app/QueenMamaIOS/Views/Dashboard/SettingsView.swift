@@ -157,6 +157,25 @@ struct SettingsView: View {
                 }
             }
 
+            // Live Translation (Enterprise)
+            Section("Live Translation") {
+                NavigationLink {
+                    TranslationSettingsView()
+                } label: {
+                    HStack {
+                        Label(String(localized: "settings.translation.title"), systemImage: "character.bubble")
+                        Spacer()
+                        if !licenseManager.isFeatureAvailable(.liveTranslation) {
+                            ProBadge(size: .small)
+                        } else if config.translationEnabled {
+                            Text(config.translationTargetLanguage)
+                                .font(QMDesign.Typography.caption)
+                                .foregroundColor(QMDesign.Colors.textSecondary)
+                        }
+                    }
+                }
+            }
+
             // About Section
             Section("About") {
                 HStack {

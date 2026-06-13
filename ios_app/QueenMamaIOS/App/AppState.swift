@@ -49,6 +49,7 @@ class AppState: ObservableObject {
     let audioBatchingService = AudioBatchingService()
     let transcriptBuffer = TranscriptBuffer()
     let dictationService = DictationService()
+    let translationService = TranslationService()
 
     // Session Manager reference (injected from QueenMamaApp)
     weak var sessionManager: SessionManager?
@@ -152,11 +153,37 @@ class AppState: ObservableObject {
 
                 let label = speaker == 0 ? "Moi" : "Interlocuteur"
 
-                self.sessionManager?.addTranscriptEntry(
-                    speaker: label,
-                    text: text,
-                    isFinal: true
-                )
+                // Live translation runs only on the interlocutor's speech (speaker != 0).
+                // iOS has no separate system-audio stream, so the interlocutor only ever
+                // arrives through the diarized mic. We never translate "Moi".
+                let cfg = ConfigurationManager.shared
+                let translationActive = label == "Interlocuteur"
+                    && cfg.translationEnabled
+                    && LicenseManager.shared.isFeatureAvailable(.liveTranslation)
+
+                if translationActive,
+                   let entryID = self.sessionManager?.addTranscriptEntryReturningID(
+                        speaker: label,
+                        text: text,
+                        isFinal: true
+                   ) {
+                    let target = cfg.translationTargetLanguage
+                    let source = cfg.translationSourceLanguage
+                    Task { @MainActor in
+                        await self.translationService.translate(
+                            entryID: entryID,
+                            text: text,
+                            sourceLang: source,
+                            targetLang: target
+                        )
+                    }
+                } else {
+                    self.sessionManager?.addTranscriptEntry(
+                        speaker: label,
+                        text: text,
+                        isFinal: true
+                    )
+                }
 
                 self.currentTranscript += "\(label): \(text)\n"
 
@@ -215,6 +242,7 @@ class AppState: ObservableObject {
         transcriptionService.disconnect()
         autoAnswerService.reset()
         autoAnswerService.resetProactiveState()
+        translationService.resetContext()
         dictationService.stopRecording()
         cancellables.removeAll()
         audioLevel = 0.0
