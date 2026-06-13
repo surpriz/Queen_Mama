@@ -11,9 +11,14 @@ struct PaywallView: View {
 
     let feature: String?
     let onComplete: (() -> Void)?
+    /// When true, always show the full tier/product list even if the account
+    /// already has a non-Apple subscription. Used by the DEBUG paywall preview
+    /// for App Store review screenshots.
+    let previewMode: Bool
 
-    init(feature: String? = nil, onComplete: (() -> Void)? = nil) {
+    init(feature: String? = nil, previewMode: Bool = false, onComplete: (() -> Void)? = nil) {
         self.feature = feature
+        self.previewMode = previewMode
         self.onComplete = onComplete
     }
 
@@ -21,7 +26,7 @@ struct PaywallView: View {
         VStack(spacing: QMDesign.Spacing.xl) {
             header
 
-            if storeKit.hasNonAppleSubscription {
+            if storeKit.hasNonAppleSubscription && !previewMode {
                 existingSubscriptionNotice
             } else {
                 benefits
