@@ -106,10 +106,12 @@ final class AudioCaptureService: ObservableObject {
 
         // Start engine
         do {
+            audioEngine.prepare()
             try audioEngine.start()
             isCapturing = true
             errorMessage = nil
-            print("[AudioCapture] Audio engine started successfully!")
+            let inFmt = audioEngine.inputNode.outputFormat(forBus: 0)
+            print("[AudioCapture] Audio engine started — running=\(audioEngine.isRunning), input sampleRate=\(inFmt.sampleRate), channels=\(inFmt.channelCount)")
         } catch {
             print("[AudioCapture] Failed to start engine: \(error)")
             throw AudioCaptureError.engineStartFailed(error)
@@ -246,7 +248,9 @@ final class AudioCaptureService: ObservableObject {
                 guard let self = self else { return }
                 self.microphoneLevel = meterLevel
                 self.audioBufferCount += 1
-                if self.audioBufferCount % 100 == 0 {
+                if self.audioBufferCount == 1 {
+                    print("[AudioCapture] FIRST buffer received — tap is live (\(data.count) bytes, level=\(meterLevel))")
+                } else if self.audioBufferCount % 100 == 0 {
                     print("[AudioCapture] Processed \(self.audioBufferCount) buffers, sending \(data.count) bytes")
                 }
                 self.onAudioBuffer?(data)
