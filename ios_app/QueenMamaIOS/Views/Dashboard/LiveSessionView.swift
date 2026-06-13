@@ -208,17 +208,25 @@ struct TranslatedTranscriptRow: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
-            HStack(spacing: 6) {
-                Text(entry.speaker)
-                    .font(QMDesign.Typography.labelSmall)
-                    .foregroundColor(entry.speaker == "Moi" ? QMDesign.Colors.accent : QMDesign.Colors.textSecondary)
-                if let lang = entry.translationTargetLang {
-                    Text(lang)
-                        .font(.system(size: 8, weight: .bold))
-                        .foregroundColor(QMDesign.Colors.accent)
-                        .padding(.horizontal, 4)
-                        .padding(.vertical, 1)
-                        .background(Capsule().fill(QMDesign.Colors.accent.opacity(0.15)))
+            // iOS transcript is a neutral stream (no reliable per-speaker labels
+            // on a single mixed mic), so the speaker header is shown only if a
+            // label is actually present. The target-language badge marks
+            // translated lines.
+            if !entry.speaker.isEmpty || entry.translationTargetLang != nil {
+                HStack(spacing: 6) {
+                    if !entry.speaker.isEmpty {
+                        Text(entry.speaker)
+                            .font(QMDesign.Typography.labelSmall)
+                            .foregroundColor(entry.speaker == "Moi" ? QMDesign.Colors.accent : QMDesign.Colors.textSecondary)
+                    }
+                    if let lang = entry.translationTargetLang {
+                        Text(lang)
+                            .font(.system(size: 8, weight: .bold))
+                            .foregroundColor(QMDesign.Colors.accent)
+                            .padding(.horizontal, 4)
+                            .padding(.vertical, 1)
+                            .background(Capsule().fill(QMDesign.Colors.accent.opacity(0.15)))
+                    }
                 }
             }
 
@@ -228,29 +236,18 @@ struct TranslatedTranscriptRow: View {
                 .textSelection(.enabled)
                 .fixedSize(horizontal: false, vertical: true)
 
-            if entry.speaker == "Interlocuteur" {
-                if let translated = entry.translatedText {
-                    HStack(alignment: .top, spacing: 4) {
-                        Image(systemName: "arrow.turn.down.right")
-                            .font(.system(size: 10))
-                            .foregroundColor(QMDesign.Colors.textTertiary)
-                        Text(translated)
-                            .font(QMDesign.Typography.bodyMedium)
-                            .italic()
-                            .foregroundColor(QMDesign.Colors.textSecondary)
-                            .textSelection(.enabled)
-                            .fixedSize(horizontal: false, vertical: true)
-                    }
-                } else {
-                    HStack(spacing: 4) {
-                        Image(systemName: "arrow.turn.down.right")
-                            .font(.system(size: 10))
-                            .foregroundColor(QMDesign.Colors.textTertiary)
-                        ProgressView().scaleEffect(0.6)
-                        Text(String(localized: "live.translation.pending"))
-                            .font(QMDesign.Typography.caption)
-                            .foregroundColor(QMDesign.Colors.textTertiary)
-                    }
+            // Show the translation whenever one is present, regardless of speaker.
+            if let translated = entry.translatedText {
+                HStack(alignment: .top, spacing: 4) {
+                    Image(systemName: "arrow.turn.down.right")
+                        .font(.system(size: 10))
+                        .foregroundColor(QMDesign.Colors.textTertiary)
+                    Text(translated)
+                        .font(QMDesign.Typography.bodyMedium)
+                        .italic()
+                        .foregroundColor(QMDesign.Colors.textSecondary)
+                        .textSelection(.enabled)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
             }
         }

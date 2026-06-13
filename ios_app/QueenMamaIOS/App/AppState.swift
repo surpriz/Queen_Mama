@@ -142,28 +142,24 @@ class AppState: ObservableObject {
                 }
             }
 
-            // Diarized mic transcripts — iOS has a single mic stream that picks up
-            // everyone (user + room/speakerphone). Deepgram diarization separates
-            // speakers; speaker 0 (first voice heard) is assumed to be the user.
-            // No system-audio stream exists on iOS, so the interlocutor's voice
-            // only ever arrives through the mic — never enable echo cancellation
-            // here, it would erase exactly that signal.
-            transcriptionService.onDiarizedTranscript = { [weak self] (text: String, speaker: Int) in
+            // iOS has a SINGLE microphone that mixes the user AND the room / far-end.
+            // Deepgram's diarization cannot reliably separate them on one mixed stream
+            // (it collapses everyone to speaker 0), so iOS does NOT label "Moi" /
+            // "Interlocuteur" — the transcript is a neutral stream and the AI uses its
+            // no-speaker-identification path. The diarized callback still fires (the
+            // provider emits word segments); we ignore the unreliable speaker index.
+            // Live translation, when enabled, applies to every final line since we
+            // cannot isolate the interlocutor (DeepL no-ops when source == target).
+            let appendFinal: (String) -> Void = { [weak self] text in
                 guard let self = self else { return }
 
-                let label = speaker == 0 ? "Moi" : "Interlocuteur"
-
-                // Live translation runs only on the interlocutor's speech (speaker != 0).
-                // iOS has no separate system-audio stream, so the interlocutor only ever
-                // arrives through the diarized mic. We never translate "Moi".
                 let cfg = ConfigurationManager.shared
-                let translationActive = label == "Interlocuteur"
-                    && cfg.translationEnabled
+                let translationActive = cfg.translationEnabled
                     && LicenseManager.shared.isFeatureAvailable(.liveTranslation)
 
                 if translationActive,
                    let entryID = self.sessionManager?.addTranscriptEntryReturningID(
-                        speaker: label,
+                        speaker: "",
                         text: text,
                         isFinal: true
                    ) {
@@ -179,13 +175,13 @@ class AppState: ObservableObject {
                     }
                 } else {
                     self.sessionManager?.addTranscriptEntry(
-                        speaker: label,
+                        speaker: "",
                         text: text,
                         isFinal: true
                     )
                 }
 
-                self.currentTranscript += "\(label): \(text)\n"
+                self.currentTranscript += "\(text)\n"
 
                 let wordCount = text.split(separator: " ").count
                 HealthCheckService.shared.recordWordsTranscribed(wordCount)
@@ -193,22 +189,13 @@ class AppState: ObservableObject {
                 self.autoAnswerService.onTranscriptReceived(self.currentTranscript)
             }
 
-            // Non-diarized fallback flush → "Moi" entries
-            transcriptBuffer.onFlush = { [weak self] (batchedText: String) in
-                guard let self = self else { return }
-
-                self.sessionManager?.addTranscriptEntry(
-                    speaker: "Moi",
-                    text: batchedText,
-                    isFinal: true
-                )
-
-                self.currentTranscript += "Moi: \(batchedText)\n"
-
-                let wordCount = batchedText.split(separator: " ").count
-                HealthCheckService.shared.recordWordsTranscribed(wordCount)
-
-                self.autoAnswerService.onTranscriptReceived(self.currentTranscript)
+            // Diarized segments and the non-diarized fallback both feed the same
+            // neutral append path — the speaker index is intentionally discarded.
+            transcriptionService.onDiarizedTranscript = { (text: String, _ speaker: Int) in
+                appendFinal(text)
+            }
+            transcriptBuffer.onFlush = { (batchedText: String) in
+                appendFinal(batchedText)
             }
 
             autoAnswerService.onTrigger = { [weak self] in
