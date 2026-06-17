@@ -5,6 +5,7 @@ import {
   generateRefreshToken,
   hashRefreshToken,
   AUTH_CONSTANTS,
+  maxDevicesForPlan,
 } from "@/lib/device-auth";
 import { macosGoogleCallbackSchema } from "@/lib/validations";
 
@@ -216,13 +217,20 @@ export async function POST(request: Request) {
 
     // Handle device registration and token generation
     const result = await prisma.$transaction(async (tx) => {
-      // Check device limit
-      const activeDevices = await tx.device.count({
-        where: {
-          userId: user.id,
-          isActive: true,
-        },
-      });
+      // Check device limit (per subscription plan)
+      const [activeDevices, subscription] = await Promise.all([
+        tx.device.count({
+          where: {
+            userId: user.id,
+            isActive: true,
+          },
+        }),
+        tx.subscription.findUnique({
+          where: { userId: user.id },
+          select: { plan: true },
+        }),
+      ]);
+      const deviceLimit = maxDevicesForPlan(subscription?.plan);
 
       // Find or create device
       let device = await tx.device.findUnique({
@@ -230,8 +238,10 @@ export async function POST(request: Request) {
       });
 
       if (!device) {
-        if (activeDevices >= AUTH_CONSTANTS.MAX_DEVICES_PER_USER) {
-          throw new Error("device_limit");
+        if (activeDevices >= deviceLimit) {
+          const err = new Error("device_limit");
+          (err as Error & { maxDevices?: number }).maxDevices = deviceLimit;
+          throw err;
         }
 
         device = await tx.device.create({
@@ -321,7 +331,9 @@ export async function POST(request: Request) {
         {
           error: "device_limit",
           message: "Maximum device limit reached. Please remove a device first.",
-          maxDevices: AUTH_CONSTANTS.MAX_DEVICES_PER_USER,
+          maxDevices:
+            (error as Error & { maxDevices?: number }).maxDevices ??
+            AUTH_CONSTANTS.MAX_DEVICES_PER_USER,
         },
         { status: 403 }
       );

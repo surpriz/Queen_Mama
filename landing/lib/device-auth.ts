@@ -1,5 +1,6 @@
 import crypto from "crypto";
 import { SignJWT, jwtVerify, type JWTPayload } from "jose";
+import type { PlanTier } from "@/lib/ai-providers";
 
 // ===========================================
 // CODE GENERATION
@@ -191,5 +192,25 @@ export const AUTH_CONSTANTS = {
   REFRESH_TOKEN_EXPIRY_DAYS: 30,
   DEVICE_CODE_EXPIRY_MINUTES: 15,
   LICENSE_CACHE_TTL_SECONDS: 86400, // 24 hours
-  MAX_DEVICES_PER_USER: 5,
+  MAX_DEVICES_PER_USER: 5, // legacy default; prefer maxDevicesForPlan()
+  DEVICE_INACTIVE_TTL_DAYS: 90, // devices unused longer than this are auto-deactivated by cron
 } as const;
+
+/**
+ * Active-device limit per subscription plan.
+ * A device counts against the limit only while isActive is true.
+ */
+export const MAX_DEVICES_BY_PLAN: Record<PlanTier, number> = {
+  FREE: 3,
+  PRO: 5,
+  ENTERPRISE: 20,
+};
+
+/**
+ * Resolves the active-device limit for a plan, defaulting to FREE for
+ * unknown/missing values.
+ */
+export function maxDevicesForPlan(plan?: string | null): number {
+  const key = (plan ?? "FREE").toUpperCase() as PlanTier;
+  return MAX_DEVICES_BY_PLAN[key] ?? MAX_DEVICES_BY_PLAN.FREE;
+}

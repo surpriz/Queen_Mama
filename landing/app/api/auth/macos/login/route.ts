@@ -6,6 +6,7 @@ import {
   generateRefreshToken,
   hashRefreshToken,
   AUTH_CONSTANTS,
+  maxDevicesForPlan,
 } from "@/lib/device-auth";
 import { macosLoginSchema } from "@/lib/validations";
 
@@ -85,13 +86,20 @@ export async function POST(request: Request) {
       );
     }
 
-    // Check device limit
-    const activeDevices = await prisma.device.count({
-      where: {
-        userId: user.id,
-        isActive: true,
-      },
-    });
+    // Check device limit (per subscription plan)
+    const [activeDevices, subscription] = await Promise.all([
+      prisma.device.count({
+        where: {
+          userId: user.id,
+          isActive: true,
+        },
+      }),
+      prisma.subscription.findUnique({
+        where: { userId: user.id },
+        select: { plan: true },
+      }),
+    ]);
+    const deviceLimit = maxDevicesForPlan(subscription?.plan);
 
     // Find or create device
     let device = await prisma.device.findUnique({
@@ -99,12 +107,12 @@ export async function POST(request: Request) {
     });
 
     if (!device) {
-      if (activeDevices >= AUTH_CONSTANTS.MAX_DEVICES_PER_USER) {
+      if (activeDevices >= deviceLimit) {
         return NextResponse.json(
           {
             error: "device_limit",
             message: "Maximum device limit reached. Please remove a device first.",
-            maxDevices: AUTH_CONSTANTS.MAX_DEVICES_PER_USER,
+            maxDevices: deviceLimit,
           },
           { status: 403 }
         );

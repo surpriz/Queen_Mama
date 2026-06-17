@@ -1,6 +1,6 @@
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { AUTH_CONSTANTS } from "@/lib/device-auth";
+import { maxDevicesForPlan } from "@/lib/device-auth";
 import { GlassCard } from "@/components/ui";
 import { DeviceActions } from "./DeviceActions";
 
@@ -8,8 +8,6 @@ export const metadata = {
   title: "Devices - Queen Mama",
   description: "Manage the devices signed in to your Queen Mama account",
 };
-
-const MAX_DEVICES = AUTH_CONSTANTS.MAX_DEVICES_PER_USER;
 
 function platformIcon(platform: string) {
   const p = platform.toLowerCase();
@@ -32,21 +30,28 @@ function platformIcon(platform: string) {
 export default async function DevicesPage() {
   const session = await auth();
 
-  const devices = await prisma.device.findMany({
-    where: { userId: session!.user.id },
-    orderBy: [{ isActive: "desc" }, { lastSeenAt: "desc" }],
-    select: {
-      id: true,
-      name: true,
-      platform: true,
-      osVersion: true,
-      appVersion: true,
-      lastSeenAt: true,
-      createdAt: true,
-      isActive: true,
-    },
-  });
+  const [devices, subscription] = await Promise.all([
+    prisma.device.findMany({
+      where: { userId: session!.user.id },
+      orderBy: [{ isActive: "desc" }, { lastSeenAt: "desc" }],
+      select: {
+        id: true,
+        name: true,
+        platform: true,
+        osVersion: true,
+        appVersion: true,
+        lastSeenAt: true,
+        createdAt: true,
+        isActive: true,
+      },
+    }),
+    prisma.subscription.findUnique({
+      where: { userId: session!.user.id },
+      select: { plan: true },
+    }),
+  ]);
 
+  const MAX_DEVICES = maxDevicesForPlan(subscription?.plan);
   const activeCount = devices.filter((d) => d.isActive).length;
   const atLimit = activeCount >= MAX_DEVICES;
 
