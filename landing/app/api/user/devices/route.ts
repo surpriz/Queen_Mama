@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
+import { AUTH_CONSTANTS } from "@/lib/device-auth";
 
 /**
  * GET /api/user/devices
@@ -39,7 +40,7 @@ export async function GET() {
     return NextResponse.json({
       devices,
       count: devices.length,
-      maxDevices: 5,
+      maxDevices: AUTH_CONSTANTS.MAX_DEVICES_PER_USER,
     });
   } catch (error) {
     console.error("List devices error:", error);
