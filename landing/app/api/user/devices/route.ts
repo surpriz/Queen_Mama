@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
-import { AUTH_CONSTANTS } from "@/lib/device-auth";
+import { maxDevicesForPlan } from "@/lib/device-auth";
 
 /**
  * GET /api/user/devices
@@ -18,29 +18,35 @@ export async function GET() {
       );
     }
 
-    const devices = await prisma.device.findMany({
-      where: {
-        userId: session.user.id,
-      },
-      select: {
-        id: true,
-        name: true,
-        platform: true,
-        osVersion: true,
-        appVersion: true,
-        lastSeenAt: true,
-        createdAt: true,
-        isActive: true,
-      },
-      orderBy: {
-        lastSeenAt: "desc",
-      },
-    });
+    const [devices, subscription] = await Promise.all([
+      prisma.device.findMany({
+        where: {
+          userId: session.user.id,
+        },
+        select: {
+          id: true,
+          name: true,
+          platform: true,
+          osVersion: true,
+          appVersion: true,
+          lastSeenAt: true,
+          createdAt: true,
+          isActive: true,
+        },
+        orderBy: {
+          lastSeenAt: "desc",
+        },
+      }),
+      prisma.subscription.findUnique({
+        where: { userId: session.user.id },
+        select: { plan: true },
+      }),
+    ]);
 
     return NextResponse.json({
       devices,
       count: devices.length,
-      maxDevices: AUTH_CONSTANTS.MAX_DEVICES_PER_USER,
+      maxDevices: maxDevicesForPlan(subscription?.plan),
     });
   } catch (error) {
     console.error("List devices error:", error);

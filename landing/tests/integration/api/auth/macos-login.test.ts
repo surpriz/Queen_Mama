@@ -14,6 +14,7 @@ vi.mock("@/lib/device-auth", () => ({
   signAccessToken: vi.fn().mockResolvedValue("mock-access-token"),
   generateRefreshToken: vi.fn().mockReturnValue("mock-refresh-token"),
   hashRefreshToken: vi.fn().mockReturnValue("mock-refresh-hash"),
+  maxDevicesForPlan: vi.fn().mockReturnValue(5),
   AUTH_CONSTANTS: {
     ACCESS_TOKEN_EXPIRY_SECONDS: 900,
     REFRESH_TOKEN_EXPIRY_DAYS: 30,

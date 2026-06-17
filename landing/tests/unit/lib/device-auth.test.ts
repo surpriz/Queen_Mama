@@ -12,6 +12,8 @@ import {
   verifyLicenseSignature,
   isValidDeviceId,
   AUTH_CONSTANTS,
+  maxDevicesForPlan,
+  MAX_DEVICES_BY_PLAN,
 } from "@/lib/device-auth";
 
 // ============ Code Generation ============
@@ -241,5 +243,32 @@ describe("AUTH_CONSTANTS", () => {
 
   it("max 5 devices per user", () => {
     expect(AUTH_CONSTANTS.MAX_DEVICES_PER_USER).toBe(5);
+  });
+
+  it("inactive device TTL is 90 days", () => {
+    expect(AUTH_CONSTANTS.DEVICE_INACTIVE_TTL_DAYS).toBe(90);
+  });
+});
+
+describe("maxDevicesForPlan", () => {
+  it("returns per-plan limits", () => {
+    expect(maxDevicesForPlan("FREE")).toBe(MAX_DEVICES_BY_PLAN.FREE);
+    expect(maxDevicesForPlan("PRO")).toBe(MAX_DEVICES_BY_PLAN.PRO);
+    expect(maxDevicesForPlan("ENTERPRISE")).toBe(MAX_DEVICES_BY_PLAN.ENTERPRISE);
+  });
+
+  it("is case-insensitive", () => {
+    expect(maxDevicesForPlan("pro")).toBe(MAX_DEVICES_BY_PLAN.PRO);
+  });
+
+  it("defaults to FREE for missing or unknown plans", () => {
+    expect(maxDevicesForPlan(null)).toBe(MAX_DEVICES_BY_PLAN.FREE);
+    expect(maxDevicesForPlan(undefined)).toBe(MAX_DEVICES_BY_PLAN.FREE);
+    expect(maxDevicesForPlan("BOGUS")).toBe(MAX_DEVICES_BY_PLAN.FREE);
+  });
+
+  it("Enterprise allows more devices than Pro, Pro more than Free", () => {
+    expect(MAX_DEVICES_BY_PLAN.ENTERPRISE).toBeGreaterThan(MAX_DEVICES_BY_PLAN.PRO);
+    expect(MAX_DEVICES_BY_PLAN.PRO).toBeGreaterThan(MAX_DEVICES_BY_PLAN.FREE);
   });
 });
