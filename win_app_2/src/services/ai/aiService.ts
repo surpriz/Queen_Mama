@@ -341,6 +341,17 @@ export async function recap(transcript: string, mode: Mode | null): Promise<stri
   }, { manualTrigger: true })
 }
 
+export async function decode(transcript: string, mode: Mode | null): Promise<string> {
+  // Decode reads the conversation AND on-screen jargon, so it includes the screenshot.
+  const screenshot = await getScreenshotIfEnabled()
+  return generateStreamingResponse({
+    transcript,
+    screenshot,
+    mode,
+    responseType: 'Decode' as ResponseType,
+  }, { manualTrigger: true })
+}
+
 export async function askCustomQuestion(
   transcript: string,
   question: string,

@@ -774,6 +774,15 @@ final class AIService: ObservableObject {
         )
     }
 
+    func decode(transcript: String, screenshot: Data?, mode: Mode?) async throws -> AIResponse {
+        try await generateResponse(
+            transcript: transcript,
+            screenshot: screenshot,
+            mode: mode,
+            type: .decode
+        )
+    }
+
     func askCustomQuestion(
         question: String,
         transcript: String,

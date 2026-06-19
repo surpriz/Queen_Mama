@@ -395,7 +395,7 @@ extension HealthCheckService {
         case error = "error"
 
         #if canImport(Sentry)
-        var crashReporterLevel: SentryLevel {
+        var crashReporterLevel: SentryLevel { 
             switch self {
             case .info: return .info
             case .warning: return .warning

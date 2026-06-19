@@ -406,6 +406,9 @@ export function buildUserMessage(params: AIContextParams): AIMessage[] {
       case ResponseType.Recap:
         textContent += 'Summarize what you see on my screen: what\'s happening, key information, and context.'
         break
+      case ResponseType.Decode:
+        textContent += 'Decode the jargon, tools and concepts visible on my screen. / Décode le jargon, les outils et les concepts visibles à l\'écran.'
+        break
       case ResponseType.Custom:
         textContent += 'Help me with what\'s on my screen.'
         break
@@ -423,6 +426,9 @@ export function buildUserMessage(params: AIContextParams): AIMessage[] {
         break
       case ResponseType.Recap:
         textContent += 'Generate a structured summary of this meeting transcript.'
+        break
+      case ResponseType.Decode:
+        textContent += 'Decode the jargon, tools and concepts in play in this transcript. / Décode le jargon, les outils et les concepts en jeu dans cette transcription.'
         break
       case ResponseType.Custom:
         textContent += 'Help me with this.'
