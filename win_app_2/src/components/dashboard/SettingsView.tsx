@@ -23,6 +23,10 @@ import { useUpdaterStore } from '@/stores/updaterStore'
 
 type SettingsTab = 'account' | 'general' | 'autoAnswer' | 'proactive' | 'audio' | 'translation' | 'sync' | 'shortcuts' | 'updates'
 
+// Manual download page on GitHub (whitelisted by most corporate proxies),
+// used as a fallback when the in-app updater is blocked by a firewall.
+const MANUAL_DOWNLOAD_URL = 'https://github.com/surpriz/Queen_Mama/releases/tag/windows-latest'
+
 export function SettingsView() {
   const { t } = useTranslation('dashboard')
   const config = useConfigStore()
@@ -40,9 +44,12 @@ export function SettingsView() {
   const updaterPercent = useUpdaterStore((s) => s.percent)
   const updaterError = useUpdaterStore((s) => s.errorMessage)
   const updateReady = updaterStatus === 'downloaded'
+  const updateBlocked = updaterStatus === 'blocked'
 
   const updateStatus = (() => {
     switch (updaterStatus) {
+      case 'blocked':
+        return t('settings.updates.updateBlocked')
       case 'checking':
         return t('settings.updates.checkingForUpdate')
       case 'available':
@@ -97,6 +104,10 @@ export function SettingsView() {
         setIsCheckingUpdate(false)
       })
     }
+  }
+
+  const handleManualDownload = () => {
+    window.electronAPI?.openExternal?.(MANUAL_DOWNLOAD_URL).catch(() => {})
   }
 
   const handleToggle = (key: keyof typeof config, value: boolean) => {
@@ -530,7 +541,26 @@ export function SettingsView() {
                 {updateStatus && (
                   <p className="text-caption text-qm-text-tertiary">{updateStatus}</p>
                 )}
-                {updateReady ? (
+                {updateBlocked ? (
+                  <>
+                    <p className="text-caption text-qm-text-tertiary">
+                      {t('settings.updates.updateBlockedHelp')}
+                    </p>
+                    <button
+                      onClick={handleManualDownload}
+                      className="w-full px-4 py-2 rounded-qm-md bg-qm-accent hover:bg-qm-accent/80 text-body-sm text-white font-medium transition-colors"
+                    >
+                      {t('settings.updates.downloadManually')}
+                    </button>
+                    <button
+                      onClick={handleCheckForUpdates}
+                      disabled={isCheckingUpdate}
+                      className="w-full px-4 py-2 rounded-qm-md bg-qm-surface-medium hover:bg-qm-surface-pressed text-body-sm text-qm-text-primary transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {isCheckingUpdate ? t('settings.updates.checking') : t('settings.updates.checkForUpdates')}
+                    </button>
+                  </>
+                ) : updateReady ? (
                   <button
                     onClick={() => window.electronAPI?.installUpdate?.()}
                     className="w-full px-4 py-2 rounded-qm-md bg-qm-accent hover:bg-qm-accent/80 text-body-sm text-white font-medium transition-colors"

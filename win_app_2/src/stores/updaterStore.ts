@@ -8,6 +8,7 @@ export type UpdaterStatus =
   | 'downloading'
   | 'downloaded'
   | 'error'
+  | 'blocked'
 
 interface UpdaterState {
   status: UpdaterStatus
@@ -20,6 +21,7 @@ interface UpdaterState {
   setProgress: (percent: number) => void
   setDownloaded: (version: string | null) => void
   setError: (message: string) => void
+  setBlocked: (message: string) => void
   dismissBanner: () => void
   reset: () => void
 }
@@ -37,6 +39,7 @@ export const useUpdaterStore = create<UpdaterState>((set) => ({
   setDownloaded: (version) =>
     set({ status: 'downloaded', version, percent: 100, dismissedForSession: false }),
   setError: (errorMessage) => set({ status: 'error', errorMessage }),
+  setBlocked: (errorMessage) => set({ status: 'blocked', errorMessage }),
   dismissBanner: () => set({ dismissedForSession: true }),
   reset: () => set({ status: 'idle', version: null, percent: 0, errorMessage: null }),
 }))

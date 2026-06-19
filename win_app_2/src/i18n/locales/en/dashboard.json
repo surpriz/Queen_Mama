@@ -220,7 +220,10 @@
       "downloadProgress": "Downloading update... {{percent}}%",
       "updateDownloaded": "Update downloaded. Ready to install!",
       "updateError": "Update check failed.",
-      "restartAndUpdate": "Restart & Update Now"
+      "restartAndUpdate": "Restart & Update Now",
+      "updateBlocked": "Update blocked by your corporate network.",
+      "updateBlockedHelp": "A firewall (corporate proxy) is preventing the automatic update. Download the latest version manually from the official page.",
+      "downloadManually": "Download manually"
     }
   },
   "update": {
@@ -236,7 +239,9 @@
     "toast": {
       "availableTitle": "Update available",
       "availableDescription": "Version {{version}} is downloading in the background.",
-      "errorTitle": "Update failed"
+      "errorTitle": "Update failed",
+      "blockedTitle": "Update blocked",
+      "blockedDescription": "Your network is blocking the update. Download it manually from Settings › Updates."
     }
   },
   "contacts": {

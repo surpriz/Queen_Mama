@@ -32,6 +32,13 @@ mac:
   entitlements: resources/entitlements.mac.plist
   entitlementsInherit: resources/entitlements.mac.plist
   notarize: true
+# Auto-update feed. Points at a rolling "windows-latest" GitHub release tag
+# instead of queenmama.co: corporate proxies (Zscaler, Netskope, etc.) often
+# block the uncategorized queenmama.co domain, returning an HTML block page
+# that breaks the updater. github.com / objects.githubusercontent.com are
+# almost always whitelisted. We use a fixed rolling tag rather than the github
+# provider so cross-platform releases (macOS/iOS) never steal GitHub's global
+# "latest" and 404 the Windows feed.
 publish:
   provider: generic
-  url: https://www.queenmama.co/api/updates/windows
+  url: https://github.com/surpriz/Queen_Mama/releases/download/windows-latest
