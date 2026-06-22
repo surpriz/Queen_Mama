@@ -38,6 +38,26 @@ export const changelogData: ChangelogRelease[] = [
             title: "Stays Active Offline (24h)",
             description: "The overlay reuses its last valid proxy configuration for up to 24 hours when offline — coaching keeps working even when connectivity drops mid-call"
           },
+          {
+            id: "enterpriseTier",
+            title: "Enterprise Plan",
+            description: "A new Enterprise tier unlocks premium features including live DeepL translation and higher device limits — available on iOS and macOS"
+          },
+          {
+            id: "deviceManagement",
+            title: "Device Management",
+            description: "New dashboard page lets you see all connected devices and revoke access from anywhere"
+          },
+          {
+            id: "perPlanDeviceLimits",
+            title: "Per-Plan Device Limits",
+            description: "Each subscription plan now enforces a device cap with automatic cleanup of stale sessions"
+          },
+          {
+            id: "deepLTranslationIOS",
+            title: "Live Translation on iOS",
+            description: "Enterprise subscribers can now translate conversations in real time with DeepL directly in the iOS app"
+          },
         ],
       },
       {
@@ -82,6 +102,26 @@ export const changelogData: ChangelogRelease[] = [
             id: "loginStability",
             title: "Stable Login on Startup (Windows)",
             description: "Fixed a race condition where multiple login windows appeared at startup, sometimes causing the session to be lost"
+          },
+          {
+            id: "winUpdateProxy",
+            title: "Windows Updates via GitHub",
+            description: "App updates are now served from GitHub releases, bypassing corporate proxies that were blocking the update server"
+          },
+          {
+            id: "iosScrollableAuth",
+            title: "iOS Login Screen Fix",
+            description: "The registration and login screens on iOS are now scrollable with a working back button"
+          },
+          {
+            id: "iosDiarizationStability",
+            title: "Diarization Reliability (iOS)",
+            description: "Switched to a more stable transcript stream on iOS, reducing speaker detection errors during calls"
+          },
+          {
+            id: "transcriptionAutomatic",
+            title: "Transcription Language Display (iOS)",
+            description: "The iOS app now correctly shows the transcription language as Automatic when no language is manually selected"
           },
         ],
       },
