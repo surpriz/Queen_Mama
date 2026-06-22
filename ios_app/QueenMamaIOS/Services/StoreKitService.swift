@@ -15,7 +15,13 @@ final class StoreKitService: ObservableObject {
     enum ProductID {
         static let proMonthly = "com.queenmama.ios.pro.monthly"
         static let proYearly = "com.queenmama.ios.pro.yearly"
-        static let all = [proMonthly, proYearly]
+        static let enterpriseMonthly = "com.queenmama.ios.enterprise.monthly"
+        static let enterpriseYearly = "com.queenmama.ios.enterprise.yearly"
+        static let all = [proMonthly, proYearly, enterpriseMonthly, enterpriseYearly]
+
+        static func isEnterprise(_ id: String) -> Bool {
+            id == enterpriseMonthly || id == enterpriseYearly
+        }
     }
 
     enum PurchaseState: Equatable {

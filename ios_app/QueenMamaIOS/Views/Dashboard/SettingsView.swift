@@ -8,6 +8,9 @@ struct SettingsView: View {
     @Environment(\.openURL) private var openURL
     @State private var showManageSubscriptions = false
     @State private var showPaywall = false
+    #if DEBUG
+    @State private var showPaywallPreview = false
+    #endif
 
     var body: some View {
         Form {
@@ -109,9 +112,12 @@ struct SettingsView: View {
                 HStack {
                     Text("Transcription Language")
                     Spacer()
-                    Text("French")
+                    Text("Automatic")
                         .foregroundColor(QMDesign.Colors.textSecondary)
                 }
+                Text("Detected automatically, including multilingual meetings.")
+                    .font(QMDesign.Typography.caption)
+                    .foregroundColor(QMDesign.Colors.textTertiary)
 
                 HStack {
                     Text("Sample Rate")
@@ -157,6 +163,25 @@ struct SettingsView: View {
                 }
             }
 
+            // Live Translation (Enterprise)
+            Section("Live Translation") {
+                NavigationLink {
+                    TranslationSettingsView()
+                } label: {
+                    HStack {
+                        Label(String(localized: "settings.translation.title"), systemImage: "character.bubble")
+                        Spacer()
+                        if !licenseManager.isFeatureAvailable(.liveTranslation) {
+                            ProBadge(size: .small)
+                        } else if config.translationEnabled {
+                            Text(config.translationTargetLanguage)
+                                .font(QMDesign.Typography.caption)
+                                .foregroundColor(QMDesign.Colors.textSecondary)
+                        }
+                    }
+                }
+            }
+
             // About Section
             Section("About") {
                 HStack {
@@ -189,6 +214,20 @@ struct SettingsView: View {
                     Label("Privacy Policy", systemImage: "lock.shield")
                 }
             }
+
+            #if DEBUG
+            // Debug-only: force the full paywall (all tiers) regardless of the
+            // current plan, for taking App Store review screenshots. Enable the
+            // QueenMama.storekit configuration in the Run scheme so the 4
+            // products load locally without depending on App Store Connect.
+            Section("Debug") {
+                Button {
+                    showPaywallPreview = true
+                } label: {
+                    Label("Preview Paywall (all tiers)", systemImage: "rectangle.stack.badge.person.crop")
+                }
+            }
+            #endif
         }
         .navigationTitle("Settings")
         .manageSubscriptionsSheet(isPresented: $showManageSubscriptions)
@@ -196,5 +235,11 @@ struct SettingsView: View {
             PaywallView()
                 .presentationDetents([.large])
         }
+        #if DEBUG
+        .sheet(isPresented: $showPaywallPreview) {
+            PaywallView(previewMode: true)
+                .presentationDetents([.large])
+        }
+        #endif
     }
 }

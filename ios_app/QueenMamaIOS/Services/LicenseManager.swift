@@ -175,6 +175,10 @@ final class LicenseManager: ObservableObject {
         case .proactiveSuggestions:
             // Proactive AI suggestions are Enterprise-only
             return features.proactiveSuggestionsEnabled ? .allowed : .requiresEnterprise
+
+        case .liveTranslation:
+            // Live DeepL translation is Enterprise-only
+            return features.liveTranslationEnabled ? .allowed : .requiresEnterprise
         }
     }
 
@@ -323,7 +327,9 @@ final class LicenseManager: ObservableObject {
         json += "\"undetectableEnabled\":\(features.undetectableEnabled),"
         json += "\"screenshotEnabled\":\(features.screenshotEnabled),"
         json += "\"knowledgeBaseEnabled\":\(features.knowledgeBaseEnabled),"
-        json += "\"proactiveSuggestionsEnabled\":\(features.proactiveSuggestionsEnabled)"
+        json += "\"proactiveSuggestionsEnabled\":\(features.proactiveSuggestionsEnabled),"
+        json += "\"bufferedPreGenEnabled\":\(features.bufferedPreGenEnabled),"
+        json += "\"liveTranslationEnabled\":\(features.liveTranslationEnabled)"
         json += "}"
         return json
     }

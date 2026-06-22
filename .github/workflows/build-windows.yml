@@ -426,3 +426,43 @@ jobs:
             **Requis:** Windows 10+ (64-bit)
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # Mirror the build to a fixed rolling tag so the in-app auto-updater has a
+      # stable, Windows-specific feed URL. The app's electron-updater points at
+      # github.com/.../releases/download/windows-latest (see electron-builder.yml)
+      # instead of queenmama.co, which corporate proxies (Zscaler etc.) block.
+      # A dedicated rolling tag avoids relying on GitHub's global "latest"
+      # release, which cross-platform (macOS/iOS) releases would otherwise steal.
+      - name: Update rolling auto-update channel
+        shell: bash
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          if [[ "${{ needs.build.outputs.is_prerelease }}" == "true" ]]; then
+            ROLLING_TAG="windows-latest-staging"
+            PRERELEASE_FLAG="--prerelease"
+          else
+            ROLLING_TAG="windows-latest"
+            PRERELEASE_FLAG=""
+          fi
+
+          INSTALLER="release/${{ needs.build.outputs.installer_name }}"
+          if [ ! -f "$INSTALLER" ] || [ ! -f release/latest.yml ]; then
+            echo "ERROR: installer or latest.yml missing for rolling channel"
+            exit 1
+          fi
+
+          # Create the rolling release once; keep it off GitHub's "Latest" badge.
+          if ! gh release view "$ROLLING_TAG" >/dev/null 2>&1; then
+            gh release create "$ROLLING_TAG" \
+              --title "Windows auto-update channel" \
+              --notes "Rolling release holding the latest Windows build for in-app auto-update. Do not delete." \
+              --latest=false \
+              $PRERELEASE_FLAG
+          fi
+
+          # Overwrite the channel with the current build (latest.yml is what the
+          # updater reads; it pins the exact installer filename + sha512).
+          gh release upload "$ROLLING_TAG" "$INSTALLER" release/latest.yml --clobber
+          echo "Rolling channel '$ROLLING_TAG' updated → ${{ needs.build.outputs.installer_name }}"

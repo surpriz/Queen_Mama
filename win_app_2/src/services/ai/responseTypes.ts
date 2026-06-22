@@ -7,4 +7,5 @@ export const RESPONSE_TABS = [
   ResponseType.WhatToSay,
   ResponseType.FollowUp,
   ResponseType.Recap,
+  ResponseType.Decode,
 ] as const

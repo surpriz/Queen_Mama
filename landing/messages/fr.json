@@ -493,6 +493,38 @@
         "title": "Connexion stable au démarrage (Windows)",
         "description": "Correction d'une condition de course où plusieurs fenêtres de connexion apparaissaient au démarrage, causant parfois la perte de session"
       },
+      "enterpriseTier": {
+        "title": "Plan Enterprise",
+        "description": "Un nouveau niveau Enterprise débloque des fonctionnalités premium comme la traduction DeepL en direct et des limites d'appareils plus élevées — disponible sur iOS et macOS"
+      },
+      "deviceManagement": {
+        "title": "Gestion des appareils",
+        "description": "Nouvelle page dans le tableau de bord pour voir tous vos appareils connectés et révoquer l'accès à distance"
+      },
+      "perPlanDeviceLimits": {
+        "title": "Limites d'appareils par plan",
+        "description": "Chaque plan d'abonnement impose désormais un plafond d'appareils avec nettoyage automatique des sessions inactives"
+      },
+      "deepLTranslationIOS": {
+        "title": "Traduction en direct sur iOS",
+        "description": "Les abonnés Enterprise peuvent maintenant traduire les conversations en temps réel avec DeepL directement dans l'app iOS"
+      },
+      "winUpdateProxy": {
+        "title": "Mises à jour Windows via GitHub",
+        "description": "Les mises à jour de l'app sont maintenant servies depuis GitHub, contournant les proxies d'entreprise qui bloquaient le serveur de mise à jour"
+      },
+      "iosScrollableAuth": {
+        "title": "Correction écran de connexion iOS",
+        "description": "Les écrans d'inscription et de connexion sur iOS sont maintenant défilables avec un bouton retour fonctionnel"
+      },
+      "iosDiarizationStability": {
+        "title": "Fiabilité de la diarisation (iOS)",
+        "description": "Basculement vers un flux de transcription plus stable sur iOS, réduisant les erreurs de détection des locuteurs pendant les appels"
+      },
+      "transcriptionAutomatic": {
+        "title": "Affichage de la langue de transcription (iOS)",
+        "description": "L'app iOS affiche maintenant correctement la langue de transcription comme Automatique quand aucune langue n'est sélectionnée manuellement"
+      },
       "speakerDiarization": {
         "title": "Identification des locuteurs (macOS)",
         "description": "Queen Mama distingue maintenant entre vous et votre interlocuteur grâce à l'analyse audio dual-stream avec filtrage intelligent du bleed"

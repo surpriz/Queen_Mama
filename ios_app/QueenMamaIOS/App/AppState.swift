@@ -49,6 +49,7 @@ class AppState: ObservableObject {
     let audioBatchingService = AudioBatchingService()
     let transcriptBuffer = TranscriptBuffer()
     let dictationService = DictationService()
+    let translationService = TranslationService()
 
     // Session Manager reference (injected from QueenMamaApp)
     weak var sessionManager: SessionManager?
@@ -86,6 +87,17 @@ class AppState: ObservableObject {
 
         do {
             let startTime = CFAbsoluteTimeGetCurrent()
+
+            // Transcription providers come from the proxy config (/api/proxy/config),
+            // which is a SEPARATE fetch from the license (/api/license/validate).
+            // If the config fetch failed or never ran at launch, config stays nil,
+            // every provider reports isConfigured == false, and connect() throws
+            // allProvidersFailed — which the catch below turns into a stopped
+            // session ~1s after start. Lazily load it here before connecting.
+            if ProxyConfigManager.shared.config == nil {
+                print("[AppState] Proxy config missing — loading before transcription connect")
+                try await ProxyConfigManager.shared.refreshConfig()
+            }
 
             async let audioStart: () = audioService.startCapture()
             async let transcriptionStart: () = transcriptionService.connect()
@@ -130,24 +142,46 @@ class AppState: ObservableObject {
                 }
             }
 
-            // Diarized mic transcripts — iOS has a single mic stream that picks up
-            // everyone (user + room/speakerphone). Deepgram diarization separates
-            // speakers; speaker 0 (first voice heard) is assumed to be the user.
-            // No system-audio stream exists on iOS, so the interlocutor's voice
-            // only ever arrives through the mic — never enable echo cancellation
-            // here, it would erase exactly that signal.
-            transcriptionService.onDiarizedTranscript = { [weak self] (text: String, speaker: Int) in
+            // iOS has a SINGLE microphone that mixes the user AND the room / far-end.
+            // Deepgram's diarization cannot reliably separate them on one mixed stream
+            // (it collapses everyone to speaker 0), so iOS does NOT label "Moi" /
+            // "Interlocuteur" — the transcript is a neutral stream and the AI uses its
+            // no-speaker-identification path. The diarized callback still fires (the
+            // provider emits word segments); we ignore the unreliable speaker index.
+            // Live translation, when enabled, applies to every final line since we
+            // cannot isolate the interlocutor (DeepL no-ops when source == target).
+            let appendFinal: (String) -> Void = { [weak self] text in
                 guard let self = self else { return }
 
-                let label = speaker == 0 ? "Moi" : "Interlocuteur"
+                let cfg = ConfigurationManager.shared
+                let translationActive = cfg.translationEnabled
+                    && LicenseManager.shared.isFeatureAvailable(.liveTranslation)
 
-                self.sessionManager?.addTranscriptEntry(
-                    speaker: label,
-                    text: text,
-                    isFinal: true
-                )
+                if translationActive,
+                   let entryID = self.sessionManager?.addTranscriptEntryReturningID(
+                        speaker: "",
+                        text: text,
+                        isFinal: true
+                   ) {
+                    let target = cfg.translationTargetLanguage
+                    let source = cfg.translationSourceLanguage
+                    Task { @MainActor in
+                        await self.translationService.translate(
+                            entryID: entryID,
+                            text: text,
+                            sourceLang: source,
+                            targetLang: target
+                        )
+                    }
+                } else {
+                    self.sessionManager?.addTranscriptEntry(
+                        speaker: "",
+                        text: text,
+                        isFinal: true
+                    )
+                }
 
-                self.currentTranscript += "\(label): \(text)\n"
+                self.currentTranscript += "\(text)\n"
 
                 let wordCount = text.split(separator: " ").count
                 HealthCheckService.shared.recordWordsTranscribed(wordCount)
@@ -155,22 +189,13 @@ class AppState: ObservableObject {
                 self.autoAnswerService.onTranscriptReceived(self.currentTranscript)
             }
 
-            // Non-diarized fallback flush → "Moi" entries
-            transcriptBuffer.onFlush = { [weak self] (batchedText: String) in
-                guard let self = self else { return }
-
-                self.sessionManager?.addTranscriptEntry(
-                    speaker: "Moi",
-                    text: batchedText,
-                    isFinal: true
-                )
-
-                self.currentTranscript += "Moi: \(batchedText)\n"
-
-                let wordCount = batchedText.split(separator: " ").count
-                HealthCheckService.shared.recordWordsTranscribed(wordCount)
-
-                self.autoAnswerService.onTranscriptReceived(self.currentTranscript)
+            // Diarized segments and the non-diarized fallback both feed the same
+            // neutral append path — the speaker index is intentionally discarded.
+            transcriptionService.onDiarizedTranscript = { (text: String, _ speaker: Int) in
+                appendFinal(text)
+            }
+            transcriptBuffer.onFlush = { (batchedText: String) in
+                appendFinal(batchedText)
             }
 
             autoAnswerService.onTrigger = { [weak self] in
@@ -204,6 +229,7 @@ class AppState: ObservableObject {
         transcriptionService.disconnect()
         autoAnswerService.reset()
         autoAnswerService.resetProactiveState()
+        translationService.resetContext()
         dictationService.stopRecording()
         cancellables.removeAll()
         audioLevel = 0.0

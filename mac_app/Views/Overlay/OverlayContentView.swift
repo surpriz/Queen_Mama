@@ -436,6 +436,21 @@ struct OverlayContentView: View {
                             mode: appState.selectedMode
                         )
                         appState.aiService.currentResponse = response.content
+                    case .decode:
+                        // Decode works from the conversation AND on-screen jargon, so the
+                        // screenshot is included. With no transcript at all (pure screen),
+                        // there is still nothing said to decode — short-circuit.
+                        guard !transcriptForRequest.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || screenshot != nil else {
+                            appState.aiService.currentResponse = String(localized: "overlay.noConversation")
+                            appState.aiService.isProcessing = false
+                            break
+                        }
+                        let response = try await appState.aiService.decode(
+                            transcript: transcriptForRequest,
+                            screenshot: screenshot,
+                            mode: appState.selectedMode
+                        )
+                        appState.aiService.currentResponse = response.content
                     case .briefing:
                         // Briefing tab doesn't trigger AI requests - it shows contact info
                         break
@@ -465,6 +480,7 @@ enum TabItem: String, CaseIterable {
     case whatToSay = "What to say"
     case followUp = "Follow-up"
     case recap = "Recap"
+    case decode = "Decode"
     case briefing = "Briefing"
     case translate = "Translate"
 
@@ -474,6 +490,7 @@ enum TabItem: String, CaseIterable {
         case .whatToSay: return QMDesign.Icons.whatToSay
         case .followUp: return QMDesign.Icons.followUp
         case .recap: return QMDesign.Icons.recap
+        case .decode: return "character.book.closed"
         case .briefing: return "person.text.rectangle"
         case .translate: return "globe"
         }
@@ -485,6 +502,7 @@ enum TabItem: String, CaseIterable {
         case .whatToSay: return String(localized: "overlay.tab.whatToSay")
         case .followUp: return String(localized: "overlay.tab.followUp")
         case .recap: return String(localized: "overlay.tab.recap")
+        case .decode: return String(localized: "overlay.tab.decode")
         case .briefing: return String(localized: "overlay.tab.briefing")
         case .translate: return String(localized: "overlay.tab.translate")
         }
@@ -492,7 +510,7 @@ enum TabItem: String, CaseIterable {
 
     /// Tabs that are always visible vs context-dependent
     static var alwaysVisible: [TabItem] {
-        [.assist, .whatToSay, .followUp, .recap]
+        [.assist, .whatToSay, .followUp, .recap, .decode]
     }
 }
 

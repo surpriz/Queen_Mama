@@ -1,4 +1,4 @@
-import { Sparkles, MessageSquare, MessageCircleQuestion, RotateCcw, Languages } from 'lucide-react'
+import { Sparkles, MessageSquare, MessageCircleQuestion, RotateCcw, BookA, Languages } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { useOverlayStore } from '@/stores/overlayStore'
 import { useConfigStore } from '@/stores/configStore'
@@ -24,6 +24,7 @@ export function TabBar({ onTabSelected }: TabBarProps) {
     { type: ResponseType.WhatToSay, label: t('tabs.whatToSay'), icon: MessageSquare },
     { type: ResponseType.FollowUp, label: t('tabs.followUp'), icon: MessageCircleQuestion },
     { type: ResponseType.Recap, label: t('tabs.recap'), icon: RotateCcw },
+    { type: ResponseType.Decode, label: t('tabs.decode'), icon: BookA },
     ...(translationEnabled && translationShowInOverlay && canUseTranslation
       ? [{ type: ResponseType.Translate, label: t('tabs.translate'), icon: Languages }]
       : []),

@@ -157,6 +157,7 @@ struct QueenMamaApp: App {
                         .environmentObject(sessionManager)
                         .onAppear {
                             appState.sessionManager = sessionManager
+                            appState.translationService.attach(sessionManager: sessionManager)
                         }
                 }
             }

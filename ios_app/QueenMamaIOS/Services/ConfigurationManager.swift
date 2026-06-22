@@ -93,6 +93,20 @@ final class ConfigurationManager: ObservableObject {
         didSet { defaults.set(proactiveClosingEnabled, forKey: Keys.proactiveClosing) }
     }
 
+    // MARK: - Live Translation
+
+    @Published var translationEnabled: Bool {
+        didSet { defaults.set(translationEnabled, forKey: Keys.translationEnabled) }
+    }
+
+    @Published var translationTargetLanguage: String {
+        didSet { defaults.set(translationTargetLanguage, forKey: Keys.translationTargetLang) }
+    }
+
+    @Published var translationSourceLanguage: String {
+        didSet { defaults.set(translationSourceLanguage, forKey: Keys.translationSourceLang) }
+    }
+
     // MARK: - Meeting Detection
 
     @Published var meetingDetectionEnabled: Bool {
@@ -144,6 +158,10 @@ final class ConfigurationManager: ObservableObject {
         static let selectedDisplayID = "selected_display_id"
         // Meeting Detection
         static let meetingDetection = "meeting_detection_enabled"
+        // Live Translation
+        static let translationEnabled = "translation_enabled"
+        static let translationTargetLang = "translation_target_lang"
+        static let translationSourceLang = "translation_source_lang"
     }
 
     // MARK: - Initialization
@@ -188,6 +206,11 @@ final class ConfigurationManager: ObservableObject {
 
         // Meeting Detection
         self.meetingDetectionEnabled = defaults.object(forKey: Keys.meetingDetection) as? Bool ?? true
+
+        // Live Translation (default enabled, mirroring macOS; gated by license at runtime)
+        self.translationEnabled = defaults.object(forKey: Keys.translationEnabled) as? Bool ?? true
+        self.translationTargetLanguage = defaults.string(forKey: Keys.translationTargetLang) ?? "FR"
+        self.translationSourceLanguage = defaults.string(forKey: Keys.translationSourceLang) ?? "auto"
     }
 
     // MARK: - Onboarding
@@ -238,6 +261,10 @@ final class ConfigurationManager: ObservableObject {
         proactiveClosingEnabled = true
         // Meeting Detection
         meetingDetectionEnabled = true
+        // Live Translation
+        translationEnabled = true
+        translationTargetLanguage = "FR"
+        translationSourceLanguage = "auto"
     }
 
     // MARK: - Proactive Moment Check

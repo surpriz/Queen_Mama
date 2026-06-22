@@ -22,24 +22,22 @@ struct RegistrationFormView: View {
 
     var body: some View {
         VStack(spacing: QMDesign.Spacing.xl) {
-            // Header
-            VStack(spacing: QMDesign.Spacing.sm) {
-                ZStack {
-                    Circle()
-                        .fill(QMDesign.Colors.primaryGradient)
-                        .frame(width: 64, height: 64)
-                    Image(systemName: "person.badge.plus")
-                        .font(.system(size: 28, weight: .bold))
-                        .foregroundColor(.white)
-                }
-
-                Text("Create Account")
-                    .font(QMDesign.Typography.titleSmall)
-                    .foregroundColor(QMDesign.Colors.textPrimary)
-
-                Text("Sign up to start using Queen Mama")
-                    .font(QMDesign.Typography.bodySmall)
+            // Back button — return to the sign-in choices. (The parent
+            // SignInChoiceView already shows the "Create Account" header, so
+            // this view no longer repeats its own header.)
+            HStack {
+                Button(action: { showRegistrationForm = false }) {
+                    HStack(spacing: QMDesign.Spacing.xxs) {
+                        Image(systemName: "chevron.left")
+                            .font(.system(size: 14, weight: .semibold))
+                        Text("Back")
+                            .font(QMDesign.Typography.labelMedium)
+                    }
                     .foregroundColor(QMDesign.Colors.textSecondary)
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("Back to sign-in options")
+                Spacer()
             }
 
             // Form

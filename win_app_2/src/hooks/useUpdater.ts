@@ -47,6 +47,13 @@ export function useUpdater() {
           s.setDownloaded(info?.version ?? null)
           break
         }
+        case 'update-blocked': {
+          // Proxy/firewall intercepted the update feed. Don't show the raw HTML
+          // block page — useUpdater surfaces a clean message + manual download.
+          s.setBlocked('network-blocked')
+          toast.error(t('update.toast.blockedTitle'), t('update.toast.blockedDescription'))
+          break
+        }
         case 'update-error': {
           const err = payload.data as { message?: string } | undefined
           s.setError(err?.message ?? 'Unknown error')

@@ -49,9 +49,19 @@ struct LiveSessionView: View {
 
 struct ActiveSessionView: View {
     @EnvironmentObject var appState: AppState
+    @EnvironmentObject var sessionManager: SessionManager
+    @ObservedObject private var config = ConfigurationManager.shared
+    @ObservedObject private var licenseManager = LicenseManager.shared
 
     @State private var autoScroll = true
     @State private var showingAI = false
+
+    /// Live translation is active when enabled in settings and licensed.
+    /// When active, the transcript renders from SwiftData entries so each
+    /// interlocutor line can show its translation underneath.
+    private var translationActive: Bool {
+        config.translationEnabled && licenseManager.isFeatureAvailable(.liveTranslation)
+    }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -100,6 +110,20 @@ struct ActiveSessionView: View {
                             }
                             .frame(maxWidth: .infinity)
                             .padding(QMDesign.Spacing.xl)
+                        } else if translationActive {
+                            // Observe updateTick so SwiftData @Relationship writes re-render.
+                            let _ = appState.translationService.updateTick
+                            ForEach(sessionManager.currentSession?.entries ?? []) { entry in
+                                TranslatedTranscriptRow(entry: entry)
+                                    .id(entry.id)
+                            }
+
+                            if !appState.interimTranscript.isEmpty {
+                                Text(appState.interimTranscript)
+                                    .font(QMDesign.Typography.bodyMedium)
+                                    .foregroundColor(QMDesign.Colors.textSecondary)
+                                    .italic()
+                            }
                         } else {
                             ForEach(Array(transcriptLines.enumerated()), id: \.offset) { _, line in
                                 Text(line)
@@ -171,6 +195,63 @@ struct ActiveSessionView: View {
             .split(separator: "\n", omittingEmptySubsequences: false)
             .map(String.init)
             .filter { !$0.isEmpty }
+    }
+}
+
+// MARK: - Translated Transcript Row
+
+/// Renders a transcript entry with its translation underneath (mirrors macOS
+/// TranslateEntryRow). Only interlocutor entries carry translations; "Moi" lines
+/// simply show the original text.
+struct TranslatedTranscriptRow: View {
+    let entry: TranscriptEntry
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            // iOS transcript is a neutral stream (no reliable per-speaker labels
+            // on a single mixed mic), so the speaker header is shown only if a
+            // label is actually present. The target-language badge marks
+            // translated lines.
+            if !entry.speaker.isEmpty || entry.translationTargetLang != nil {
+                HStack(spacing: 6) {
+                    if !entry.speaker.isEmpty {
+                        Text(entry.speaker)
+                            .font(QMDesign.Typography.labelSmall)
+                            .foregroundColor(entry.speaker == "Moi" ? QMDesign.Colors.accent : QMDesign.Colors.textSecondary)
+                    }
+                    if let lang = entry.translationTargetLang {
+                        Text(lang)
+                            .font(.system(size: 8, weight: .bold))
+                            .foregroundColor(QMDesign.Colors.accent)
+                            .padding(.horizontal, 4)
+                            .padding(.vertical, 1)
+                            .background(Capsule().fill(QMDesign.Colors.accent.opacity(0.15)))
+                    }
+                }
+            }
+
+            Text(entry.text)
+                .font(QMDesign.Typography.bodyMedium)
+                .foregroundColor(QMDesign.Colors.textPrimary)
+                .textSelection(.enabled)
+                .fixedSize(horizontal: false, vertical: true)
+
+            // Show the translation whenever one is present, regardless of speaker.
+            if let translated = entry.translatedText {
+                HStack(alignment: .top, spacing: 4) {
+                    Image(systemName: "arrow.turn.down.right")
+                        .font(.system(size: 10))
+                        .foregroundColor(QMDesign.Colors.textTertiary)
+                    Text(translated)
+                        .font(QMDesign.Typography.bodyMedium)
+                        .italic()
+                        .foregroundColor(QMDesign.Colors.textSecondary)
+                        .textSelection(.enabled)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 }
 

@@ -27,6 +27,10 @@ export function useAiResponse() {
     await aiService.recap(currentTranscript, selectedMode)
   }, [currentTranscript, selectedMode])
 
+  const decode = useCallback(async () => {
+    await aiService.decode(currentTranscript, selectedMode)
+  }, [currentTranscript, selectedMode])
+
   const askCustomQuestion = useCallback(
     async (question: string) => {
       await aiService.askCustomQuestion(currentTranscript, question, selectedMode)
@@ -45,9 +49,11 @@ export function useAiResponse() {
           return followUp()
         case ResponseType.Recap:
           return recap()
+        case ResponseType.Decode:
+          return decode()
       }
     },
-    [assist, whatToSay, followUp, recap],
+    [assist, whatToSay, followUp, recap, decode],
   )
 
   return {
@@ -58,6 +64,7 @@ export function useAiResponse() {
     whatToSay,
     followUp,
     recap,
+    decode,
     askCustomQuestion,
     triggerByType,
   }
