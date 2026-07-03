@@ -116,6 +116,7 @@ final class ProxyConfigManager: ObservableObject {
             print("[ProxyConfig] Configuration loaded: \(config?.plan ?? "unknown") plan")
             print("[ProxyConfig] AI providers: \(availableAIProviders)")
             print("[ProxyConfig] Transcription providers: \(availableTranscriptionProviders)")
+            PromptExperimentStore.shared.update(config?.experiments)
             persistConfigToCache()
         } catch {
             lastError = error
@@ -124,6 +125,7 @@ final class ProxyConfigManager: ObservableObject {
             // instead of leaving the app unable to start a session.
             if config == nil, let cached = loadConfigFromCache() {
                 config = cached
+                PromptExperimentStore.shared.update(cached.experiments)
                 print("[ProxyConfig] Using cached configuration (offline grace, \(cached.plan) plan)")
                 isLoading = false
                 return
@@ -157,6 +159,7 @@ final class ProxyConfigManager: ObservableObject {
     func clearConfig() {
         config = nil
         lastError = nil
+        PromptExperimentStore.shared.clear()
         proxyClient.clearConfigCache()
         proxyClient.clearTranscriptionTokenCache()
         UserDefaults.standard.removeObject(forKey: configCacheKey)
@@ -191,6 +194,33 @@ final class ProxyConfigManager: ObservableObject {
         }
         return remaining > 0
     }
+}
+
+// MARK: - Prompt Experiment Store
+
+/// Thread-safe snapshot of the active prompt A/B experiments. Lives outside the
+/// @MainActor config manager so `AIContext.systemPrompt` (built off the main
+/// actor) can read it synchronously without isolation hops. Updated whenever the
+/// proxy config loads.
+final class PromptExperimentStore: @unchecked Sendable {
+    static let shared = PromptExperimentStore()
+
+    private let lock = NSLock()
+    private var experiments: [String: PromptExperiment] = [:]
+
+    private init() {}
+
+    func update(_ experiments: [String: PromptExperiment]?) {
+        lock.lock(); defer { lock.unlock() }
+        self.experiments = experiments ?? [:]
+    }
+
+    func experiment(for key: String) -> PromptExperiment? {
+        lock.lock(); defer { lock.unlock() }
+        return experiments[key]
+    }
+
+    func clear() { update(nil) }
 }
 
 // MARK: - Notifications

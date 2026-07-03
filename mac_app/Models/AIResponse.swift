@@ -56,6 +56,20 @@ final class AIResponse: Identifiable {
         case decode = "Decode"
         case custom = "Custom"
 
+        /// Stable, slug-style key for server-driven prompt experiments (the JSON
+        /// keys in the PostHog `prompt_experiments` payload). Decoupled from
+        /// `rawValue` (which is a display string frozen for SwiftData).
+        var experimentKey: String {
+            switch self {
+            case .assist: return "assist"
+            case .whatToSay: return "whatToSay"
+            case .followUp: return "followUp"
+            case .recap: return "recap"
+            case .decode: return "decode"
+            case .custom: return "custom"
+            }
+        }
+
         var localizedName: String {
             switch self {
             case .assist: return String(localized: "response.type.assist")
@@ -825,11 +839,23 @@ struct AIContext: @unchecked Sendable {
             // Developer Exam has its own complete prompt — skip responseType addition
             if mode?.name != "Developer Exam" {
                 // Default mode uses classic coaching prompts, others use NZT-enhanced prompts
-                if mode?.name == "Default" {
-                    prompt += "\n\n" + responseType.classicSystemPromptAddition
-                } else {
-                    prompt += "\n\n" + responseType.systemPromptAddition
+                var addition = (mode?.name == "Default")
+                    ? responseType.classicSystemPromptAddition
+                    : responseType.systemPromptAddition
+
+                // Server-driven A/B experiment (PostHog `prompt_experiments` flag via
+                // /api/proxy/config). Lets us test/swap prompts without an app release.
+                if let exp = PromptExperimentStore.shared.experiment(for: responseType.experimentKey),
+                   let text = exp.text, !text.isEmpty {
+                    switch exp.op {
+                    case "override": addition = text
+                    case "append": addition += "\n\n" + text
+                    default: break  // "control" or unknown → keep the built-in prompt
+                    }
+                    print("[AIContext] Prompt experiment '\(exp.key)' (\(exp.op)) applied to \(responseType.experimentKey)")
                 }
+
+                prompt += "\n\n" + addition
 
                 // Inline language reinforcement for short response types (followUp,
                 // whatToSay) whose prompt bodies are English-only and bias the model

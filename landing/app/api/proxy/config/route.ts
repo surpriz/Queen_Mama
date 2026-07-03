@@ -8,6 +8,52 @@ import {
   TIER_LIMITS,
   type PlanTier,
 } from "@/lib/ai-providers";
+import { getPostHogServer } from "@/lib/posthog";
+
+type PromptExperiment = { key: string; op: "control" | "override" | "append"; text?: string };
+
+/**
+ * Evaluate the `prompt_experiments` PostHog feature flag for this user and
+ * return a sanitized map keyed by the app's ResponseType.experimentKey
+ * (assist, whatToSay, followUp, recap, decode, custom). The flag's JSON payload
+ * holds the variant prompts, so they can be edited in PostHog with no app release.
+ * Non-fatal: any failure returns undefined and the app falls back to built-in prompts.
+ */
+async function getPromptExperiments(userId: string): Promise<Record<string, PromptExperiment> | undefined> {
+  if (!process.env.NEXT_PUBLIC_POSTHOG_KEY) return undefined;
+  try {
+    const posthog = getPostHogServer();
+    const payload = await posthog.getFeatureFlagPayload("prompt_experiments", userId);
+    if (!payload || typeof payload !== "object" || Array.isArray(payload)) return undefined;
+
+    const cleaned: Record<string, PromptExperiment> = {};
+    for (const [responseType, raw] of Object.entries(payload as Record<string, unknown>)) {
+      if (!raw || typeof raw !== "object") continue;
+      const v = raw as Record<string, unknown>;
+      const op = v.op === "override" || v.op === "append" ? v.op : "control";
+      cleaned[responseType] = {
+        key: typeof v.key === "string" ? v.key : "variant",
+        op,
+        text: typeof v.text === "string" ? v.text : undefined,
+      };
+    }
+    if (Object.keys(cleaned).length === 0) return undefined;
+
+    // Log exposure for A/B analysis. flushAt:1 flushes immediately; do NOT call
+    // shutdown() here — it would dispose the cached client for later requests.
+    const variant = await posthog.getFeatureFlag("prompt_experiments", userId);
+    posthog.capture({
+      distinctId: userId,
+      event: "prompt_experiment_exposure",
+      properties: { variant, keys: Object.keys(cleaned) },
+    });
+
+    return cleaned;
+  } catch (err) {
+    console.error("prompt_experiments evaluation failed (non-fatal):", err);
+    return undefined;
+  }
+}
 
 /**
  * GET /api/proxy/config
@@ -80,6 +126,9 @@ export async function GET(request: Request) {
       },
     });
 
+    // Server-driven prompt A/B experiments (optional; PostHog-backed)
+    const experiments = await getPromptExperiments(user.id);
+
     // Build response
     const response = {
       plan,
@@ -108,6 +157,7 @@ export async function GET(request: Request) {
       },
       cacheTTL: 3600, // 1 hour cache
       configuredAt: new Date().toISOString(),
+      ...(experiments ? { experiments } : {}),
     };
 
     return NextResponse.json(response);
