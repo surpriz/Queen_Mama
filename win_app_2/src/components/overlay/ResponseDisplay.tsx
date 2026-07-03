@@ -11,6 +11,85 @@ import { submitFeedback } from '@/services/proxy/proxyApiClient'
 import { toast } from '@/stores/toastStore'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
+import remarkMath from 'remark-math'
+import rehypeKatex from 'rehype-katex'
+import rehypeHighlight from 'rehype-highlight'
+import mermaid from 'mermaid'
+import 'katex/dist/katex.min.css'
+import 'highlight.js/styles/github-dark.css'
+
+// react-markdown plugin arrays (shared by history + finished-stream rendering).
+const REMARK_PLUGINS = [remarkGfm, remarkMath]
+// ignoreMissing → unknown languages (e.g. "mermaid") are left as raw text instead
+// of throwing, so the Mermaid code renderer still receives the source string.
+const REHYPE_PLUGINS = [rehypeKatex, [rehypeHighlight, { ignoreMissing: true }]] as const
+
+let mermaidReady = false
+function ensureMermaid() {
+  if (mermaidReady) return
+  // 'strict' → mermaid sanitizes its SVG output (bundled DOMPurify) and disables
+  // click/HTML labels. Required since we inject the SVG as live DOM below.
+  mermaid.initialize({ startOnLoad: false, theme: 'dark', securityLevel: 'strict' })
+  mermaidReady = true
+}
+
+// ── Mermaid diagram (```mermaid fenced block) ───────────────────────
+let mermaidSeq = 0
+function MermaidDiagram({ code }: { code: string }) {
+  const [svg, setSvg] = useState<string | null>(null)
+  const [failed, setFailed] = useState(false)
+
+  useEffect(() => {
+    let cancelled = false
+    ensureMermaid()
+    const id = `qm-mermaid-${mermaidSeq++}`
+    mermaid
+      .render(id, code)
+      .then(({ svg }) => {
+        if (!cancelled) setSvg(svg)
+      })
+      .catch(() => {
+        if (!cancelled) setFailed(true)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [code])
+
+  if (failed) {
+    return <pre className="text-qm-text-tertiary text-xs whitespace-pre-wrap">{code}</pre>
+  }
+  if (!svg) {
+    return <div className="text-qm-text-tertiary text-xs">Rendering diagram…</div>
+  }
+  return <div className="my-2 overflow-x-auto" dangerouslySetInnerHTML={{ __html: svg }} />
+}
+
+function isMermaidCode(node: React.ReactNode): boolean {
+  const codeEl = React.Children.toArray(node).find(
+    (child) => React.isValidElement(child) && (child as React.ReactElement).type === 'code',
+  )
+  const className = React.isValidElement(codeEl)
+    ? ((codeEl as React.ReactElement<{ className?: string }>).props.className ?? '')
+    : ''
+  return className.includes('language-mermaid')
+}
+
+// Renders fenced code: Mermaid → diagram, everything else → default <code>
+// (children already carry highlight.js spans added by rehype-highlight).
+function CodeRenderer({ className, children, ...props }: ComponentPropsWithoutRef<'code'>) {
+  if (className?.includes('language-mermaid')) {
+    const source = Array.isArray(children) ? children.join('') : String(children ?? '')
+    return <MermaidDiagram code={source.replace(/\n$/, '')} />
+  }
+  return (
+    <code className={className} {...props}>
+      {children}
+    </code>
+  )
+}
+
+const MARKDOWN_COMPONENTS = { pre: CodeBlockWrapper, code: CodeRenderer }
 
 // ── Markdown normalization ───────────────────────────────────────────
 // Normalize inline bullets ("• item1 • item2") into separate lines
@@ -83,6 +162,11 @@ function CodeBlockWrapper({ children, ...props }: ComponentPropsWithoutRef<'pre'
     navigator.clipboard.writeText(getCodeText())
     setCopied(true)
     setTimeout(() => setCopied(false), 2000)
+  }
+
+  // Mermaid renders as a diagram (via the code renderer) — skip the code chrome.
+  if (isMermaidCode(children)) {
+    return <>{children}</>
   }
 
   return (
@@ -252,7 +336,7 @@ export function ResponseDisplay() {
 
                 {/* Markdown body */}
                 <div className="prose prose-invert prose-sm max-w-none text-body-sm leading-relaxed pr-16">
-                  <ReactMarkdown remarkPlugins={[remarkGfm]} components={{ pre: CodeBlockWrapper }}>
+                  <ReactMarkdown remarkPlugins={REMARK_PLUGINS} rehypePlugins={REHYPE_PLUGINS as never} components={MARKDOWN_COMPONENTS}>
                     {normalizeMarkdown(entry.content)}
                   </ReactMarkdown>
                 </div>
@@ -290,7 +374,7 @@ export function ResponseDisplay() {
                       <span className="inline-block w-[3px] h-[14px] rounded-full bg-qm-accent-light shadow-[0_0_8px_rgba(167,139,250,0.7)] animate-pulse ml-1 align-middle" />
                     </p>
                   ) : (
-                    <ReactMarkdown remarkPlugins={[remarkGfm]} components={{ pre: CodeBlockWrapper }}>
+                    <ReactMarkdown remarkPlugins={REMARK_PLUGINS} rehypePlugins={REHYPE_PLUGINS as never} components={MARKDOWN_COMPONENTS}>
                       {normalizeMarkdown(streamingContent)}
                     </ReactMarkdown>
                   )}
