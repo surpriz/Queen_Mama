@@ -8,6 +8,7 @@ struct SettingsView: View {
     @Environment(\.openURL) private var openURL
     @State private var showManageSubscriptions = false
     @State private var showPaywall = false
+    @State private var showConvertAccountSheet = false
     #if DEBUG
     @State private var showPaywallPreview = false
     #endif
@@ -32,6 +33,20 @@ struct SettingsView: View {
                             Text(user.email)
                                 .font(QMDesign.Typography.caption)
                                 .foregroundColor(QMDesign.Colors.textSecondary)
+                        }
+                    }
+
+                    // Guest → real account conversion
+                    if user.isGuest {
+                        VStack(alignment: .leading, spacing: QMDesign.Spacing.xxs) {
+                            Text("You're using a guest account. Create an account to keep your sessions and settings across devices and reinstalls.")
+                                .font(QMDesign.Typography.caption)
+                                .foregroundColor(QMDesign.Colors.textSecondary)
+                            Button {
+                                showConvertAccountSheet = true
+                            } label: {
+                                Label("Create an account", systemImage: "person.badge.plus")
+                            }
                         }
                     }
 
@@ -125,6 +140,12 @@ struct SettingsView: View {
                     Text("16 kHz")
                         .foregroundColor(QMDesign.Colors.textSecondary)
                 }
+
+                Toggle("Filter silence (VAD)", isOn: $config.vadEnabled)
+                    .tint(QMDesign.Colors.accent)
+                Text("Skips silent audio before transcription to cut cost and clean up transcripts.")
+                    .font(QMDesign.Typography.caption)
+                    .foregroundColor(QMDesign.Colors.textTertiary)
             }
 
             // Sync Section
@@ -235,11 +256,88 @@ struct SettingsView: View {
             PaywallView()
                 .presentationDetents([.large])
         }
+        .sheet(isPresented: $showConvertAccountSheet) {
+            UpgradeAccountView()
+                .presentationDetents([.medium])
+        }
         #if DEBUG
         .sheet(isPresented: $showPaywallPreview) {
             PaywallView(previewMode: true)
                 .presentationDetents([.large])
         }
         #endif
+    }
+}
+
+// MARK: - Guest → real account conversion
+
+struct UpgradeAccountView: View {
+    @Environment(\.dismiss) private var dismiss
+    @StateObject private var authManager = AuthenticationManager.shared
+
+    @State private var name = ""
+    @State private var email = ""
+    @State private var password = ""
+    @State private var isLoading = false
+    @State private var errorMessage = ""
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section {
+                    Text("Create an account to keep your sessions and settings across devices and reinstalls.")
+                        .font(QMDesign.Typography.caption)
+                        .foregroundColor(QMDesign.Colors.textSecondary)
+                }
+                Section {
+                    TextField("Name", text: $name)
+                        .textContentType(.name)
+                    TextField("Email", text: $email)
+                        .textContentType(.emailAddress)
+                        .keyboardType(.emailAddress)
+                        .autocapitalization(.none)
+                    SecureField("Password", text: $password)
+                        .textContentType(.newPassword)
+                }
+                if !errorMessage.isEmpty {
+                    Section {
+                        Text(errorMessage)
+                            .font(QMDesign.Typography.caption)
+                            .foregroundColor(QMDesign.Colors.error)
+                    }
+                }
+                Section {
+                    Button(action: upgrade) {
+                        if isLoading {
+                            ProgressView()
+                        } else {
+                            Text("Create account")
+                        }
+                    }
+                    .disabled(isLoading || email.isEmpty || password.isEmpty)
+                }
+            }
+            .navigationTitle("Create an account")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel") { dismiss() }
+                }
+            }
+        }
+    }
+
+    private func upgrade() {
+        isLoading = true
+        errorMessage = ""
+        Task {
+            do {
+                try await authManager.upgradeAccount(name: name.isEmpty ? nil : name, email: email, password: password)
+                dismiss()
+            } catch {
+                errorMessage = error.localizedDescription
+            }
+            isLoading = false
+        }
     }
 }
