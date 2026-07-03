@@ -10,6 +10,7 @@ struct SignInChoiceView: View {
     @State private var showEmailSignIn = false
     @State private var showRegistrationForm = false
     @State private var isGoogleLoading = false
+    @State private var isAnonymousLoading = false
     @State private var errorMessage = ""
 
     var body: some View {
@@ -149,6 +150,22 @@ struct SignInChoiceView: View {
                     .foregroundColor(QMDesign.Colors.textPrimary)
                 }
                 .buttonStyle(.plain)
+
+                // Continue without an account (anonymous guest session)
+                Button(action: continueAnonymously) {
+                    HStack(spacing: QMDesign.Spacing.xs) {
+                        if isAnonymousLoading {
+                            ProgressView().scaleEffect(0.7)
+                        }
+                        Text("Continue without an account")
+                            .font(QMDesign.Typography.bodySmall)
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, QMDesign.Spacing.sm)
+                    .foregroundColor(QMDesign.Colors.textTertiary)
+                }
+                .buttonStyle(.plain)
+                .disabled(isAnonymousLoading)
             }
         }
         .padding(.horizontal, QMDesign.Spacing.xl)
@@ -223,6 +240,21 @@ struct SignInChoiceView: View {
     }
 
     // MARK: - Actions
+
+    private func continueAnonymously() {
+        isAnonymousLoading = true
+        errorMessage = ""
+
+        Task {
+            do {
+                try await authManager.continueAnonymously()
+                // Success handled by onChange of authState
+            } catch {
+                errorMessage = error.localizedDescription
+            }
+            isAnonymousLoading = false
+        }
+    }
 
     private func signInWithGoogle() {
         isGoogleLoading = true

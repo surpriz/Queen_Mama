@@ -130,6 +130,50 @@ final class AuthenticationManager: ObservableObject {
         }
     }
 
+    // MARK: - Anonymous (no-signup)
+
+    func continueAnonymously() async throws {
+        authState = .authenticating
+
+        do {
+            let response = try await api.loginAnonymously(deviceInfo: deviceInfo)
+
+            let tokens = AuthTokens(
+                accessToken: response.accessToken,
+                refreshToken: response.refreshToken,
+                expiresIn: response.expiresIn
+            )
+            tokenStore.storeTokens(tokens, user: response.user)
+
+            currentUser = response.user
+            isAuthenticated = true
+            authState = .authenticated(user: response.user)
+
+            NotificationCenter.default.post(name: .userDidAuthenticate, object: nil)
+        } catch {
+            authState = .error(message: error.localizedDescription)
+            throw error
+        }
+    }
+
+    /// Convert the current guest account into a real one (same user id → data preserved).
+    func upgradeAccount(name: String?, email: String, password: String) async throws {
+        let response = try await api.upgradeAnonymous(name: name, email: email, password: password)
+
+        let tokens = AuthTokens(
+            accessToken: response.accessToken,
+            refreshToken: response.refreshToken,
+            expiresIn: response.expiresIn
+        )
+        tokenStore.storeTokens(tokens, user: response.user)
+
+        currentUser = response.user
+        isAuthenticated = true
+        authState = .authenticated(user: response.user)
+
+        NotificationCenter.default.post(name: .userDidAuthenticate, object: nil)
+    }
+
     // MARK: - Registration
 
     /// Register a new account with email and password

@@ -18,6 +18,11 @@ struct AuthUser: Codable, Equatable {
     let id: String
     let email: String
     let name: String?
+    /// True for no-signup guest accounts (upgradeable). Absent on older responses.
+    let isAnonymous: Bool?
+
+    /// Whether this is a guest (anonymous) account that can be upgraded.
+    var isGuest: Bool { isAnonymous ?? false }
 
     var displayName: String {
         name ?? email.components(separatedBy: "@").first ?? email
