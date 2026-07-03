@@ -413,8 +413,8 @@ class AppState: ObservableObject {
     let autoAnswerService = AutoAnswerService()
     let audioBatchingService = AudioBatchingService()
     let systemAudioBatchingService = AudioBatchingService()  // Separate batching for system audio
-    let micVAD: VoiceActivityDetector = EnergyVAD()           // Gate silence on the mic transcription path
-    let systemVAD: VoiceActivityDetector = EnergyVAD()        // Independent state for the system-audio path
+    let micVAD: VoiceActivityDetector = EnergyVAD(label: "mic")       // Gate silence on the mic transcription path
+    let systemVAD: VoiceActivityDetector = EnergyVAD(label: "system") // Independent state for the system-audio path
     let transcriptBuffer = TranscriptBuffer()
     let systemTranscriptBuffer = TranscriptBuffer(flushInterval: 2.0)  // Longer batching for system audio sentences
     let dictationService = DictationService()

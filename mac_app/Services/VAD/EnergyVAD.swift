@@ -40,6 +40,7 @@ final class EnergyVAD: VoiceActivityDetector {
     }
 
     private let config: Config
+    private let label: String
 
     // MARK: - State
 
@@ -49,10 +50,17 @@ final class EnergyVAD: VoiceActivityDetector {
     private var redemptionCounter: Int = 0
     private var preRoll: [Data] = []
 
+    #if DEBUG
+    // Debug stats: how much audio is gated as silence.
+    private var totalChunks: Int = 0
+    private var gatedChunks: Int = 0
+    #endif
+
     // MARK: - Init
 
-    init(config: Config = .default) {
+    init(config: Config = .default, label: String = "vad") {
         self.config = config
+        self.label = label
     }
 
     // MARK: - VoiceActivityDetector
@@ -60,6 +68,19 @@ final class EnergyVAD: VoiceActivityDetector {
     func process(_ chunk: Data) -> [Data] {
         guard !chunk.isEmpty else { return [] }
 
+        let out = classify(chunk)
+        #if DEBUG
+        totalChunks += 1
+        if out.isEmpty { gatedChunks += 1 }
+        if totalChunks % 100 == 0 {
+            let pct = Int(Double(gatedChunks) / Double(totalChunks) * 100)
+            print("[VAD \(label)] \(gatedChunks)/\(totalChunks) chunks gated as silence (\(pct)% dropped), noiseFloor=\(String(format: "%.4f", noiseFloor))")
+        }
+        #endif
+        return out
+    }
+
+    private func classify(_ chunk: Data) -> [Data] {
         let rms = Self.rms(of: chunk)
         let onset = max(noiseFloor * config.positiveSpeechThreshold, config.minAbsoluteRMS)
         let offset = max(noiseFloor * config.negativeSpeechThreshold, config.minAbsoluteRMS * 0.5)
