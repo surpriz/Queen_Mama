@@ -123,6 +123,14 @@
 		100000000000000000000083 /* TranscriptDeduplicator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 100000000000000000000082 /* TranscriptDeduplicator.swift */; };
 		10000000000000000000009B /* EchoCancellationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 10000000000000000000009A /* EchoCancellationService.swift */; };
 		10000000000000000000009D /* EchoCancellationServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 10000000000000000000009C /* EchoCancellationServiceTests.swift */; };
+		10000000000000000000009F /* VoiceActivityDetector.swift in Sources */ = {isa = PBXBuildFile; fileRef = 10000000000000000000009E /* VoiceActivityDetector.swift */; };
+		1000000000000000000000A1 /* EnergyVAD.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1000000000000000000000A0 /* EnergyVAD.swift */; };
+		1000000000000000000000A3 /* SileroVAD.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1000000000000000000000A2 /* SileroVAD.swift */; };
+		1000000000000000000000A5 /* SyntaxHighlighter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1000000000000000000000A4 /* SyntaxHighlighter.swift */; };
+		1000000000000000000000A7 /* RichBlockRenderer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1000000000000000000000A6 /* RichBlockRenderer.swift */; };
+		1000000000000000000000A9 /* rich in Resources */ = {isa = PBXBuildFile; fileRef = 1000000000000000000000A8 /* rich */; };
+		1000000000000000000000AB /* EnergyVADTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1000000000000000000000AA /* EnergyVADTests.swift */; };
+		1000000000000000000000AD /* SyntaxHighlighterTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1000000000000000000000AC /* SyntaxHighlighterTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -252,6 +260,14 @@
 		100000000000000000000079 /* AppMoveHelper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppMoveHelper.swift; sourceTree = "<group>"; };
 		100000000000000000000082 /* TranscriptDeduplicator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TranscriptDeduplicator.swift; sourceTree = "<group>"; };
 		10000000000000000000009A /* EchoCancellationService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EchoCancellationService.swift; sourceTree = "<group>"; };
+		10000000000000000000009E /* VoiceActivityDetector.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VoiceActivityDetector.swift; sourceTree = "<group>"; };
+		1000000000000000000000A0 /* EnergyVAD.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EnergyVAD.swift; sourceTree = "<group>"; };
+		1000000000000000000000A2 /* SileroVAD.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SileroVAD.swift; sourceTree = "<group>"; };
+		1000000000000000000000A4 /* SyntaxHighlighter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SyntaxHighlighter.swift; sourceTree = "<group>"; };
+		1000000000000000000000A6 /* RichBlockRenderer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RichBlockRenderer.swift; sourceTree = "<group>"; };
+		1000000000000000000000A8 /* rich */ = {isa = PBXFileReference; lastKnownFileType = folder; name = rich; path = Resources/rich; sourceTree = "<group>"; };
+		1000000000000000000000AA /* EnergyVADTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EnergyVADTests.swift; sourceTree = "<group>"; };
+		1000000000000000000000AC /* SyntaxHighlighterTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SyntaxHighlighterTests.swift; sourceTree = "<group>"; };
 		200000000000000000000002 /* QueenMamaTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = QueenMamaTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
@@ -295,6 +311,7 @@
 				400000000000000000000007 /* Utilities */,
 				100000000000000000000019 /* Assets.xcassets */,
 				100000000000000000000077 /* Localizable.xcstrings */,
+				1000000000000000000000A8 /* rich */,
 				10000000000000000000001A /* Info.plist */,
 				10000000000000000000001B /* QueenMama.entitlements */,
 			);
@@ -349,6 +366,7 @@
 				100000000000000000000055 /* AutoAnswerServiceTests.swift */,
 				10000000000000000000005B /* TranscriptBufferTests.swift */,
 				10000000000000000000009C /* EchoCancellationServiceTests.swift */,
+				1000000000000000000000AA /* EnergyVADTests.swift */,
 				10000000000000000000005F /* AIServiceLogicTests.swift */,
 				100000000000000000000067 /* TranscriptionConnectionStateTests.swift */,
 				10000000000000000000006B /* HealthCheckServiceTests.swift */,
@@ -378,6 +396,7 @@
 			children = (
 				100000000000000000000065 /* MarkdownParserTests.swift */,
 				100000000000000000000069 /* ExtensionsTests.swift */,
+				1000000000000000000000AC /* SyntaxHighlighterTests.swift */,
 			);
 			path = Utilities;
 			sourceTree = "<group>";
@@ -435,11 +454,22 @@
 				10000000000000000000003B /* ContactExtractionService.swift */,
 				100000000000000000000041 /* DictationService.swift */,
 				100000000000000000000047 /* MeetingDetectionService.swift */,
+				400000000000000000000021 /* VAD */,
 				400000000000000000000008 /* Providers */,
 				496625C6D6B5E0B4CD6D694C /* Proxy */,
 				400000000000000000000020 /* Translation */,
 			);
 			path = Services;
+			sourceTree = "<group>";
+		};
+		400000000000000000000021 /* VAD */ = {
+			isa = PBXGroup;
+			children = (
+				10000000000000000000009E /* VoiceActivityDetector.swift */,
+				1000000000000000000000A0 /* EnergyVAD.swift */,
+				1000000000000000000000A2 /* SileroVAD.swift */,
+			);
+			path = VAD;
 			sourceTree = "<group>";
 		};
 		400000000000000000000020 /* Translation */ = {
@@ -477,6 +507,8 @@
 				AED67FF476044F25BA92C2A6 /* MarkdownRenderer.swift */,
 				100000000000000000000082 /* TranscriptDeduplicator.swift */,
 				10000000000000000000009A /* EchoCancellationService.swift */,
+				1000000000000000000000A4 /* SyntaxHighlighter.swift */,
+				1000000000000000000000A6 /* RichBlockRenderer.swift */,
 			);
 			path = Utilities;
 			sourceTree = "<group>";
@@ -701,6 +733,7 @@
 			files = (
 				000000000000000000000019 /* Assets.xcassets in Resources */,
 				100000000000000000000078 /* Localizable.xcstrings in Resources */,
+				1000000000000000000000A9 /* rich in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -796,6 +829,11 @@
 				10000000000000000000007A /* AppMoveHelper.swift in Sources */,
 				100000000000000000000083 /* TranscriptDeduplicator.swift in Sources */,
 				10000000000000000000009B /* EchoCancellationService.swift in Sources */,
+				10000000000000000000009F /* VoiceActivityDetector.swift in Sources */,
+				1000000000000000000000A1 /* EnergyVAD.swift in Sources */,
+				1000000000000000000000A3 /* SileroVAD.swift in Sources */,
+				1000000000000000000000A5 /* SyntaxHighlighter.swift in Sources */,
+				1000000000000000000000A7 /* RichBlockRenderer.swift in Sources */,
 				10000000000000000000007E /* PricingView.swift in Sources */,
 				100000000000000000000080 /* FreeWelcomeBannerView.swift in Sources */,
 				100000000000000000000087 /* TranslationProvider.swift in Sources */,
@@ -821,6 +859,8 @@
 				10000000000000000000005A /* LicenseModelTests.swift in Sources */,
 				10000000000000000000005C /* TranscriptBufferTests.swift in Sources */,
 				10000000000000000000009D /* EchoCancellationServiceTests.swift in Sources */,
+				1000000000000000000000AB /* EnergyVADTests.swift in Sources */,
+				1000000000000000000000AD /* SyntaxHighlighterTests.swift in Sources */,
 				100000000000000000000060 /* AIServiceLogicTests.swift in Sources */,
 				100000000000000000000062 /* SessionModelTests.swift in Sources */,
 				100000000000000000000064 /* ContactModelTests.swift in Sources */,

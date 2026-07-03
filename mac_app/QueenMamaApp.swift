@@ -413,6 +413,8 @@ class AppState: ObservableObject {
     let autoAnswerService = AutoAnswerService()
     let audioBatchingService = AudioBatchingService()
     let systemAudioBatchingService = AudioBatchingService()  // Separate batching for system audio
+    let micVAD: VoiceActivityDetector = EnergyVAD()           // Gate silence on the mic transcription path
+    let systemVAD: VoiceActivityDetector = EnergyVAD()        // Independent state for the system-audio path
     let transcriptBuffer = TranscriptBuffer()
     let systemTranscriptBuffer = TranscriptBuffer(flushInterval: 2.0)  // Longer batching for system audio sentences
     let dictationService = DictationService()
@@ -517,10 +519,18 @@ class AppState: ObservableObject {
                 // Cancel echo (remote audio leaking from speakers into the mic) at the
                 // signal level so bleed never reaches Deepgram and can't be mis-labelled "Moi".
                 let cleaned = self.echoCancellationService.process(buffer)
-                self.audioBatchingService.append(cleaned)
-                // Send to dictation if recording (cleaned: dictation only wants the user's voice)
+                // Send to dictation if recording (cleaned: dictation only wants the
+                // user's voice). Dictation gets the full stream — VAD must not gate it.
                 if self.dictationService.isRecording == true {
                     self.dictationService.sendAudio(cleaned)
+                }
+                // Gate silence before transcription so Deepgram only bills/transcribes speech.
+                if ConfigurationManager.shared.vadEnabled {
+                    for speech in self.micVAD.process(cleaned) {
+                        self.audioBatchingService.append(speech)
+                    }
+                } else {
+                    self.audioBatchingService.append(cleaned)
                 }
             }
 
@@ -534,8 +544,16 @@ class AppState: ObservableObject {
             systemAudioService.onAudioBuffer = { [weak self] buffer in
                 guard let self = self else { return }
                 // Feed system audio to the AEC as the far-end reference (echo source).
+                // Reference must stay continuous (AEC needs the full far-end), so push
+                // the raw buffer before any VAD gating.
                 self.echoCancellationService.pushReference(buffer)
-                self.systemAudioBatchingService.append(buffer)
+                if ConfigurationManager.shared.vadEnabled {
+                    for speech in self.systemVAD.process(buffer) {
+                        self.systemAudioBatchingService.append(speech)
+                    }
+                } else {
+                    self.systemAudioBatchingService.append(buffer)
+                }
             }
             systemAudioBatchingService.onBatchReady = { [weak self] batch in
                 self?.transcriptionService.sendSystemAudio(batch)
@@ -731,6 +749,8 @@ class AppState: ObservableObject {
         systemAudioService.reset()  // Reset system audio service
         transcriptDeduplicator.reset()  // Reset dedup state
         echoCancellationService.reset()  // Reset adaptive echo-canceller state
+        micVAD.reset()  // Reset VAD state so it doesn't carry across sessions
+        systemVAD.reset()
         autoAnswerService.reset()  // Reset auto-answer state
         autoAnswerService.resetProactiveState()  // Reset proactive state
         preGenerationService.reset()  // Reset pre-generation buffer

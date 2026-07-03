@@ -67,6 +67,13 @@ struct QMDesign {
         static let textTertiary = Color.white.opacity(0.5)
         static let textDisabled = Color.white.opacity(0.3)
 
+        // Code syntax-highlighting tokens (dark-theme palette)
+        static let codeKeyword = Color(hex: "C792EA")   // purple
+        static let codeString  = Color(hex: "C3E88D")   // green
+        static let codeComment = Color(hex: "697098")   // muted blue-grey
+        static let codeNumber  = Color(hex: "F78C6C")   // orange
+        static let codeType    = Color(hex: "82AAFF")   // blue
+
         // Border colors
         static let borderSubtle = Color.white.opacity(0.08)
         static let borderMedium = Color.white.opacity(0.15)

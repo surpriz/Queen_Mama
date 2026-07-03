@@ -15,6 +15,8 @@ enum MarkdownBlock {
     case header3(String)
     case paragraph(String)
     case codeBlock(code: String, language: String?)
+    case mathBlock(String)        // LaTeX, rendered with KaTeX
+    case diagram(String)          // Mermaid source, rendered as a diagram
     case bulletItem(text: String, indent: Int)
     case orderedItem(text: String, number: Int)
     case table(headers: [String], rows: [[String]])
@@ -39,6 +41,10 @@ struct MarkdownParser {
         // State machine for tables
         var tableLines: [String] = []
 
+        // State machine for $$ math blocks
+        var inMathFence = false
+        var mathLines: [String] = []
+
         for line in lines {
             let trimmed = line.trimmingCharacters(in: .whitespaces)
 
@@ -55,9 +61,16 @@ struct MarkdownParser {
                     let lang = String(trimmed.dropFirst(3)).trimmingCharacters(in: .whitespaces)
                     codeBlockLanguage = lang.isEmpty ? nil : lang
                 } else {
-                    // Closing fence: emit code block
+                    // Closing fence: emit code block (or a math/diagram block by language)
                     let code = codeBlockLines.joined(separator: "\n")
-                    blocks.append(.codeBlock(code: code, language: codeBlockLanguage))
+                    switch codeBlockLanguage?.lowercased() {
+                    case "mermaid":
+                        blocks.append(.diagram(code))
+                    case "math", "latex", "katex", "tex":
+                        blocks.append(.mathBlock(code))
+                    default:
+                        blocks.append(.codeBlock(code: code, language: codeBlockLanguage))
+                    }
                     inCodeBlock = false
                     codeBlockLines = []
                     codeBlockLanguage = nil
@@ -68,6 +81,37 @@ struct MarkdownParser {
             // Inside a code block: preserve raw lines (no trimming)
             if inCodeBlock {
                 codeBlockLines.append(line)
+                continue
+            }
+
+            // --- Math block ($$ ... $$) ---
+            // Only block-level $$ is parsed (inline $...$ is left alone to avoid
+            // false positives on currency like "$5").
+            if trimmed == "$$" {
+                if !inMathFence {
+                    if !currentParagraph.isEmpty {
+                        blocks.append(.paragraph(currentParagraph))
+                        currentParagraph = ""
+                    }
+                    inMathFence = true
+                    mathLines = []
+                } else {
+                    blocks.append(.mathBlock(mathLines.joined(separator: "\n")))
+                    inMathFence = false
+                    mathLines = []
+                }
+                continue
+            }
+            if inMathFence {
+                mathLines.append(line)
+                continue
+            }
+            if trimmed.hasPrefix("$$") && trimmed.hasSuffix("$$") && trimmed.count > 4 {
+                if !currentParagraph.isEmpty {
+                    blocks.append(.paragraph(currentParagraph))
+                    currentParagraph = ""
+                }
+                blocks.append(.mathBlock(String(trimmed.dropFirst(2).dropLast(2))))
                 continue
             }
 
@@ -172,9 +216,13 @@ struct MarkdownParser {
             }
         }
         if inCodeBlock {
-            // Unclosed code block (streaming scenario): emit what we have
+            // Unclosed code block (streaming scenario): emit raw as code until the
+            // fence closes — keeps math/diagram rendering to final content only.
             let code = codeBlockLines.joined(separator: "\n")
             blocks.append(.codeBlock(code: code, language: codeBlockLanguage))
+        } else if inMathFence {
+            // Unclosed math (still streaming): show the raw source as a paragraph.
+            blocks.append(.paragraph(mathLines.joined(separator: " ")))
         } else if !currentParagraph.isEmpty {
             blocks.append(.paragraph(currentParagraph))
         }
@@ -285,6 +333,12 @@ struct MarkdownText: View {
 
                 case .codeBlock(let code, let language):
                     CodeBlockView(code: code, language: language)
+
+                case .mathBlock(let latex):
+                    RichBlockView(source: latex, kind: .math)
+
+                case .diagram(let mermaid):
+                    RichBlockView(source: mermaid, kind: .diagram)
 
                 case .bulletItem(let text, let indent):
                     HStack(alignment: .top, spacing: 6) {
@@ -413,10 +467,10 @@ struct CodeBlockView: View {
             .padding(.top, 6)
             .padding(.bottom, 2)
 
-            // Code content
-            Text(code)
+            // Code content (syntax-highlighted, native — stays in the overlay panel)
+            Text(SyntaxHighlighter.highlight(code, language: language))
                 .font(QMDesign.Typography.mono)
-                .foregroundColor(QMDesign.Colors.textPrimary)
+                .textSelection(.enabled)
                 .padding(.horizontal, 10)
                 .padding(.vertical, 4)
                 .frame(maxWidth: .infinity, alignment: .leading)
