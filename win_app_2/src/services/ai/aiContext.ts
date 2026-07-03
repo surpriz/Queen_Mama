@@ -4,6 +4,19 @@ import type { Mode } from '@/types/models'
 import type { AIMessage } from '@/types/api'
 import { useConfigStore } from '@/stores/configStore'
 import * as contactDb from '@/services/contacts/contactDb'
+import { getPromptExperiment } from '@/services/proxy/proxyConfigManager'
+
+// Stable slug per response type for server-driven prompt experiments (must match
+// the PostHog `prompt_experiments` payload keys and the macOS experimentKey).
+const EXPERIMENT_KEY: Record<ResponseType, string> = {
+  [ResponseType.Assist]: 'assist',
+  [ResponseType.WhatToSay]: 'whatToSay',
+  [ResponseType.FollowUp]: 'followUp',
+  [ResponseType.Recap]: 'recap',
+  [ResponseType.Decode]: 'decode',
+  [ResponseType.Custom]: 'custom',
+  [ResponseType.Translate]: 'translate',
+}
 
 // Match macOS transcript limits: 10000 standard (~12 min), 50000 recap (~1h)
 const MAX_TRANSCRIPT_LENGTH = 10000
@@ -217,11 +230,21 @@ export function buildSystemPrompt(params: AIContextParams): string {
     // Developer Exam has its own complete prompt — skip responseType addition
     if (mode?.name !== 'Developer Exam') {
       // Default mode uses classic coaching prompts, others use NZT-enhanced prompts
-      if (!mode || mode.name === 'Default') {
-        prompt += '\n\n' + RESPONSE_TYPE_INFO[responseType].classicSystemPromptAddition
-      } else {
-        prompt += '\n\n' + RESPONSE_TYPE_INFO[responseType].systemPromptAddition
+      let addition =
+        !mode || mode.name === 'Default'
+          ? RESPONSE_TYPE_INFO[responseType].classicSystemPromptAddition
+          : RESPONSE_TYPE_INFO[responseType].systemPromptAddition
+
+      // Server-driven A/B experiment (PostHog prompt_experiments via /api/proxy/config).
+      // Lets us test/swap prompts without shipping an app update.
+      const exp = getPromptExperiment(EXPERIMENT_KEY[responseType])
+      if (exp?.text) {
+        if (exp.op === 'override') addition = exp.text
+        else if (exp.op === 'append') addition += '\n\n' + exp.text
+        // "control" / unknown → keep the built-in prompt
       }
+
+      prompt += '\n\n' + addition
 
       // Inline language reinforcement for short response types (FollowUp, WhatToSay)
       // whose prompt bodies are predominantly English and bias the model toward English

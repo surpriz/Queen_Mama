@@ -1,6 +1,6 @@
 import { fetchConfig } from './proxyApiClient'
 import { createLogger } from '@/lib/logger'
-import type { ProxyConfig } from '@/types/api'
+import type { ProxyConfig, PromptExperiment } from '@/types/api'
 
 const log = createLogger('ProxyConfig')
 
@@ -98,6 +98,11 @@ export function isTranslationEnabled(): boolean {
 
 export function getTranslationProvider(): string | null {
   return cachedConfig?.services?.translation?.provider ?? null
+}
+
+/** Server-driven prompt A/B variant for a response-type slug (assist, whatToSay, …). */
+export function getPromptExperiment(experimentKey: string): PromptExperiment | undefined {
+  return cachedConfig?.experiments?.[experimentKey]
 }
 
 /** Test-only: reset module state between specs. */

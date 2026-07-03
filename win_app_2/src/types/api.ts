@@ -1,5 +1,16 @@
 // API types for backend communication
 
+/**
+ * Server-assigned prompt variant for one response type (A/B testing).
+ * `op`: "control" (no change), "override" (replace the type's prompt addition),
+ * or "append" (add `text` after it). Driven by the PostHog `prompt_experiments` flag.
+ */
+export interface PromptExperiment {
+  key: string
+  op: string
+  text?: string
+}
+
 export interface ProxyConfig {
   aiProviders: string[]
   transcriptionProviders: string[]
@@ -12,6 +23,8 @@ export interface ProxyConfig {
       monthlyCharsLimit?: number | null
     }
   }
+  /** Prompt A/B experiments, keyed by response-type slug (assist, whatToSay, …). */
+  experiments?: Record<string, PromptExperiment>
 }
 
 export interface TranslationProxyRequest {
