@@ -260,6 +260,32 @@ export async function register(
   })
 }
 
+// Anonymous (no-signup)
+export async function loginAnonymously(deviceInfo: DeviceInfo): Promise<LoginResponse> {
+  return fetchAPI('/api/auth/anonymous', {
+    method: 'POST',
+    body: {
+      deviceId: deviceInfo.deviceId,
+      deviceName: deviceInfo.deviceName,
+      platform: deviceInfo.platform,
+      osVersion: deviceInfo.osVersion,
+      appVersion: deviceInfo.appVersion,
+    },
+  })
+}
+
+export async function upgradeAnonymous(
+  name: string | undefined,
+  email: string,
+  password: string,
+): Promise<LoginResponse> {
+  return fetchAPI('/api/auth/anonymous/upgrade', {
+    method: 'POST',
+    requiresAuth: true,
+    body: { email, password, ...(name ? { name } : {}) },
+  })
+}
+
 // Token Refresh
 export async function refreshTokens(refreshToken: string): Promise<RefreshResponse> {
   return fetchAPI('/api/auth/macos/refresh', {

@@ -178,6 +178,48 @@ export async function registerWithCredentials(
   }
 }
 
+// Anonymous (no-signup)
+export async function continueAnonymously(): Promise<void> {
+  const store = useAuthStore.getState()
+  store.setAuthenticating()
+
+  try {
+    const deviceInfo = await getDeviceInfo()
+    const response = await authApi.loginAnonymously(deviceInfo)
+
+    await storeTokens(response.accessToken, response.refreshToken, response.expiresIn, response.user)
+    store.setAuthenticated(response.user)
+    setSentryUser(response.user.id, response.user.email)
+    addBreadcrumb('auth', 'Anonymous session started', 'info')
+
+    licenseManager.revalidate().catch((err) => {
+      log.warn('License revalidation failed:', err)
+    })
+  } catch (error) {
+    store.setError(error instanceof Error ? error.message : 'Anonymous sign-in failed')
+    throw error
+  }
+}
+
+/** Convert the current guest account into a real one (same user id → data preserved). */
+export async function upgradeAccount(
+  name: string | undefined,
+  email: string,
+  password: string,
+): Promise<void> {
+  const store = useAuthStore.getState()
+  const response = await authApi.upgradeAnonymous(name, email, password)
+
+  await storeTokens(response.accessToken, response.refreshToken, response.expiresIn, response.user)
+  store.setAuthenticated(response.user)
+  setSentryUser(response.user.id, response.user.email)
+  addBreadcrumb('auth', 'Anonymous account upgraded', 'info')
+
+  licenseManager.revalidate().catch((err) => {
+    log.warn('License revalidation failed:', err)
+  })
+}
+
 export async function startDeviceCodeFlow(): Promise<{
   userCode: string
   verificationUri: string

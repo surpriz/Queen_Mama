@@ -51,7 +51,11 @@
     "via": "via {{method}}",
     "sessionExpired": "Session Expired",
     "sessionExpiredMessage": "Please sign in again to continue using Queen Mama.",
-    "localDataPreserved": "Your local sessions and settings are preserved."
+    "localDataPreserved": "Your local sessions and settings are preserved.",
+    "name": "Name",
+    "continueWithoutAccount": "Continue without an account",
+    "guestModeTitle": "Guest mode",
+    "guestModeBody": "You're using a guest account. Create an account to keep your sessions and settings across devices and reinstalls."
   },
   "license": {
     "free": "FREE",

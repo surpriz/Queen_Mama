@@ -20,6 +20,8 @@ export interface AuthUser {
   image: string | null
   role: string
   authMethod?: string | null
+  /** True for no-signup guest accounts (upgradeable). Absent on older responses. */
+  isAnonymous?: boolean
 }
 
 export function getAuthMethodLabel(authMethod: string | null | undefined): string | null {

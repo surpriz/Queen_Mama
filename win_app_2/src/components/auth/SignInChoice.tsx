@@ -18,7 +18,7 @@ interface SignInChoiceProps {
 
 export function SignInChoice({ onAuthenticated }: SignInChoiceProps) {
   const { t } = useTranslation()
-  const { authState, isAuthenticated, loginWithGoogle } = useAuth()
+  const { authState, isAuthenticated, loginWithGoogle, continueAnonymously } = useAuth()
   const [currentView, setCurrentView] = useState<SignInView>('choice')
   const [isLoading, setIsLoading] = useState(false)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
@@ -38,6 +38,18 @@ export function SignInChoice({ onAuthenticated }: SignInChoiceProps) {
       log.info('Google sign-in completed')
     } catch (error) {
       log.error('Google sign-in failed:', error)
+      setErrorMessage(error instanceof Error ? error.message : t('auth.signInFailed'))
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const handleAnonymous = async () => {
+    setIsLoading(true)
+    setErrorMessage(null)
+    try {
+      await continueAnonymously()
+    } catch (error) {
       setErrorMessage(error instanceof Error ? error.message : t('auth.signInFailed'))
     } finally {
       setIsLoading(false)
@@ -115,6 +127,13 @@ export function SignInChoice({ onAuthenticated }: SignInChoiceProps) {
             className="w-full px-4 py-3 rounded-qm-lg border border-qm-border-medium text-qm-text-secondary font-medium hover:bg-qm-surface-light transition-colors"
           >
             {t('auth.createAccount')}
+          </button>
+
+          <button
+            onClick={handleAnonymous}
+            className="w-full px-4 py-2 text-body-sm text-qm-text-tertiary hover:text-qm-text-secondary transition-colors"
+          >
+            {t('auth.continueWithoutAccount')}
           </button>
         </>
       )}

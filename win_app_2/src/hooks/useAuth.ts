@@ -15,6 +15,8 @@ export function useAuth() {
     startDeviceCodeFlow: authManager.startDeviceCodeFlow,
     cancelDeviceCodeFlow: authManager.cancelDeviceCodeFlow,
     loginWithGoogle: authManager.loginWithGoogle,
+    continueAnonymously: authManager.continueAnonymously,
+    upgradeAccount: authManager.upgradeAccount,
     logout: authManager.logoutUser,
   }
 }
