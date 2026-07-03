@@ -1187,6 +1187,15 @@ struct ModernAudioSettingsView: View {
                         isOn: $config.captureSystemAudio,
                         icon: "speaker.wave.3.fill"
                     )
+
+                    Divider().background(QMDesign.Colors.borderSubtle)
+
+                    ModernToggleRow(
+                        title: String(localized: "settings.audio.vad"),
+                        description: String(localized: "settings.audio.vad.description"),
+                        isOn: $config.vadEnabled,
+                        icon: "waveform.badge.mic"
+                    )
                 }
             }
 
@@ -1730,6 +1739,7 @@ struct ModernAccountSettingsView: View {
 
     @State private var showLogoutConfirmation = false
     @State private var showUpgradeSheet = false
+    @State private var showConvertAccountSheet = false
     @State private var isConnecting = false
     @State private var deviceCodeResponse: DeviceCodeResponse?
     @State private var connectionError: String?
@@ -1744,6 +1754,35 @@ struct ModernAccountSettingsView: View {
             )
 
             if authManager.isAuthenticated, let user = authManager.currentUser {
+                // Guest conversion prompt (anonymous accounts)
+                if user.isGuest {
+                    SettingsCard(title: String(localized: "settings.account.guestTitle"), icon: "person.crop.circle.badge.exclamationmark") {
+                        VStack(alignment: .leading, spacing: QMDesign.Spacing.md) {
+                            Text(String(localized: "settings.account.guestBody"))
+                                .font(QMDesign.Typography.bodySmall)
+                                .foregroundColor(QMDesign.Colors.textSecondary)
+                                .fixedSize(horizontal: false, vertical: true)
+                            Button(action: { showConvertAccountSheet = true }) {
+                                HStack(spacing: QMDesign.Spacing.sm) {
+                                    Image(systemName: "person.badge.plus")
+                                    Text(String(localized: "settings.account.createAccount"))
+                                }
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, QMDesign.Spacing.md)
+                                .background(
+                                    RoundedRectangle(cornerRadius: QMDesign.Radius.md)
+                                        .fill(QMDesign.Colors.primaryGradient)
+                                )
+                                .foregroundColor(.white)
+                            }
+                            .buttonStyle(.plain)
+                        }
+                    }
+                    .sheet(isPresented: $showConvertAccountSheet) {
+                        UpgradeAccountView()
+                    }
+                }
+
                 // Connected Account Card
                 SettingsCard(title: String(localized: "settings.account.connectedAccount"), icon: "person.crop.circle.fill") {
                     VStack(spacing: QMDesign.Spacing.md) {

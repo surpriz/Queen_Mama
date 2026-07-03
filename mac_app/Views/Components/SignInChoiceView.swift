@@ -10,6 +10,7 @@ struct SignInChoiceView: View {
     @State private var showEmailSignIn = false
     @State private var showRegistrationForm = false
     @State private var isGoogleLoading = false
+    @State private var isAnonymousLoading = false
     @State private var errorMessage = ""
     @State private var isGoogleButtonHovered = false
 
@@ -143,6 +144,22 @@ struct SignInChoiceView: View {
                     .foregroundColor(QMDesign.Colors.textPrimary)
                 }
                 .buttonStyle(.plain)
+
+                // Continue without an account (anonymous guest session)
+                Button(action: continueAnonymously) {
+                    HStack(spacing: QMDesign.Spacing.xs) {
+                        if isAnonymousLoading {
+                            ProgressView().scaleEffect(0.7)
+                        }
+                        Text(String(localized: "auth.choice.continueWithoutAccount"))
+                            .font(QMDesign.Typography.bodySmall)
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, QMDesign.Spacing.sm)
+                    .foregroundColor(QMDesign.Colors.textTertiary)
+                }
+                .buttonStyle(.plain)
+                .disabled(isAnonymousLoading)
             }
         }
         .padding(.horizontal, QMDesign.Spacing.xl)
@@ -221,6 +238,21 @@ struct SignInChoiceView: View {
 
     // MARK: - Actions
 
+    private func continueAnonymously() {
+        isAnonymousLoading = true
+        errorMessage = ""
+
+        Task {
+            do {
+                try await authManager.continueAnonymously()
+                // Success handled by onChange of authState
+            } catch {
+                errorMessage = error.localizedDescription
+            }
+            isAnonymousLoading = false
+        }
+    }
+
     private func signInWithGoogle() {
         isGoogleLoading = true
         errorMessage = ""
@@ -255,4 +287,85 @@ struct SignInChoiceView: View {
     )
     .frame(width: 400, height: 600)
     .background(QMDesign.Colors.backgroundPrimary)
+}
+
+/// Converts the current guest (anonymous) account into a real credentials account.
+/// Keeps the same user id so local/synced data is preserved.
+struct UpgradeAccountView: View {
+    @Environment(\.dismiss) private var dismiss
+    @StateObject private var authManager = AuthenticationManager.shared
+
+    @State private var name = ""
+    @State private var email = ""
+    @State private var password = ""
+    @State private var isLoading = false
+    @State private var errorMessage = ""
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: QMDesign.Spacing.lg) {
+            Text(String(localized: "settings.account.createAccount"))
+                .font(QMDesign.Typography.titleMedium)
+                .foregroundColor(QMDesign.Colors.textPrimary)
+
+            Text(String(localized: "settings.account.guestBody"))
+                .font(QMDesign.Typography.bodySmall)
+                .foregroundColor(QMDesign.Colors.textSecondary)
+                .fixedSize(horizontal: false, vertical: true)
+
+            TextField(String(localized: "auth.field.name"), text: $name)
+                .textFieldStyle(.roundedBorder)
+            TextField(String(localized: "auth.field.email"), text: $email)
+                .textFieldStyle(.roundedBorder)
+            SecureField(String(localized: "auth.field.password"), text: $password)
+                .textFieldStyle(.roundedBorder)
+
+            if !errorMessage.isEmpty {
+                Text(errorMessage)
+                    .font(QMDesign.Typography.caption)
+                    .foregroundColor(QMDesign.Colors.error)
+            }
+
+            HStack(spacing: QMDesign.Spacing.md) {
+                Button(String(localized: "common.cancel")) { dismiss() }
+                    .buttonStyle(.plain)
+                    .foregroundColor(QMDesign.Colors.textTertiary)
+                Spacer()
+                Button(action: upgrade) {
+                    HStack(spacing: QMDesign.Spacing.xs) {
+                        if isLoading { ProgressView().scaleEffect(0.7) }
+                        Text(String(localized: "settings.account.createAccount"))
+                    }
+                    .padding(.horizontal, QMDesign.Spacing.lg)
+                    .padding(.vertical, QMDesign.Spacing.sm)
+                    .background(
+                        RoundedRectangle(cornerRadius: QMDesign.Radius.md)
+                            .fill(QMDesign.Colors.primaryGradient)
+                    )
+                    .foregroundColor(.white)
+                }
+                .buttonStyle(.plain)
+                .disabled(isLoading || email.isEmpty || password.isEmpty)
+            }
+        }
+        .padding(QMDesign.Spacing.xl)
+        .frame(width: 380)
+    }
+
+    private func upgrade() {
+        isLoading = true
+        errorMessage = ""
+        Task {
+            do {
+                try await authManager.upgradeAccount(
+                    name: name.isEmpty ? nil : name,
+                    email: email,
+                    password: password
+                )
+                dismiss()
+            } catch {
+                errorMessage = error.localizedDescription
+            }
+            isLoading = false
+        }
+    }
 }

@@ -68,6 +68,41 @@ final class AuthAPIClient {
         )
     }
 
+    // MARK: - Anonymous (no-signup)
+
+    /// Creates or resumes a guest session for this device (no credentials).
+    func loginAnonymously(deviceInfo: DeviceInfo) async throws -> LoginResponse {
+        let body: [String: Any] = [
+            "deviceId": deviceInfo.deviceId,
+            "deviceName": deviceInfo.name,
+            "platform": deviceInfo.platform,
+            "osVersion": deviceInfo.osVersion ?? "",
+            "appVersion": deviceInfo.appVersion ?? ""
+        ]
+
+        return try await post(
+            endpoint: "/api/auth/anonymous",
+            body: body,
+            requiresAuth: false
+        )
+    }
+
+    /// Converts the current guest account into a real credentials account.
+    /// Requires the guest access token (attached automatically).
+    func upgradeAnonymous(name: String?, email: String, password: String) async throws -> LoginResponse {
+        var body: [String: Any] = [
+            "email": email,
+            "password": password
+        ]
+        if let name, !name.isEmpty { body["name"] = name }
+
+        return try await post(
+            endpoint: "/api/auth/anonymous/upgrade",
+            body: body,
+            requiresAuth: true
+        )
+    }
+
     // MARK: - Registration
 
     func register(name: String, email: String, password: String, deviceInfo: DeviceInfo) async throws -> RegistrationResponse {

@@ -169,6 +169,54 @@ final class AuthenticationManager: ObservableObject {
         }
     }
 
+    // MARK: - Anonymous (no-signup)
+
+    /// Start (or resume) a guest session so the app is usable without an account.
+    func continueAnonymously() async throws {
+        authState = .authenticating
+
+        do {
+            let response = try await api.loginAnonymously(deviceInfo: deviceInfo)
+
+            let tokens = AuthTokens(
+                accessToken: response.accessToken,
+                refreshToken: response.refreshToken,
+                expiresIn: response.expiresIn
+            )
+            tokenStore.storeTokens(tokens, user: response.user)
+
+            currentUser = response.user
+            isAuthenticated = true
+            authState = .authenticated(user: response.user)
+
+            NotificationCenter.default.post(name: .userDidAuthenticate, object: nil)
+        } catch {
+            CrashReporter.shared.captureError(error, extras: ["service": "auth", "method": "anonymous"])
+            authState = .error(message: AuthError.friendlyMessage(from: error))
+            throw error
+        }
+    }
+
+    /// Convert the current guest account into a real credentials account
+    /// (same user id → all local/synced data is preserved).
+    func upgradeAccount(name: String?, email: String, password: String) async throws {
+        let response = try await api.upgradeAnonymous(name: name, email: email, password: password)
+
+        let tokens = AuthTokens(
+            accessToken: response.accessToken,
+            refreshToken: response.refreshToken,
+            expiresIn: response.expiresIn
+        )
+        tokenStore.storeTokens(tokens, user: response.user)
+
+        currentUser = response.user
+        isAuthenticated = true
+        authState = .authenticated(user: response.user)
+
+        // Refresh downstream config/license now that the account is a real one.
+        NotificationCenter.default.post(name: .userDidAuthenticate, object: nil)
+    }
+
     // MARK: - Device Code Flow
 
     /// Start the device code flow for OAuth users

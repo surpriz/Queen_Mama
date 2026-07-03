@@ -204,6 +204,29 @@ export type DeviceCodeRequest = z.infer<typeof deviceCodeRequestSchema>;
 export type DeviceCodePoll = z.infer<typeof deviceCodePollSchema>;
 export type DeviceAuthorize = z.infer<typeof deviceAuthorizeSchema>;
 export type MacosLogin = z.infer<typeof macosLoginSchema>;
+
+// Anonymous onboarding: create a no-signup guest account (device info only).
+export const anonymousAuthSchema = z.object({
+  deviceId: z.string().uuid("Invalid device ID"),
+  deviceName: z.string().min(1).max(100),
+  platform: z.enum(["macOS", "iOS", "iPadOS", "windows"]).default("macOS"),
+  osVersion: z.string().optional(),
+  appVersion: z.string().optional(),
+});
+export type AnonymousAuth = z.infer<typeof anonymousAuthSchema>;
+
+// Convert an anonymous account into a real one (same user id).
+export const anonymousUpgradeSchema = z.object({
+  name: z.string().min(2, "Name must be at least 2 characters").optional(),
+  email: z.string().email("Invalid email address"),
+  password: z
+    .string()
+    .min(8, "Password must be at least 8 characters")
+    .regex(/[A-Z]/, "Password must contain at least one uppercase letter")
+    .regex(/[a-z]/, "Password must contain at least one lowercase letter")
+    .regex(/[0-9]/, "Password must contain at least one number"),
+});
+export type AnonymousUpgrade = z.infer<typeof anonymousUpgradeSchema>;
 export type MacosRegister = z.infer<typeof macosRegisterSchema>;
 export type MacosRefresh = z.infer<typeof macosRefreshSchema>;
 export type MacosLogout = z.infer<typeof macosLogoutSchema>;
