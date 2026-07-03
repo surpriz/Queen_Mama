@@ -530,6 +530,18 @@ struct ProxyConfig: Codable {
     let services: ProxyServices
     let cacheTTL: Int
     let configuredAt: String
+    /// Server-driven prompt A/B experiments, keyed by `ResponseType.experimentKey`.
+    /// Optional for backward-compat with backends that don't emit it yet.
+    let experiments: [String: PromptExperiment]?
+}
+
+/// A server-assigned prompt variant for one response type (A/B testing).
+/// `op`: "control" (no change), "override" (replace the type's prompt addition),
+/// or "append" (add `text` after it). Driven by the PostHog `prompt_experiments` flag.
+struct PromptExperiment: Codable, Sendable {
+    let key: String
+    let op: String
+    let text: String?
 }
 
 struct ProxyServices: Codable {

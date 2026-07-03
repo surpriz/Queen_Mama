@@ -55,6 +55,18 @@ final class AIResponse: Identifiable {
         case recap = "Recap"
         case custom = "Custom"
 
+        /// Stable, slug-style key for server-driven prompt experiments (must match the
+        /// PostHog `prompt_experiments` payload keys and the macOS experimentKey).
+        var experimentKey: String {
+            switch self {
+            case .assist: return "assist"
+            case .whatToSay: return "whatToSay"
+            case .followUp: return "followUp"
+            case .recap: return "recap"
+            case .custom: return "custom"
+            }
+        }
+
         var localizedName: String {
             switch self {
             case .assist: return String(localized: "response.type.assist")
@@ -773,11 +785,22 @@ struct AIContext: @unchecked Sendable {
             // Developer Exam has its own complete prompt — skip responseType addition
             if mode?.name != "Developer Exam" {
                 // Default mode uses classic coaching prompts, others use NZT-enhanced prompts
-                if mode?.name == "Default" {
-                    prompt += "\n\n" + responseType.classicSystemPromptAddition
-                } else {
-                    prompt += "\n\n" + responseType.systemPromptAddition
+                var addition = (mode?.name == "Default")
+                    ? responseType.classicSystemPromptAddition
+                    : responseType.systemPromptAddition
+
+                // Server-driven A/B experiment (PostHog `prompt_experiments` via
+                // /api/proxy/config). Lets us test/swap prompts without an app release.
+                if let exp = PromptExperimentStore.shared.experiment(for: responseType.experimentKey),
+                   let text = exp.text, !text.isEmpty {
+                    switch exp.op {
+                    case "override": addition = text
+                    case "append": addition += "\n\n" + text
+                    default: break  // "control" or unknown → keep the built-in prompt
+                    }
                 }
+
+                prompt += "\n\n" + addition
 
                 // Inline language reinforcement for short response types (followUp,
                 // whatToSay) whose prompt bodies are English-only and bias the model

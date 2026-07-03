@@ -109,6 +109,7 @@ final class ProxyConfigManager: ObservableObject {
             print("[ProxyConfig] Configuration loaded: \(config?.plan ?? "unknown") plan")
             print("[ProxyConfig] AI providers: \(availableAIProviders)")
             print("[ProxyConfig] Transcription providers: \(availableTranscriptionProviders)")
+            PromptExperimentStore.shared.update(config?.experiments)
         } catch {
             lastError = error
             print("[ProxyConfig] Failed to load configuration: \(error)")
@@ -122,6 +123,7 @@ final class ProxyConfigManager: ObservableObject {
     func clearConfig() {
         config = nil
         lastError = nil
+        PromptExperimentStore.shared.clear()
         proxyClient.clearConfigCache()
         proxyClient.clearTranscriptionTokenCache()
         print("[ProxyConfig] Configuration cleared")
@@ -157,6 +159,32 @@ final class ProxyConfigManager: ObservableObject {
 }
 
 // MARK: - Notifications
+
+// MARK: - Prompt Experiment Store
+
+/// Thread-safe snapshot of the active prompt A/B experiments. Lives outside the
+/// @MainActor config manager so `AIContext.systemPrompt` (built off the main
+/// actor) can read it synchronously. Updated whenever the proxy config loads.
+final class PromptExperimentStore: @unchecked Sendable {
+    static let shared = PromptExperimentStore()
+
+    private let lock = NSLock()
+    private var experiments: [String: PromptExperiment] = [:]
+
+    private init() {}
+
+    func update(_ experiments: [String: PromptExperiment]?) {
+        lock.lock(); defer { lock.unlock() }
+        self.experiments = experiments ?? [:]
+    }
+
+    func experiment(for key: String) -> PromptExperiment? {
+        lock.lock(); defer { lock.unlock() }
+        return experiments[key]
+    }
+
+    func clear() { update(nil) }
+}
 
 extension Notification.Name {
     static let userDidAuthenticate = Notification.Name("userDidAuthenticate")
