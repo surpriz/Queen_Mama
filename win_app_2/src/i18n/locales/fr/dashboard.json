@@ -166,6 +166,8 @@
       "captureMicrophoneDescription": "Enregistrer votre voix pendant les sessions",
       "captureSystemAudio": "Capturer l'audio système",
       "captureSystemAudioDescription": "Enregistrer l'audio des autres participants",
+      "vad": "Filtrer les silences (VAD)",
+      "vadDescription": "Ignorer les silences avant transcription pour réduire le coût et nettoyer les transcripts",
       "audioLevelTest": "Test du niveau audio",
       "audioLevelTestDescription": "Vérifier l'entrée de votre microphone",
       "startTest": "Démarrer le test",

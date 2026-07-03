@@ -27,7 +27,12 @@ import { useContactStore } from '@/stores/contactStore'
 import { transcriptBuffer, TranscriptBuffer } from '@/services/transcription/transcriptBuffer'
 import * as dedup from '@/services/transcription/transcriptDeduplicator'
 import * as echoCanceller from '@/services/audio/echoCanceller'
+import { EnergyVAD } from '@/services/audio/energyVad'
 import * as translationService from '@/services/translation/translationService'
+
+// Local VAD gates: one per stream, independent state. Reset on session end.
+const micVad = new EnergyVAD({}, 'mic')
+const systemVad = new EnergyVAD({}, 'system')
 import * as proxyConfig from '@/services/proxy/proxyConfigManager'
 import { useLicenseStore } from '@/stores/licenseStore'
 import { Feature } from '@/types/auth'
@@ -93,14 +98,25 @@ export async function startSession(mode?: Mode | null, contact?: Contact | null)
     // Cancelling echo at the signal level keeps bleed out of Deepgram so it can't be
     // mis-labelled "Moi".
     audioCapture.setOnMicAudioBuffer((buffer) => {
-      transcription.sendAudio(echoCanceller.process(buffer))
+      const cleaned = echoCanceller.process(buffer)
+      // Gate silence before transcription so Deepgram only bills/transcribes speech.
+      if (useConfigStore.getState().vadEnabled) {
+        for (const frame of micVad.process(cleaned)) transcription.sendAudio(frame)
+      } else {
+        transcription.sendAudio(cleaned)
+      }
     })
 
     // Connect system audio → secondary Deepgram (for "Interlocuteur").
     // Also feed it to the AEC as the far-end reference (the echo source).
     audioCapture.setOnSystemAudioBuffer((buffer) => {
+      // AEC reference must stay continuous → push raw before any VAD gating.
       echoCanceller.pushReference(buffer)
-      transcription.sendSystemAudio(buffer)
+      if (useConfigStore.getState().vadEnabled) {
+        for (const frame of systemVad.process(buffer)) transcription.sendSystemAudio(frame)
+      } else {
+        transcription.sendSystemAudio(buffer)
+      }
     })
 
     // Connect audio level for UI feedback
@@ -537,6 +553,8 @@ function cleanup(): void {
   systemTranscriptBuffer.stop()
   dedup.reset()
   echoCanceller.reset()
+  micVad.reset()
+  systemVad.reset()
   translationService.resetContext()
   audioCapture.stopCapture()
   transcription.disconnect()

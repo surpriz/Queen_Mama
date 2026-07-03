@@ -7,6 +7,8 @@ export interface AppConfig {
   isUndetectabilityEnabled: boolean
   captureSystemAudio: boolean
   captureMicrophone: boolean
+  /** Local voice-activity detection: gate silence before Deepgram (cost + cleaner transcripts). */
+  vadEnabled: boolean
   autoScreenCapture: boolean
   screenCaptureIntervalSeconds: number
   showLiveTranscript: boolean
@@ -63,6 +65,7 @@ export const DEFAULT_CONFIG: AppConfig = {
   isUndetectabilityEnabled: false,
   captureSystemAudio: true,
   captureMicrophone: true,
+  vadEnabled: true,
   autoScreenCapture: true,
   screenCaptureIntervalSeconds: 5.0,
   showLiveTranscript: false,
