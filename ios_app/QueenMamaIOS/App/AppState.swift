@@ -47,6 +47,7 @@ class AppState: ObservableObject {
     let aiService = AIService()
     let autoAnswerService = AutoAnswerService()
     let audioBatchingService = AudioBatchingService()
+    let micVAD: VoiceActivityDetector = EnergyVAD(label: "mic")  // Gate silence on the mic transcription path
     let transcriptBuffer = TranscriptBuffer()
     let dictationService = DictationService()
     let translationService = TranslationService()
@@ -117,9 +118,18 @@ class AppState: ObservableObject {
                 .store(in: &cancellables)
 
             audioService.onAudioBuffer = { [weak self] buffer in
-                self?.audioBatchingService.append(buffer)
-                if self?.dictationService.isRecording == true {
-                    self?.dictationService.sendAudio(buffer)
+                guard let self else { return }
+                // Dictation gets the full stream — VAD must not gate it.
+                if self.dictationService.isRecording == true {
+                    self.dictationService.sendAudio(buffer)
+                }
+                // Gate silence before transcription so Deepgram only bills/transcribes speech.
+                if ConfigurationManager.shared.vadEnabled {
+                    for speech in self.micVAD.process(buffer) {
+                        self.audioBatchingService.append(speech)
+                    }
+                } else {
+                    self.audioBatchingService.append(buffer)
                 }
             }
 
@@ -224,6 +234,7 @@ class AppState: ObservableObject {
         HealthCheckService.shared.stopMonitoring()
 
         audioBatchingService.reset()
+        micVAD.reset()
         transcriptBuffer.reset()
         audioService.stopCapture()
         transcriptionService.disconnect()

@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import UIKit
 
 // MARK: - Markdown Block Types
 
@@ -15,6 +16,8 @@ enum MarkdownBlock {
     case header3(String)
     case paragraph(String)
     case codeBlock(code: String, language: String?)
+    case mathBlock(String)        // LaTeX, rendered with KaTeX
+    case diagram(String)          // Mermaid source, rendered as a diagram
     case bulletItem(text: String, indent: Int)
     case orderedItem(text: String, number: Int)
     case empty
@@ -33,6 +36,10 @@ struct MarkdownParser {
         var codeBlockLines: [String] = []
         var codeBlockLanguage: String?
 
+        // State machine for $$ math blocks
+        var inMathFence = false
+        var mathLines: [String] = []
+
         for line in lines {
             let trimmed = line.trimmingCharacters(in: .whitespaces)
 
@@ -49,9 +56,16 @@ struct MarkdownParser {
                     let lang = String(trimmed.dropFirst(3)).trimmingCharacters(in: .whitespaces)
                     codeBlockLanguage = lang.isEmpty ? nil : lang
                 } else {
-                    // Closing fence: emit code block
+                    // Closing fence: emit code block (or a math/diagram block by language)
                     let code = codeBlockLines.joined(separator: "\n")
-                    blocks.append(.codeBlock(code: code, language: codeBlockLanguage))
+                    switch codeBlockLanguage?.lowercased() {
+                    case "mermaid":
+                        blocks.append(.diagram(code))
+                    case "math", "latex", "katex", "tex":
+                        blocks.append(.mathBlock(code))
+                    default:
+                        blocks.append(.codeBlock(code: code, language: codeBlockLanguage))
+                    }
                     inCodeBlock = false
                     codeBlockLines = []
                     codeBlockLanguage = nil
@@ -62,6 +76,35 @@ struct MarkdownParser {
             // Inside a code block: preserve raw lines (no trimming)
             if inCodeBlock {
                 codeBlockLines.append(line)
+                continue
+            }
+
+            // --- Math block ($$ ... $$) — block-level only (inline $ left alone) ---
+            if trimmed == "$$" {
+                if !inMathFence {
+                    if !currentParagraph.isEmpty {
+                        blocks.append(.paragraph(currentParagraph))
+                        currentParagraph = ""
+                    }
+                    inMathFence = true
+                    mathLines = []
+                } else {
+                    blocks.append(.mathBlock(mathLines.joined(separator: "\n")))
+                    inMathFence = false
+                    mathLines = []
+                }
+                continue
+            }
+            if inMathFence {
+                mathLines.append(line)
+                continue
+            }
+            if trimmed.hasPrefix("$$") && trimmed.hasSuffix("$$") && trimmed.count > 4 {
+                if !currentParagraph.isEmpty {
+                    blocks.append(.paragraph(currentParagraph))
+                    currentParagraph = ""
+                }
+                blocks.append(.mathBlock(String(trimmed.dropFirst(2).dropLast(2))))
                 continue
             }
 
@@ -130,9 +173,12 @@ struct MarkdownParser {
 
         // Flush remaining state
         if inCodeBlock {
-            // Unclosed code block (streaming scenario): emit what we have
+            // Unclosed code block (streaming scenario): emit raw as code until the
+            // fence closes — keeps math/diagram rendering to final content only.
             let code = codeBlockLines.joined(separator: "\n")
             blocks.append(.codeBlock(code: code, language: codeBlockLanguage))
+        } else if inMathFence {
+            blocks.append(.paragraph(mathLines.joined(separator: " ")))
         } else if !currentParagraph.isEmpty {
             blocks.append(.paragraph(currentParagraph))
         }
@@ -203,32 +249,13 @@ struct MarkdownText: View {
                         .padding(.bottom, 4)
 
                 case .codeBlock(let code, let language):
-                    VStack(alignment: .leading, spacing: 0) {
-                        if let lang = language {
-                            Text(lang)
-                                .font(QMDesign.Typography.monoSmall)
-                                .foregroundColor(QMDesign.Colors.textTertiary)
-                                .padding(.horizontal, 10)
-                                .padding(.top, 8)
-                                .padding(.bottom, 4)
-                        }
-                        Text(code)
-                            .font(QMDesign.Typography.mono)
-                            .foregroundColor(QMDesign.Colors.textPrimary)
-                            .padding(.horizontal, 10)
-                            .padding(.vertical, language != nil ? 4 : 10)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .fixedSize(horizontal: false, vertical: true)
-                    }
-                    .background(
-                        RoundedRectangle(cornerRadius: QMDesign.Radius.sm)
-                            .fill(QMDesign.Colors.surfaceMedium)
-                    )
-                    .overlay(
-                        RoundedRectangle(cornerRadius: QMDesign.Radius.sm)
-                            .stroke(QMDesign.Colors.borderSubtle, lineWidth: 1)
-                    )
-                    .padding(.vertical, 2)
+                    CodeBlockView(code: code, language: language)
+
+                case .mathBlock(let latex):
+                    RichBlockView(source: latex, kind: .math)
+
+                case .diagram(let mermaid):
+                    RichBlockView(source: mermaid, kind: .diagram)
 
                 case .bulletItem(let text, let indent):
                     HStack(alignment: .top, spacing: 6) {
@@ -264,5 +291,67 @@ struct MarkdownText: View {
             }
         }
         .textSelection(.enabled)
+    }
+}
+
+// MARK: - Code Block View with Copy Button
+
+struct CodeBlockView: View {
+    let code: String
+    let language: String?
+
+    @State private var showCopied = false
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            HStack(spacing: 0) {
+                if let lang = language {
+                    Text(lang)
+                        .font(QMDesign.Typography.monoSmall)
+                        .foregroundColor(QMDesign.Colors.textTertiary)
+                }
+                Spacer()
+                Button(action: copyCode) {
+                    HStack(spacing: 3) {
+                        Image(systemName: showCopied ? "checkmark" : "doc.on.doc")
+                            .font(.system(size: 9))
+                        Text(showCopied ? "Copied" : "Copy")
+                            .font(.system(size: 10))
+                    }
+                    .foregroundColor(showCopied ? QMDesign.Colors.success : QMDesign.Colors.textTertiary)
+                }
+                .buttonStyle(.plain)
+            }
+            .padding(.horizontal, 10)
+            .padding(.top, 6)
+            .padding(.bottom, 2)
+
+            // Syntax-highlighted code content
+            Text(SyntaxHighlighter.highlight(code, language: language))
+                .font(QMDesign.Typography.mono)
+                .textSelection(.enabled)
+                .padding(.horizontal, 10)
+                .padding(.vertical, 4)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .padding(.bottom, 4)
+        .background(
+            RoundedRectangle(cornerRadius: QMDesign.Radius.sm)
+                .fill(QMDesign.Colors.surfaceMedium)
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: QMDesign.Radius.sm)
+                .stroke(QMDesign.Colors.borderSubtle, lineWidth: 1)
+        )
+        .padding(.vertical, 2)
+    }
+
+    private func copyCode() {
+        UIPasteboard.general.string = code
+        showCopied = true
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+            showCopied = false
+        }
     }
 }

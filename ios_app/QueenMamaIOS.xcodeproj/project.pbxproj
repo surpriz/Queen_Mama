@@ -92,6 +92,12 @@
 		EB4F2491C225CECC620EF2C5 /* SchemaVersioning.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A2257DAB36AB081D88C7A4D /* SchemaVersioning.swift */; };
 		EBDF67627AC0E7853A8B7862 /* ContactExtractionService.swift in Sources */ = {isa = PBXBuildFile; fileRef = E92763F8128FD0D85EEF49F1 /* ContactExtractionService.swift */; };
 		F351580394612B84E78BC078 /* Logger.swift in Sources */ = {isa = PBXBuildFile; fileRef = 35F7A072A56AE17F2A52360D /* Logger.swift */; };
+		FEEDFACE0000000000000102 /* VoiceActivityDetector.swift in Sources */ = {isa = PBXBuildFile; fileRef = FEEDFACE0000000000000101 /* VoiceActivityDetector.swift */; };
+		FEEDFACE0000000000000104 /* EnergyVAD.swift in Sources */ = {isa = PBXBuildFile; fileRef = FEEDFACE0000000000000103 /* EnergyVAD.swift */; };
+		FEEDFACE0000000000000106 /* SileroVAD.swift in Sources */ = {isa = PBXBuildFile; fileRef = FEEDFACE0000000000000105 /* SileroVAD.swift */; };
+		FEEDFACE0000000000000108 /* SyntaxHighlighter.swift in Sources */ = {isa = PBXBuildFile; fileRef = FEEDFACE0000000000000107 /* SyntaxHighlighter.swift */; };
+		FEEDFACE000000000000010A /* RichBlockRenderer.swift in Sources */ = {isa = PBXBuildFile; fileRef = FEEDFACE0000000000000109 /* RichBlockRenderer.swift */; };
+		FEEDFACE000000000000010C /* rich in Resources */ = {isa = PBXBuildFile; fileRef = FEEDFACE000000000000010B /* rich */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -183,6 +189,12 @@
 		0AF1B2C3D4E5061728394A56 /* QueenMama.storekit */ = {isa = PBXFileReference; lastKnownFileType = text; path = QueenMama.storekit; sourceTree = "<group>"; };
 		F5D20FC6B1AA6811380DAE29 /* ContactSyncManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContactSyncManager.swift; sourceTree = "<group>"; };
 		F931B8EBC0E904EBD0C9268A /* OverlayContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OverlayContentView.swift; sourceTree = "<group>"; };
+		FEEDFACE0000000000000101 /* VoiceActivityDetector.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VoiceActivityDetector.swift; sourceTree = "<group>"; };
+		FEEDFACE0000000000000103 /* EnergyVAD.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EnergyVAD.swift; sourceTree = "<group>"; };
+		FEEDFACE0000000000000105 /* SileroVAD.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SileroVAD.swift; sourceTree = "<group>"; };
+		FEEDFACE0000000000000107 /* SyntaxHighlighter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SyntaxHighlighter.swift; sourceTree = "<group>"; };
+		FEEDFACE0000000000000109 /* RichBlockRenderer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RichBlockRenderer.swift; sourceTree = "<group>"; };
+		FEEDFACE000000000000010B /* rich */ = {isa = PBXFileReference; lastKnownFileType = folder; name = rich; path = rich; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -286,10 +298,21 @@
 			path = Overlay;
 			sourceTree = "<group>";
 		};
+		FEEDFACE0000000000000100 /* VAD */ = {
+			isa = PBXGroup;
+			children = (
+				FEEDFACE0000000000000101 /* VoiceActivityDetector.swift */,
+				FEEDFACE0000000000000103 /* EnergyVAD.swift */,
+				FEEDFACE0000000000000105 /* SileroVAD.swift */,
+			);
+			path = VAD;
+			sourceTree = "<group>";
+		};
 		609874F33224C0C09F1FEE42 /* Services */ = {
 			isa = PBXGroup;
 			children = (
 				111089B63F6A221DF71A2C85 /* AIService.swift */,
+				FEEDFACE0000000000000100 /* VAD */,
 				0AF1B2C3D4E5061728394A52 /* StoreKitService.swift */,
 				46C90FD4E21E7A7855738F2C /* AnalyticsService.swift */,
 				B80402C18C4493544F1267E4 /* AppEnvironment.swift */,
@@ -365,6 +388,7 @@
 			isa = PBXGroup;
 			children = (
 				0AF1B2C3D4E5061728395004 /* InfoPlist.strings */,
+				FEEDFACE000000000000010B /* rich */,
 			);
 			path = Resources;
 			sourceTree = "<group>";
@@ -375,6 +399,8 @@
 				9275D3A77016E543A3F1CCE0 /* DesignSystem.swift */,
 				35F7A072A56AE17F2A52360D /* Logger.swift */,
 				1268E460F00E4691E94EC0D6 /* MarkdownRenderer.swift */,
+				FEEDFACE0000000000000107 /* SyntaxHighlighter.swift */,
+				FEEDFACE0000000000000109 /* RichBlockRenderer.swift */,
 				20F796AF45310A6E7A6C9E81 /* SwiftDataHelper.swift */,
 				07D852466CA0BD085B0AFB3B /* Extensions */,
 			);
@@ -531,6 +557,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				7D1DBA83F5517888388F38D2 /* Assets.xcassets in Resources */,
+				FEEDFACE000000000000010C /* rich in Resources */,
 				0AF1B2C3D4E5061728394A51 /* PrivacyInfo.xcprivacy in Resources */,
 				B95660B1B289EF7F457D9310 /* InfoPlist.strings in Resources */,
 				0AF1B2C3D4E5061728395002 /* Localizable.xcstrings in Resources */,
@@ -599,6 +626,11 @@
 				CC732584696140C78C84EFED /* Extensions.swift in Sources */,
 				F351580394612B84E78BC078 /* Logger.swift in Sources */,
 				D5026A5B82FD3D3F458EA82C /* MarkdownRenderer.swift in Sources */,
+				FEEDFACE0000000000000102 /* VoiceActivityDetector.swift in Sources */,
+				FEEDFACE0000000000000104 /* EnergyVAD.swift in Sources */,
+				FEEDFACE0000000000000106 /* SileroVAD.swift in Sources */,
+				FEEDFACE0000000000000108 /* SyntaxHighlighter.swift in Sources */,
+				FEEDFACE000000000000010A /* RichBlockRenderer.swift in Sources */,
 				265A7262375E5ED634607D6D /* SwiftDataHelper.swift in Sources */,
 				AEB0A09ED3ABE7DD54F25B73 /* AuthGateView.swift in Sources */,
 				CD412530DB09C4C8957E0B5D /* ContactBriefingView.swift in Sources */,

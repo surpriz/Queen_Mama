@@ -21,6 +21,12 @@ final class ConfigurationManager: ObservableObject {
         didSet { defaults.set(captureMicrophone, forKey: Keys.captureMicrophone) }
     }
 
+    /// Local voice-activity detection: gate silence before it reaches Deepgram
+    /// (fewer billed seconds, cleaner transcripts, fewer false auto-triggers).
+    @Published var vadEnabled: Bool {
+        didSet { defaults.set(vadEnabled, forKey: Keys.vadEnabled) }
+    }
+
     @Published var autoScreenCapture: Bool {
         didSet { defaults.set(autoScreenCapture, forKey: Keys.autoScreenCapture) }
     }
@@ -133,6 +139,7 @@ final class ConfigurationManager: ObservableObject {
         static let undetectability = "undetectability_enabled"
         static let captureSystemAudio = "capture_system_audio"
         static let captureMicrophone = "capture_microphone"
+        static let vadEnabled = "vad_enabled"
         static let autoScreenCapture = "auto_screen_capture"
         static let screenCaptureInterval = "screen_capture_interval"
         static let smartMode = "smart_mode_enabled"
@@ -170,6 +177,7 @@ final class ConfigurationManager: ObservableObject {
         // Load settings from UserDefaults with defaults
         self.isUndetectabilityEnabled = defaults.bool(forKey: Keys.undetectability)
         self.captureSystemAudio = defaults.object(forKey: Keys.captureSystemAudio) as? Bool ?? true
+        self.vadEnabled = defaults.object(forKey: Keys.vadEnabled) as? Bool ?? true
         self.captureMicrophone = defaults.object(forKey: Keys.captureMicrophone) as? Bool ?? true
         self.autoScreenCapture = defaults.object(forKey: Keys.autoScreenCapture) as? Bool ?? true
         self.screenCaptureIntervalSeconds = defaults.object(forKey: Keys.screenCaptureInterval) as? Double ?? 5.0
@@ -237,6 +245,7 @@ final class ConfigurationManager: ObservableObject {
         isUndetectabilityEnabled = false
         captureSystemAudio = true
         captureMicrophone = true
+        vadEnabled = true
         autoScreenCapture = true
         screenCaptureIntervalSeconds = 5.0
         smartModeEnabled = false
