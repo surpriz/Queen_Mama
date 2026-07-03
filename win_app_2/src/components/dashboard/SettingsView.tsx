@@ -214,6 +214,8 @@ export function SettingsView() {
                   </div>
                 )
               ) : (
+                <div className="space-y-3">
+                {currentUser?.isAnonymous && <GuestUpgradeCard />}
                 <div className="qm-card p-4 space-y-3">
                   <div className="flex justify-between items-center">
                     <span className="text-body-sm text-qm-text-secondary">{t('auth.email', { ns: 'common' })}</span>
@@ -241,6 +243,7 @@ export function SettingsView() {
                   >
                     {t('auth.signOut', { ns: 'common' })}
                   </button>
+                </div>
                 </div>
               )}
 
@@ -460,6 +463,12 @@ export function SettingsView() {
                   enabled={config.captureSystemAudio}
                   onToggle={(v) => handleToggle('captureSystemAudio', v)}
                 />
+                <ToggleRow
+                  label={t('settings.audio.vad')}
+                  description={t('settings.audio.vadDescription')}
+                  enabled={config.vadEnabled}
+                  onToggle={(v) => handleToggle('vadEnabled', v)}
+                />
                 <AudioLevelTest />
               </div>
             </section>
@@ -582,6 +591,79 @@ export function SettingsView() {
         </div>
       </div>
       <PricingModal isOpen={showPricing} onClose={() => setShowPricing(false)} />
+    </div>
+  )
+}
+
+// Guest → real account conversion (shown for anonymous users in the account tab).
+function GuestUpgradeCard() {
+  const { t } = useTranslation('common')
+  const { upgradeAccount } = useAuth()
+  const [open, setOpen] = useState(false)
+  const [name, setName] = useState('')
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  const submit = async () => {
+    setLoading(true)
+    setError(null)
+    try {
+      await upgradeAccount(name || undefined, email, password)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Upgrade failed')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  return (
+    <div className="qm-card p-4 space-y-3 border border-qm-accent/30">
+      <div>
+        <p className="text-body-sm font-medium text-qm-text-primary">{t('auth.guestModeTitle')}</p>
+        <p className="text-caption text-qm-text-secondary mt-1">{t('auth.guestModeBody')}</p>
+      </div>
+      {!open ? (
+        <button
+          onClick={() => setOpen(true)}
+          className="w-full px-4 py-2 rounded-qm-md bg-gradient-to-r from-qm-gradient-start to-qm-gradient-end text-white text-body-sm font-medium hover:shadow-qm-glow transition-all"
+        >
+          {t('auth.createAccount')}
+        </button>
+      ) : (
+        <div className="space-y-2">
+          <input
+            type="text"
+            placeholder={t('auth.name')}
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            className="w-full px-3 py-2 rounded-qm-md bg-qm-surface-medium text-body-sm text-qm-text-primary outline-none"
+          />
+          <input
+            type="email"
+            placeholder={t('auth.email')}
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            className="w-full px-3 py-2 rounded-qm-md bg-qm-surface-medium text-body-sm text-qm-text-primary outline-none"
+          />
+          <input
+            type="password"
+            placeholder={t('auth.password')}
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            className="w-full px-3 py-2 rounded-qm-md bg-qm-surface-medium text-body-sm text-qm-text-primary outline-none"
+          />
+          {error && <p className="text-caption text-qm-error">{error}</p>}
+          <button
+            onClick={submit}
+            disabled={loading || !email || !password}
+            className="w-full px-4 py-2 rounded-qm-md bg-gradient-to-r from-qm-gradient-start to-qm-gradient-end text-white text-body-sm font-medium disabled:opacity-50 transition-all"
+          >
+            {t('auth.createAccount')}
+          </button>
+        </div>
+      )}
     </div>
   )
 }
