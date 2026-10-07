@@ -39,19 +39,85 @@ describe("ai-providers", () => {
   // buildOpenAIRequestBody
   // =========================================
   describe("buildOpenAIRequestBody", () => {
-    it("should build standard body with max_tokens for legacy models", () => {
+    it("should build standard body with max_tokens for non-OpenAI-reasoning models", () => {
       const body = buildOpenAIRequestBody({
-        model: "gpt-4o",
+        model: "grok-4-1-fast-non-reasoning",
         messages: [{ role: "user", content: "Hello" }],
         maxTokens: 4000,
         stream: true,
       }) as Record<string, unknown>;
 
-      expect(body.model).toBe("gpt-4o");
+      expect(body.model).toBe("grok-4-1-fast-non-reasoning");
       expect(body.max_tokens).toBe(4000);
       expect(body.max_completion_tokens).toBeUndefined();
       expect(body.stream).toBe(true);
       expect(body.temperature).toBe(0.7);
+      expect(body.reasoning_effort).toBeUndefined();
+    });
+
+    it("should use max_completion_tokens and keep temperature for gpt-4o", () => {
+      const body = buildOpenAIRequestBody({
+        model: "gpt-4o",
+        messages: [{ role: "user", content: "Hello" }],
+        maxTokens: 4000,
+        stream: false,
+      }) as Record<string, unknown>;
+
+      expect(body.max_completion_tokens).toBe(4000);
+      expect(body.max_tokens).toBeUndefined();
+      expect(body.temperature).toBe(0.7);
+    });
+
+    it("should send reasoning_effort none for gpt-6-luna in standard mode", () => {
+      const body = buildOpenAIRequestBody({
+        model: "gpt-6-luna",
+        messages: [{ role: "user", content: "Hello" }],
+        maxTokens: 1000,
+        stream: true,
+        mode: "standard",
+      }) as Record<string, unknown>;
+
+      expect(body.reasoning_effort).toBe("none");
+      expect(body.max_completion_tokens).toBe(1000);
+      expect(body.max_tokens).toBeUndefined();
+      expect(body.temperature).toBeUndefined();
+      expect(body.stream_options).toEqual({ include_usage: true });
+    });
+
+    it("should default to standard (none) effort when mode is omitted", () => {
+      const body = buildOpenAIRequestBody({
+        model: "gpt-6-luna",
+        messages: [{ role: "user", content: "Hello" }],
+        maxTokens: 1000,
+        stream: false,
+      }) as Record<string, unknown>;
+
+      expect(body.reasoning_effort).toBe("none");
+      expect(body.stream_options).toBeUndefined();
+    });
+
+    it("should scale gpt-6-luna reasoning effort with mode", () => {
+      const smart = buildOpenAIRequestBody({
+        model: "gpt-6-luna", messages: [], maxTokens: 4000, stream: true, mode: "smart",
+      }) as Record<string, unknown>;
+      const recap = buildOpenAIRequestBody({
+        model: "gpt-6-luna", messages: [], maxTokens: 4000, stream: true, mode: "recap",
+      }) as Record<string, unknown>;
+
+      expect(smart.reasoning_effort).toBe("low");
+      expect(recap.reasoning_effort).toBe("medium");
+    });
+
+    it("should not send reasoning_effort to models that don't declare it", () => {
+      const body = buildOpenAIRequestBody({
+        model: "o4-mini",
+        messages: [],
+        maxTokens: 1000,
+        stream: false,
+        mode: "standard",
+      }) as Record<string, unknown>;
+
+      expect(body.reasoning_effort).toBeUndefined();
     });
 
     it("should use max_completion_tokens for o4-* models", () => {
@@ -103,7 +169,7 @@ describe("ai-providers", () => {
 
     it("should allow custom temperature", () => {
       const body = buildOpenAIRequestBody({
-        model: "gpt-4o",
+        model: "gpt-4o-mini",
         messages: [{ role: "user", content: "Hello" }],
         maxTokens: 1000,
         stream: false,
@@ -303,13 +369,13 @@ describe("ai-providers", () => {
   // =========================================
   describe("getModelForProvider", () => {
     it("should return standard model when smartMode is false", () => {
-      expect(getModelForProvider("openai", false)).toBe("gpt-4o");
+      expect(getModelForProvider("openai", false)).toBe("gpt-6-luna");
       expect(getModelForProvider("anthropic", false)).toBe("claude-sonnet-4-6");
       expect(getModelForProvider("gemini", false)).toBe("gemini-2.0-flash");
     });
 
     it("should return smart model when smartMode is true", () => {
-      expect(getModelForProvider("openai", true)).toBe("o4-mini");
+      expect(getModelForProvider("openai", true)).toBe("gpt-6-luna");
       expect(getModelForProvider("anthropic", true)).toBe("claude-sonnet-4-6");
       expect(getModelForProvider("gemini", true)).toBe("gemini-2.0-flash-thinking-exp");
     });
@@ -324,7 +390,7 @@ describe("ai-providers", () => {
 
       const cascade = await getModelCascade(false);
       expect(cascade.length).toBeGreaterThan(0);
-      expect(cascade[0].provider).toBe("anthropic");
+      expect(cascade[0]).toEqual({ provider: "openai", model: "gpt-6-luna" });
     });
 
     it("should return smart cascade for true (legacy boolean)", async () => {
@@ -375,7 +441,7 @@ describe("ai-providers", () => {
 
       expect(result.valid).toBe(true);
       expect(result.maxTokens).toBe(4000);
-      expect(result.model).toBe("gpt-4o");
+      expect(result.model).toBe("gpt-6-luna");
     });
 
     it("should reject smart mode for non-ENTERPRISE tiers", async () => {

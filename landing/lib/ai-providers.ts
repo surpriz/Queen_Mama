@@ -28,19 +28,19 @@ export interface CascadeModel {
 }
 
 export const MODEL_CASCADE = {
-  // Standard Mode (PRO): Real-time suggestions with Sonnet 4.6 (no thinking)
-  // Optimized for speed + exceptional quality
+  // Standard Mode (PRO): Real-time suggestions, latency is king
   standard: [
-    { provider: "openai", model: "gpt-5.4-mini" },                     // Primary: ⭐⭐⭐⭐⭐ GPT-5.4-mini — fastest + code-level prediction filter
-    { provider: "anthropic", model: "claude-sonnet-4-6" },             // Fallback 1: Sonnet 4.6 effort=low
-    { provider: "anthropic", model: "claude-sonnet-4-5-20250929" },    // Fallback 2: previous gen backup
+    { provider: "openai", model: "gpt-6-luna" },                       // Primary: GPT-6 Luna, reasoning_effort=none (see OPENAI_REASONING_EFFORT)
+    { provider: "openai", model: "gpt-5.4-mini" },                     // Fallback 1: previous primary, same speed profile
+    { provider: "anthropic", model: "claude-sonnet-4-6" },             // Fallback 2: Sonnet 4.6 effort=low
+    { provider: "anthropic", model: "claude-sonnet-4-5-20250929" },    // Fallback 3: previous gen backup
   ] as CascadeModel[],
 
   // Smart Mode (Enterprise): Deep analysis with Sonnet 4.6 + extended thinking
   // Optimized for maximum intelligence with reasoning
   smart: [
     { provider: "anthropic", model: "claude-sonnet-4-6" },             // Primary: ⭐⭐⭐⭐⭐ Sonnet 4.6 + thinking = exceptional reasoning
-    { provider: "openai", model: "o4-mini" },                          // Fallback 1: Reasoning model, fast backup
+    { provider: "openai", model: "gpt-6-luna" },                       // Fallback 1: Luna with reasoning_effort=low (replaces deprecated o4-mini)
     { provider: "anthropic", model: "claude-sonnet-4-5-20250929" },    // Fallback 2: ⭐⭐⭐⭐⭐ quality, previous gen backup
   ] as CascadeModel[],
 
@@ -49,15 +49,78 @@ export const MODEL_CASCADE = {
   recap: [
     { provider: "anthropic", model: "claude-sonnet-4-6" },             // Primary: ⭐⭐⭐⭐⭐ UX (emojis, statuses), highly readable
     { provider: "anthropic", model: "claude-sonnet-4-5-20250929" },    // Fallback 1: ⭐⭐⭐⭐⭐ quality backup
-    { provider: "openai", model: "gpt-4o" },                           // Fallback 2: ⭐⭐⭐⭐ structured, complete
+    { provider: "openai", model: "gpt-6-luna" },                       // Fallback 2: 1M context, reasoning_effort=medium
   ] as CascadeModel[],
 } as const;
+
+// ============================================
+// OpenAI request tuning
+// ============================================
+
+export type OpenAIReasoningEffort = "none" | "minimal" | "low" | "medium" | "high" | "xhigh" | "max";
+
+// Reasoning effort sent to OpenAI reasoning models, per mode.
+// Standard MUST stay "none": gpt-6-luna defaults to "medium", which adds hidden
+// reasoning before the first token. "none" is gpt-5.4-mini's default, i.e. the
+// latency profile Assist was tuned on.
+export const OPENAI_REASONING_EFFORT: Record<CascadeMode, OpenAIReasoningEffort> = {
+  standard: "none",
+  smart: "low",
+  recap: "medium",
+};
+
+// Model registry: display label, pricing (USD per 1M tokens) and, for OpenAI
+// reasoning models, the reasoning_effort values the model accepts. A model not
+// listed here still works, it just gets no reasoning_effort and a cost of 0.
+export interface ModelSpec {
+  label: string;
+  input: number;
+  output: number;
+  reasoningEfforts?: readonly OpenAIReasoningEffort[];
+}
+
+export const MODEL_SPECS: Record<string, ModelSpec> = {
+  "gpt-6-luna":                  { label: "GPT-6 Luna",        input: 0.10, output: 0.50,  reasoningEfforts: ["none", "low", "medium", "high", "xhigh", "max"] },
+  "gpt-5.4-mini":                { label: "GPT-5.4 mini",      input: 0.75, output: 4.50,  reasoningEfforts: ["none", "low", "medium", "high", "xhigh"] },
+  "gpt-4.1":                     { label: "GPT-4.1",           input: 2.00, output: 8.00  },
+  "gpt-4.1-mini":                { label: "GPT-4.1 mini",      input: 0.40, output: 1.60  },
+  "gpt-4o":                      { label: "GPT-4o",            input: 2.50, output: 10.00 }, // kept for legacy logs
+  "gpt-4o-mini":                 { label: "GPT-4o mini",       input: 0.15, output: 0.60  },
+  "o4-mini":                     { label: "o4-mini",           input: 1.10, output: 4.40  }, // deprecated, kept for legacy logs
+  "claude-sonnet-4-6":           { label: "Claude Sonnet 4.6", input: 3.00, output: 15.00 },
+  "claude-sonnet-4-5-20250929":  { label: "Claude Sonnet 4.5", input: 3.00, output: 15.00 },
+  "grok-4-1-fast-non-reasoning": { label: "Grok 4.1 Fast",     input: 3.00, output: 15.00 },
+  "grok-4-1-fast-reasoning":     { label: "Grok 4.1 Fast (reasoning)", input: 3.00, output: 15.00 },
+};
+
+export function calculateCost(model: string, usage: { inputTokens: number; outputTokens: number }): number {
+  const rates = MODEL_SPECS[model];
+  if (!rates) return 0;
+  return (usage.inputTokens / 1_000_000) * rates.input
+       + (usage.outputTokens / 1_000_000) * rates.output;
+}
+
+// GPT-5+ and o-series: reasoning models (max_completion_tokens, no custom temperature)
+function isOpenAIReasoningModel(model: string): boolean {
+  return /^gpt-([5-9]|\d{2,})/.test(model) || /^o\d/.test(model);
+}
+
+// Models that reject max_tokens and require max_completion_tokens
+function usesMaxCompletionTokens(model: string): boolean {
+  return isOpenAIReasoningModel(model) || model.startsWith("gpt-4o") || model.startsWith("gpt-4.1");
+}
+
+// reasoning_effort to send for this model/mode, or undefined if the model doesn't take it
+export function getOpenAIReasoningEffort(model: string, mode: CascadeMode): OpenAIReasoningEffort | undefined {
+  const effort = OPENAI_REASONING_EFFORT[mode];
+  return MODEL_SPECS[model]?.reasoningEfforts?.includes(effort) ? effort : undefined;
+}
 
 // Legacy AI_MODELS for backward compatibility
 export const AI_MODELS = {
   openai: {
-    standard: "gpt-5.4-mini", // Primary test: strongest mini, low latency
-    smart: "o4-mini",         // Fallback: reasoning model
+    standard: "gpt-6-luna",
+    smart: "gpt-6-luna",
   },
   anthropic: {
     standard: "claude-sonnet-4-6",  // PRO: Sonnet 4.6 sans thinking (rapide)
@@ -105,7 +168,7 @@ export const TIER_LIMITS = {
     transcriptionProviders: ["deepgram", "assemblyai"] as TranscriptionProviderType[],
     translationProviders: ["deepl"] as TranslationProviderType[],
     maxTokens: 16000,
-    smartMode: true, // Uses o4-mini for enhanced reasoning
+    smartMode: true, // Sonnet 4.6 adaptive thinking, see MODEL_CASCADE.smart
     dailyAiRequests: null, // unlimited
     transcription: true,
     translation: true,
@@ -121,10 +184,11 @@ export type CascadeMode = "standard" | "smart" | "recap";
 // Only applied when cascadeMode === "standard" — Smart/Recap stay on cascade.
 // Keys are the IDs sent by clients; values describe how to dispatch.
 // "Standard (default)" is exposed in clients via the absence of `model` — backend
-// uses its standard cascade whose primary is `gpt-5.4-mini`. So `gpt-5.4-mini` is
+// uses its standard cascade whose primary is `gpt-6-luna`. So `gpt-6-luna` is
 // intentionally NOT in this whitelist (would be a duplicate of the default).
 export const USER_SELECTABLE_MODELS: Record<string, CascadeModel> = {
   "claude-sonnet-4-6": { provider: "anthropic", model: "claude-sonnet-4-6" },
+  "gpt-5.4-mini":      { provider: "openai",    model: "gpt-5.4-mini"      },
   "gpt-4o-mini":       { provider: "openai",    model: "gpt-4o-mini"       },
   "gpt-4.1-mini":      { provider: "openai",    model: "gpt-4.1-mini"      },
 };
@@ -290,26 +354,33 @@ export function buildOpenAIRequestBody(params: {
   maxTokens: number;
   stream: boolean;
   temperature?: number;
+  mode?: CascadeMode;
 }): object {
-  // Newer OpenAI models (gpt-5-*, gpt-4.1-*, o4-*) require max_completion_tokens
-  const useNewTokenParam = params.model.startsWith("gpt-5") || params.model.startsWith("gpt-4.1") || params.model.startsWith("o4-");
-  // GPT-5 models only support temperature=1 (default), so omit for those
-  const supportsTemperature = !params.model.startsWith("gpt-5");
-
   const body: Record<string, unknown> = {
     model: params.model,
     messages: params.messages,
     stream: params.stream,
   };
 
-  if (supportsTemperature) {
+  // Reasoning models only support the default temperature
+  if (!isOpenAIReasoningModel(params.model)) {
     body.temperature = params.temperature ?? 0.7;
   }
 
-  if (useNewTokenParam) {
+  if (usesMaxCompletionTokens(params.model)) {
     body.max_completion_tokens = params.maxTokens;
   } else {
     body.max_tokens = params.maxTokens;
+  }
+
+  const effort = getOpenAIReasoningEffort(params.model, params.mode ?? "standard");
+  if (effort) {
+    body.reasoning_effort = effort;
+  }
+
+  if (params.stream) {
+    // Usage comes in the final chunk, needed for cost tracking
+    body.stream_options = { include_usage: true };
   }
 
   return body;

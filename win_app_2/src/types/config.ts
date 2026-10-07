@@ -14,7 +14,7 @@ export interface AppConfig {
   selectedAIProvider: AIProviderType
   /**
    * User-selected AI model for standard (non-smart) responses. Defaults to "auto" — backend
-   * cascade picks `gpt-5.4-mini` as primary. Other valid values mirror the whitelist in
+   * cascade picks `gpt-6-luna` as primary. Other valid values mirror the whitelist in
    * `landing/lib/ai-providers.ts` USER_SELECTABLE_MODELS.
    */
   selectedAIModel: string
@@ -131,7 +131,7 @@ export function getCurrentEnvironment(): AppEnvironment {
 
 // ----------------------------------------------------------------------------
 // User-selectable AI model choices (parity with mac_app AIModelChoice).
-// Raw value `auto` = backend default cascade (currently gpt-5.4-mini primary).
+// Raw value `auto` = backend default cascade (currently gpt-6-luna primary).
 // Other raw values must match the whitelist in `landing/lib/ai-providers.ts`.
 // ----------------------------------------------------------------------------
 

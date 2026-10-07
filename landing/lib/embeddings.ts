@@ -7,7 +7,7 @@
 
 import { getProviderApiKey } from "@/lib/ai-providers";
 
-const EMBEDDING_MODEL = "text-embedding-3-small";
+export const EMBEDDING_MODEL = "text-embedding-3-small";
 const EMBEDDING_DIMENSIONS = 1536; // Default dimensions for text-embedding-3-small
 const OPENAI_EMBEDDINGS_URL = "https://api.openai.com/v1/embeddings";
 

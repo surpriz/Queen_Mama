@@ -4,6 +4,9 @@ import { verifyAccessToken } from "@/lib/device-auth";
 import {
   getProviderApiKey,
   getModelCascade,
+  buildOpenAIRequestBody,
+  calculateCost,
+  getOpenAIReasoningEffort,
   PROVIDER_URLS,
   TIER_LIMITS,
   type PlanTier,
@@ -26,24 +29,6 @@ import {
 interface TokenUsage {
   inputTokens: number;
   outputTokens: number;
-}
-
-// Cost per million tokens (USD)
-const TOKEN_COSTS: Record<string, { input: number; output: number }> = {
-  "claude-sonnet-4-6":          { input: 3.00,  output: 15.00 },
-  "claude-sonnet-4-5-20250929": { input: 3.00,  output: 15.00 },
-  "gpt-4.1":                    { input: 2.00,  output: 8.00  },
-  "gpt-4o":                     { input: 2.50,  output: 10.00 }, // kept for legacy logs
-  "o4-mini":                    { input: 1.10,  output: 4.40  },
-  "grok-4-1-fast-non-reasoning": { input: 3.00,  output: 15.00 },
-  "grok-4-1-fast-reasoning":     { input: 3.00,  output: 15.00 },
-};
-
-function calculateCost(model: string, usage: TokenUsage): number {
-  const rates = TOKEN_COSTS[model];
-  if (!rates) return 0;
-  return (usage.inputTokens / 1_000_000) * rates.input
-       + (usage.outputTokens / 1_000_000) * rates.output;
 }
 
 // CORS headers for desktop app requests
@@ -315,6 +300,7 @@ export async function POST(request: Request) {
                   userMessage,
                   screenshot,
                   requestMaxTokens,
+                  mode,
                   tokenUsage
                 );
                 break;
@@ -357,11 +343,13 @@ export async function POST(request: Request) {
             successProvider = provider;
             successModel = model;
             successTokenUsage = tokenUsage;
-            // Capture effort for metadata (only applies to Anthropic)
+            // Capture effort for metadata
             if (provider === "anthropic") {
               successEffort = mode === "recap" ? "high"
                 : mode === "smart" ? "medium"
                 : userMessage.length > 2000 ? "medium" : "low";
+            } else {
+              successEffort = getOpenAIReasoningEffort(model, mode) ?? null;
             }
             console.log(`[AI Cascade] Success with ${provider}/${model} (tokens: ${tokenUsage.inputTokens}in/${tokenUsage.outputTokens}out)`);
             break; // Exit cascade loop on success
@@ -408,6 +396,8 @@ export async function POST(request: Request) {
                   inputTokens: successTokenUsage.inputTokens,
                   outputTokens: successTokenUsage.outputTokens,
                   model: successModel,
+                  mode,
+                  effort: successEffort,
                 },
               },
             })
@@ -481,6 +471,7 @@ async function streamOpenAICompatible(
   userMessage: string,
   screenshot: string | undefined,
   maxTokens: number,
+  mode: "standard" | "smart" | "recap",
   tokenUsage: TokenUsage
 ): Promise<ReadableStream<Uint8Array>> {
   const messages: Array<{ role: string; content: string | object[] }> = [
@@ -503,40 +494,16 @@ async function streamOpenAICompatible(
   }
 
   const startTime = Date.now();
-  console.log(`[${provider}] Calling API with model: ${model}, screenshot: ${!!screenshot}, maxTokens: ${maxTokens}`);
+  console.log(`[${provider}] Calling API with model: ${model}, mode: ${mode}, screenshot: ${!!screenshot}, maxTokens: ${maxTokens}`);
 
-  // Newer OpenAI models require max_completion_tokens instead of max_tokens
-  // This includes: gpt-4o, gpt-4o-mini, gpt-5-*, gpt-4.1-*, o1-*, o3-*, o4-*
-  const useNewTokenParam = provider === "openai" && (
-    model.startsWith("gpt-4o") ||
-    model.startsWith("gpt-5") ||
-    model.startsWith("gpt-4.1") ||
-    model.startsWith("o1-") ||
-    model.startsWith("o3-") ||
-    model.startsWith("o4-")
-  );
-
-  // GPT-5 and o-series models only support temperature=1 (default), so omit for those
-  const supportsTemperature = !model.startsWith("gpt-5") && !model.startsWith("o1-") && !model.startsWith("o3-") && !model.startsWith("o4-");
-
-  const requestBody: Record<string, unknown> = {
+  // Token param, temperature, reasoning_effort and stream_options are model-dependent
+  const requestBody = buildOpenAIRequestBody({
     model,
     messages,
+    maxTokens,
     stream: true,
-  };
-
-  if (supportsTemperature) {
-    requestBody.temperature = 0.7;
-  }
-
-  if (useNewTokenParam) {
-    requestBody.max_completion_tokens = maxTokens;
-  } else {
-    requestBody.max_tokens = maxTokens;
-  }
-
-  // Request usage data in streaming response (sent in the final chunk)
-  requestBody.stream_options = { include_usage: true };
+    mode,
+  }) as Record<string, unknown>;
 
   const response = await fetch(PROVIDER_URLS[provider], {
     method: "POST",

@@ -12,7 +12,7 @@ import { KnowledgeType } from "@prisma/client";
 import { checkAtomLimit, makeRoomForNewAtoms, LIMITS } from "@/lib/knowledge-management";
 
 // Use GPT-4o-mini for cost-effective extraction
-const EXTRACTION_MODEL = "gpt-4o-mini";
+export const EXTRACTION_MODEL = "gpt-4o-mini";
 
 export interface ExtractedKnowledge {
   type: KnowledgeType;
