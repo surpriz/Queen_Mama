@@ -453,6 +453,10 @@
     },
     "badgeNew": "New",
     "entries": {
+      "gpt6LunaAssist": {
+        "title": "Newer AI Model for Assist",
+        "description": "Real-time suggestions now run on GPT-6 Luna, with more up-to-date knowledge and the same response speed"
+      },
       "iosSubscriptions": {
         "title": "iOS Native Subscriptions",
         "description": "The iOS app now supports Apple in-app purchases — subscribe or change plans directly without being redirected to a browser"

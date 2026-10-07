@@ -17,8 +17,23 @@ export interface ChangelogRelease {
 
 export const changelogData: ChangelogRelease[] = [
   {
-    date: "June 2026",
+    date: "October 2026",
     isNew: true,
+    sections: [
+      {
+        category: "improvements",
+        changes: [
+          {
+            id: "gpt6LunaAssist",
+            title: "Newer AI Model for Assist",
+            description: "Real-time suggestions now run on GPT-6 Luna, with more up-to-date knowledge and the same response speed"
+          },
+        ],
+      },
+    ],
+  },
+  {
+    date: "June 2026",
     sections: [
       {
         category: "features",
