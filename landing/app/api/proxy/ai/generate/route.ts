@@ -4,6 +4,8 @@ import { verifyAccessToken } from "@/lib/device-auth";
 import {
   getProviderApiKey,
   getModelCascade,
+  buildOpenAIRequestBody,
+  calculateCost,
   TIER_LIMITS,
   PROVIDER_URLS,
   type PlanTier,
@@ -16,6 +18,12 @@ import {
   uniqueFilenames,
   userHasReadyDocuments,
 } from "@/lib/document-retrieval";
+
+interface ProviderResult {
+  content: string;
+  inputTokens: number;
+  outputTokens: number;
+}
 
 interface AIRequestBody {
   provider: AIProviderType;
@@ -182,7 +190,7 @@ export async function POST(request: Request) {
 
     // Try each model in the cascade until one succeeds (resilient fallback)
     const startTime = Date.now();
-    let aiResponse: { content: string; tokensUsed?: number } | null = null;
+    let aiResponse: ProviderResult | null = null;
     let successProvider: AIProviderType | null = null;
     let successModel: string | null = null;
     const errors: string[] = [];
@@ -206,7 +214,8 @@ export async function POST(request: Request) {
               enhancedSystemPrompt,
               userMessage,
               screenshot,
-              requestMaxTokens
+              requestMaxTokens,
+              mode
             );
             break;
           case "anthropic":
@@ -256,13 +265,22 @@ export async function POST(request: Request) {
 
     const latencyMs = Date.now() - startTime;
 
-    // Record usage
+    const tokensUsed = aiResponse.inputTokens + aiResponse.outputTokens;
+
+    // Record usage (same shape as the stream route so profitability/admin stats see both)
     await prisma.usageLog.create({
       data: {
         userId: user.id,
         action: "ai_request",
         provider: successProvider,
-        tokensUsed: aiResponse.tokensUsed,
+        tokensUsed,
+        cost: calculateCost(successModel, aiResponse),
+        metadata: {
+          inputTokens: aiResponse.inputTokens,
+          outputTokens: aiResponse.outputTokens,
+          model: successModel,
+          mode,
+        },
       },
     });
 
@@ -281,7 +299,7 @@ export async function POST(request: Request) {
       provider: successProvider,
       model: successModel,
       latencyMs,
-      tokensUsed: aiResponse.tokensUsed,
+      tokensUsed,
       documentsUsed,
     });
     return addRateLimitHeaders(response, initialRateLimit, rateLimitConfigs.aiProxy.maxRequests);
@@ -302,8 +320,9 @@ async function callOpenAICompatible(
   systemPrompt: string,
   userMessage: string,
   screenshot: string | undefined,
-  maxTokens: number
-): Promise<{ content: string; tokensUsed?: number }> {
+  maxTokens: number,
+  mode: "standard" | "smart"
+): Promise<ProviderResult> {
   const messages: Array<{ role: string; content: string | object[] }> = [
     { role: "system", content: systemPrompt },
   ];
@@ -323,37 +342,14 @@ async function callOpenAICompatible(
     messages.push({ role: "user", content: userMessage });
   }
 
-  // OpenAI's newer models require max_completion_tokens instead of max_tokens
-  // This includes: gpt-4o, gpt-5-*, o1-*, o3-*, o4-*
-  const useNewTokenParam = provider === "openai" && (
-    model.startsWith("gpt-4o") ||
-    model.startsWith("gpt-5") ||
-    model.startsWith("o1-") ||
-    model.startsWith("o3-") ||
-    model.startsWith("o4-")
-  );
-
-  // GPT-5 and o-series models only support temperature=1 (default), so omit for those
-  const supportsTemperature = !model.startsWith("gpt-5") &&
-    !model.startsWith("o1-") &&
-    !model.startsWith("o3-") &&
-    !model.startsWith("o4-");
-
-  const requestBody: Record<string, unknown> = {
+  // Token param, temperature and reasoning_effort are model-dependent
+  const requestBody = buildOpenAIRequestBody({
     model,
     messages,
+    maxTokens,
     stream: false,
-  };
-
-  if (useNewTokenParam) {
-    requestBody.max_completion_tokens = maxTokens;
-  } else {
-    requestBody.max_tokens = maxTokens;
-  }
-
-  if (supportsTemperature) {
-    requestBody.temperature = 0.7;
-  }
+    mode,
+  });
 
   const response = await fetch(PROVIDER_URLS[provider], {
     method: "POST",
@@ -372,7 +368,8 @@ async function callOpenAICompatible(
   const data = await response.json();
   return {
     content: data.choices?.[0]?.message?.content || "",
-    tokensUsed: data.usage?.total_tokens,
+    inputTokens: data.usage?.prompt_tokens ?? 0,
+    outputTokens: data.usage?.completion_tokens ?? 0,
   };
 }
 
@@ -385,7 +382,7 @@ async function callAnthropic(
   screenshot: string | undefined,
   maxTokens: number,
   smartMode: boolean
-): Promise<{ content: string; tokensUsed?: number }> {
+): Promise<ProviderResult> {
   const messages: Array<{ role: string; content: string | object[] }> = [];
 
   if (screenshot) {
@@ -452,7 +449,8 @@ async function callAnthropic(
 
   return {
     content,
-    tokensUsed: (data.usage?.input_tokens || 0) + (data.usage?.output_tokens || 0),
+    inputTokens: data.usage?.input_tokens ?? 0,
+    outputTokens: data.usage?.output_tokens ?? 0,
   };
 }
 
@@ -464,7 +462,7 @@ async function callGemini(
   userMessage: string,
   screenshot: string | undefined,
   maxTokens: number
-): Promise<{ content: string; tokensUsed?: number }> {
+): Promise<ProviderResult> {
   const url = `${PROVIDER_URLS.gemini}/${model}:generateContent?key=${apiKey}`;
 
   const parts: Array<{ text?: string; inline_data?: { mime_type: string; data: string } }> = [];
@@ -508,7 +506,9 @@ async function callGemini(
 
   const data = await response.json();
   const content = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
-  const tokensUsed = data.usageMetadata?.totalTokenCount;
-
-  return { content, tokensUsed };
+  return {
+    content,
+    inputTokens: data.usageMetadata?.promptTokenCount ?? 0,
+    outputTokens: data.usageMetadata?.candidatesTokenCount ?? 0,
+  };
 }

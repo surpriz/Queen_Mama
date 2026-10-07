@@ -411,7 +411,7 @@ final class ConfigurationManager: ObservableObject {
 
 /// User-selectable AI models for standard mode.
 /// Raw values match the whitelist in `landing/lib/ai-providers.ts` (`USER_SELECTABLE_MODELS`).
-/// `.auto` means: let the backend pick via its cascade — currently `gpt-5.4-mini` as primary.
+/// `.auto` means: let the backend pick via its cascade — currently `gpt-6-luna` as primary.
 enum AIModelChoice: String, CaseIterable, Identifiable {
     case auto       = "auto"
     case sonnet46   = "claude-sonnet-4-6"

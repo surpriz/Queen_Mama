@@ -2,6 +2,7 @@ import Link from "next/link";
 import { GlassCard } from "@/components/ui";
 import { requireAdmin } from "@/lib/admin";
 import { prisma } from "@/lib/prisma";
+import { ModelsOverview } from "@/components/admin/ModelsOverview";
 
 async function getAdminStats() {
   // Get start of current month
@@ -187,6 +188,8 @@ export default async function AdminPage() {
           </button>
         </Link>
       </div>
+
+      <ModelsOverview />
     </div>
   );
 }
