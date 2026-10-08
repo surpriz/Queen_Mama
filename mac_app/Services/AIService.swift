@@ -867,6 +867,15 @@ final class AIService: ObservableObject {
         )
     }
 
+    func recapStreaming(transcript: String, screenshot: Data?, mode: Mode?) -> AsyncThrowingStream<String, Error> {
+        generateStreamingResponse(
+            transcript: transcript,
+            screenshot: screenshot,
+            mode: mode,
+            type: .recap
+        )
+    }
+
     // MARK: - Auto Response
 
     /// Generate an automatic response (triggered by AutoAnswerService)

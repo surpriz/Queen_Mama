@@ -407,12 +407,13 @@ struct OverlayContentView: View {
                             appState.aiService.isProcessing = false
                             break
                         }
-                        let response = try await appState.aiService.whatToSay(
+                        for try await chunk in appState.aiService.whatToSayStreaming(
                             transcript: transcriptForRequest,
                             screenshot: screenshot,
                             mode: appState.selectedMode
-                        )
-                        appState.aiService.currentResponse = response.content
+                        ) {
+                            _ = chunk
+                        }
                     case .followUp:
                         // Follow-up needs an interlocutor — with no transcript (screen-only),
                         // there is no one to question. Short-circuit instead of calling the AI.
@@ -430,12 +431,14 @@ struct OverlayContentView: View {
                     case .recap:
                         // Recap uses transcript only — no screenshot needed for meeting summaries
                         // Also avoids AI safety filter refusals triggered by faces in video calls
-                        let response = try await appState.aiService.recap(
+                        // Streamed: recap runs a deeper model and would hit the 30s non-streaming timeout
+                        for try await chunk in appState.aiService.recapStreaming(
                             transcript: transcriptForRequest,
                             screenshot: nil,
                             mode: appState.selectedMode
-                        )
-                        appState.aiService.currentResponse = response.content
+                        ) {
+                            _ = chunk
+                        }
                     case .decode:
                         // Decode works from the conversation AND on-screen jargon, so the
                         // screenshot is included. With no transcript at all (pure screen),

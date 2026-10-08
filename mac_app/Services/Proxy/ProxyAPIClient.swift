@@ -255,7 +255,8 @@ final class ProxyAPIClient: @unchecked Sendable {
         userMessage: String,
         screenshot: Data? = nil,
         maxTokens: Int? = nil,
-        model: String? = nil
+        model: String? = nil,
+        cascadeMode: String? = nil
     ) -> AsyncThrowingStream<String, Error> {
         AsyncThrowingStream { continuation in
             Task {
@@ -277,6 +278,11 @@ final class ProxyAPIClient: @unchecked Sendable {
 
                     if let model = model {
                         body["model"] = model
+                    }
+
+                    // Explicit backend cascade (e.g. "recap"); takes precedence over smartMode server-side
+                    if let cascadeMode = cascadeMode {
+                        body["cascadeMode"] = cascadeMode
                     }
 
                     let knowledgeEnabled = await ConfigurationManager.shared.knowledgeEnabled

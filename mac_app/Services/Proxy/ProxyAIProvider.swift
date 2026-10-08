@@ -224,7 +224,9 @@ final class ProxyAIProvider: AIProvider {
                         userMessage: context.userMessage,
                         screenshot: context.screenshot,
                         maxTokens: maxTokens,
-                        model: userModel
+                        model: userModel,
+                        // Recap has its own backend cascade (stronger model, deeper thinking)
+                        cascadeMode: context.responseType == .recap ? "recap" : nil
                     ) {
                         continuation.yield(chunk)
                     }
