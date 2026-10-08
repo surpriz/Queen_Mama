@@ -11,6 +11,7 @@ vi.mock("@/lib/admin-keys", () => ({
 import {
   buildOpenAIRequestBody,
   buildAnthropicRequestBody,
+  getAnthropicThinkingParams,
   buildGeminiRequestBody,
   canUseSmartMode,
   getMaxTokens,
@@ -284,6 +285,40 @@ describe("ai-providers", () => {
   });
 
   // =========================================
+  // getAnthropicThinkingParams
+  // =========================================
+  describe("getAnthropicThinkingParams", () => {
+    it("turns thinking off with between_tools for Sonnet 5.5 in standard mode", () => {
+      const { params, betas, effort } = getAnthropicThinkingParams("claude-sonnet-5-5", "standard", 100);
+      expect(params.thinking).toEqual({ type: "between_tools" });
+      expect(params.output_config).toEqual({ effort: "low" });
+      expect(params.fallbacks).toBe("default");
+      expect(betas).toEqual(["server-side-fallback-2026-07-01"]);
+      expect(effort).toBe("low");
+    });
+
+    it("raises standard effort to medium on long transcripts", () => {
+      const { params } = getAnthropicThinkingParams("claude-sonnet-5-5", "standard", 5000);
+      expect(params.output_config).toEqual({ effort: "medium" });
+    });
+
+    it("uses adaptive thinking for Sonnet 5.5 in smart and recap, never budget_tokens", () => {
+      const smart = getAnthropicThinkingParams("claude-sonnet-5-5", "smart", 100);
+      const recap = getAnthropicThinkingParams("claude-sonnet-5-5", "recap", 100);
+      expect(smart.params.thinking).toEqual({ type: "adaptive" });
+      expect(smart.params.output_config).toEqual({ effort: "medium" });
+      expect(recap.params.thinking).toEqual({ type: "adaptive" });
+      expect(recap.params.output_config).toEqual({ effort: "high" });
+    });
+
+    it("keeps the legacy config for Sonnet 4.6", () => {
+      expect(getAnthropicThinkingParams("claude-sonnet-4-6", "standard", 100).params).toEqual({ output_config: { effort: "low" } });
+      expect(getAnthropicThinkingParams("claude-sonnet-4-6", "recap", 100).params.thinking).toEqual({ type: "enabled", budget_tokens: 16000 });
+      expect(getAnthropicThinkingParams("claude-sonnet-4-6", "smart", 100).params.fallbacks).toBeUndefined();
+    });
+  });
+
+  // =========================================
   // buildGeminiRequestBody
   // =========================================
   describe("buildGeminiRequestBody", () => {
@@ -370,13 +405,13 @@ describe("ai-providers", () => {
   describe("getModelForProvider", () => {
     it("should return standard model when smartMode is false", () => {
       expect(getModelForProvider("openai", false)).toBe("gpt-6-luna");
-      expect(getModelForProvider("anthropic", false)).toBe("claude-sonnet-4-6");
+      expect(getModelForProvider("anthropic", false)).toBe("claude-sonnet-5-5");
       expect(getModelForProvider("gemini", false)).toBe("gemini-2.0-flash");
     });
 
     it("should return smart model when smartMode is true", () => {
       expect(getModelForProvider("openai", true)).toBe("gpt-6-luna");
-      expect(getModelForProvider("anthropic", true)).toBe("claude-sonnet-4-6");
+      expect(getModelForProvider("anthropic", true)).toBe("claude-sonnet-5-5");
       expect(getModelForProvider("gemini", true)).toBe("gemini-2.0-flash-thinking-exp");
     });
   });
@@ -391,6 +426,23 @@ describe("ai-providers", () => {
       const cascade = await getModelCascade(false);
       expect(cascade.length).toBeGreaterThan(0);
       expect(cascade[0]).toEqual({ provider: "openai", model: "gpt-6-luna" });
+    });
+
+    it("should put Sonnet 5.5 first in smart and recap, Luna second", async () => {
+      mockedGetConfiguredProviders.mockResolvedValue(["ANTHROPIC", "OPENAI"] as never);
+
+      for (const mode of ["smart", "recap"] as const) {
+        const cascade = await getModelCascade(mode);
+        expect(cascade[0]).toEqual({ provider: "anthropic", model: "claude-sonnet-5-5" });
+        expect(cascade[1]).toEqual({ provider: "openai", model: "gpt-6-luna" });
+      }
+    });
+
+    it("should have Sonnet 5.5 third in standard", async () => {
+      mockedGetConfiguredProviders.mockResolvedValue(["ANTHROPIC", "OPENAI"] as never);
+
+      const cascade = await getModelCascade("standard");
+      expect(cascade.slice(0, 3).map((c) => c.model)).toEqual(["gpt-6-luna", "gpt-5.4-mini", "claude-sonnet-5-5"]);
     });
 
     it("should return smart cascade for true (legacy boolean)", async () => {

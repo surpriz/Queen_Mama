@@ -28,6 +28,11 @@ export const changelogData: ChangelogRelease[] = [
             title: "Newer AI Model for Assist",
             description: "Real-time suggestions now run on GPT-6 Luna, with more up-to-date knowledge and the same response speed"
           },
+          {
+            id: "sonnet55SmartRecap",
+            title: "Claude Sonnet 5.5 for Smart and Recap",
+            description: "Smart mode and meeting recaps now run on Claude Sonnet 5.5 for sharper analysis and summaries"
+          },
         ],
       },
     ],

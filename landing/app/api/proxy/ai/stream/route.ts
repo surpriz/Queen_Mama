@@ -7,6 +7,8 @@ import {
   buildOpenAIRequestBody,
   calculateCost,
   getOpenAIReasoningEffort,
+  getAnthropicEffort,
+  getAnthropicThinkingParams,
   PROVIDER_URLS,
   TIER_LIMITS,
   type PlanTier,
@@ -345,9 +347,7 @@ export async function POST(request: Request) {
             successTokenUsage = tokenUsage;
             // Capture effort for metadata
             if (provider === "anthropic") {
-              successEffort = mode === "recap" ? "high"
-                : mode === "smart" ? "medium"
-                : userMessage.length > 2000 ? "medium" : "low";
+              successEffort = getAnthropicEffort(mode, userMessage.length);
             } else {
               successEffort = getOpenAIReasoningEffort(model, mode) ?? null;
             }
@@ -608,19 +608,8 @@ async function streamAnthropic(
     messages.push({ role: "user", content: userMessage });
   }
 
-  // B2: Dynamic effort based on mode and transcript length
-  // Standard: low for short transcripts, medium for long/complex (>2000 chars)
-  // Smart: always medium (user expects intelligence)
-  // Recap: always high (full reasoning, user waits for quality summary)
-  const effort = mode === "recap" ? "high"
-    : mode === "smart" ? "medium"
-    : userMessage.length > 2000 ? "medium" : "low";
-
-  // A4: Thinking configuration by mode
-  // - Standard: no thinking (effort "low" naturally skips thinking for simple tasks)
-  // - Smart: adaptive thinking — model decides when to reason (recommended for Sonnet 4.6)
-  // - Recap: full thinking power (16000 tokens, user waits for quality summary)
-  const enableThinking = mode !== "standard";
+  // Thinking/effort depend on model generation and mode (see getAnthropicThinkingParams)
+  const { params: thinkingParams, betas, effort } = getAnthropicThinkingParams(model, mode, userMessage.length);
 
   const body: Record<string, unknown> = {
     model,
@@ -636,27 +625,11 @@ async function streamAnthropic(
     messages,
     max_tokens: maxTokens,
     stream: true,
+    ...thinkingParams,
   };
 
-  // A1: effort parameter — only for standard mode (no thinking)
-  // effort and thinking are mutually exclusive on Anthropic API
-  if (!enableThinking) {
-    body.output_config = { effort };
-  }
-
-  if (mode === "recap") {
-    body.thinking = {
-      type: "enabled",
-      budget_tokens: 16000,
-    };
-  } else if (mode === "smart") {
-    body.thinking = {
-      type: "adaptive",
-    };
-  }
-
   const startTime = Date.now();
-  console.log(`[Anthropic] Calling API with model: ${model}, mode: ${mode}, effort: ${effort}, thinking: ${enableThinking}, screenshot: ${!!screenshot}, maxTokens: ${maxTokens}`);
+  console.log(`[Anthropic] Calling API with model: ${model}, mode: ${mode}, effort: ${effort}, thinking: ${JSON.stringify(thinkingParams.thinking ?? "none")}, screenshot: ${!!screenshot}, maxTokens: ${maxTokens}`);
 
   const response = await fetch(PROVIDER_URLS.anthropic, {
     method: "POST",
@@ -664,11 +637,7 @@ async function streamAnthropic(
       "x-api-key": apiKey,
       "Content-Type": "application/json",
       "anthropic-version": "2023-06-01",
-      // B1: prompt-caching header always present; interleaved-thinking when applicable
-      "anthropic-beta": [
-        "prompt-caching-2024-07-31",
-        ...(enableThinking ? ["interleaved-thinking-2025-05-14"] : []),
-      ].join(","),
+      "anthropic-beta": betas.join(","),
     },
     body: JSON.stringify(body),
   });
@@ -691,6 +660,8 @@ async function streamAnthropic(
       try {
         let chunkCount = 0;
         let lineBuffer = ""; // Buffer for partial SSE lines split across TCP chunks
+        let emittedText = false;
+        let refusedBeforeText: string | null = null;
         while (true) {
           if (++chunkCount > MAX_CHUNKS) {
             console.warn("[Anthropic] Stream exceeded max chunks, closing");
@@ -715,7 +686,17 @@ async function streamAnthropic(
               if (data.type === "content_block_delta" && data.delta?.type === "text_delta") {
                 const content = data.delta.text;
                 if (content) {
+                  emittedText = true;
                   controller.enqueue(encoder.encode(`data: ${JSON.stringify({ content })}\n\n`));
+                }
+              }
+              // Safety decline (HTTP 200). Before any text, error out so the cascade tries the
+              // next model; mid-answer, keep what was streamed.
+              if (data.type === "message_delta" && data.delta?.stop_reason === "refusal") {
+                const category = data.delta?.stop_details?.category ?? "unknown";
+                console.warn(`[Anthropic] ${model} refused (category: ${category}, after text: ${emittedText})`);
+                if (!emittedText) {
+                  refusedBeforeText = category;
                 }
               }
               // Capture input_tokens from message_start event
@@ -729,6 +710,10 @@ async function streamAnthropic(
             } catch {
               // Ignore parse errors
             }
+          }
+
+          if (refusedBeforeText) {
+            throw new Error(`refusal (${refusedBeforeText})`);
           }
         }
         controller.close();

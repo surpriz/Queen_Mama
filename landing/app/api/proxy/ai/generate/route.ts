@@ -6,6 +6,7 @@ import {
   getModelCascade,
   buildOpenAIRequestBody,
   calculateCost,
+  getAnthropicThinkingParams,
   TIER_LIMITS,
   PROVIDER_URLS,
   type PlanTier,
@@ -226,7 +227,7 @@ export async function POST(request: Request) {
               userMessage,
               screenshot,
               requestMaxTokens,
-              smartMode
+              mode
             );
             break;
           case "gemini":
@@ -381,7 +382,7 @@ async function callAnthropic(
   userMessage: string,
   screenshot: string | undefined,
   maxTokens: number,
-  smartMode: boolean
+  mode: "standard" | "smart"
 ): Promise<ProviderResult> {
   const messages: Array<{ role: string; content: string | object[] }> = [];
 
@@ -411,15 +412,9 @@ async function callAnthropic(
     max_tokens: maxTokens,
   };
 
-  if (smartMode) {
-    // A4: Adaptive thinking for smart mode (effort and thinking are mutually exclusive)
-    body.thinking = {
-      type: "adaptive",
-    };
-  } else {
-    // A1: effort parameter — only when thinking is disabled
-    body.output_config = { effort: "low" };
-  }
+  // Thinking/effort depend on model generation and mode (see getAnthropicThinkingParams)
+  const { params: thinkingParams, betas } = getAnthropicThinkingParams(model, mode, userMessage.length);
+  Object.assign(body, thinkingParams);
 
   const response = await fetch(PROVIDER_URLS.anthropic, {
     method: "POST",
@@ -427,7 +422,7 @@ async function callAnthropic(
       "x-api-key": apiKey,
       "Content-Type": "application/json",
       "anthropic-version": "2023-06-01",
-      ...(smartMode && { "anthropic-beta": "interleaved-thinking-2025-05-14" }),
+      "anthropic-beta": betas.join(","),
     },
     body: JSON.stringify(body),
   });
@@ -438,6 +433,11 @@ async function callAnthropic(
   }
 
   const data = await response.json();
+
+  // Safety decline comes back as HTTP 200; throw so the cascade tries the next model
+  if (data.stop_reason === "refusal") {
+    throw new Error(`Anthropic refusal (${data.stop_details?.category ?? "unknown"})`);
+  }
 
   // Extract text from content blocks
   let content = "";
