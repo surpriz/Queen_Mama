@@ -21,6 +21,26 @@ export const changelogData: ChangelogRelease[] = [
     isNew: true,
     sections: [
       {
+        category: "features",
+        changes: [
+          {
+            id: "guestMode",
+            title: "Try Without an Account",
+            description: "New users on macOS can start right away with \"Continue without an account\" and turn it into a full account later without losing their sessions"
+          },
+          {
+            id: "richRendering",
+            title: "Code, Math and Diagrams in Answers",
+            description: "The macOS overlay now shows syntax-highlighted code, formatted math and diagrams, handy for technical interviews"
+          },
+          {
+            id: "localVad",
+            title: "Smarter Audio During Silences",
+            description: "macOS now detects silence locally and stops streaming audio until someone speaks again, with no change to transcription"
+          },
+        ],
+      },
+      {
         category: "improvements",
         changes: [
           {

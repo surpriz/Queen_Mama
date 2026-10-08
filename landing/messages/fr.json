@@ -453,6 +453,18 @@
     },
     "badgeNew": "Nouveau",
     "entries": {
+      "guestMode": {
+        "title": "Essayer sans compte",
+        "description": "Sur macOS, les nouveaux utilisateurs peuvent démarrer tout de suite avec « Continuer sans compte », puis créer un vrai compte plus tard sans perdre leurs sessions"
+      },
+      "richRendering": {
+        "title": "Code, maths et diagrammes dans les réponses",
+        "description": "L'overlay macOS affiche maintenant le code coloré, les formules mathématiques et les diagrammes, pratique pour les entretiens techniques"
+      },
+      "localVad": {
+        "title": "Audio plus malin pendant les silences",
+        "description": "macOS détecte maintenant les silences en local et coupe l'envoi audio jusqu'à ce que quelqu'un reparle, sans changement pour la transcription"
+      },
       "sonnet55SmartRecap": {
         "title": "Claude Sonnet 5.5 pour Smart et Recap",
         "description": "Le mode Smart et les récaps de réunion tournent maintenant sur Claude Sonnet 5.5, pour des analyses et des résumés plus fins"
