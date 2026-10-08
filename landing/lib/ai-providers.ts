@@ -32,24 +32,22 @@ export const MODEL_CASCADE = {
   standard: [
     { provider: "openai", model: "gpt-6-luna" },                       // Primary: GPT-6 Luna, reasoning_effort=none (see OPENAI_REASONING_EFFORT)
     { provider: "openai", model: "gpt-5.4-mini" },                     // Fallback 1: previous primary, same speed profile
-    { provider: "anthropic", model: "claude-sonnet-4-6" },             // Fallback 2: Sonnet 4.6 effort=low
-    { provider: "anthropic", model: "claude-sonnet-4-5-20250929" },    // Fallback 3: previous gen backup
+    { provider: "anthropic", model: "claude-sonnet-5-5" },             // Fallback 2: Sonnet 5.5, thinking off (between_tools)
+    { provider: "anthropic", model: "claude-sonnet-4-6" },             // Last resort: previous gen
   ] as CascadeModel[],
 
-  // Smart Mode (Enterprise): Deep analysis with Sonnet 4.6 + extended thinking
-  // Optimized for maximum intelligence with reasoning
+  // Smart Mode (Enterprise): Deep analysis with adaptive thinking
   smart: [
-    { provider: "anthropic", model: "claude-sonnet-4-6" },             // Primary: ⭐⭐⭐⭐⭐ Sonnet 4.6 + thinking = exceptional reasoning
-    { provider: "openai", model: "gpt-6-luna" },                       // Fallback 1: Luna with reasoning_effort=low (replaces deprecated o4-mini)
-    { provider: "anthropic", model: "claude-sonnet-4-5-20250929" },    // Fallback 2: ⭐⭐⭐⭐⭐ quality, previous gen backup
+    { provider: "anthropic", model: "claude-sonnet-5-5" },             // Primary: Sonnet 5.5, adaptive thinking, effort=medium
+    { provider: "openai", model: "gpt-6-luna" },                       // Fallback 1: Luna with reasoning_effort=low
+    { provider: "anthropic", model: "claude-sonnet-4-6" },             // Last resort: previous gen
   ] as CascadeModel[],
 
   // Recap Mode: Meeting summaries (text-only, large context preferred)
-  // Optimized for intelligence + readability
   recap: [
-    { provider: "anthropic", model: "claude-sonnet-4-6" },             // Primary: ⭐⭐⭐⭐⭐ UX (emojis, statuses), highly readable
-    { provider: "anthropic", model: "claude-sonnet-4-5-20250929" },    // Fallback 1: ⭐⭐⭐⭐⭐ quality backup
-    { provider: "openai", model: "gpt-6-luna" },                       // Fallback 2: 1M context, reasoning_effort=medium
+    { provider: "anthropic", model: "claude-sonnet-5-5" },             // Primary: Sonnet 5.5, adaptive thinking, effort=high
+    { provider: "openai", model: "gpt-6-luna" },                       // Fallback 1: 1M context, reasoning_effort=medium
+    { provider: "anthropic", model: "claude-sonnet-4-6" },             // Last resort: previous gen
   ] as CascadeModel[],
 } as const;
 
@@ -87,6 +85,8 @@ export const MODEL_SPECS: Record<string, ModelSpec> = {
   "gpt-4o":                      { label: "GPT-4o",            input: 2.50, output: 10.00 }, // kept for legacy logs
   "gpt-4o-mini":                 { label: "GPT-4o mini",       input: 0.15, output: 0.60  },
   "o4-mini":                     { label: "o4-mini",           input: 1.10, output: 4.40  }, // deprecated, kept for legacy logs
+  "claude-sonnet-5-5":           { label: "Claude Sonnet 5.5", input: 2.00, output: 10.00 },
+  "claude-sonnet-5":             { label: "Claude Sonnet 5",   input: 2.00, output: 10.00 }, // server-side refusal fallback target
   "claude-sonnet-4-6":           { label: "Claude Sonnet 4.6", input: 3.00, output: 15.00 },
   "claude-sonnet-4-5-20250929":  { label: "Claude Sonnet 4.5", input: 3.00, output: 15.00 },
   "grok-4-1-fast-non-reasoning": { label: "Grok 4.1 Fast",     input: 3.00, output: 15.00 },
@@ -116,6 +116,71 @@ export function getOpenAIReasoningEffort(model: string, mode: CascadeMode): Open
   return MODEL_SPECS[model]?.reasoningEfforts?.includes(effort) ? effort : undefined;
 }
 
+// ============================================
+// Anthropic request tuning
+// ============================================
+
+export type AnthropicEffort = "low" | "medium" | "high" | "xhigh" | "max";
+
+export interface AnthropicThinkingParams {
+  // Fields to merge into the request body
+  params: {
+    thinking?: Record<string, unknown>;
+    output_config?: { effort: AnthropicEffort };
+    fallbacks?: "default";
+  };
+  // anthropic-beta header values
+  betas: string[];
+  effort: AnthropicEffort;
+}
+
+// Effort per mode. Standard goes up a notch on long transcripts.
+export function getAnthropicEffort(mode: CascadeMode, inputLength: number): AnthropicEffort {
+  if (mode === "recap") return "high";
+  if (mode === "smart") return "medium";
+  return inputLength > 2000 ? "medium" : "low";
+}
+
+// Sonnet 5.5 generation: budget_tokens and thinking "disabled" both return a 400,
+// non-default temperature too. Thinking is off via "between_tools", on via adaptive + effort.
+function isAnthropicGen55(model: string): boolean {
+  return model.startsWith("claude-sonnet-5-5");
+}
+
+// Thinking / effort / beta config for an Anthropic request.
+export function getAnthropicThinkingParams(
+  model: string,
+  mode: CascadeMode,
+  inputLength: number
+): AnthropicThinkingParams {
+  const effort = getAnthropicEffort(mode, inputLength);
+
+  if (isAnthropicGen55(model)) {
+    return {
+      params: {
+        // Standard: no extended thinking, same latency profile as Sonnet 4.6 without thinking.
+        // Smart/Recap: adaptive thinking, depth driven by effort.
+        thinking: mode === "standard" ? { type: "between_tools" } : { type: "adaptive" },
+        output_config: { effort },
+        // Server retries cyber/frontier_llm declines on Sonnet 5; other declines surface as
+        // stop_reason "refusal" and the cascade moves on to the next model.
+        fallbacks: "default",
+      },
+      betas: ["server-side-fallback-2026-07-01"],
+      effort,
+    };
+  }
+
+  // Sonnet 4.6 and older
+  if (mode === "recap") {
+    return { params: { thinking: { type: "enabled", budget_tokens: 16000 } }, betas: ["prompt-caching-2024-07-31", "interleaved-thinking-2025-05-14"], effort };
+  }
+  if (mode === "smart") {
+    return { params: { thinking: { type: "adaptive" } }, betas: ["prompt-caching-2024-07-31", "interleaved-thinking-2025-05-14"], effort };
+  }
+  return { params: { output_config: { effort } }, betas: ["prompt-caching-2024-07-31"], effort };
+}
+
 // Legacy AI_MODELS for backward compatibility
 export const AI_MODELS = {
   openai: {
@@ -123,8 +188,8 @@ export const AI_MODELS = {
     smart: "gpt-6-luna",
   },
   anthropic: {
-    standard: "claude-sonnet-4-6",  // PRO: Sonnet 4.6 sans thinking (rapide)
-    smart: "claude-sonnet-4-6",     // Enterprise: Sonnet 4.6 avec thinking (intelligent)
+    standard: "claude-sonnet-5-5",  // PRO: thinking off (between_tools)
+    smart: "claude-sonnet-5-5",     // Enterprise: adaptive thinking
   },
   gemini: {
     standard: "gemini-2.0-flash",

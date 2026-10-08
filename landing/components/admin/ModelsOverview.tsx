@@ -6,6 +6,7 @@ import {
   MODEL_SPECS,
   USER_SELECTABLE_MODELS,
   getOpenAIReasoningEffort,
+  getAnthropicThinkingParams,
   type CascadeMode,
   type CascadeModel,
 } from "@/lib/ai-providers";
@@ -23,9 +24,13 @@ const USAGE_WINDOW_DAYS = 7;
 // Mirrors the request config in /api/proxy/ai/stream so the panel shows what is actually sent
 function describeEffort(item: CascadeModel, mode: CascadeMode): string {
   if (item.provider === "anthropic") {
-    if (mode === "recap") return "thinking 16k";
-    if (mode === "smart") return "adaptive thinking";
-    return "no thinking";
+    // Short-transcript case; standard goes to medium effort past 2000 chars
+    const { params, effort } = getAnthropicThinkingParams(item.model, mode, 0);
+    const thinking = params.thinking as { type: string; budget_tokens?: number } | undefined;
+    if (!thinking) return `no thinking, effort ${effort}`;
+    if (thinking.type === "between_tools") return `thinking off, effort ${effort}`;
+    if (thinking.budget_tokens) return `thinking ${thinking.budget_tokens / 1000}k`;
+    return `adaptive thinking, effort ${effort}`;
   }
   const effort = getOpenAIReasoningEffort(item.model, mode);
   return effort ? `reasoning ${effort}` : "default";
