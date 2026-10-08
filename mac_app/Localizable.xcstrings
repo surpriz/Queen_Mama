@@ -8125,6 +8125,23 @@
         }
       }
     },
+    "overlay.tab.assist.hint": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Instant help on what's happening now: a question, your screen, a problem. Use it whenever you're stuck."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aide immédiate sur ce qui se passe : une question, ton écran, un problème. À utiliser dès que tu bloques."
+          }
+        }
+      }
+    },
     "overlay.tab.briefing": {
       "extractionState": "manual",
       "localizations": {
@@ -8138,6 +8155,23 @@
           "stringUnit": {
             "state": "translated",
             "value": "Briefing"
+          }
+        }
+      }
+    },
+    "overlay.tab.briefing.hint": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "What you know about this contact from past meetings. Check it before or during the call."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ce que tu sais de ce contact grâce aux réunions passées. À consulter avant ou pendant l'appel."
           }
         }
       }
@@ -8159,6 +8193,23 @@
         }
       }
     },
+    "overlay.tab.decode.hint": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Explains jargon, acronyms and technical terms heard or on screen. Use it when a word loses you."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Explique le jargon, les sigles et les termes techniques entendus ou à l'écran. Quand un mot te perd."
+          }
+        }
+      }
+    },
     "overlay.tab.followUp": {
       "extractionState": "manual",
       "localizations": {
@@ -8172,6 +8223,23 @@
           "stringUnit": {
             "state": "translated",
             "value": "Suivi"
+          }
+        }
+      }
+    },
+    "overlay.tab.followUp.hint": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Relevant questions to ask next. Use it to keep the conversation going or dig deeper."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Des questions pertinentes à poser ensuite. Pour relancer l'échange ou creuser un sujet."
           }
         }
       }
@@ -8193,6 +8261,23 @@
         }
       }
     },
+    "overlay.tab.recap.hint": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Summary so far: key points, decisions, next steps. Use it at the end or when you lose the thread."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Le résumé jusqu'ici : points clés, décisions, prochaines étapes. En fin de réunion ou si tu perds le fil."
+          }
+        }
+      }
+    },
     "overlay.tab.translate": {
       "extractionState": "manual",
       "localizations": {
@@ -8210,6 +8295,23 @@
         }
       }
     },
+    "overlay.tab.translate.hint": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Live translation of the conversation. Use it in meetings held in another language."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Traduction en direct de la conversation. Pour les réunions dans une autre langue."
+          }
+        }
+      }
+    },
     "overlay.tab.whatToSay": {
       "extractionState": "manual",
       "localizations": {
@@ -8223,6 +8325,23 @@
           "stringUnit": {
             "state": "translated",
             "value": "Quoi dire"
+          }
+        }
+      }
+    },
+    "overlay.tab.whatToSay.hint": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The exact words to answer right now. Use it when it's your turn to speak."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Les mots exacts pour répondre maintenant. Quand c'est à toi de parler."
           }
         }
       }
@@ -12133,6 +12252,40 @@
           "stringUnit": {
             "state": "translated",
             "value": "Capture d'écran"
+          }
+        }
+      }
+    },
+    "settings.general.showDecodeInOverlay": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Show Decode Button"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Afficher le bouton Decode"
+          }
+        }
+      }
+    },
+    "settings.general.showDecodeInOverlay.description": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Adds the Decode button to the assistant panel, to explain jargon and acronyms"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ajoute le bouton Decode au panneau assistant, pour expliquer le jargon et les sigles"
           }
         }
       }

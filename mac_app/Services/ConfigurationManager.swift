@@ -136,6 +136,12 @@ final class ConfigurationManager: ObservableObject {
         didSet { defaults.set(showTranscriptInOverlay, forKey: Keys.showTranscriptInOverlay) }
     }
 
+    // MARK: - Overlay Decode Button
+
+    @Published var showDecodeInOverlay: Bool {
+        didSet { defaults.set(showDecodeInOverlay, forKey: Keys.showDecodeInOverlay) }
+    }
+
     // MARK: - Live Translation
 
     @Published var translationEnabled: Bool {
@@ -225,6 +231,8 @@ final class ConfigurationManager: ObservableObject {
         static let meetingDetection = "meeting_detection_enabled"
         // Overlay Transcript
         static let showTranscriptInOverlay = "show_transcript_in_overlay"
+        // Overlay Decode Button
+        static let showDecodeInOverlay = "show_decode_in_overlay"
         // Meeting Cost
         static let meetingCostEnabled = "meeting_cost_enabled"
         static let meetingHourlyRate = "meeting_hourly_rate"
@@ -290,6 +298,8 @@ final class ConfigurationManager: ObservableObject {
         self.meetingDetectionEnabled = defaults.object(forKey: Keys.meetingDetection) as? Bool ?? true
         // Overlay Transcript
         self.showTranscriptInOverlay = defaults.object(forKey: Keys.showTranscriptInOverlay) as? Bool ?? false
+        // Overlay Decode Button (hidden by default to keep the action bar short)
+        self.showDecodeInOverlay = defaults.object(forKey: Keys.showDecodeInOverlay) as? Bool ?? false
 
         // Meeting Cost (beta: disabled by default)
         self.meetingCostEnabled = defaults.object(forKey: Keys.meetingCostEnabled) as? Bool ?? false

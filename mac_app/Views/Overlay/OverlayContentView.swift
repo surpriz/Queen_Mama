@@ -511,9 +511,22 @@ enum TabItem: String, CaseIterable {
         }
     }
 
+    /// What the button does and when to use it, shown on hover
+    var hint: String {
+        switch self {
+        case .assist: return String(localized: "overlay.tab.assist.hint")
+        case .whatToSay: return String(localized: "overlay.tab.whatToSay.hint")
+        case .followUp: return String(localized: "overlay.tab.followUp.hint")
+        case .recap: return String(localized: "overlay.tab.recap.hint")
+        case .decode: return String(localized: "overlay.tab.decode.hint")
+        case .briefing: return String(localized: "overlay.tab.briefing.hint")
+        case .translate: return String(localized: "overlay.tab.translate.hint")
+        }
+    }
+
     /// Tabs that are always visible vs context-dependent
     static var alwaysVisible: [TabItem] {
-        [.assist, .whatToSay, .followUp, .recap, .decode]
+        [.assist, .whatToSay, .followUp, .recap]
     }
 }
 
@@ -1134,10 +1147,14 @@ struct ModernExpandedContentView: View {
 
     @ObservedObject private var config = ConfigurationManager.shared
 
-    /// Tabs to display - includes Briefing only if contact is associated,
+    /// Tabs to display - includes Decode only if enabled in settings,
+    /// Briefing only if contact is associated,
     /// Translate only if translation is enabled + shown in overlay
     private var visibleTabs: [TabItem] {
         var tabs = TabItem.alwaysVisible
+        if config.showDecodeInOverlay {
+            tabs.append(.decode)
+        }
         if appState.currentSessionContact != nil {
             tabs.append(.briefing)
         }
@@ -1258,6 +1275,11 @@ struct ModernExpandedContentView: View {
                     onSubmit()
                 }
             }
+            .onChange(of: config.showDecodeInOverlay) { _, isShown in
+                if !isShown && selectedTab == .decode {
+                    selectedTab = .assist
+                }
+            }
 
             // Status & Input (hidden on briefing and translate tabs)
             if selectedTab != .briefing && selectedTab != .translate {
@@ -1336,13 +1358,18 @@ struct ModernTabBarView: View {
 
     @Namespace private var tabAnimation
 
+    /// Tab whose hint is currently shown above the bar
+    @State private var hintTab: TabItem?
+    @State private var hintTask: Task<Void, Never>?
+
     var body: some View {
         HStack(spacing: 6) {
             ForEach(visibleTabs, id: \.self) { tab in
                 ActionButton(
                     tab: tab,
                     isSelected: selectedTab == tab,
-                    namespace: tabAnimation
+                    namespace: tabAnimation,
+                    onHoverChanged: { hovering in updateHint(for: tab, hovering: hovering) }
                 ) {
                     withAnimation(QMDesign.Animation.smooth) {
                         selectedTab = tab
@@ -1352,6 +1379,74 @@ struct ModernTabBarView: View {
             }
         }
         .frame(height: QMDesign.Dimensions.Overlay.tabBarHeight)
+        // Full-width hint above the bar: a per-button tooltip would be clipped at the panel edges
+        .overlay(alignment: .top) {
+            if let tab = hintTab {
+                TabHintView(tab: tab)
+                    .alignmentGuide(.top) { d in d[.bottom] + 6 }
+                    .allowsHitTesting(false)
+                    .transition(.opacity)
+            }
+        }
+    }
+
+    /// Shows the hint after a short hover, then follows the pointer across buttons without delay
+    private func updateHint(for tab: TabItem, hovering: Bool) {
+        hintTask?.cancel()
+        if hovering {
+            if hintTab != nil {
+                hintTab = tab
+                return
+            }
+            hintTask = Task { @MainActor in
+                try? await Task.sleep(nanoseconds: 500_000_000)
+                guard !Task.isCancelled else { return }
+                withAnimation(QMDesign.Animation.quick) { hintTab = tab }
+            }
+        } else if hintTab == nil || hintTab == tab {
+            // Short grace period so moving to a neighbour button doesn't flicker
+            hintTask = Task { @MainActor in
+                try? await Task.sleep(nanoseconds: 120_000_000)
+                guard !Task.isCancelled else { return }
+                withAnimation(QMDesign.Animation.quick) { hintTab = nil }
+            }
+        }
+    }
+}
+
+// MARK: - Tab Hint
+
+struct TabHintView: View {
+    let tab: TabItem
+
+    var body: some View {
+        HStack(alignment: .top, spacing: 6) {
+            Image(systemName: tab.icon)
+                .font(.system(size: 10, weight: .semibold))
+                .foregroundColor(QMDesign.Colors.accent)
+                .padding(.top, 1)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(tab.shortLabel)
+                    .font(.system(size: 10, weight: .semibold))
+                    .foregroundColor(QMDesign.Colors.textPrimary)
+                Text(tab.hint)
+                    .font(.system(size: 10))
+                    .foregroundColor(QMDesign.Colors.textSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            Spacer(minLength: 0)
+        }
+        .padding(.horizontal, 10)
+        .padding(.vertical, 7)
+        .background(
+            RoundedRectangle(cornerRadius: 10)
+                .fill(.ultraThinMaterial)
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 10)
+                .stroke(QMDesign.Colors.borderMedium, lineWidth: 0.75)
+        )
+        .shadow(color: Color.black.opacity(0.25), radius: 6, x: 0, y: 3)
     }
 }
 
@@ -1380,6 +1475,7 @@ struct ActionButton: View {
     let tab: TabItem
     let isSelected: Bool
     let namespace: Namespace.ID
+    var onHoverChanged: ((Bool) -> Void)? = nil
     let action: () -> Void
 
     @State private var isHovered = false
@@ -1436,7 +1532,10 @@ struct ActionButton: View {
             )
         }
         .buttonStyle(ActionButtonStyle(isSelected: isSelected, isHovered: isHovered))
-        .onHover { isHovered = $0 }
+        .onHover { hovering in
+            isHovered = hovering
+            onHoverChanged?(hovering)
+        }
         .animation(QMDesign.Animation.smooth, value: isSelected)
         .animation(QMDesign.Animation.quick, value: isHovered)
     }

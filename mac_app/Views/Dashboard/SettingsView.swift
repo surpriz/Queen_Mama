@@ -402,6 +402,17 @@ struct ModernGeneralSettingsView: View {
                         icon: "text.bubble",
                         isBeta: true
                     )
+
+                    Divider()
+                        .background(QMDesign.Colors.borderSubtle)
+
+                    // Decode button in Overlay
+                    ModernToggleRow(
+                        title: String(localized: "settings.general.showDecodeInOverlay"),
+                        description: String(localized: "settings.general.showDecodeInOverlay.description"),
+                        isOn: $config.showDecodeInOverlay,
+                        icon: "character.book.closed"
+                    )
                 }
             }
 
