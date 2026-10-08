@@ -453,6 +453,22 @@
     },
     "badgeNew": "Nouveau",
     "entries": {
+      "liveWhatToSay": {
+        "title": "What to Say s'affiche tout de suite",
+        "description": "Sur macOS, What to Say et Recap écrivent leur réponse au fur et à mesure au lieu de tout afficher à la fin"
+      },
+      "overlayButtonHints": {
+        "title": "Aide sur les boutons de l'overlay",
+        "description": "Survole un bouton de l'overlay sur macOS pour voir à quoi il sert et quand l'utiliser"
+      },
+      "decodeOptional": {
+        "title": "Le bouton Decode devient optionnel",
+        "description": "Le bouton Decode est masqué par défaut sur macOS pour garder l'overlay compact ; active-le dans les Réglages"
+      },
+      "macRecapModel": {
+        "title": "Recap utilise le bon modèle",
+        "description": "Les récaps de réunion sur macOS tournent maintenant toujours sur le modèle dédié au récap, et non sur celui d'Assist"
+      },
       "guestMode": {
         "title": "Essayer sans compte",
         "description": "Sur macOS, les nouveaux utilisateurs peuvent démarrer tout de suite avec « Continuer sans compte », puis créer un vrai compte plus tard sans perdre leurs sessions"

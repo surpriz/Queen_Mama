@@ -53,6 +53,31 @@ export const changelogData: ChangelogRelease[] = [
             title: "Claude Sonnet 5.5 for Smart and Recap",
             description: "Smart mode and meeting recaps now run on Claude Sonnet 5.5 for sharper analysis and summaries"
           },
+          {
+            id: "liveWhatToSay",
+            title: "What to Say Appears Instantly",
+            description: "On macOS, What to Say and Recap now write their answer as it is generated instead of showing it all at the end"
+          },
+          {
+            id: "overlayButtonHints",
+            title: "Button Hints in the Overlay",
+            description: "Hover any overlay button on macOS to see what it does and when to use it"
+          },
+          {
+            id: "decodeOptional",
+            title: "Decode Button Now Optional",
+            description: "The Decode button is hidden by default on macOS to keep the overlay compact; turn it on in Settings"
+          },
+        ],
+      },
+      {
+        category: "fixes",
+        changes: [
+          {
+            id: "macRecapModel",
+            title: "Recap Uses the Right Model",
+            description: "Meeting recaps on macOS now always run on the dedicated recap model instead of the faster Assist one"
+          },
         ],
       },
     ],

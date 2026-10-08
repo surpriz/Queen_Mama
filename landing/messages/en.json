@@ -453,6 +453,22 @@
     },
     "badgeNew": "New",
     "entries": {
+      "liveWhatToSay": {
+        "title": "What to Say Appears Instantly",
+        "description": "On macOS, What to Say and Recap now write their answer as it is generated instead of showing it all at the end"
+      },
+      "overlayButtonHints": {
+        "title": "Button Hints in the Overlay",
+        "description": "Hover any overlay button on macOS to see what it does and when to use it"
+      },
+      "decodeOptional": {
+        "title": "Decode Button Now Optional",
+        "description": "The Decode button is hidden by default on macOS to keep the overlay compact; turn it on in Settings"
+      },
+      "macRecapModel": {
+        "title": "Recap Uses the Right Model",
+        "description": "Meeting recaps on macOS now always run on the dedicated recap model instead of the faster Assist one"
+      },
       "guestMode": {
         "title": "Try Without an Account",
         "description": "New users on macOS can start right away with \"Continue without an account\" and turn it into a full account later without losing their sessions"
