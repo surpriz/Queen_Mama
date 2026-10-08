@@ -453,6 +453,10 @@
     },
     "badgeNew": "Nouveau",
     "entries": {
+      "sonnet55SmartRecap": {
+        "title": "Claude Sonnet 5.5 pour Smart et Recap",
+        "description": "Le mode Smart et les récaps de réunion tournent maintenant sur Claude Sonnet 5.5, pour des analyses et des résumés plus fins"
+      },
       "gpt6LunaAssist": {
         "title": "Modèle IA plus récent pour Assist",
         "description": "Les suggestions en temps réel tournent maintenant sur GPT-6 Luna, avec des connaissances plus à jour et la même rapidité"
