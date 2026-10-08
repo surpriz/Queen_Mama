@@ -48,7 +48,8 @@ final class ProxyConfigAvailabilityTests: XCTestCase {
                 translation: nil
             ),
             cacheTTL: 300,
-            configuredAt: "2026-03-03T10:00:00Z"
+            configuredAt: "2026-03-03T10:00:00Z",
+            experiments: nil
         )
     }
 
