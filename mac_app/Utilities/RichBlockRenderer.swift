@@ -138,7 +138,7 @@ final class RichBlockRenderer: NSObject {
             <div id="out"></div>
             <script>
               const src = \(encoded);
-              mermaid.initialize({startOnLoad:false, theme:'dark', securityLevel:'loose'});
+              mermaid.initialize({startOnLoad:false, theme:'dark', securityLevel:'strict'});
               mermaid.render('g0', src).then(({svg}) => {
                 document.getElementById('out').innerHTML = svg;
                 requestAnimationFrame(() => report());
