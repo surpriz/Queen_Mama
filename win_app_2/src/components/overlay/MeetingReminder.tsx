@@ -13,6 +13,7 @@
  */
 
 import { useState, useEffect, useCallback, useRef } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Video, Globe, Hash, Headphones, MessageSquare, X } from 'lucide-react'
 import { useAppStore } from '@/stores/appStore'
 import * as sessionClient from '@/services/session/sessionClient'
@@ -72,6 +73,7 @@ const DEFAULT_ICON: AppIconConfig = {
 // ---------------------------------------------------------------------------
 
 export function MeetingReminder() {
+  const { t } = useTranslation('overlay')
   const [detectedApp, setDetectedApp] = useState<string | null>(null)
   const [isVisible, setIsVisible] = useState(false)
   const [isExiting, setIsExiting] = useState(false)
@@ -206,10 +208,10 @@ export function MeetingReminder() {
         {/* Message */}
         <div className="flex-1 min-w-0">
           <p className="text-sm font-semibold text-qm-text-primary truncate">
-            {detectedApp} detected
+            {t('meetingReminder.detected', { app: detectedApp })}
           </p>
           <p className="text-xs text-qm-text-secondary">
-            Start a session?
+            {t('meetingReminder.startQuestion')}
           </p>
         </div>
 
@@ -224,7 +226,7 @@ export function MeetingReminder() {
             'transition-opacity duration-150',
           )}
         >
-          Start
+          {t('meetingReminder.start')}
         </button>
 
         {/* Dismiss button */}

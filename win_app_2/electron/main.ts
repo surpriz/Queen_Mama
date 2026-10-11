@@ -58,7 +58,7 @@ import { IPC_CHANNELS } from './ipc/channels'
 import { initializeDatabase, closeDatabase } from './db/database'
 import { safeSendToAllWindows, safeSendToMainWindow } from './utils/ipcUtils'
 import { startMonitoring, stopMonitoring, setSessionActive, setOnMeetingDetected } from './services/meetingDetectionService'
-import { createMeetingNotificationWindow, showMeetingNotification } from './windows/meetingNotificationWindow'
+import { createMeetingNotificationWindow, showMeetingNotification, hideMeetingNotification } from './windows/meetingNotificationWindow'
 
 // Google OAuth client ID - Desktop type for Windows/Electron (supports loopback redirects)
 // This should match the Client ID used in the renderer (googleAuthService.ts)
@@ -202,6 +202,8 @@ if (!gotTheLock) {
       updateTrayIcon(isSessionActive)
       updateTrayMenu(isSessionActive)
       setSessionActive(isSessionActive)
+      // A reminder that is still up when the session starts is stale
+      if (isSessionActive) hideMeetingNotification()
     })
 
     // Tray icon updates from renderer (legacy path, kept for compatibility)

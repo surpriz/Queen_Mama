@@ -177,5 +177,10 @@
     "noSessions": "Aucune session précédente.",
     "notes": "Notes",
     "noNotes": "Pas encore de note."
+  },
+  "meetingReminder": {
+    "detected": "{{app}} détecté",
+    "startQuestion": "Démarrer une session ?",
+    "start": "Démarrer"
   }
 }

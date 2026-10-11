@@ -185,12 +185,45 @@ export function initializeDatabase(): Database.Database {
     console.error('[Database] Contacts migration error:', err)
   }
 
+  // Versioned migrations (PRAGMA user_version). The guarded ALTERs above stay
+  // as a safety net for databases created before versioning existed.
+  applyVersionedMigrations(db)
+
   // Seed built-in modes if table is empty, then sync prompts for existing installs
   seedBuiltInModes(db)
   syncBuiltInModes(db)
 
   console.log('[Database] Tables created')
   return db
+}
+
+const SCHEMA_VERSION = 1
+
+/**
+ * Forward-only migrations keyed by `PRAGMA user_version`.
+ * v1: indexes for the hot lookups (deletes by session, history by session,
+ *     session list ordering, contact sync lookups).
+ */
+function applyVersionedMigrations(database: Database.Database): void {
+  const current = database.pragma('user_version', { simple: true }) as number
+  if (current >= SCHEMA_VERSION) return
+
+  const migrate = database.transaction(() => {
+    if (current < 1) {
+      database.exec(`
+        CREATE INDEX IF NOT EXISTS idx_transcript_entries_session ON transcript_entries(session_id, timestamp);
+        CREATE INDEX IF NOT EXISTS idx_ai_responses_session ON ai_responses(session_id);
+        CREATE INDEX IF NOT EXISTS idx_ai_responses_timestamp ON ai_responses(timestamp);
+        CREATE INDEX IF NOT EXISTS idx_sessions_start_time ON sessions(start_time);
+        CREATE INDEX IF NOT EXISTS idx_sessions_sync_status ON sessions(sync_status);
+        CREATE INDEX IF NOT EXISTS idx_contacts_remote_id ON contacts(remote_id);
+        CREATE INDEX IF NOT EXISTS idx_session_contacts_contact ON session_contacts(contact_id);
+      `)
+    }
+    database.pragma(`user_version = ${SCHEMA_VERSION}`)
+  })
+  migrate()
+  console.log(`[Database] Migrated schema ${current} → ${SCHEMA_VERSION}`)
 }
 
 // Canonical built-in mode definitions — single source of truth for the database layer

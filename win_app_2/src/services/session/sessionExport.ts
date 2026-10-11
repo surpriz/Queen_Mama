@@ -3,6 +3,7 @@ import { formatDuration, formatDate } from '@/lib/utils'
 import { useLicenseStore } from '@/stores/licenseStore'
 import { Feature } from '@/types/auth'
 import { createLogger } from '@/lib/logger'
+import { sessionLines } from './transcriptEntries'
 
 const log = createLogger('SessionExport')
 
@@ -241,37 +242,36 @@ function escapeCSVField(field: string): string {
 }
 
 export function exportToCSV(session: Session): string {
-  const header = 'timestamp,speaker,text,is_final'
-  const entries = session.entries || []
+  const header = 'timestamp,speaker,text,translation'
+  const lines = sessionLines(session.transcript, session.entries)
 
-  if (entries.length === 0) {
-    // Fallback: export full transcript as a single row if no individual entries
+  if (lines.length === 0) {
     const timestamp = session.startTime || new Date().toISOString()
     const text = escapeCSVField(session.transcript || '')
-    return `${header}\n${escapeCSVField(timestamp)},unknown,${text},true`
+    return `${header}\n${escapeCSVField(timestamp)},unknown,${text},`
   }
 
-  const rows = entries.map((entry) => {
-    const timestamp = escapeCSVField(entry.timestamp)
-    const speaker = escapeCSVField(entry.speaker)
-    const text = escapeCSVField(entry.text)
-    const isFinal = entry.isFinal ? 'true' : 'false'
-    return `${timestamp},${speaker},${text},${isFinal}`
+  const rows = lines.map((line) => {
+    const timestamp = escapeCSVField(line.timestamp ?? session.startTime)
+    const speaker = line.speaker === 'me' ? 'me' : line.speaker === 'them' ? 'other' : 'unknown'
+    const text = escapeCSVField(line.text)
+    const translation = escapeCSVField(line.translatedText ?? '')
+    return `${timestamp},${speaker},${text},${translation}`
   })
 
   return [header, ...rows].join('\n')
 }
 
 function formatTranscriptMarkdown(session: Session): string {
-  if (!session.entries || session.entries.length === 0) {
-    return session.transcript
-  }
+  const lines = sessionLines(session.transcript, session.entries)
+  if (lines.length === 0) return session.transcript
 
-  return session.entries
-    .map((entry) => {
-      const timestamp = new Date(entry.timestamp).toLocaleTimeString()
-      const speaker = entry.speaker === 'user' ? '**You:**' : '**Assistant:**'
-      return `[${timestamp}] ${speaker} ${entry.text}`
+  return lines
+    .map((line) => {
+      const time = line.timestamp ? `[${new Date(line.timestamp).toLocaleTimeString()}] ` : ''
+      const speaker = line.speaker === 'me' ? '**Me:** ' : line.speaker === 'them' ? '**Other:** ' : ''
+      const translation = line.translatedText ? `\n> _${line.translatedText}_` : ''
+      return `${time}${speaker}${line.text}${translation}`
     })
     .join('\n\n')
 }
