@@ -172,8 +172,6 @@ window logs its warnings/errors to the main process console with a
       Without it every API call fails with `Refused`/`CORS` errors in the
       renderer because `webSecurity` is now on. Temporary escape hatch for
       diagnosis only: launch with `QM_RELAX_WEB_SECURITY=1`.
-- [ ] `LICENSE_SECRET` set as a GitHub Actions secret if the build should verify
-      license signatures (optional, server is trusted otherwise).
 
 ### Upgrade from the previous product name
 - [ ] Install the old build ("Queen Mama Electron"), sign in, create a session.
