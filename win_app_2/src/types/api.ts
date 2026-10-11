@@ -17,6 +17,10 @@ export interface ProxyConfig {
   features: Record<string, boolean>
   limits: Record<string, number>
   services?: {
+    ai?: {
+      /** Server-side token budget per response (Smart mode uses it in full). */
+      maxTokens?: number
+    }
     translation?: {
       enabled: boolean
       provider?: string | null
@@ -104,6 +108,30 @@ export interface StreamChunk {
   id: string
   content: string
   done: boolean
+}
+
+export interface StreamOptions {
+  signal?: AbortSignal
+  /** Total request timeout in ms (default 90 s, mac parity). */
+  timeoutMs?: number
+}
+
+export type AIStreamErrorKind = 'timeout' | 'network' | 'server' | 'backend' | 'auth' | 'aborted'
+
+/** Error thrown by the AI stream client; `retryable` drives the Retry button. */
+export class AIStreamError extends Error {
+  constructor(
+    message: string,
+    readonly kind: AIStreamErrorKind,
+    readonly status?: number,
+  ) {
+    super(message)
+    this.name = 'AIStreamError'
+  }
+
+  get retryable(): boolean {
+    return this.kind === 'timeout' || this.kind === 'network' || this.kind === 'server'
+  }
 }
 
 export interface SyncSessionRequest {

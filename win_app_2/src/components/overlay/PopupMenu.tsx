@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
-import { MoreVertical, Move, Settings, Trash2, Monitor, ChevronRight, ChevronDown, ChevronUp, Zap, Brain, Camera, Layers, EyeOff, Check } from 'lucide-react'
+import { MoreVertical, Move, Settings, Trash2, Monitor, ChevronRight, ChevronDown, ChevronUp, Zap, Brain, Camera, Layers, EyeOff, Check, Copy } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { useOverlayStore } from '@/stores/overlayStore'
 import type { OverlayPosition } from '@/types/electron.d'
@@ -123,6 +123,16 @@ export function PopupMenu() {
   const handleOpenSettings = () => {
     window.electronAPI?.window.show()
     setIsOpen(false)
+  }
+
+  // Copy the last answer; if it contains a code block, copy the last code block (mac parity)
+  const handleCopyLast = () => {
+    const last = useOverlayStore.getState().responseHistory[0]
+    setIsOpen(false)
+    if (!last) return
+    const blocks = [...last.content.matchAll(/```[^\n]*\n([\s\S]*?)```/g)]
+    const text = blocks.length > 0 ? blocks[blocks.length - 1][1].replace(/\n$/, '') : last.content
+    navigator.clipboard.writeText(text).catch(() => undefined)
   }
 
   const handleSelectMode = (mode: Mode) => {
@@ -365,6 +375,14 @@ export function PopupMenu() {
           <div className="border-t border-qm-border-subtle" />
 
           {/* Settings */}
+          <button
+            onClick={handleCopyLast}
+            className="flex items-center gap-2 w-full px-3 py-2 text-body-sm text-qm-text-secondary hover:bg-qm-surface-hover transition-colors"
+          >
+            <Copy size={14} />
+            {t('popupMenu.copyLast')}
+          </button>
+
           <button
             onClick={handleOpenSettings}
             className="flex items-center gap-2 w-full px-3 py-2 text-body-sm text-qm-text-secondary hover:bg-qm-surface-hover transition-colors"

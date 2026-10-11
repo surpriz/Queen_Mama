@@ -125,7 +125,14 @@
       "contextIntelligence": "Intelligence contextuelle",
       "contextIntelligenceDescription": "Permet à l'IA d'utiliser les connaissances de vos réunions passées pour personnaliser les réponses (Enterprise)",
       "instantResponses": "Réponses instantanées",
-      "instantResponsesDescription": "Pré-génère les réponses en arrière-plan pour un Assist instantané (Enterprise, bêta)"
+      "instantResponsesDescription": "Pré-génère les réponses en arrière-plan pour un Assist instantané (Enterprise, bêta)",
+      "showDecode": "Afficher l'onglet Décoder dans le widget",
+      "showDecodeDescription": "Ajoute un cinquième onglet qui explique ce qui est à l'écran ou vient d'être dit",
+      "meetingCost": "Coût de la réunion",
+      "meetingCostDescription": "Affiche le coût en direct de la réunion dans le widget (participants × taux horaire)",
+      "meetingCostCurrency": "Devise",
+      "meetingCostRate": "Taux horaire",
+      "meetingCostParticipants": "Participants"
     },
     "autoAnswer": {
       "title": "Réponse automatique",
@@ -208,7 +215,8 @@
       "startStop": "Démarrer/Arrêter la session",
       "toggleWidget": "Afficher/Masquer le widget",
       "triggerAssist": "Déclencher l'assistance IA",
-      "clearContext": "Effacer le contexte"
+      "clearContext": "Effacer le contexte",
+      "runTab": "Lancer l'onglet / envoyer (dans le widget)"
     },
     "updates": {
       "title": "Mises à jour",

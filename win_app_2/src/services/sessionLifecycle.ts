@@ -14,7 +14,7 @@ import { screenCaptureService } from '@/services/screenCapture/screenCaptureServ
 import * as sessionMgr from '@/services/session/sessionManager'
 import * as aiService from '@/services/ai/aiService'
 import * as autoAnswer from '@/services/detection/autoAnswerService'
-import { processTranscriptForMoments, clearMomentState, onMomentsDetected, type DetectedMoment } from '@/services/detection/momentDetectionService'
+import { processTranscriptForMoments, clearMomentState, onMomentsDetected, setMomentDetectionOptions, type DetectedMoment } from '@/services/detection/momentDetectionService'
 import * as syncManager from '@/services/sync/syncManager'
 import * as analytics from '@/services/analytics/analyticsService'
 import { configurationManager } from '@/services/config/configurationManager'
@@ -51,6 +51,32 @@ const SYSTEM_AUDIO_STALE_MS = 3000
 let audioHealthTimer: ReturnType<typeof setInterval> | null = null
 let lastAudioHealthKey = ''
 let transcriptionErrorsReported = 0
+let lastSystemInterim = ''
+let unsubscribeConfig: (() => void) | null = null
+
+/** Push the current settings into the detectors (called at start and on every config change). */
+function applyDetectionConfig(): void {
+  const cfg = useConfigStore.getState()
+  const canAutoAnswer = useLicenseStore.getState().isFeatureAvailable(Feature.AutoAnswer)
+  autoAnswer.setConfig({
+    enabled: cfg.autoAnswerEnabled && canAutoAnswer,
+    silenceThreshold: cfg.autoAnswerSilenceThreshold,
+    cooldown: cfg.autoAnswerCooldown,
+    minWordsForSilence: 20,
+    minWordsForQuestion: 10,
+    minWordsForSentence: 50,
+  })
+  setMomentDetectionOptions({
+    sensitivity: cfg.proactiveSensitivity,
+    cooldownSeconds: cfg.proactiveCooldown,
+    enabledTypes: {
+      objection: cfg.proactiveObjectionsEnabled,
+      expertiseQuestion: cfg.proactiveQuestionsEnabled,
+      hesitation: cfg.proactiveHesitationsEnabled,
+      closingOpportunity: cfg.proactiveClosingEnabled,
+    },
+  })
+}
 
 let currentSessionId: string | null = null
 let unsubscribeMoments: (() => void) | null = null
@@ -251,6 +277,7 @@ export async function startSession(mode?: Mode | null, contact?: Contact | null)
       },
       onInterimTranscript: (text: string) => {
         useAppStore.getState().setInterimTranscript(text)
+        autoAnswer.onInterimTranscript(text)
         // Interims are frequent: relay only the interim text, not the whole
         // transcript (up to 50 KB per message before).
         relay.broadcast('relay:interim', { interim: text })
@@ -275,12 +302,14 @@ export async function startSession(mode?: Mode | null, contact?: Contact | null)
       },
 
       // --- SYSTEM AUDIO TRANSCRIPTS → "Interlocuteur" ---
-      onSystemTranscript: (text: string) => {
-        systemTranscriptBuffer.append(text)
-      },
       onSystemInterimTranscript: (text: string) => {
         // Feed interims into dedup immediately (before mic diarized arrives)
         dedup.addSystemTranscript(text)
+        lastSystemInterim = text
+      },
+      onSystemTranscript: (text: string) => {
+        lastSystemInterim = ''
+        systemTranscriptBuffer.append(text)
       },
       onError: (error: Error) => {
         console.error('[SessionLifecycle] Transcription error:', error.message)
@@ -298,10 +327,12 @@ export async function startSession(mode?: Mode | null, contact?: Contact | null)
           // Clear any stale transcription error once we're back online
           useAppStore.getState().setErrorMessage(null)
         }
+        relay.broadcast('relay:transcription', { connected, provider, recoveryCountdown: 0 })
       },
       // Fired once per recovery cycle; countdown=-1 means recovery gave up for good.
       // Without this the session keeps running with no transcript and no warning.
       onReconnectionBudgetExhausted: (countdown: number) => {
+        relay.broadcast('relay:transcription', { connected: false, provider: null, recoveryCountdown: countdown })
         if (countdown === -1) {
           const msg = i18n.t('error.transcriptionStoppedMessage')
           toast.error(i18n.t('error.transcriptionStopped'), msg, 0)
@@ -340,15 +371,13 @@ export async function startSession(mode?: Mode | null, contact?: Contact | null)
     // the session was started from the overlay window
 
     // Configure auto-answer from user settings
-    const userConfig = useConfigStore.getState()
-    autoAnswer.setConfig({
-      enabled: userConfig.autoAnswerEnabled,
-      silenceThreshold: userConfig.autoAnswerSilenceThreshold,
-      cooldown: userConfig.autoAnswerCooldown,
-      minWordsForSilence: 20,
-      minWordsForQuestion: 10,
-      minWordsForSentence: 50,
-    })
+
+    // Detector settings follow the config live (toggling Auto / Proactive
+    // mid-session used to do nothing until the next session).
+    applyDetectionConfig()
+    unsubscribeConfig?.()
+    unsubscribeConfig = useConfigStore.subscribe(() => applyDetectionConfig())
+    aiService.setSystemInterimProvider(() => lastSystemInterim)
 
     // Set up auto-answer callback
     autoAnswer.setOnTrigger(async () => {
@@ -357,8 +386,6 @@ export async function startSession(mode?: Mode | null, contact?: Contact | null)
         console.log('[SessionLifecycle] Auto-answer skipped: AI already processing')
         return
       }
-      const overlayStore = useOverlayStore.getState()
-      overlayStore.setAutoAnswer(true)
       await aiService.assist(transcript, selectedMode, undefined, { isAutomatic: true })
     })
 
@@ -382,7 +409,6 @@ export async function startSession(mode?: Mode | null, contact?: Contact | null)
       }
       const responseType = responseTypeMap[topMoment.type] || ResponseType.Assist
 
-      overlayStore.setAutoAnswer(true)
       overlayStore.setSelectedTab(responseType)
       // The overlay renderer owns its expanded state; ask it instead of
       // resizing the window from here (which left its React state collapsed).
@@ -530,11 +556,15 @@ export async function stopSession(): Promise<void> {
       }
 
       // Finalize: write transcript + title + summary + endTime to DB in one awaited call
+      const costCfg = useConfigStore.getState()
       await sessionMgr.finalizeSession(
         currentSessionId,
         fullTranscript,
         generatedTitle,
         generatedSummary,
+        costCfg.meetingCostEnabled
+          ? { participants: costCfg.meetingCostParticipants, hourlyRate: costCfg.meetingCostHourlyRate, currency: costCfg.meetingCostCurrency }
+          : null,
       )
 
       // Queue for sync AFTER finalize so summary is included
@@ -613,6 +643,11 @@ function stopAudioHealthMonitor(): void {
 
 function cleanup(): void {
   stopAudioHealthMonitor()
+  unsubscribeConfig?.()
+  unsubscribeConfig = null
+  aiService.setSystemInterimProvider(null)
+  lastSystemInterim = ''
+  relay.broadcast('relay:transcription', { connected: false, provider: null, recoveryCountdown: 0 })
   if (dictationService.isRecording()) {
     // Dictation shares the session mic; the session ending ends it too
     dictationService.stopRecording()

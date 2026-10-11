@@ -23,6 +23,8 @@ const SNAPSHOT_CHANNELS = new Set<string>([
   'relay:dictation',
   'relay:mode',
   'relay:audio-health',
+  'relay:transcription',
+  'relay:pregen',
 ])
 
 /**

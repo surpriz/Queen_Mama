@@ -10,18 +10,24 @@ import {
   Home,
   Brain,
   Loader2,
+  Lock,
+  Sparkles,
 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { useOverlayStore } from '@/stores/overlayStore'
 import { useAppStore } from '@/stores/appStore'
 import { useConfigStore } from '@/stores/configStore'
-import type { MomentType } from '@/services/detection/momentDetectionService'
+import { useLicenseStore } from '@/stores/licenseStore'
 import { useMomentStore } from '@/stores/momentStore'
 import { useAudioHealthStore } from '@/stores/audioHealthStore'
+import { usePreGenStore } from '@/stores/preGenStore'
+import { Feature } from '@/types/auth'
+import type { MomentType } from '@/services/detection/momentDetectionService'
 import * as sessionClient from '@/services/session/sessionClient'
 import { toast } from '@/stores/toastStore'
 import { PopupMenu } from './PopupMenu'
 import { FreeRequestCounter } from './FreeRequestCounter'
+import { MeetingCostIndicator } from './MeetingCostIndicator'
 import { cn } from '@/lib/utils'
 
 const MOMENT_COLORS: Record<MomentType, string> = {
@@ -45,18 +51,28 @@ const MOMENT_BG_COLORS: Record<MomentType, string> = {
   closingOpportunity: 'bg-emerald-500/20',
 }
 
+const NO_DRAG = { WebkitAppRegion: 'no-drag' } as React.CSSProperties
+
 export function PillHeader() {
   const { t } = useTranslation('overlay')
   const isExpanded = useOverlayStore((s) => s.isExpanded)
   const toggleExpanded = useOverlayStore((s) => s.toggleExpanded)
+  const setShowContactPicker = useOverlayStore((s) => s.setShowContactPicker)
   const isSessionActive = useAppStore((s) => s.isSessionActive)
-  const selectedMode = useAppStore((s) => s.selectedMode)
+  const setShowUpgradePricing = useAppStore((s) => s.setShowUpgradePricing)
   const autoAnswerEnabled = useConfigStore((s) => s.autoAnswerEnabled)
   const smartModeEnabled = useConfigStore((s) => s.smartModeEnabled)
   const isUndetectable = useConfigStore((s) => s.isUndetectabilityEnabled)
   const autoScreenCapture = useConfigStore((s) => s.autoScreenCapture)
   const updateConfig = useConfigStore((s) => s.updateConfig)
   const isFinalizingSession = useAppStore((s) => s.isFinalizingSession)
+  const canUse = useLicenseStore((s) => s.canUse)
+  const preGenState = usePreGenStore((s) => s.state)
+
+  // Enterprise locks (mac shows a lock badge and disables the toggle)
+  const hiddenLocked = canUse(Feature.Undetectable).type !== 'allowed'
+  const autoLocked = canUse(Feature.AutoAnswer).type !== 'allowed'
+  const smartLocked = canUse(Feature.SmartMode).type === 'requiresEnterprise'
 
   const MOMENT_LABELS_SHORT: Record<MomentType, string> = {
     objection: t('proactive.obj'),
@@ -83,37 +99,38 @@ export function PillHeader() {
   const [isExpandPulsing, setIsExpandPulsing] = useState(false)
   const [isStartPulsing, setIsStartPulsing] = useState(false)
 
-  // Pulsing ring for expand button: pulse when collapsed, stop after 3s
   useEffect(() => {
     if (!isExpanded) {
       setIsExpandPulsing(true)
-      const t = setTimeout(() => setIsExpandPulsing(false), 3000)
-      return () => clearTimeout(t)
-    } else {
-      setIsExpandPulsing(false)
+      const timer = setTimeout(() => setIsExpandPulsing(false), 3000)
+      return () => clearTimeout(timer)
     }
+    setIsExpandPulsing(false)
   }, [isExpanded])
 
-  // Pulsing ring for start button: pulse when not in session, stop after 3s
   useEffect(() => {
     if (!isSessionActive) {
       setIsStartPulsing(true)
-      const t = setTimeout(() => setIsStartPulsing(false), 3000)
-      return () => clearTimeout(t)
-    } else {
-      setIsStartPulsing(false)
+      const timer = setTimeout(() => setIsStartPulsing(false), 3000)
+      return () => clearTimeout(timer)
     }
+    setIsStartPulsing(false)
   }, [isSessionActive])
 
   const handleToggleSession = useCallback(
     (e: React.MouseEvent) => {
       e.stopPropagation()
-      // The hidden session window owns the lifecycle (audio, transcription, AI).
-      sessionClient.toggleSession(selectedMode?.id ?? null).catch((err) => {
-        toast.error(err instanceof Error ? err.message : String(err))
-      })
+      if (isSessionActive) {
+        sessionClient.stopSession().catch((err) => {
+          toast.error(err instanceof Error ? err.message : String(err))
+        })
+        return
+      }
+      // Pick a contact before starting (mac: sheet from the widget)
+      if (!isExpanded) toggleExpanded()
+      setShowContactPicker(true)
     },
-    [selectedMode],
+    [isSessionActive, isExpanded, toggleExpanded, setShowContactPicker],
   )
 
   const handleToggleScreenCapture = useCallback(
@@ -127,29 +144,50 @@ export function PillHeader() {
   const handleToggleHidden = useCallback(
     (e: React.MouseEvent) => {
       e.stopPropagation()
+      if (hiddenLocked) {
+        setShowUpgradePricing(true)
+        return
+      }
       updateConfig({ isUndetectabilityEnabled: !isUndetectable })
     },
-    [isUndetectable, updateConfig],
+    [hiddenLocked, isUndetectable, updateConfig, setShowUpgradePricing],
   )
 
-  const handleOpenDashboard = useCallback(
+  const handleToggleAuto = useCallback(
     (e: React.MouseEvent) => {
       e.stopPropagation()
-      window.electronAPI?.window.show()
+      if (autoLocked) {
+        setShowUpgradePricing(true)
+        return
+      }
+      updateConfig({ autoAnswerEnabled: !autoAnswerEnabled })
     },
-    [],
+    [autoLocked, autoAnswerEnabled, updateConfig, setShowUpgradePricing],
   )
+
+  const handleSmartClick = useCallback(
+    (e: React.MouseEvent) => {
+      e.stopPropagation()
+      if (smartLocked) {
+        setShowUpgradePricing(true)
+        return
+      }
+      updateConfig({ smartModeEnabled: !smartModeEnabled })
+    },
+    [smartLocked, smartModeEnabled, updateConfig, setShowUpgradePricing],
+  )
+
+  const handleOpenDashboard = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation()
+    window.electronAPI?.window.show()
+  }, [])
 
   return (
     <div
-      className={cn(
-        'flex items-center gap-2 px-3 cursor-pointer select-none transition-all',
-        isExpanded ? '' : 'rounded-2xl',
-      )}
+      className={cn('flex items-center gap-2 px-3 cursor-pointer select-none transition-all', isExpanded ? '' : 'rounded-2xl')}
       style={{ height: 44, WebkitAppRegion: 'drag' } as React.CSSProperties}
       onClick={toggleExpanded}
     >
-      {/* 1. Logo - drag handle only, not clickable */}
       <div
         className="flex items-center justify-center w-7 h-7 rounded-full bg-gradient-to-br from-qm-gradient-start to-qm-gradient-end flex-shrink-0 shadow-sm cursor-grab active:cursor-grabbing"
         onClick={(e) => e.stopPropagation()}
@@ -158,52 +196,42 @@ export function PillHeader() {
         <AudioLines size={13} className="text-white" />
       </div>
 
-      {/* 2. Dashboard button - gradient on hover */}
       <button
         onClick={handleOpenDashboard}
         className="flex items-center justify-center w-[26px] h-[26px] rounded-full bg-qm-surface-medium hover:bg-gradient-to-br hover:from-qm-gradient-start/40 hover:to-qm-gradient-end/40 transition-all hover-scale-lg flex-shrink-0 titlebar-no-drag"
-        style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}
+        style={NO_DRAG}
         title={t('pillHeader.openDashboard')}
       >
         <Home size={13} className="text-qm-text-secondary" />
       </button>
 
-      {/* 3. Expand/Collapse chevron - gradient circle when collapsed, surface when expanded */}
-      <div className="relative flex-shrink-0 titlebar-no-drag" style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}>
-        {/* Pulsing ring behind button (only when collapsed) */}
+      <div className="relative flex-shrink-0 titlebar-no-drag" style={NO_DRAG}>
         {isExpandPulsing && !isExpanded && (
           <span className="absolute inset-0 rounded-full bg-qm-accent/40 animate-pulsing-ring pointer-events-none" />
         )}
         <button
-          onClick={(e) => { e.stopPropagation(); toggleExpanded() }}
+          onClick={(e) => {
+            e.stopPropagation()
+            toggleExpanded()
+          }}
           className={cn(
             'relative flex items-center justify-center w-7 h-7 rounded-full transition-all',
-            isExpanded
-              ? 'bg-qm-surface-medium hover:bg-qm-surface-hover'
-              : 'bg-gradient-to-br from-qm-gradient-start to-qm-gradient-end shadow-sm',
+            isExpanded ? 'bg-qm-surface-medium hover:bg-qm-surface-hover' : 'bg-gradient-to-br from-qm-gradient-start to-qm-gradient-end shadow-sm',
           )}
+          title={isExpanded ? t('pillHeader.collapse') : t('pillHeader.expand')}
         >
-          <div
-            className="transition-transform duration-300"
-            style={{ transform: isExpanded ? 'rotate(180deg)' : 'rotate(0deg)' }}
-          >
+          <div className="transition-transform duration-300" style={{ transform: isExpanded ? 'rotate(180deg)' : 'rotate(0deg)' }}>
             <ChevronDown size={14} className={isExpanded ? 'text-qm-text-secondary' : 'text-white'} />
           </div>
         </button>
       </div>
 
-      {/* 4. FREE request counter */}
       <FreeRequestCounter />
+      <MeetingCostIndicator />
 
-      {/* 5. Spacer / drag region */}
       <div className="flex-1 min-w-2 titlebar-drag" />
 
-      {/* Right-side controls */}
-      <div
-        className="flex items-center gap-1 titlebar-no-drag"
-        style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}
-      >
-        {/* 5. Moment badge */}
+      <div className="flex items-center gap-1 titlebar-no-drag" style={NO_DRAG}>
         {audioWarning && (
           <div
             className="flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-amber-500/20 animate-qm-fade-in"
@@ -222,74 +250,92 @@ export function PillHeader() {
             )}
             title={currentMoment.triggerPhrase}
           >
-            <div
-              className={cn('w-1.5 h-1.5 rounded-full', MOMENT_COLORS[currentMoment.type as MomentType])}
-            />
-            <span
-              className={cn(
-                'text-caption-sm font-semibold',
-                MOMENT_TEXT_COLORS[currentMoment.type as MomentType],
-              )}
-            >
+            <div className={cn('w-1.5 h-1.5 rounded-full', MOMENT_COLORS[currentMoment.type as MomentType])} />
+            <span className={cn('text-caption-sm font-semibold', MOMENT_TEXT_COLORS[currentMoment.type as MomentType])}>
               {MOMENT_LABELS_SHORT[currentMoment.type as MomentType]}
             </span>
           </div>
         )}
 
-        {/* 6. Hidden mode toggle */}
+        {isSessionActive && preGenState !== 'idle' && (
+          <div
+            className={cn(
+              'flex items-center gap-0.5 px-1.5 py-0.5 rounded-full',
+              preGenState === 'ready' ? 'bg-qm-accent/25' : 'bg-qm-surface-medium',
+            )}
+            title={preGenState === 'ready' ? t('pillHeader.preGenReadyHint') : t('pillHeader.preGenGeneratingHint')}
+          >
+            <Sparkles size={11} className={cn(preGenState === 'ready' ? 'text-qm-accent-light' : 'text-qm-text-tertiary animate-pulse')} />
+            {preGenState === 'ready' && <span className="text-caption-sm font-medium text-qm-accent-light">{t('pillHeader.ready')}</span>}
+          </div>
+        )}
+
         <button
           onClick={handleToggleHidden}
           className={cn(
             'flex items-center gap-0.5 px-1.5 py-0.5 rounded-full transition-colors',
-            isUndetectable
-              ? 'bg-emerald-500/20 hover:bg-emerald-500/30'
-              : 'bg-qm-surface-medium hover:bg-qm-surface-hover',
+            isUndetectable && !hiddenLocked ? 'bg-emerald-500/20 hover:bg-emerald-500/30' : 'bg-qm-surface-medium hover:bg-qm-surface-hover',
+            hiddenLocked && 'opacity-70',
           )}
-          title={isUndetectable ? t('pillHeader.hiddenModeOn') : t('pillHeader.hiddenModeOff')}
+          title={hiddenLocked ? t('pillHeader.enterpriseOnly') : isUndetectable ? t('pillHeader.hiddenModeOn') : t('pillHeader.hiddenModeOff')}
         >
-          <EyeOff size={11} className={isUndetectable ? 'text-emerald-400' : 'text-qm-text-tertiary'} />
-          <span className={cn('text-caption-sm font-medium', isUndetectable ? 'text-emerald-400' : 'text-qm-text-tertiary')}>
+          {hiddenLocked ? (
+            <Lock size={10} className="text-qm-text-tertiary" />
+          ) : (
+            <EyeOff size={11} className={isUndetectable ? 'text-emerald-400' : 'text-qm-text-tertiary'} />
+          )}
+          <span className={cn('text-caption-sm font-medium', isUndetectable && !hiddenLocked ? 'text-emerald-400' : 'text-qm-text-tertiary')}>
             {t('pillHeader.hidden')}
           </span>
         </button>
 
-        {/* 7. Smart mode badge */}
-        {smartModeEnabled && (
-          <div
-            className="flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-purple-500/20"
-            title={t('pillHeader.smartModeTooltip')}
+        {(smartModeEnabled || smartLocked) && (
+          <button
+            onClick={handleSmartClick}
+            className={cn(
+              'flex items-center gap-0.5 px-1.5 py-0.5 rounded-full transition-colors',
+              smartModeEnabled && !smartLocked ? 'bg-purple-500/20 hover:bg-purple-500/30' : 'bg-qm-surface-medium hover:bg-qm-surface-hover opacity-70',
+            )}
+            title={smartLocked ? t('pillHeader.enterpriseOnly') : t('pillHeader.smartModeTooltip')}
           >
-            <Brain size={11} className="text-purple-400" />
-            <span className="text-caption-sm text-purple-400 font-medium">{t('pillHeader.smart')}</span>
-          </div>
+            {smartLocked ? <Lock size={10} className="text-qm-text-tertiary" /> : <Brain size={11} className="text-purple-400" />}
+            <span className={cn('text-caption-sm font-medium', smartModeEnabled && !smartLocked ? 'text-purple-400' : 'text-qm-text-tertiary')}>
+              {t('pillHeader.smart')}
+            </span>
+          </button>
         )}
 
-        {/* 8. Auto-answer badge */}
-        {autoAnswerEnabled && (
-          <div className="flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-qm-auto-answer/20 animate-pulse ring-1 ring-qm-auto-answer/30 transition-opacity duration-250">
-            <Zap size={11} className="text-qm-auto-answer" />
-            <span className="text-caption-sm text-qm-auto-answer font-medium">{t('pillHeader.auto')}</span>
-          </div>
+        {(autoAnswerEnabled || autoLocked) && (
+          <button
+            onClick={handleToggleAuto}
+            className={cn(
+              'flex items-center gap-0.5 px-1.5 py-0.5 rounded-full transition-colors',
+              autoAnswerEnabled && !autoLocked
+                ? 'bg-qm-auto-answer/20 ring-1 ring-qm-auto-answer/30 animate-pulse'
+                : 'bg-qm-surface-medium hover:bg-qm-surface-hover opacity-70',
+            )}
+            title={autoLocked ? t('pillHeader.enterpriseOnly') : t('pillHeader.autoTooltip')}
+          >
+            {autoLocked ? <Lock size={10} className="text-qm-text-tertiary" /> : <Zap size={11} className="text-qm-auto-answer" />}
+            <span className={cn('text-caption-sm font-medium', autoAnswerEnabled && !autoLocked ? 'text-qm-auto-answer' : 'text-qm-text-tertiary')}>
+              {t('pillHeader.auto')}
+            </span>
+          </button>
         )}
 
-        {/* 9. Screenshot toggle */}
         <button
           onClick={handleToggleScreenCapture}
           className={cn(
             'flex items-center justify-center w-[26px] h-[26px] rounded-full transition-colors',
-            autoScreenCapture
-              ? 'bg-emerald-500/20 text-emerald-400'
-              : 'bg-qm-error/15 text-qm-error hover:bg-qm-error/25',
+            autoScreenCapture ? 'bg-emerald-500/20 text-emerald-400' : 'bg-qm-error/15 text-qm-error hover:bg-qm-error/25',
           )}
           title={autoScreenCapture ? t('pillHeader.screenCaptureOn') : t('pillHeader.screenCaptureOff')}
         >
           <Camera size={12} />
         </button>
 
-        {/* 10. Popup menu (more options) */}
         <PopupMenu />
 
-        {/* 11. Finalization indicator */}
         {isFinalizingSession && (
           <div className="flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-qm-accent/15">
             <Loader2 size={11} className="text-qm-accent animate-spin" />
@@ -297,9 +343,7 @@ export function PillHeader() {
           </div>
         )}
 
-        {/* 12. Start/Stop Session - gradient with pulsing glow ring */}
         <div className="relative flex-shrink-0">
-          {/* Pulsing glow ring for start button */}
           {isStartPulsing && !isSessionActive && (
             <span className="absolute inset-0 rounded-full bg-qm-accent/30 animate-pulsing-ring-play pointer-events-none" />
           )}
@@ -313,11 +357,7 @@ export function PillHeader() {
             )}
             title={isSessionActive ? t('pillHeader.stopSession') : t('pillHeader.startSession')}
           >
-            {isSessionActive ? (
-              <Square size={10} className="text-red-400" fill="currentColor" />
-            ) : (
-              <Play size={14} className="text-white" fill="currentColor" />
-            )}
+            {isSessionActive ? <Square size={10} className="text-red-400" fill="currentColor" /> : <Play size={14} className="text-white" fill="currentColor" />}
           </button>
         </div>
       </div>

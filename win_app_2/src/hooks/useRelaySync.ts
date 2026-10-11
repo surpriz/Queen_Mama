@@ -5,6 +5,8 @@ import { useLicenseStore } from '@/stores/licenseStore'
 import { useDictationStore } from '@/stores/dictationStore'
 import { useMomentStore } from '@/stores/momentStore'
 import { useAudioHealthStore } from '@/stores/audioHealthStore'
+import { usePreGenStore } from '@/stores/preGenStore'
+import { useTranscriptionStateStore } from '@/stores/transcriptionStateStore'
 import { loadSessions } from '@/services/session/sessionManager'
 import { modesService } from '@/services/modes/modesService'
 import * as relay from '@/services/relay/relayClient'
@@ -115,6 +117,9 @@ export function useRelaySync(): void {
         if (store.interimTranscript !== data.interim) store.setInterimTranscript(data.interim)
       }),
       relay.on('relay:audio-health', (data) => useAudioHealthStore.getState().apply(data)),
+      relay.on('relay:ai-error', (data) => useOverlayStore.getState().setLastError(data)),
+      relay.on('relay:pregen', (data) => usePreGenStore.getState().apply(data)),
+      relay.on('relay:transcription', (data) => useTranscriptionStateStore.getState().apply(data)),
       relay.on('relay:ai-response', applyAiResponse),
       relay.on('relay:license', applyLicense),
       relay.on('relay:dictation', (data) => useDictationStore.getState().apply(data)),

@@ -19,6 +19,7 @@ import { screenCaptureService } from '../screenCapture/screenCaptureService'
 import { getIsProcessing } from './aiService'
 import type { AIMessage } from '@/types/api'
 import type { Mode, ResponseType } from '@/types/models'
+import * as relay from '@/services/relay/relayClient'
 
 const log = createLogger('PreGen')
 
@@ -38,6 +39,16 @@ type State =
 
 let state: State = { kind: 'idle' }
 let generationCounter = 0
+let activeController: AbortController | null = null
+let lastRelayedKind: State['kind'] | null = null
+
+function setState(next: State): void {
+  state = next
+  if (next.kind !== lastRelayedKind) {
+    lastRelayedKind = next.kind
+    relay.broadcast('relay:pregen', { state: next.kind })
+  }
+}
 
 let silenceTimer: ReturnType<typeof setInterval> | null = null
 let silenceTimerStart = 0
@@ -76,7 +87,7 @@ export function onTranscriptUpdated(fullTranscript: string): void {
     const growth = fullTranscript.length - transcriptLengthAtTrigger
     if (growth > STALE_THRESHOLD) {
       log.info(`Buffer invalidated — transcript grew by ${growth} chars`)
-      state = { kind: 'idle' }
+      setState({ kind: 'idle' })
     }
   }
 
@@ -105,7 +116,7 @@ export function onTranscriptUpdated(fullTranscript: string): void {
  */
 export function consumeBuffer(): string | null {
   if (!isPreGenAvailable()) {
-    if (state.kind === 'ready') state = { kind: 'idle' }
+    if (state.kind === 'ready') setState({ kind: 'idle' })
     return null
   }
   if (state.kind !== 'ready') return null
@@ -113,13 +124,13 @@ export function consumeBuffer(): string | null {
   const growth = lastTranscript.length - transcriptLengthAtTrigger
   if (growth > STALE_THRESHOLD) {
     log.info('Buffer stale on consume — discarding')
-    state = { kind: 'idle' }
+    setState({ kind: 'idle' })
     return null
   }
 
   const text = state.text
   log.info(`Buffer consumed (${text.length} chars)`)
-  state = { kind: 'idle' }
+  setState({ kind: 'idle' })
   wordsSinceLastTrigger = 0
   return text
 }
@@ -128,14 +139,14 @@ export function consumeBuffer(): string | null {
 export function cancelAndReset(): void {
   cancelGeneration()
   stopSilenceTimer()
-  state = { kind: 'idle' }
+  setState({ kind: 'idle' })
 }
 
 /** Full reset (called on session stop). */
 export function reset(): void {
   cancelGeneration()
   stopSilenceTimer()
-  state = { kind: 'idle' }
+  setState({ kind: 'idle' })
   lastSpeechTime = 0
   wordsSinceLastTrigger = 0
   lastTriggeredTranscript = ''
@@ -172,7 +183,7 @@ function triggerPreGen(reason: string): void {
   wordsSinceLastTrigger = 0
 
   const generationId = ++generationCounter
-  state = { kind: 'generating', generationId }
+  setState({ kind: 'generating', generationId })
   void generate(generationId, lastTranscript)
 }
 
@@ -198,40 +209,52 @@ async function generate(generationId: number, transcript: string): Promise<void>
       ...buildUserMessage(params),
     ]
 
+    // Abortable: cancelling used to flip the state only while the HTTP stream
+    // kept running (and billing) in the background.
+    const controller = new AbortController()
+    activeController = controller
+
     let accumulated = ''
-    for await (const chunk of proxyApi.streamAIResponse({
-      model: 'auto',
-      messages,
-      stream: true,
-      max_tokens: MAX_TOKENS,
-      cascadeMode: 'standard',
-    })) {
-      if (isCancelled()) return
-      if (chunk.done) break
-      accumulated += chunk.content
+    try {
+      for await (const chunk of proxyApi.streamAIResponse(
+        { model: 'auto', messages, stream: true, max_tokens: MAX_TOKENS, cascadeMode: 'standard' },
+        { signal: controller.signal },
+      )) {
+        if (isCancelled()) return
+        if (chunk.done) break
+        accumulated += chunk.content
+      }
+    } finally {
+      if (activeController === controller) activeController = null
     }
 
     if (isCancelled()) return
     if (!accumulated) {
       log.info('Empty response — staying idle')
-      state = { kind: 'idle' }
+      setState({ kind: 'idle' })
       return
     }
 
-    state = { kind: 'ready', text: accumulated }
+    setState({ kind: 'ready', text: accumulated })
     log.info(`Ready (${accumulated.length} chars)`)
   } catch (err) {
     if (!isCancelled()) {
       log.warn(`Generation failed: ${err instanceof Error ? err.message : String(err)}`)
-      state = { kind: 'idle' }
+      setState({ kind: 'idle' })
     }
   }
 }
 
 function cancelGeneration(): void {
   if (state.kind === 'generating') {
-    state = { kind: 'idle' }
+    activeController?.abort()
+    activeController = null
+    setState({ kind: 'idle' })
   }
+}
+
+export function getPreGenState(): State['kind'] {
+  return state.kind
 }
 
 function startSilenceTimer(): void {

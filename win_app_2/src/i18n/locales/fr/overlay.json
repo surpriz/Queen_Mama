@@ -33,7 +33,14 @@
     "micOnly": "Micro seul",
     "micOnlyHint": "Le son système n'est pas reçu — seule votre voix est transcrite",
     "noMic": "Sans micro",
-    "noMicHint": "Micro indisponible — seul l'interlocuteur est transcrit"
+    "noMicHint": "Micro indisponible — seul l'interlocuteur est transcrit",
+    "ready": "Prêt",
+    "preGenReadyHint": "Une réponse est pré-générée — Assist sera instantané",
+    "preGenGeneratingHint": "Préparation d'une réponse en arrière-plan…",
+    "enterpriseOnly": "Plan Enterprise requis",
+    "autoTooltip": "Réponse auto — cliquer pour basculer",
+    "expand": "Déplier",
+    "collapse": "Replier"
   },
   "response": {
     "justNow": "à l'instant",
@@ -48,14 +55,21 @@
     "autoLabel": "AUTO",
     "streaming": "en cours...",
     "readyToAssist": "Prêt à vous assister",
-    "typeQuestionOrTab": "Tapez une question ou cliquez sur un onglet"
+    "typeQuestionOrTab": "Tapez une question ou cliquez sur un onglet",
+    "retry": "Réessayer",
+    "dismiss": "Fermer",
+    "screenCaptured": "Une capture d'écran a été utilisée pour cette réponse",
+    "copyCode": "Copier le code",
+    "customLabel": "Question"
   },
   "inputBar": {
     "smartModeActivated": "Smart mode activé — Meilleurs résultats, mais plus lent",
     "smartModeOn": "Mode intelligent activé",
     "smartModeOff": "Mode intelligent désactivé",
     "smart": "Intelligent",
-    "placeholder": "Posez une question sur votre écran ou conversation..."
+    "placeholder": "Posez une question sur votre écran ou conversation...",
+    "send": "Envoyer",
+    "runSelectedTab": "Lancer l'onglet sélectionné"
   },
   "transcript": {
     "title": "Transcription",
@@ -66,7 +80,8 @@
   "expandedContent": {
     "screenOnly": "Écran uniquement",
     "noInput": "Pas d'entrée",
-    "noConversation": "Pas de conversation en cours. Utilise Assist pour analyser l'écran."
+    "noConversation": "Pas de conversation en cours. Utilise Assist pour analyser l'écran.",
+    "noInputHint": "Démarrez une session ou activez la capture d'écran pour obtenir des réponses."
   },
   "actionBar": {
     "export": "Exporter",
@@ -97,7 +112,8 @@
     "noDisplaysFound": "Aucun écran trouvé",
     "settings": "Paramètres",
     "hideWidget": "Masquer le widget",
-    "clearContext": "Effacer le contexte"
+    "clearContext": "Effacer le contexte",
+    "copyLast": "Copier la dernière réponse"
   },
   "contactPicker": {
     "whoAreYouTalkingTo": "À qui parlez-vous ?",
@@ -130,5 +146,24 @@
     "start": "Démarrer la dictée",
     "stop": "Arrêter la dictée",
     "failed": "Dictée indisponible"
+  },
+  "tabHints": {
+    "assist": "Me coacher sur ce qui se dit maintenant",
+    "whatToSay": "Suggérer quoi dire ensuite",
+    "followUp": "Bonnes questions de relance à poser",
+    "recap": "Résumer la conversation jusqu'ici",
+    "decode": "Expliquer ce qui est à l'écran ou vient d'être dit",
+    "translate": "Traduction en direct de l'interlocuteur"
+  },
+  "transcriptionBanner": {
+    "reconnecting": "Transcription déconnectée — reconnexion…",
+    "retryingIn": "Transcription coupée — nouvel essai dans {{seconds}}s",
+    "stopped": "Transcription arrêtée après plusieurs échecs",
+    "retryNow": "Réessayer"
+  },
+  "meetingCost": {
+    "tooltip": "{{participants}} pers. × {{rate}} {{currency}}/h — cliquer pour ajuster",
+    "fewer": "Moins de participants",
+    "more": "Plus de participants"
   }
 }

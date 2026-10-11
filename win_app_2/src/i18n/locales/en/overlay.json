@@ -33,7 +33,14 @@
     "micOnly": "Mic only",
     "micOnlyHint": "System audio is not being received — only your voice is transcribed",
     "noMic": "No mic",
-    "noMicHint": "Microphone unavailable — only the other side is transcribed"
+    "noMicHint": "Microphone unavailable — only the other side is transcribed",
+    "ready": "Ready",
+    "preGenReadyHint": "An answer is pre-generated — Assist will be instant",
+    "preGenGeneratingHint": "Preparing an answer in the background…",
+    "enterpriseOnly": "Enterprise plan required",
+    "autoTooltip": "Auto-answer — click to toggle",
+    "expand": "Expand",
+    "collapse": "Collapse"
   },
   "response": {
     "justNow": "just now",
@@ -48,14 +55,21 @@
     "autoLabel": "AUTO",
     "streaming": "streaming...",
     "readyToAssist": "Ready to assist",
-    "typeQuestionOrTab": "Type a question or click a tab"
+    "typeQuestionOrTab": "Type a question or click a tab",
+    "retry": "Retry",
+    "dismiss": "Dismiss",
+    "screenCaptured": "Screen capture was used for this answer",
+    "copyCode": "Copy code",
+    "customLabel": "Question"
   },
   "inputBar": {
     "smartModeActivated": "Smart mode on — Better results, but slower",
     "smartModeOn": "Smart Mode ON",
     "smartModeOff": "Smart Mode OFF",
     "smart": "Smart",
-    "placeholder": "Ask about your screen or conversation..."
+    "placeholder": "Ask about your screen or conversation...",
+    "send": "Send",
+    "runSelectedTab": "Run the selected tab"
   },
   "transcript": {
     "title": "Transcript",
@@ -66,7 +80,8 @@
   "expandedContent": {
     "screenOnly": "Screen only",
     "noInput": "No input",
-    "noConversation": "No conversation in progress. Use Assist to analyze the screen."
+    "noConversation": "No conversation in progress. Use Assist to analyze the screen.",
+    "noInputHint": "Start a session or enable screen capture to get answers."
   },
   "actionBar": {
     "export": "Export",
@@ -97,7 +112,8 @@
     "noDisplaysFound": "No displays found",
     "settings": "Settings",
     "hideWidget": "Hide Widget",
-    "clearContext": "Clear Context"
+    "clearContext": "Clear Context",
+    "copyLast": "Copy last answer"
   },
   "contactPicker": {
     "whoAreYouTalkingTo": "Who are you talking to?",
@@ -130,5 +146,24 @@
     "start": "Start dictation",
     "stop": "Stop dictation",
     "failed": "Dictation unavailable"
+  },
+  "tabHints": {
+    "assist": "Coach me on what is being said right now",
+    "whatToSay": "Suggest what to say next",
+    "followUp": "Good follow-up questions to ask",
+    "recap": "Summarize the conversation so far",
+    "decode": "Explain what is on screen or just said",
+    "translate": "Live translation of the other side"
+  },
+  "transcriptionBanner": {
+    "reconnecting": "Transcription disconnected — reconnecting…",
+    "retryingIn": "Transcription down — retrying in {{seconds}}s",
+    "stopped": "Transcription stopped after repeated failures",
+    "retryNow": "Retry now"
+  },
+  "meetingCost": {
+    "tooltip": "{{participants}} people × {{rate}} {{currency}}/h — click to adjust",
+    "fewer": "Fewer participants",
+    "more": "More participants"
   }
 }

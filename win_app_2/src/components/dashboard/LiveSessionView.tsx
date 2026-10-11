@@ -64,15 +64,15 @@ function TranscriptBubble({ line }: { line: TranscriptLine }) {
 
 export function LiveSessionView() {
   const { t } = useTranslation('dashboard')
-  const {
-    isSessionActive,
-    currentTranscript,
-    interimTranscript,
-    audioLevel,
-    isProcessing,
-    isFinalizingSession,
-    errorMessage,
-  } = useAppStore()
+  // Narrow selectors: subscribing to the whole store re-rendered this view
+  // (and re-parsed every transcript line) on every audio-level tick.
+  const isSessionActive = useAppStore((s) => s.isSessionActive)
+  const currentTranscript = useAppStore((s) => s.currentTranscript)
+  const interimTranscript = useAppStore((s) => s.interimTranscript)
+  const audioLevel = useAppStore((s) => s.audioLevel)
+  const isProcessing = useAppStore((s) => s.isProcessing)
+  const isFinalizingSession = useAppStore((s) => s.isFinalizingSession)
+  const errorMessage = useAppStore((s) => s.errorMessage)
 
   const streamingContent = useOverlayStore((s) => s.streamingContent)
   const responseHistory = useOverlayStore((s) => s.responseHistory)

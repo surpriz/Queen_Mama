@@ -27,6 +27,7 @@ export interface ResponseHistoryEntry {
   timestamp: string
   provider?: string
   isAutomatic?: boolean
+  withScreenshot?: boolean
   sessionId?: string | null
 }
 
@@ -36,7 +37,14 @@ export interface HistoryEntryMeta {
   timestamp?: string
   provider?: string
   isAutomatic?: boolean
+  withScreenshot?: boolean
   sessionId?: string | null
+}
+
+export interface AiLastError {
+  message: string
+  retryable: boolean
+  retry?: { type: ResponseType | string; question?: string }
 }
 
 let _currentSessionId: string | null = null
@@ -56,8 +64,16 @@ interface OverlayStoreState {
   responseHistory: ResponseHistoryEntry[]
   translationEntries: TranslationEntry[]
   translationError: string | null
+  lastError: AiLastError | null
+  /** Entries whose "Auto" badge the user dismissed (local only). */
+  dismissedAutoIds: string[]
+  showContactPicker: boolean
 
   // Actions
+  setShowContactPicker: (show: boolean) => void
+  loadRecentResponses: () => Promise<void>
+  setLastError: (error: AiLastError | null) => void
+  dismissAutoBadge: (id: string) => void
   setExpanded: (expanded: boolean) => void
   toggleExpanded: () => void
   setSelectedTab: (tab: ResponseType) => void
@@ -77,6 +93,42 @@ export const useOverlayStore = create<OverlayStoreState>((set) => ({
   selectedTab: ResponseType.Assist,
   position: 'topRight',
   isAutoAnswer: false,
+  lastError: null,
+  dismissedAutoIds: [],
+  showContactPicker: false,
+  setShowContactPicker: (show) => set({ showContactPicker: show }),
+  // Reload the last responses at launch (mac reloads from SwiftData; the
+  // Windows overlay used to start empty every time).
+  loadRecentResponses: async () => {
+    try {
+      const rows = await db.queryAll<{ id: string; session_id: string; type: string; content: string; timestamp: string; is_automatic: number }>(
+        'SELECT id, session_id, type, content, timestamp, is_automatic FROM ai_responses ORDER BY timestamp DESC LIMIT ?',
+        [MAX_RESPONSES_IN_MEMORY],
+      )
+      if (rows.length === 0) return
+      set((state) => {
+        const known = new Set(state.responseHistory.map((e) => e.id))
+        const restored: ResponseHistoryEntry[] = rows
+          .filter((r) => !known.has(r.id))
+          .map((r) => ({
+            id: r.id,
+            type: r.type as ResponseType,
+            content: r.content,
+            timestamp: r.timestamp,
+            sessionId: r.session_id,
+            isAutomatic: r.is_automatic === 1,
+          }))
+        const merged = [...state.responseHistory, ...restored]
+          .sort((a, b) => (a.timestamp < b.timestamp ? 1 : -1))
+          .slice(0, MAX_RESPONSES_IN_MEMORY)
+        return { responseHistory: merged }
+      })
+    } catch (err) {
+      log.warn('Failed to load recent AI responses', err)
+    }
+  },
+  setLastError: (error) => set({ lastError: error }),
+  dismissAutoBadge: (id) => set((state) => ({ dismissedAutoIds: [...state.dismissedAutoIds, id].slice(-50) })),
   streamingContent: '',
   responseHistory: [],
   translationEntries: [],
@@ -116,6 +168,7 @@ export const useOverlayStore = create<OverlayStoreState>((set) => ({
         sessionId,
         provider: meta?.provider,
         isAutomatic: meta?.isAutomatic,
+        withScreenshot: meta?.withScreenshot,
       }
       const updated = [entry, ...state.responseHistory]
 
@@ -135,7 +188,7 @@ export const useOverlayStore = create<OverlayStoreState>((set) => ({
           : updated,
       }
     }),
-  clearHistory: () => set({ responseHistory: [], streamingContent: '' }),
+  clearHistory: () => set({ responseHistory: [], streamingContent: '', lastError: null }),
   appendTranslation: (entry) =>
     set((state) => {
       // Dedup: replace existing entry for same entryId (cache hit / retry)

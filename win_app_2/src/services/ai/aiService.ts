@@ -1,3 +1,4 @@
+import { v4 as uuidv4 } from 'uuid'
 import { createLogger } from '@/lib/logger'
 import { captureError, addBreadcrumb } from '@/services/crash/crashReporter'
 import { useAppStore } from '@/stores/appStore'
@@ -5,6 +6,7 @@ import { useOverlayStore, getOverlaySessionId } from '@/stores/overlayStore'
 import { useLicenseStore } from '@/stores/licenseStore'
 import { useConfigStore } from '@/stores/configStore'
 import * as proxyApi from '../proxy/proxyApiClient'
+import { getProxyConfigSnapshot } from '../proxy/proxyConfigManager'
 import { buildSystemPrompt, buildUserMessage, buildTitlePrompt, buildSummaryPrompt } from './aiContext'
 import { getCachedResponse, setCachedResponse, clearCache } from './responseCache'
 import { recordUsage, estimateTokens } from './tokenUsageTracker'
@@ -14,76 +16,172 @@ import { flushBatch as flushAudioBatch, flushSystemBatch } from '../transcriptio
 import { transcriptBuffer } from '../transcription/transcriptBuffer'
 import * as preGeneration from './preGenerationService'
 import * as healthCheck from '@/services/health/healthCheckService'
+import * as analytics from '@/services/analytics/analyticsService'
+import * as relay from '@/services/relay/relayClient'
+import { stripPredictionBullets, isRefusalResponse } from './responsePostProcess'
 import type { AIContextParams } from './aiContext'
 import { Feature } from '@/types/auth'
-import type { ResponseType, Mode } from '@/types/models'
+import { AIStreamError } from '@/types/api'
 import type { AIMessage } from '@/types/api'
-import { v4 as uuidv4 } from 'uuid'
+import type { ResponseType, Mode } from '@/types/models'
 
 const log = createLogger('AIService')
 
-/** Add a completed response to local history and relay it (with a stable id) to the other windows. */
-function publishHistoryEntry(type: ResponseType, content: string, isAutomatic = false): string {
-  const id = uuidv4()
-  const timestamp = new Date().toISOString()
-  const sessionId = getOverlaySessionId()
-  useOverlayStore.getState().addToHistory(type, content, { id, timestamp, isAutomatic, sessionId })
-  useOverlayStore.getState().setStreamingContent('')
-  window.electronAPI?.relay?.broadcast('relay:ai-response', {
-    type: 'history',
-    entry: { id, type, content, timestamp, isAutomatic, sessionId },
-  })
-  return id
-}
-
 let isProcessing = false
 let lastResponseTime = 0
+let activeController: AbortController | null = null
 const UI_BATCH_INTERVAL = 16 // ms - ~60fps for smooth streaming
-const RELAY_INTERVAL = 50 // ms (reduced from 100ms, ~20fps overlay streaming)
+const RELAY_INTERVAL = 50 // ms (~20fps overlay streaming)
 const MIN_RESPONSE_COOLDOWN = 2000 // 2 seconds between auto-responses
+const DEFAULT_MAX_TOKENS = 1000 // mac ProxyConfigManager fallback
+const STANDARD_TOKEN_CAP = 600
+const RECAP_TOKEN_FLOOR = 3000
+
+/** Shown while a refused/timed-out request is retried without the screenshot. */
+const PRIVACY_RETRY_PREFIX =
+  '🔒 *Privacy protection activated* — your screen capture contains protected content. Retrying without the screenshot…\n\n'
+const PRIVACY_NO_SCREENSHOT_MESSAGE =
+  '🔒 **Privacy protection activated**\n\nThe conversation content triggered an AI safety protection. This can happen when the transcript contains sensitive information (medical, financial data) or is interpreted as confidential.\n\n💡 **Try again** — results may vary.'
+const TIMEOUT_RETRY_PREFIX = '⏱ *Slow response* — retrying without the screenshot…\n\n'
 
 export interface StreamingOptions {
   manualTrigger?: boolean // Skip cooldown for user-typed questions
   isAutomatic?: boolean // Produced by auto-answer / proactive detection
 }
 
-export async function generateStreamingResponse(params: AIContextParams, options?: StreamingOptions): Promise<string> {
-  // Force-flush audio + transcript buffers so the latest speech is included
-  flushAudioBatch()
-  flushSystemBatch()
-  transcriptBuffer.flush()
+/** Add a completed response to local history and relay it (with a stable id) to the other windows. */
+function publishHistoryEntry(
+  type: ResponseType,
+  content: string,
+  meta: { isAutomatic?: boolean; provider?: string; withScreenshot?: boolean } = {},
+): string {
+  const id = uuidv4()
+  const timestamp = new Date().toISOString()
+  const sessionId = getOverlaySessionId()
+  useOverlayStore.getState().addToHistory(type, content, { id, timestamp, sessionId, ...meta })
+  useOverlayStore.getState().setStreamingContent('')
+  relay.broadcast('relay:ai-response', {
+    type: 'history',
+    entry: { id, type, content, timestamp, sessionId, ...meta },
+  })
+  return id
+}
 
-  // Include interim transcripts (mic + system audio — words being spoken RIGHT NOW)
-  const micInterim = useAppStore.getState().interimTranscript
-  if (micInterim) {
-    params = { ...params, transcript: params.transcript + 'Moi: ' + micInterim + ' ' }
-    log.info(`Included mic interim: "${micInterim.substring(0, 60)}"`)
+function localizedErrorMessage(error: Error): string {
+  if (error instanceof AIStreamError) {
+    switch (error.kind) {
+      case 'timeout':
+        return 'The AI took too long to answer. Please try again.'
+      case 'network':
+        return 'Network error — check your connection and try again.'
+      case 'server':
+        return 'The AI service is temporarily unavailable. Please try again.'
+      case 'auth':
+        return 'Your session has expired. Please sign in again.'
+      case 'aborted':
+        return 'Request cancelled.'
+      default:
+        return error.message || 'AI request failed'
+    }
+  }
+  return error.message || 'AI request failed'
+}
+
+function publishError(error: Error, params: AIContextParams): void {
+  const retryable = error instanceof AIStreamError ? error.retryable : false
+  const payload = {
+    message: localizedErrorMessage(error),
+    retryable,
+    retry: { type: params.responseType, question: params.customPrompt },
+  }
+  useOverlayStore.getState().setLastError(payload)
+  relay.broadcast('relay:ai-error', payload)
+}
+
+/** Server budget drives Smart mode; Recap needs more, everything else is capped (mac parity). */
+function resolveMaxTokens(responseType: ResponseType | string, smartMode: boolean): number {
+  const base = getProxyConfigSnapshot().config?.services?.ai?.maxTokens ?? DEFAULT_MAX_TOKENS
+  if (responseType === 'Recap') return Math.max(base, RECAP_TOKEN_FLOOR)
+  if (smartMode) return base // thinking tokens count against max_tokens
+  return Math.min(base, STANDARD_TOKEN_CAP)
+}
+
+/** Run one streaming request with batched UI/relay updates; returns the full text. */
+async function runStream(
+  params: AIContextParams,
+  cascadeMode: 'standard' | 'smart' | 'recap',
+  maxTokens: number,
+  prefix: string,
+): Promise<string> {
+  const overlayStore = useOverlayStore.getState()
+  const systemPrompt = buildSystemPrompt(params)
+  const userMessages = buildUserMessage(params)
+  const messages: AIMessage[] = [{ role: 'system', content: systemPrompt }, ...userMessages]
+
+  let fullContent = ''
+  let batchTimer: ReturnType<typeof setTimeout> | null = null
+  let relayTimer: ReturnType<typeof setTimeout> | null = null
+
+  const flushBatch = () => {
+    overlayStore.setStreamingContent(prefix + fullContent)
+    if (!relayTimer) {
+      relayTimer = setTimeout(() => {
+        relay.broadcast('relay:ai-response', { type: 'streaming', streamingContent: prefix + fullContent })
+        relayTimer = null
+      }, RELAY_INTERVAL)
+    }
+    batchTimer = null
   }
 
-  // Show processing state immediately so the UI responds on first click,
-  // before screenshot capture and network latency kick in
-  useAppStore.getState().setProcessing(true)
-  const overlayStore = useOverlayStore.getState()
-  overlayStore.setStreamingContent('')
+  const controller = new AbortController()
+  activeController = controller
 
+  try {
+    const stream = proxyApi.streamAIResponse(
+      { model: 'auto', messages, stream: true, max_tokens: maxTokens, cascadeMode },
+      { signal: controller.signal },
+    )
+
+    let isFirstChunk = true
+    for await (const chunk of stream) {
+      if (chunk.done) break
+      fullContent += chunk.content
+      if (isFirstChunk) {
+        flushBatch()
+        isFirstChunk = false
+      } else if (!batchTimer) {
+        batchTimer = setTimeout(flushBatch, UI_BATCH_INTERVAL)
+      }
+    }
+  } finally {
+    if (batchTimer) clearTimeout(batchTimer)
+    if (relayTimer) clearTimeout(relayTimer)
+    if (activeController === controller) activeController = null
+  }
+
+  // Token accounting (1 token ≈ 4 chars)
+  const inputText = messages.map((m) => (typeof m.content === 'string' ? m.content : '')).join('')
+  recordUsage(estimateTokens(inputText), estimateTokens(fullContent))
+
+  return fullContent
+}
+
+export async function generateStreamingResponse(params: AIContextParams, options?: StreamingOptions): Promise<string> {
+  // The guard comes first: the old order wiped the in-flight stream and
+  // flipped `isProcessing` off while the first request was still running.
   if (isProcessing) {
     log.warn('Already processing, skipping duplicate')
-    useAppStore.getState().setErrorMessage('Already processing a request...')
-    useAppStore.getState().setProcessing(false)
     return ''
   }
 
-  // Prevent duplicate responses within cooldown window (skip for manual triggers)
   if (!options?.manualTrigger) {
     const timeSinceLastResponse = Date.now() - lastResponseTime
     if (timeSinceLastResponse < MIN_RESPONSE_COOLDOWN) {
       log.warn(`Response cooldown active (${Math.round(timeSinceLastResponse / 1000)}s/${MIN_RESPONSE_COOLDOWN / 1000}s), skipping`)
-      useAppStore.getState().setProcessing(false)
       return ''
     }
   }
 
-  // License check
   const licenseStore = useLicenseStore.getState()
   const access = licenseStore.canUse(Feature.AiRequest)
   if (access.type !== 'allowed') {
@@ -93,15 +191,21 @@ export async function generateStreamingResponse(params: AIContextParams, options
     } else {
       useAppStore.getState().setErrorMessage('AI request not available on your plan')
     }
-    useAppStore.getState().setProcessing(false)
     return ''
   }
 
-  // Resolve cascade mode from user toggle + response type.
-  // - Recap responseType → "recap" cascade (recap-tuned models server-side)
-  // - smartModeEnabled toggle → "smart" cascade (Sonnet + extended thinking)
-  // - Otherwise → "standard" (fast cascade, honors selectedAIModel override)
-  // Smart toggle is silently downgraded to standard when the license blocks it.
+  // Include the freshest speech: flush audio batches + transcript buffers,
+  // then append the live interims (mic and system — mac includes both).
+  flushAudioBatch()
+  flushSystemBatch()
+  transcriptBuffer.flush()
+  const micInterim = useAppStore.getState().interimTranscript
+  const systemInterim = getSystemInterim()
+  let transcript = params.transcript
+  if (micInterim) transcript += `\nMoi: ${micInterim}`
+  if (systemInterim) transcript += `\nInterlocuteur: ${systemInterim}`
+  params = { ...params, transcript }
+
   const smartToggle = useConfigStore.getState().smartModeEnabled
   let smartActive = false
   if (params.responseType !== 'Recap' && smartToggle) {
@@ -112,31 +216,28 @@ export async function generateStreamingResponse(params: AIContextParams, options
       log.warn('Smart Mode requested but not allowed, falling back to standard', smartAccess)
       if (smartAccess.type === 'limitReached') {
         useAppStore.getState().setShowUpgradePricing(true)
+      } else {
+        useAppStore.getState().setErrorMessage('Smart Mode requires the Enterprise plan — using standard mode')
       }
     }
   }
   const cascadeMode: 'standard' | 'smart' | 'recap' =
     params.responseType === 'Recap' ? 'recap' : smartActive ? 'smart' : 'standard'
-
-  // Propagate smart flag into prompt builder so the SMART MODE directive is injected.
-  if (smartActive) {
-    params = { ...params, smartMode: true }
-  }
+  if (smartActive) params = { ...params, smartMode: true }
 
   isProcessing = true
+  useAppStore.getState().setProcessing(true)
+  const overlayStore = useOverlayStore.getState()
+  overlayStore.setStreamingContent('')
+  overlayStore.setLastError(null)
 
-  // Check cache first (skip cache in screen-only mode — each call needs a fresh screenshot)
-  // Also bypass cache on manual user click — re-clicking a tab should always regenerate,
-  // never replay an earlier identical response when the transcript tail hasn't changed.
   const isScreenOnly = !params.transcript.trim() && !!params.screenshot
   const skipCacheRead = isScreenOnly || options?.manualTrigger === true
-  const cached = skipCacheRead ? null : await getCachedResponse(
-    params.transcript,
-    params.mode?.id ?? null,
-    params.responseType,
-  )
+  const cached = skipCacheRead
+    ? null
+    : await getCachedResponse(params.transcript, params.mode?.id ?? null, params.responseType)
   if (cached) {
-    publishHistoryEntry(params.responseType, cached)
+    publishHistoryEntry(params.responseType, cached, { isAutomatic: options?.isAutomatic })
     lastResponseTime = Date.now()
     isProcessing = false
     useAppStore.getState().setProcessing(false)
@@ -144,117 +245,83 @@ export async function generateStreamingResponse(params: AIContextParams, options
     return cached
   }
 
-  const systemPrompt = buildSystemPrompt(params)
-  const userMessages = buildUserMessage(params)
-
-  const messages: AIMessage[] = [
-    { role: 'system', content: systemPrompt },
-    ...userMessages,
-  ]
-
-  let fullContent = ''
-  let batchedContent = ''
-  let batchTimer: ReturnType<typeof setTimeout> | null = null
-  let relayTimer: ReturnType<typeof setTimeout> | null = null
-
-  const flushBatch = () => {
-    if (batchedContent) {
-      overlayStore.setStreamingContent(batchedContent)
-      // Relay to other windows at a lower frequency to reduce IPC overhead
-      if (!relayTimer) {
-        relayTimer = setTimeout(() => {
-          window.electronAPI?.relay?.broadcast('relay:ai-response', {
-            type: 'streaming',
-            streamingContent: batchedContent,
-          })
-          relayTimer = null
-        }, RELAY_INTERVAL)
-      }
-    }
-    batchTimer = null
-  }
-
-  // Recap needs more tokens for comprehensive meeting summaries
-  // All other modes capped at 600 (aligned with macOS)
-  const maxTokens = params.responseType === 'Recap' ? 3000 : 600
-
-  addBreadcrumb('ai', `AI streaming request: ${params.responseType}`, 'info')
+  const maxTokens = resolveMaxTokens(params.responseType, smartActive)
+  addBreadcrumb('ai', `AI streaming request: ${params.responseType} (${cascadeMode}, ${maxTokens} tokens)`, 'info')
   const requestStartedAt = Date.now()
+  let fullContent = ''
 
   try {
-    const stream = proxyApi.streamAIResponse({
-      model: 'auto',
-      messages,
-      stream: true,
-      max_tokens: maxTokens,
-      cascadeMode,
-    })
-
-    let isFirstChunk = true
-    for await (const chunk of stream) {
-      if (chunk.done) break
-
-      fullContent += chunk.content
-      batchedContent = fullContent
-
-      // Flush first chunk immediately (minimize perceived TTFT)
-      if (isFirstChunk) {
-        flushBatch()
-        isFirstChunk = false
-      } else if (!batchTimer) {
-        // Batch subsequent UI updates to ~60fps
-        batchTimer = setTimeout(flushBatch, UI_BATCH_INTERVAL)
+    try {
+      fullContent = await runStream(params, cascadeMode, maxTokens, '')
+    } catch (error) {
+      // Timeout with a screenshot → retry with the lighter payload (mac parity)
+      if (error instanceof AIStreamError && error.kind === 'timeout' && params.screenshot) {
+        log.warn('Timeout with screenshot — retrying without screenshot')
+        addBreadcrumb('ai', `Timeout retry without screenshot for ${params.responseType}`, 'warning')
+        params = { ...params, screenshot: undefined }
+        fullContent = await runStream(params, cascadeMode, maxTokens, TIMEOUT_RETRY_PREFIX)
+      } else {
+        throw error
       }
     }
 
-    // Final flush
-    if (batchTimer) {
-      clearTimeout(batchTimer)
-      batchTimer = null
+    // Refusal detection: the screenshot most likely tripped the safety filter
+    if (isRefusalResponse(fullContent)) {
+      log.warn('AI refusal detected')
+      analytics.capture('ai_refusal_detected', {
+        response_type: params.responseType,
+        has_screenshot: !!params.screenshot,
+      })
+      if (params.screenshot) {
+        params = { ...params, screenshot: undefined }
+        fullContent = await runStream(params, cascadeMode, maxTokens, PRIVACY_RETRY_PREFIX)
+        analytics.capture('ai_retry_without_screenshot', {
+          response_type: params.responseType,
+          retry_succeeded: !isRefusalResponse(fullContent),
+        })
+      } else {
+        fullContent = PRIVACY_NO_SCREENSHOT_MESSAGE
+      }
     }
-    if (relayTimer) {
-      clearTimeout(relayTimer)
-      relayTimer = null
+
+    if (!fullContent.trim()) {
+      throw new AIStreamError('The AI returned an empty response. Please try again.', 'server')
     }
-    overlayStore.setStreamingContent(fullContent)
 
-    // Record to history (stable id shared with the other windows) and clear
-    // streaming content so it doesn't show twice
-    publishHistoryEntry(params.responseType, fullContent, options?.isAutomatic === true)
+    if (params.responseType === 'Assist' || params.responseType === 'Custom') {
+      fullContent = stripPredictionBullets(fullContent)
+    }
 
-    // Cache the response
-    await setCachedResponse(
-      params.transcript,
-      params.mode?.id ?? null,
-      params.responseType,
-      fullContent,
-    )
+    const provider = proxyApi.getLastStreamMetadata().provider
+    publishHistoryEntry(params.responseType, fullContent, {
+      isAutomatic: options?.isAutomatic,
+      provider,
+      withScreenshot: !!params.screenshot,
+    })
 
-    // Record usage
+    await setCachedResponse(params.transcript, params.mode?.id ?? null, params.responseType, fullContent)
+
     licenseStore.recordAiRequestUsage()
     if (smartActive) {
-      // Fire and forget — server-side smart_mode usage log + local counter.
       recordLicenseUsage('smartMode').catch((e) => log.warn('Failed to record smartMode usage', e))
     }
+    if (provider) analytics.trackAIRequestMade(params.responseType, provider)
 
-    // Estimate token usage from character counts (1 token ≈ 4 chars)
-    const inputText = messages.map((m) => m.content).join('')
-    const estInputTokens = estimateTokens(inputText)
-    const estOutputTokens = estimateTokens(fullContent)
-    recordUsage(estInputTokens, estOutputTokens)
-
+    const elapsed = Date.now() - requestStartedAt
+    healthCheck.recordAIResponseTime(elapsed)
     lastResponseTime = Date.now()
-    healthCheck.recordAIResponseTime(Date.now() - requestStartedAt)
-    log.info(`Response generated (${fullContent.length} chars, ${Date.now() - requestStartedAt} ms)`)
+    log.info(`Response generated (${fullContent.length} chars, ${elapsed} ms, ${provider ?? 'unknown provider'})`)
   } catch (error) {
-    log.error('Streaming error', error)
-    captureError(
-      error instanceof Error ? error : new Error('AI streaming request failed'),
-      { service: 'ai', responseType: params.responseType },
-    )
-    useAppStore.getState().setErrorMessage(
-      error instanceof Error ? error.message : 'AI request failed',
-    )
+    const err = error instanceof Error ? error : new Error('AI streaming request failed')
+    if (error instanceof AIStreamError && error.kind === 'aborted') {
+      log.info('AI request cancelled')
+    } else {
+      log.error('Streaming error', err)
+      captureError(err, { service: 'ai', responseType: params.responseType })
+      publishError(err, params)
+    }
+    useOverlayStore.getState().setStreamingContent('')
+    relay.broadcast('relay:ai-response', { type: 'streaming', streamingContent: '' })
   } finally {
     isProcessing = false
     useAppStore.getState().setProcessing(false)
@@ -263,14 +330,31 @@ export async function generateStreamingResponse(params: AIContextParams, options
   return fullContent
 }
 
-// Auto-fetch screenshot if screen capture is enabled
+/** Abort the in-flight request (if any). */
+export function cancelCurrentRequest(): void {
+  activeController?.abort()
+}
+
+let systemInterimProvider: (() => string) | null = null
+
+/** sessionLifecycle injects the latest "Interlocuteur" interim so requests include it. */
+export function setSystemInterimProvider(provider: (() => string) | null): void {
+  systemInterimProvider = provider
+}
+
+function getSystemInterim(): string {
+  try {
+    return systemInterimProvider?.() ?? ''
+  } catch {
+    return ''
+  }
+}
+
 async function getScreenshotIfEnabled(): Promise<string | undefined> {
   try {
     if (useConfigStore.getState().autoScreenCapture) {
-      // Force a fresh capture so page/window changes are always reflected
-      const fresh = await screenCaptureService.captureOnce()
-      if (fresh) return fresh
-      // Fallback to cache if fresh capture returned null (hash dedup on static screen)
+      // The background pre-capture keeps a ≤2 s cache; reuse it instead of
+      // paying a fresh capture + encode on every click.
       const cached = await screenCaptureService.getCachedOrCapture()
       return cached ?? undefined
     }
@@ -280,25 +364,22 @@ async function getScreenshotIfEnabled(): Promise<string | undefined> {
   return undefined
 }
 
-// Convenience methods matching macOS API
 export async function assist(
   transcript: string,
   mode: Mode | null,
   screenshot?: string,
   options?: { skipPreGen?: boolean; isAutomatic?: boolean },
 ): Promise<string> {
-  // Instant Responses (Enterprise): serve the pre-generated buffer if fresh.
-  // consumeBuffer() returns null when disabled, not ready, or stale.
-  // Callers that enrich the transcript (e.g. moment context) skip the buffer —
-  // it was generated against the raw transcript.
   const preGen = options?.skipPreGen ? null : preGeneration.consumeBuffer()
   if (preGen) {
-    publishHistoryEntry('Assist' as ResponseType, preGen)
+    publishHistoryEntry('Assist' as ResponseType, preGen, { isAutomatic: options?.isAutomatic })
     useLicenseStore.getState().recordAiRequestUsage()
     lastResponseTime = Date.now()
     log.info(`Served from pre-gen buffer (${preGen.length} chars)`)
     return preGen
   }
+  // A manual request supersedes any speculative one (mac cancelAndReset)
+  if (!options?.skipPreGen) preGeneration.cancelAndReset()
 
   const finalScreenshot = screenshot ?? await getScreenshotIfEnabled()
   return generateStreamingResponse({
@@ -310,7 +391,6 @@ export async function assist(
 }
 
 export async function whatToSay(transcript: string, mode: Mode | null): Promise<string> {
-  // No screenshot for WhatToSay — text context is sufficient (aligned with macOS)
   return generateStreamingResponse({
     transcript,
     mode,
@@ -319,7 +399,6 @@ export async function whatToSay(transcript: string, mode: Mode | null): Promise<
 }
 
 export async function followUp(transcript: string, mode: Mode | null): Promise<string> {
-  // No screenshot for FollowUp — text context is sufficient (aligned with macOS)
   return generateStreamingResponse({
     transcript,
     mode,
@@ -328,7 +407,6 @@ export async function followUp(transcript: string, mode: Mode | null): Promise<s
 }
 
 export async function recap(transcript: string, mode: Mode | null): Promise<string> {
-  // No screenshot for Recap — full transcript is the primary input (aligned with macOS)
   return generateStreamingResponse({
     transcript,
     mode,
@@ -337,7 +415,6 @@ export async function recap(transcript: string, mode: Mode | null): Promise<stri
 }
 
 export async function decode(transcript: string, mode: Mode | null): Promise<string> {
-  // Decode reads the conversation AND on-screen jargon, so it includes the screenshot.
   const screenshot = await getScreenshotIfEnabled()
   return generateStreamingResponse({
     transcript,
@@ -362,7 +439,6 @@ export async function askCustomQuestion(
   }, { manualTrigger: true })
 }
 
-// Title generation (non-streaming)
 export async function generateSessionTitle(transcript: string): Promise<string> {
   try {
     const messages = buildTitlePrompt(transcript)
@@ -383,7 +459,6 @@ export async function generateSessionTitle(transcript: string): Promise<string> 
   }
 }
 
-// Summary generation (non-streaming)
 export async function generateSessionSummary(transcript: string): Promise<string | null> {
   try {
     const messages = buildSummaryPrompt(transcript)
@@ -407,7 +482,7 @@ export async function generateSessionSummary(transcript: string): Promise<string
 export function clearHistory(): void {
   useOverlayStore.getState().clearHistory()
   clearCache()
-  window.electronAPI?.relay?.broadcast('relay:ai-response', { type: 'clear' })
+  relay.broadcast('relay:ai-response', { type: 'clear' })
 }
 
 export function getIsProcessing(): boolean {

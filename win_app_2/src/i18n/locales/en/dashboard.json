@@ -125,7 +125,14 @@
       "contextIntelligence": "Context Intelligence",
       "contextIntelligenceDescription": "Let the AI use knowledge from your past meetings to personalize answers (Enterprise)",
       "instantResponses": "Instant Responses",
-      "instantResponsesDescription": "Pre-generate answers in the background so Assist appears instantly (Enterprise, beta)"
+      "instantResponsesDescription": "Pre-generate answers in the background so Assist appears instantly (Enterprise, beta)",
+      "showDecode": "Show Decode tab in the widget",
+      "showDecodeDescription": "Adds a fifth tab that explains what is on screen or was just said",
+      "meetingCost": "Meeting cost",
+      "meetingCostDescription": "Show the live cost of the meeting in the widget (participants × hourly rate)",
+      "meetingCostCurrency": "Currency",
+      "meetingCostRate": "Hourly rate",
+      "meetingCostParticipants": "Participants"
     },
     "autoAnswer": {
       "title": "Auto-Answer",
@@ -208,7 +215,8 @@
       "startStop": "Start/Stop Session",
       "toggleWidget": "Toggle Widget",
       "triggerAssist": "Trigger AI Assist",
-      "clearContext": "Clear Context"
+      "clearContext": "Clear Context",
+      "runTab": "Run selected tab / send (in the widget)"
     },
     "updates": {
       "title": "Updates",

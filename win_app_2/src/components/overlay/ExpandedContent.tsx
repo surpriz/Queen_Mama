@@ -3,6 +3,7 @@ import { Monitor, AlertTriangle } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { TabBar } from './TabBar'
 import { TranscriptPanel } from './TranscriptPanel'
+import { TranscriptionBanner } from './TranscriptionBanner'
 import { ResponseDisplay } from './ResponseDisplay'
 import { TranslateTab } from './TranslateTab'
 import { ActionBar } from './ActionBar'
@@ -13,40 +14,49 @@ import { useOverlayStore } from '@/stores/overlayStore'
 import { useAiResponse } from '@/hooks/useAiResponse'
 import { ResponseType } from '@/types/models'
 
+/**
+ * Decide whether a tab click should hit the AI, shared by the tab bar and the
+ * input bar's Enter-on-empty. Reads the transcript at click time instead of
+ * subscribing to it (that re-rendered the whole expanded area on every word).
+ */
+export function useTabTrigger() {
+  const { t } = useTranslation('overlay')
+  const { triggerByType } = useAiResponse()
+
+  return useCallback(
+    (type: ResponseType) => {
+      if (type === ResponseType.Translate) return // Translate tab is passive — no AI trigger
+      const { isSessionActive, currentTranscript, isProcessing } = useAppStore.getState()
+      if (isProcessing) return
+      const hasTranscript = isSessionActive && currentTranscript.trim().length > 0
+      const hasScreenCapture = useConfigStore.getState().autoScreenCapture
+      if ((type === ResponseType.WhatToSay || type === ResponseType.FollowUp || type === ResponseType.Decode) && !hasTranscript) {
+        useOverlayStore.getState().addToHistory(type, t('expandedContent.noConversation'))
+        return
+      }
+      if (hasTranscript || hasScreenCapture) {
+        void triggerByType(type)
+      } else {
+        useOverlayStore.getState().addToHistory(type, t('expandedContent.noInputHint'))
+      }
+    },
+    [triggerByType, t],
+  )
+}
+
 export function ExpandedContent() {
   const { t } = useTranslation('overlay')
   const autoScreenCapture = useConfigStore((s) => s.autoScreenCapture)
   const showLiveTranscript = useConfigStore((s) => s.showLiveTranscript)
   const isSessionActive = useAppStore((s) => s.isSessionActive)
-  const currentTranscript = useAppStore((s) => s.currentTranscript)
   const selectedTab = useOverlayStore((s) => s.selectedTab)
-  const { triggerByType, isProcessing } = useAiResponse()
   const isTranslateTab = selectedTab === ResponseType.Translate
-
-  const handleTabSelected = useCallback(
-    (type: ResponseType) => {
-      if (type === ResponseType.Translate) return // Translate tab is passive — no AI trigger
-      if (isProcessing) return
-      // Allow trigger if there's transcript OR screen capture is enabled
-      const hasTranscript = isSessionActive && currentTranscript.trim().length > 0
-      const hasScreenCapture = autoScreenCapture
-      // What to Say / Follow-up are conversational — with no transcript (screen-only)
-      // there is nothing to say and no one to question. Show a message, skip the AI call.
-      if ((type === ResponseType.WhatToSay || type === ResponseType.FollowUp) && !hasTranscript) {
-        useOverlayStore.getState().addToHistory(type, t('expandedContent.noConversation'))
-        return
-      }
-      if (hasTranscript || hasScreenCapture) {
-        triggerByType(type)
-      }
-    },
-    [isSessionActive, currentTranscript, isProcessing, autoScreenCapture, triggerByType, t],
-  )
+  const handleTabSelected = useTabTrigger()
 
   return (
     <div className="flex flex-col flex-1 min-h-0 border-t border-white/5 overflow-hidden">
+      <TranscriptionBanner />
       {showLiveTranscript && <TranscriptPanel />}
-
 
       {isTranslateTab ? <TranslateTab /> : <ResponseDisplay />}
 
@@ -54,7 +64,6 @@ export function ExpandedContent() {
 
       {!isTranslateTab && <ActionBar />}
 
-      {/* Input state badge when session is not active */}
       {!isSessionActive && !isTranslateTab && (
         <div className="px-3 py-1">
           {autoScreenCapture ? (

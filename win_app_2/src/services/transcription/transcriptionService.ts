@@ -480,6 +480,24 @@ export function getIsConnected(): boolean {
   return isConnected
 }
 
+/**
+ * User-initiated "Retry now" from the overlay banner: skip the remaining
+ * auto-recovery countdown / exhausted state and try the providers again.
+ */
+export async function retryNow(): Promise<void> {
+  if (intentionalDisconnect) return
+  if (isConnected) return
+  stopAutoRecovery()
+  cancelPendingReconnect()
+  isReconnecting = false
+  reconnectAttempts = 0
+  reconnectTimestamps = []
+  autoRecoveryAttempts = 0
+  log.info('Manual retry requested')
+  await connect()
+  scheduleStabilityCheck()
+}
+
 export function getCurrentProviderType(): TranscriptionProviderType | null {
   return currentProviderType
 }
