@@ -101,6 +101,9 @@ export function resetPostAuth(): void {
   postAuthDone = false
   licenseManager.stopPeriodicRevalidation()
   syncManager.stopPeriodicSync()
+  // UI windows are not allowed to publish license state; the host drops to
+  // FREE here and broadcasts it (the dashboard already cleared the disk cache).
+  licenseManager.resetOnLogout().catch((e) => console.warn('[AppInit] License reset failed:', e))
 }
 
 async function initializeSessionHost(): Promise<void> {

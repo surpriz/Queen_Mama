@@ -24,6 +24,18 @@ const SNAPSHOT_CHANNELS = new Set<string>([
   'relay:mode',
 ])
 
+/**
+ * Channels a visible (UI) window is allowed to publish. Everything else is
+ * host-only state: accepting it from any renderer would let a compromised
+ * overlay/dashboard page spoof the license, the session state or AI output.
+ */
+const UI_PUBLISHABLE_CHANNELS = new Set<string>(['relay:auth', 'relay:config', 'relay:mode'])
+
+function isSessionSender(sender: Electron.WebContents): boolean {
+  const host = getSessionWindow()
+  return !!host && !host.isDestroyed() && host.webContents.id === sender.id
+}
+
 interface CachedRelay {
   data: unknown
   seq: number
@@ -99,6 +111,10 @@ export function sendToSessionWindow(channel: string, ...args: unknown[]): boolea
 export function registerRelayHub(): void {
   ipcMain.on(IPC_CHANNELS.RELAY_BROADCAST, (event: IpcMainEvent, channel: string, data: unknown) => {
     if (typeof channel !== 'string' || !channel.startsWith('relay:')) return
+    if (!isSessionSender(event.sender) && !UI_PUBLISHABLE_CHANNELS.has(channel)) {
+      console.warn(`[RelayHub] Dropped ${channel} from non-host renderer ${event.sender.id}`)
+      return
+    }
     const seq = ++seqCounter
     if (SNAPSHOT_CHANNELS.has(channel)) cache.set(channel, { data, seq })
     fanOut(channel, data, seq, event.sender)
@@ -119,7 +135,13 @@ export function registerRelayHub(): void {
 
   ipcMain.handle(IPC_CHANNELS.RELAY_GET_SNAPSHOT, () => getRelaySnapshot())
 
-  ipcMain.handle(IPC_CHANNELS.SESSION_INVOKE, async (_event, cmd: string, payload: unknown) => {
+  ipcMain.handle(IPC_CHANNELS.SESSION_INVOKE, async (event, cmd: string, payload: unknown) => {
+    if (isSessionSender(event.sender)) {
+      return { ok: false, error: 'Session window cannot invoke itself' }
+    }
+    if (typeof cmd !== 'string') {
+      return { ok: false, error: 'Invalid command' }
+    }
     try {
       const result = await invokeSession(cmd, payload)
       return { ok: true, result }
@@ -130,7 +152,13 @@ export function registerRelayHub(): void {
 
   ipcMain.on(
     IPC_CHANNELS.SESSION_INVOKE_RESPONSE,
-    (_event, response: { id: string; ok: boolean; result?: unknown; error?: string }) => {
+    (event, response: { id: string; ok: boolean; result?: unknown; error?: string }) => {
+      // Only the session window may answer commands (prevents response spoofing)
+      if (!isSessionSender(event.sender)) {
+        console.warn(`[RelayHub] Dropped invoke response from non-host renderer ${event.sender.id}`)
+        return
+      }
+      if (!response || typeof response.id !== 'string') return
       const pending = pendingInvokes.get(response.id)
       if (!pending) return
       clearTimeout(pending.timer)
