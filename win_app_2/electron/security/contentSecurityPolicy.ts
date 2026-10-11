@@ -9,10 +9,10 @@ import { app, session } from 'electron'
  *
  * Dev builds (Vite HMR, eval, websocket on localhost) are left alone.
  *
- * Note: `webSecurity` stays enabled-by-config elsewhere; the renderers are
- * loaded from `file://`, and the backend CORS allow-list rejects the "null"
- * origin Chromium sends for file pages, so turning webSecurity on requires a
- * backend change first (tracked as a follow-up).
+ * `webSecurity` is on (same-origin policy + CORS enforced). The renderers are
+ * loaded from `file://`, so the backend must answer CORS for the "null"
+ * origin — `landing/middleware.ts` does. `QM_RELAX_WEB_SECURITY=1` at runtime turns
+ * it back off for diagnosing a backend that is not deployed yet.
  */
 
 function hostOf(url: string | undefined): string | null {

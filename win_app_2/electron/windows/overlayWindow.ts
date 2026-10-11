@@ -51,7 +51,7 @@ export function createOverlayWindow(): BrowserWindow {
       sandbox: true,
       contextIsolation: true,
       nodeIntegration: false,
-      webSecurity: false,
+      webSecurity: process.env.QM_RELAX_WEB_SECURITY !== '1', // CORS enforced; backend middleware allows the desktop origin
     },
     // Shown by the dashboard once the user is authenticated and onboarded.
     show: false,
