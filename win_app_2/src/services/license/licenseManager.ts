@@ -79,9 +79,27 @@ export async function revalidate(): Promise<void> {
         licenseStore.setLicense(FREE_LICENSE)
       }
     }
+
+    // The failure path used to stay local: a window that fell back to the
+    // cache (or to FREE) silently diverged from the others for up to an hour.
+    broadcastLicenseState()
   }
 
   licenseStore.setValidating(false)
+}
+
+const FOCUS_REVALIDATE_MIN_AGE = 5 * 60 * 1000
+
+/** Revalidate unless a validation happened in the last `minAgeMs` (default 5 min). */
+export async function revalidateIfStale(minAgeMs: number = FOCUS_REVALIDATE_MIN_AGE): Promise<void> {
+  if (!useAuthStore.getState().isAuthenticated) return
+  const store = useLicenseStore.getState()
+  if (store.isValidating) return
+  if (store.lastValidatedAt) {
+    const elapsed = Date.now() - new Date(store.lastValidatedAt).getTime()
+    if (elapsed < minAgeMs) return
+  }
+  await revalidate()
 }
 
 /** Broadcast current license state to all Electron windows (main + overlay) */
@@ -93,6 +111,7 @@ function broadcastLicenseState(): void {
       smartModeUsedToday: store.smartModeUsedToday,
       aiRequestsToday: store.aiRequestsToday,
       lastValidatedAt: store.lastValidatedAt,
+      isOffline: store.isOffline,
     })
     log.info('License state broadcast to all windows')
   } catch {

@@ -1,13 +1,16 @@
 /**
  * App Initialization Service
  *
- * Launch sequence:
- * 1. crashReporter.start()
- * 2. analytics.start()
- * 3. auth.checkExistingAuth()
- * 4. proxyConfig.fetch()
- * 5. license.validate()
- * 6. sync.performInitialSync()
+ * Two boot profiles share one bundle:
+ *
+ * - Session host (hidden `#/session` window): owns auth, license, sync,
+ *   analytics identity and the whole session pipeline. Runs
+ *   `checkExistingAuth` and every periodic task exactly once per app.
+ *
+ * - UI windows (dashboard / overlay / notification): load config + local DB
+ *   caches for display, then mirror auth/license/session state from the host
+ *   through the relay snapshot and broadcasts. They never validate the license
+ *   or refresh tokens on their own.
  */
 
 import * as crashReporter from '@/services/crash/crashReporter'
@@ -25,148 +28,114 @@ import { useContactStore } from '@/stores/contactStore'
 import { modesService } from '@/services/modes/modesService'
 import { useAppStore } from '@/stores/appStore'
 import { useConfigStore } from '@/stores/configStore'
+import { isSessionHost, getWindowKind } from '@/lib/runtime'
 
 let initialized = false
+let postAuthRunning = false
+let postAuthDone = false
+
+async function step(label: string, fn: () => Promise<void> | void): Promise<void> {
+  try {
+    await fn()
+    console.log(`[AppInit] ${label}: ok`)
+  } catch (error) {
+    console.error(`[AppInit] ${label}: failed`, error)
+  }
+}
+
+/** Boot steps every window needs (config, device id, DB handle, local caches). */
+async function initializeShared(): Promise<void> {
+  await step('Config load', () => useConfigStore.getState().loadFromStorage())
+  await step('Device ID', () => syncManager.initDeviceId())
+  await step('Database init', async () => {
+    const userDataPath = await window.electronAPI?.getPath('userData')
+    if (userDataPath) initializeDatabase(userDataPath)
+  })
+  await step('Sessions load', () => loadSessions())
+  await step('Default mode', async () => {
+    const allModes = await modesService.getAll()
+    const defaultMode = allModes.find((m) => m.name === 'Default')
+    if (defaultMode) useAppStore.getState().setSelectedMode(defaultMode)
+  })
+  await step('Contacts load', async () => {
+    const contacts = await contactDb.getAllContacts()
+    useContactStore.getState().setContacts(contacts)
+  })
+  await step('Crash reporter', () => crashReporter.start())
+}
+
+/**
+ * Everything that must happen once the host knows the user is authenticated:
+ * proxy config, license, sync queue + periodic sync, contact pull.
+ * Idempotent per auth session; `resetPostAuth()` re-arms it on logout.
+ */
+export async function runPostAuthTasks(): Promise<void> {
+  if (!isSessionHost()) return
+  if (postAuthRunning || postAuthDone) return
+  if (!useAuthStore.getState().isAuthenticated) return
+  postAuthRunning = true
+
+  try {
+    await step('Proxy config', () => proxyConfigManager.refreshConfig().then(() => undefined))
+    await step('License validation', async () => {
+      await licenseManager.revalidate()
+      licenseManager.startPeriodicRevalidation()
+    })
+    await step('Sync queue', () => syncManager.loadQueue())
+    syncManager.startPeriodicSync()
+    await step('Contacts pull', async () => {
+      const imported = await contactSyncService.pullContacts()
+      if (imported.length > 0) {
+        const allContacts = await contactDb.getAllContacts()
+        useContactStore.getState().setContacts(allContacts)
+      }
+    })
+    postAuthDone = true
+  } finally {
+    postAuthRunning = false
+  }
+}
+
+/** Tear down per-user background work (logout / session expired). */
+export function resetPostAuth(): void {
+  postAuthDone = false
+  licenseManager.stopPeriodicRevalidation()
+  syncManager.stopPeriodicSync()
+}
+
+async function initializeSessionHost(): Promise<void> {
+  await initializeShared()
+  await step('Analytics', () => analyticsService.start())
+
+  // React to auth transitions no matter which window produced them (own
+  // checkExistingAuth below, or a login/logout relayed from the dashboard).
+  useAuthStore.subscribe((state, prev) => {
+    if (state.isAuthenticated && !prev.isAuthenticated) {
+      void runPostAuthTasks()
+    } else if (!state.isAuthenticated && prev.isAuthenticated) {
+      resetPostAuth()
+    }
+  })
+
+  await step('Auth check', () => checkExistingAuth())
+  await runPostAuthTasks()
+}
+
+async function initializeUiWindow(): Promise<void> {
+  await initializeShared()
+}
 
 export async function initializeApp(): Promise<void> {
   if (initialized) return
   initialized = true
 
-  console.log('[AppInit] Starting initialization...')
+  const kind = getWindowKind()
+  console.log(`[AppInit] Starting initialization (${kind})...`)
 
-  // Refresh proxy config whenever auth transitions to authenticated. The boot
-  // fetch (step 5) is gated on auth being ready in time; on a slow token refresh
-  // it gets skipped, leaving translation/config disabled for the whole session
-  // even though the license resolves correctly later. Re-fetch on every auth gain.
-  useAuthStore.subscribe((state, prev) => {
-    if (state.isAuthenticated && !prev.isAuthenticated) {
-      proxyConfigManager.refreshConfig().catch((e) =>
-        console.warn('[AppInit] Proxy config refresh after auth failed:', e),
-      )
-    }
-  })
-
-  // Load persisted user config (showLiveTranscript, captureSystemAudio, etc.)
-  // Must run in every window (dashboard + overlay) so each Zustand instance
-  // reflects the user's saved preferences instead of falling back to defaults.
-  try {
-    await useConfigStore.getState().loadFromStorage()
-    console.log('[AppInit] Config loaded from storage')
-  } catch (error) {
-    console.error('[AppInit] Config load failed:', error)
-  }
-
-  // 1. Initialize device ID cache (for sync)
-  try {
-    await syncManager.initDeviceId()
-    console.log('[AppInit] Device ID cached')
-  } catch (error) {
-    console.error('[AppInit] Device ID init failed:', error)
-  }
-
-  // 2. Initialize database
-  try {
-    const userDataPath = await window.electronAPI?.getPath('userData')
-    if (userDataPath) {
-      initializeDatabase(userDataPath)
-    }
-    console.log('[AppInit] Database initialized')
-  } catch (error) {
-    console.error('[AppInit] Database init failed:', error)
-  }
-
-  // 2b. Load persisted sessions from DB
-  try {
-    await loadSessions()
-    console.log('[AppInit] Sessions loaded from DB')
-  } catch (error) {
-    console.error('[AppInit] Sessions load failed:', error)
-  }
-
-  // 2c. Auto-select Default mode
-  try {
-    const allModes = await modesService.getAll()
-    const defaultMode = allModes.find((m) => m.name === 'Default')
-    if (defaultMode) {
-      useAppStore.getState().setSelectedMode(defaultMode)
-      console.log('[AppInit] Default mode selected')
-    }
-  } catch (error) {
-    console.error('[AppInit] Default mode selection failed:', error)
-  }
-
-  // 2d. Load contacts from DB
-  try {
-    const contacts = await contactDb.getAllContacts()
-    useContactStore.getState().setContacts(contacts)
-    console.log('[AppInit] Contacts loaded from DB')
-  } catch (error) {
-    console.error('[AppInit] Contacts load failed:', error)
-  }
-
-  // 2. Crash reporter
-  try {
-    crashReporter.start()
-    console.log('[AppInit] Crash reporter started')
-  } catch (error) {
-    console.error('[AppInit] Crash reporter failed:', error)
-  }
-
-  // 3. Analytics
-  try {
-    analyticsService.start()
-    console.log('[AppInit] Analytics initialized')
-  } catch (error) {
-    console.error('[AppInit] Analytics failed:', error)
-  }
-
-  // 4. Check existing auth (non-blocking)
-  try {
-    await checkExistingAuth()
-    console.log('[AppInit] Auth check completed')
-  } catch (error) {
-    console.error('[AppInit] Auth check failed:', error)
-  }
-
-  // 5. Load proxy config (only if authenticated)
-  const { isAuthenticated } = useAuthStore.getState()
-  if (isAuthenticated) {
-    try {
-      await proxyConfigManager.getProxyConfig()
-      console.log('[AppInit] Proxy config loaded')
-    } catch (error) {
-      console.error('[AppInit] Proxy config failed:', error)
-    }
-
-    // 6. Validate license
-    try {
-      await licenseManager.revalidate()
-      licenseManager.startPeriodicRevalidation()
-      console.log('[AppInit] License validated')
-    } catch (error) {
-      console.error('[AppInit] License validation failed:', error)
-    }
-
-    // 7. Load sync queue from previous runs, then start periodic sync
-    try {
-      await syncManager.loadQueue()
-      console.log('[AppInit] Sync queue loaded')
-    } catch (error) {
-      console.error('[AppInit] Sync queue load failed:', error)
-    }
-    syncManager.startPeriodicSync()
-
-    // 8. Pull contacts from server and merge with local DB
-    try {
-      const imported = await contactSyncService.pullContacts()
-      if (imported.length > 0) {
-        const allContacts = await contactDb.getAllContacts()
-        useContactStore.getState().setContacts(allContacts)
-        console.log(`[AppInit] Pulled ${imported.length} contacts from server`)
-      }
-    } catch (error) {
-      console.error('[AppInit] Contact pull failed:', error)
-    }
+  if (isSessionHost()) {
+    await initializeSessionHost()
+  } else {
+    await initializeUiWindow()
   }
 
   console.log('[AppInit] Initialization complete')

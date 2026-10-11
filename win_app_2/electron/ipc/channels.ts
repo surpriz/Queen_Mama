@@ -87,6 +87,13 @@ export const IPC_CHANNELS = {
   RELAY_AI_RESPONSE: 'relay:ai-response',
   RELAY_AUDIO_LEVEL: 'relay:audio-level',
   RELAY_TRANSLATION: 'relay:translation',
+  RELAY_BROADCAST: 'relay:broadcast',
+  RELAY_GET_SNAPSHOT: 'relay:get-snapshot',
+
+  SESSION_INVOKE: 'session:invoke',
+  SESSION_INVOKE_REQUEST: 'session:invoke-request',
+  SESSION_INVOKE_RESPONSE: 'session:invoke-response',
+  LICENSE_REVALIDATE_REQUEST: 'license:revalidate-request',
 
   // Dialog / file operations
   DIALOG_OPEN_FILE: 'dialog:open-file',

@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { Plus, Edit, Trash2, Check, Copy, Briefcase, Users, TrendingUp, Sparkles, Brain, Code } from 'lucide-react'
 import { BUILT_IN_MODE_NAMES, type Mode } from '@/types/models'
 import { useAppStore } from '@/stores/appStore'
+import { selectMode } from '@/services/session/modeSelection'
 import { cn } from '@/lib/utils'
 import { ModeEditor } from './ModeEditor'
 import { useModes } from '@/hooks/useModes'
@@ -25,7 +26,7 @@ function getModeIcon(name: string) {
 export function ModesListView() {
   const { t } = useTranslation()
   const activeMode = useAppStore((s) => s.selectedMode)
-  const setActiveMode = useAppStore((s) => s.setSelectedMode)
+  const setActiveMode = selectMode
   const { modes, loading, saveMode, deleteMode } = useModes()
   const [editingMode, setEditingMode] = useState<Mode | null>(null)
   const [isCreating, setIsCreating] = useState(false)

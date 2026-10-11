@@ -15,6 +15,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { Video, Globe, Hash, Headphones, MessageSquare, X } from 'lucide-react'
 import { useAppStore } from '@/stores/appStore'
+import * as sessionClient from '@/services/session/sessionClient'
 import { createLogger } from '@/lib/logger'
 import { cn } from '@/lib/utils'
 
@@ -155,10 +156,12 @@ export function MeetingReminder() {
   const handleStartSession = useCallback(() => {
     log.info(`Starting session from meeting reminder (app: ${detectedApp})`)
     dismiss()
-    // Small delay to let the dismiss animation begin, then route through the
-    // main window so the session lifecycle runs in the dashboard renderer.
+    // Small delay to let the dismiss animation begin, then ask the hidden
+    // session window (single owner of the lifecycle) to start.
     setTimeout(() => {
-      window.electronAPI?.relay?.toMain('session:toggle', { mode: selectedMode })
+      sessionClient.toggleSession(selectedMode?.id ?? null).catch((err) => {
+        log.error('Failed to start session from reminder:', err)
+      })
     }, 100)
   }, [detectedApp, dismiss, selectedMode])
 

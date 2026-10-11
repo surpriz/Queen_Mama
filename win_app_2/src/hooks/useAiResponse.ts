@@ -1,59 +1,43 @@
 import { useCallback } from 'react'
 import { useAppStore } from '@/stores/appStore'
 import { useOverlayStore } from '@/stores/overlayStore'
-import * as aiService from '@/services/ai/aiService'
+import * as sessionClient from '@/services/session/sessionClient'
 import { ResponseType } from '@/types/models'
 
+/**
+ * AI actions for UI windows. Requests are executed by the hidden session
+ * window (which owns the authoritative transcript, screenshots and pre-gen
+ * buffer); results arrive through the relay into `overlayStore`.
+ */
 export function useAiResponse() {
-  const currentTranscript = useAppStore((s) => s.currentTranscript)
   const isProcessing = useAppStore((s) => s.isProcessing)
-  const selectedMode = useAppStore((s) => s.selectedMode)
   const streamingContent = useOverlayStore((s) => s.streamingContent)
   const responseHistory = useOverlayStore((s) => s.responseHistory)
 
-  const assist = useCallback(async () => {
-    await aiService.assist(currentTranscript, selectedMode)
-  }, [currentTranscript, selectedMode])
+  const trigger = useCallback(async (type: ResponseType, question?: string) => {
+    try {
+      await sessionClient.triggerAI(type, question)
+    } catch (error) {
+      useAppStore.getState().setErrorMessage(error instanceof Error ? error.message : String(error))
+    }
+  }, [])
 
-  const whatToSay = useCallback(async () => {
-    await aiService.whatToSay(currentTranscript, selectedMode)
-  }, [currentTranscript, selectedMode])
-
-  const followUp = useCallback(async () => {
-    await aiService.followUp(currentTranscript, selectedMode)
-  }, [currentTranscript, selectedMode])
-
-  const recap = useCallback(async () => {
-    await aiService.recap(currentTranscript, selectedMode)
-  }, [currentTranscript, selectedMode])
-
-  const decode = useCallback(async () => {
-    await aiService.decode(currentTranscript, selectedMode)
-  }, [currentTranscript, selectedMode])
-
+  const assist = useCallback(() => trigger(ResponseType.Assist), [trigger])
+  const whatToSay = useCallback(() => trigger(ResponseType.WhatToSay), [trigger])
+  const followUp = useCallback(() => trigger(ResponseType.FollowUp), [trigger])
+  const recap = useCallback(() => trigger(ResponseType.Recap), [trigger])
+  const decode = useCallback(() => trigger(ResponseType.Decode), [trigger])
   const askCustomQuestion = useCallback(
-    async (question: string) => {
-      await aiService.askCustomQuestion(currentTranscript, question, selectedMode)
-    },
-    [currentTranscript, selectedMode],
+    (question: string) => trigger(ResponseType.Custom, question),
+    [trigger],
   )
 
   const triggerByType = useCallback(
     async (type: ResponseType) => {
-      switch (type) {
-        case ResponseType.Assist:
-          return assist()
-        case ResponseType.WhatToSay:
-          return whatToSay()
-        case ResponseType.FollowUp:
-          return followUp()
-        case ResponseType.Recap:
-          return recap()
-        case ResponseType.Decode:
-          return decode()
-      }
+      if (type === ResponseType.Translate) return
+      return trigger(type)
     },
-    [assist, whatToSay, followUp, recap, decode],
+    [trigger],
   )
 
   return {

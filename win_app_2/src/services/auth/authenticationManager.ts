@@ -6,9 +6,24 @@ import { setOnSessionExpired } from './authApiClient'
 import { startGoogleAuth } from './googleAuthService'
 import * as licenseManager from '@/services/license/licenseManager'
 import { getApiBaseUrl } from '@/services/config/appEnvironment'
+import { isSessionHost } from '@/lib/runtime'
+import * as sessionClient from '@/services/session/sessionClient'
 import type { AuthUser, DeviceInfo } from '@/types/auth'
 
 const log = createLogger('Auth')
+
+/**
+ * The hidden session window owns license validation. Auth transitions are
+ * relayed to it (see authRelay) and it revalidates on its own; this helper is
+ * only needed for changes that keep `isAuthenticated` true (guest upgrade).
+ */
+function requestLicenseRevalidation(force = false): void {
+  if (isSessionHost()) {
+    licenseManager.revalidate().catch((err) => log.warn('License revalidation failed:', err))
+    return
+  }
+  sessionClient.revalidateLicense(force).catch((err) => log.warn('License revalidation request failed:', err))
+}
 
 // Wire mid-session expiration detection at module level
 setOnSessionExpired(() => useAuthStore.getState().setSessionExpired())
@@ -82,10 +97,6 @@ export async function checkExistingAuth(): Promise<void> {
       addBreadcrumb('auth', 'Authentication restored from stored credentials', 'info')
       log.info(`Authentication restored for: ${user.email}`)
 
-      // Revalidate license after restoring auth
-      licenseManager.revalidate().catch((err) => {
-        log.warn('License revalidation failed:', err)
-      })
       return
     }
 
@@ -141,10 +152,6 @@ export async function loginWithCredentials(email: string, password: string): Pro
     setSentryUser(response.user.id, response.user.email)
     addBreadcrumb('auth', 'User logged in with credentials', 'info')
 
-    // Revalidate license after login
-    licenseManager.revalidate().catch((err) => {
-      log.warn('License revalidation failed:', err)
-    })
   } catch (error) {
     store.setError(error instanceof Error ? error.message : 'Login failed')
     throw error
@@ -168,10 +175,6 @@ export async function registerWithCredentials(
     setSentryUser(response.user.id, response.user.email)
     addBreadcrumb('auth', 'User registered with credentials', 'info')
 
-    // Revalidate license after registration
-    licenseManager.revalidate().catch((err) => {
-      log.warn('License revalidation failed:', err)
-    })
   } catch (error) {
     store.setError(error instanceof Error ? error.message : 'Registration failed')
     throw error
@@ -192,9 +195,6 @@ export async function continueAnonymously(): Promise<void> {
     setSentryUser(response.user.id, response.user.email)
     addBreadcrumb('auth', 'Anonymous session started', 'info')
 
-    licenseManager.revalidate().catch((err) => {
-      log.warn('License revalidation failed:', err)
-    })
   } catch (error) {
     store.setError(error instanceof Error ? error.message : 'Anonymous sign-in failed')
     throw error
@@ -215,9 +215,7 @@ export async function upgradeAccount(
   setSentryUser(response.user.id, response.user.email)
   addBreadcrumb('auth', 'Anonymous account upgraded', 'info')
 
-  licenseManager.revalidate().catch((err) => {
-    log.warn('License revalidation failed:', err)
-  })
+  requestLicenseRevalidation(true)
 }
 
 export async function startDeviceCodeFlow(): Promise<{
@@ -295,10 +293,6 @@ function startPolling(deviceCode: string, expiresIn: number): void {
         setSentryUser(response.user.id, response.user.email)
         addBreadcrumb('auth', 'User authenticated via device code flow', 'info')
 
-        // Revalidate license after device code auth
-        licenseManager.revalidate().catch((err) => {
-          log.warn('License revalidation failed:', err)
-        })
         return
       }
 
@@ -357,10 +351,6 @@ export async function loginWithGoogle(): Promise<void> {
       setSentryUser(response.user.id, response.user.email)
       addBreadcrumb('auth', 'User logged in via Google OAuth', 'info')
 
-      // Revalidate license after Google sign-in
-      licenseManager.revalidate().catch((err) => {
-        log.warn('License revalidation failed:', err)
-      })
     } finally {
       // Always stop OAuth server after token exchange attempt (success or failure)
       log.info('Stopping OAuth server after token exchange')

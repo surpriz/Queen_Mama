@@ -1,7 +1,7 @@
 import { createLogger } from '@/lib/logger'
 import { captureError, addBreadcrumb } from '@/services/crash/crashReporter'
 import { useAppStore } from '@/stores/appStore'
-import { useOverlayStore } from '@/stores/overlayStore'
+import { useOverlayStore, getOverlaySessionId } from '@/stores/overlayStore'
 import { useLicenseStore } from '@/stores/licenseStore'
 import { useConfigStore } from '@/stores/configStore'
 import * as proxyApi from '../proxy/proxyApiClient'
@@ -17,8 +17,23 @@ import type { AIContextParams } from './aiContext'
 import { Feature } from '@/types/auth'
 import type { ResponseType, Mode } from '@/types/models'
 import type { AIMessage } from '@/types/api'
+import { v4 as uuidv4 } from 'uuid'
 
 const log = createLogger('AIService')
+
+/** Add a completed response to local history and relay it (with a stable id) to the other windows. */
+function publishHistoryEntry(type: ResponseType, content: string, isAutomatic = false): string {
+  const id = uuidv4()
+  const timestamp = new Date().toISOString()
+  const sessionId = getOverlaySessionId()
+  useOverlayStore.getState().addToHistory(type, content, { id, timestamp, isAutomatic, sessionId })
+  useOverlayStore.getState().setStreamingContent('')
+  window.electronAPI?.relay?.broadcast('relay:ai-response', {
+    type: 'history',
+    entry: { id, type, content, timestamp, isAutomatic, sessionId },
+  })
+  return id
+}
 
 let isProcessing = false
 let lastResponseTime = 0
@@ -28,6 +43,7 @@ const MIN_RESPONSE_COOLDOWN = 2000 // 2 seconds between auto-responses
 
 export interface StreamingOptions {
   manualTrigger?: boolean // Skip cooldown for user-typed questions
+  isAutomatic?: boolean // Produced by auto-answer / proactive detection
 }
 
 export async function generateStreamingResponse(params: AIContextParams, options?: StreamingOptions): Promise<string> {
@@ -119,14 +135,7 @@ export async function generateStreamingResponse(params: AIContextParams, options
     params.responseType,
   )
   if (cached) {
-    overlayStore.addToHistory(params.responseType, cached)
-    overlayStore.setStreamingContent('')
-    // Broadcast cached response to all windows
-    window.electronAPI?.relay?.broadcast('relay:ai-response', {
-      type: 'history',
-      streamingContent: '',
-      entry: { type: params.responseType, content: cached, timestamp: new Date().toISOString() },
-    })
+    publishHistoryEntry(params.responseType, cached)
     lastResponseTime = Date.now()
     isProcessing = false
     useAppStore.getState().setProcessing(false)
@@ -207,17 +216,9 @@ export async function generateStreamingResponse(params: AIContextParams, options
     }
     overlayStore.setStreamingContent(fullContent)
 
-    // Record to history and clear streaming content (so it doesn't show twice)
-    overlayStore.addToHistory(params.responseType, fullContent)
-    overlayStore.setStreamingContent('')
-
-    // Broadcast completed response to all windows
-    const timestamp = new Date().toISOString()
-    window.electronAPI?.relay?.broadcast('relay:ai-response', {
-      type: 'history',
-      streamingContent: '',
-      entry: { type: params.responseType, content: fullContent, timestamp },
-    })
+    // Record to history (stable id shared with the other windows) and clear
+    // streaming content so it doesn't show twice
+    publishHistoryEntry(params.responseType, fullContent, options?.isAutomatic === true)
 
     // Cache the response
     await setCachedResponse(
@@ -281,7 +282,7 @@ export async function assist(
   transcript: string,
   mode: Mode | null,
   screenshot?: string,
-  options?: { skipPreGen?: boolean },
+  options?: { skipPreGen?: boolean; isAutomatic?: boolean },
 ): Promise<string> {
   // Instant Responses (Enterprise): serve the pre-generated buffer if fresh.
   // consumeBuffer() returns null when disabled, not ready, or stale.
@@ -289,16 +290,7 @@ export async function assist(
   // it was generated against the raw transcript.
   const preGen = options?.skipPreGen ? null : preGeneration.consumeBuffer()
   if (preGen) {
-    const overlayStore = useOverlayStore.getState()
-    const responseType = 'Assist' as ResponseType
-    overlayStore.addToHistory(responseType, preGen)
-    overlayStore.setStreamingContent('')
-    window.electronAPI?.relay?.broadcast('relay:ai-response', {
-      type: 'history',
-      streamingContent: '',
-      entry: { type: responseType, content: preGen, timestamp: new Date().toISOString() },
-    })
-    // The speculative generation skipped usage counting — pay for it on consume
+    publishHistoryEntry('Assist' as ResponseType, preGen)
     useLicenseStore.getState().recordAiRequestUsage()
     lastResponseTime = Date.now()
     log.info(`Served from pre-gen buffer (${preGen.length} chars)`)
@@ -311,7 +303,7 @@ export async function assist(
     screenshot: finalScreenshot,
     mode,
     responseType: 'Assist' as ResponseType,
-  }, { manualTrigger: true })
+  }, { manualTrigger: true, isAutomatic: options?.isAutomatic })
 }
 
 export async function whatToSay(transcript: string, mode: Mode | null): Promise<string> {
@@ -412,6 +404,7 @@ export async function generateSessionSummary(transcript: string): Promise<string
 export function clearHistory(): void {
   useOverlayStore.getState().clearHistory()
   clearCache()
+  window.electronAPI?.relay?.broadcast('relay:ai-response', { type: 'clear' })
 }
 
 export function getIsProcessing(): boolean {

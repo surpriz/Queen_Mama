@@ -15,11 +15,10 @@ import { useTranslation } from 'react-i18next'
 import { useOverlayStore } from '@/stores/overlayStore'
 import { useAppStore } from '@/stores/appStore'
 import { useConfigStore } from '@/stores/configStore'
-import {
-  onMomentsDetected,
-  type DetectedMoment,
-  type MomentType,
-} from '@/services/detection/momentDetectionService'
+import type { MomentType } from '@/services/detection/momentDetectionService'
+import { useMomentStore } from '@/stores/momentStore'
+import * as sessionClient from '@/services/session/sessionClient'
+import { toast } from '@/stores/toastStore'
 import { PopupMenu } from './PopupMenu'
 import { FreeRequestCounter } from './FreeRequestCounter'
 import { cn } from '@/lib/utils'
@@ -65,32 +64,13 @@ export function PillHeader() {
     closingOpportunity: t('proactive.close'),
   }
 
-  // Moment detection state
-  const [currentMoment, setCurrentMoment] = useState<DetectedMoment | null>(null)
-  const [momentVisible, setMomentVisible] = useState(false)
+  // Moments are detected in the hidden session window and relayed here
+  const currentMoment = useMomentStore((s) => s.current)
+  const momentVisible = useMomentStore((s) => s.visible)
 
   // Pulsing ring states (auto-stop after 3s)
   const [isExpandPulsing, setIsExpandPulsing] = useState(false)
   const [isStartPulsing, setIsStartPulsing] = useState(false)
-
-  // Subscribe to moment detection events
-  useEffect(() => {
-    let hideTimer: ReturnType<typeof setTimeout> | null = null
-
-    const unsubscribe = onMomentsDetected((moments: DetectedMoment[]) => {
-      if (moments.length > 0) {
-        setCurrentMoment(moments[0])
-        setMomentVisible(true)
-        if (hideTimer) clearTimeout(hideTimer)
-        hideTimer = setTimeout(() => setMomentVisible(false), 8000)
-      }
-    })
-
-    return () => {
-      unsubscribe()
-      if (hideTimer) clearTimeout(hideTimer)
-    }
-  }, [])
 
   // Pulsing ring for expand button: pulse when collapsed, stop after 3s
   useEffect(() => {
@@ -117,10 +97,10 @@ export function PillHeader() {
   const handleToggleSession = useCallback(
     (e: React.MouseEvent) => {
       e.stopPropagation()
-      // Route session toggle through the main window so the lifecycle
-      // (audio capture, transcription, AI) consistently runs in one renderer
-      // and the dashboard always sees the full session state.
-      window.electronAPI?.relay?.toMain('session:toggle', { mode: selectedMode })
+      // The hidden session window owns the lifecycle (audio, transcription, AI).
+      sessionClient.toggleSession(selectedMode?.id ?? null).catch((err) => {
+        toast.error(err instanceof Error ? err.message : String(err))
+      })
     },
     [selectedMode],
   )
@@ -217,20 +197,20 @@ export function PillHeader() {
           <div
             className={cn(
               'flex items-center gap-0.5 px-1.5 py-0.5 rounded-full animate-qm-fade-in transition-opacity duration-250',
-              MOMENT_BG_COLORS[currentMoment.type],
+              MOMENT_BG_COLORS[currentMoment.type as MomentType],
             )}
             title={currentMoment.triggerPhrase}
           >
             <div
-              className={cn('w-1.5 h-1.5 rounded-full', MOMENT_COLORS[currentMoment.type])}
+              className={cn('w-1.5 h-1.5 rounded-full', MOMENT_COLORS[currentMoment.type as MomentType])}
             />
             <span
               className={cn(
                 'text-caption-sm font-semibold',
-                MOMENT_TEXT_COLORS[currentMoment.type],
+                MOMENT_TEXT_COLORS[currentMoment.type as MomentType],
               )}
             >
-              {MOMENT_LABELS_SHORT[currentMoment.type]}
+              {MOMENT_LABELS_SHORT[currentMoment.type as MomentType]}
             </span>
           </div>
         )}

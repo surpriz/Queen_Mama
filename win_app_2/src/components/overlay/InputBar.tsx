@@ -3,7 +3,7 @@ import { ArrowUp, Brain } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { useAppStore } from '@/stores/appStore'
 import { useConfigStore } from '@/stores/configStore'
-import * as aiService from '@/services/ai/aiService'
+import * as sessionClient from '@/services/session/sessionClient'
 import { DictationButton } from './DictationButton'
 import { KeyboardShortcutBadge } from '@/components/common/KeyboardShortcutBadge'
 import { toast } from '@/stores/toastStore'
@@ -13,8 +13,6 @@ export function InputBar() {
   const { t } = useTranslation('overlay')
   const [input, setInput] = useState('')
   const isProcessing = useAppStore((s) => s.isProcessing)
-  const currentTranscript = useAppStore((s) => s.currentTranscript)
-  const selectedMode = useAppStore((s) => s.selectedMode)
   const smartModeEnabled = useConfigStore((s) => s.smartModeEnabled)
   const updateConfig = useConfigStore((s) => s.updateConfig)
 
@@ -24,7 +22,11 @@ export function InputBar() {
     const question = input.trim()
     setInput('')
 
-    await aiService.askCustomQuestion(currentTranscript, question, selectedMode)
+    try {
+      await sessionClient.triggerAI('Custom', question)
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : String(error))
+    }
   }
 
   const handleKeyDown = (e: React.KeyboardEvent) => {

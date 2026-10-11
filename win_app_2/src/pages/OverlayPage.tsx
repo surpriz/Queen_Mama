@@ -1,15 +1,22 @@
 import { useEffect } from 'react'
 import { OverlayApp } from '@/components/overlay/OverlayApp'
-import { useTranscriptSync } from '@/hooks/useTranscriptSync'
+import { useOverlayStore } from '@/stores/overlayStore'
+import * as relay from '@/services/relay/relayClient'
+import type { ResponseType } from '@/types/models'
 
 export function OverlayPage() {
-  useTranscriptSync()
+  // Host-driven UI commands (proactive answers expand the widget / switch tab)
+  useEffect(() => {
+    return relay.on('relay:overlay', (data) => {
+      const store = useOverlayStore.getState()
+      if (data.selectTab) store.setSelectedTab(data.selectTab as ResponseType)
+      if (data.expand && !store.isExpanded) store.setExpanded(true)
+    })
+  }, [])
 
   useEffect(() => {
-    // Make body transparent for overlay window
     document.body.style.background = 'transparent'
     document.documentElement.style.background = 'transparent'
-    // Disable ambient mesh/noise (which would defeat window transparency)
     document.documentElement.classList.add('qm-overlay-window')
 
     return () => {

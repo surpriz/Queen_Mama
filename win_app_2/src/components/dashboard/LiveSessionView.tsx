@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { Mic, MicOff, Square, Play, Sparkles, Copy, Check, Trash2 } from 'lucide-react'
 import { useAppStore } from '@/stores/appStore'
 import { useOverlayStore } from '@/stores/overlayStore'
-import { startSession, stopSession } from '@/services/sessionLifecycle'
+import * as sessionClient from '@/services/session/sessionClient'
 import { toast } from '@/stores/toastStore'
 import { ContactPicker } from '@/components/overlay/ContactPicker'
 import { StatusIndicator } from '@/components/common/StatusIndicator'
@@ -117,7 +117,11 @@ export function LiveSessionView() {
 
   const handleToggleSession = useCallback(async () => {
     if (isSessionActive) {
-      await stopSession()
+      try {
+        await sessionClient.stopSession()
+      } catch (error) {
+        toast.error(error instanceof Error ? error.message : String(error))
+      }
     } else {
       // Show contact picker before starting session
       setShowContactPicker(true)
@@ -127,7 +131,11 @@ export function LiveSessionView() {
   const handleContactPickerStart = useCallback(async (contact: Contact | null) => {
     setShowContactPicker(false)
     const mode = useAppStore.getState().selectedMode
-    await startSession(mode, contact)
+    try {
+      await sessionClient.startSession(mode?.id ?? null, contact?.id ?? null)
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : String(error))
+    }
   }, [])
 
   return (

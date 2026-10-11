@@ -20,9 +20,31 @@ export interface TranslationEntry {
 }
 
 // Set externally by sessionLifecycle to avoid circular imports
+export interface ResponseHistoryEntry {
+  id: string
+  type: ResponseType
+  content: string
+  timestamp: string
+  provider?: string
+  isAutomatic?: boolean
+  sessionId?: string | null
+}
+
+/** Optional identity/metadata for an entry produced elsewhere (host → UI relay). */
+export interface HistoryEntryMeta {
+  id?: string
+  timestamp?: string
+  provider?: string
+  isAutomatic?: boolean
+  sessionId?: string | null
+}
+
 let _currentSessionId: string | null = null
 export function setOverlaySessionId(id: string | null): void {
   _currentSessionId = id
+}
+export function getOverlaySessionId(): string | null {
+  return _currentSessionId
 }
 
 interface OverlayStoreState {
@@ -31,7 +53,7 @@ interface OverlayStoreState {
   position: OverlayPosition
   isAutoAnswer: boolean
   streamingContent: string
-  responseHistory: Array<{ id?: string; type: ResponseType; content: string; timestamp: string; provider?: string; sessionId?: string | null }>
+  responseHistory: ResponseHistoryEntry[]
   translationEntries: TranslationEntry[]
   translationError: string | null
 
@@ -43,7 +65,7 @@ interface OverlayStoreState {
   setAutoAnswer: (enabled: boolean) => void
   setStreamingContent: (content: string) => void
   appendStreamingContent: (chunk: string) => void
-  addToHistory: (type: ResponseType, content: string) => void
+  addToHistory: (type: ResponseType, content: string, meta?: HistoryEntryMeta) => void
   clearHistory: () => void
   appendTranslation: (entry: TranslationEntry) => void
   clearTranslations: () => void
@@ -60,16 +82,10 @@ export const useOverlayStore = create<OverlayStoreState>((set) => ({
   translationEntries: [],
   translationError: null,
 
-  setExpanded: (expanded) => {
-    set({ isExpanded: expanded })
-    window.electronAPI?.overlaySetExpanded(expanded)
-  },
-  toggleExpanded: () =>
-    set((state) => {
-      const newExpanded = !state.isExpanded
-      window.electronAPI?.overlaySetExpanded(newExpanded)
-      return { isExpanded: newExpanded }
-    }),
+  // The window resize IPC is sent once, by OverlayContent's effect on
+  // `isExpanded` (it used to be sent 2–3 times per toggle).
+  setExpanded: (expanded) => set({ isExpanded: expanded }),
+  toggleExpanded: () => set((state) => ({ isExpanded: !state.isExpanded })),
   setSelectedTab: (tab) => set({ selectedTab: tab }),
   setPosition: (position) => {
     set({ position })
@@ -79,26 +95,37 @@ export const useOverlayStore = create<OverlayStoreState>((set) => ({
   setStreamingContent: (content) => set({ streamingContent: content }),
   appendStreamingContent: (chunk) =>
     set((state) => ({ streamingContent: state.streamingContent + chunk })),
-  addToHistory: (type, content) =>
+  addToHistory: (type, content, meta) =>
     set((state) => {
-      // Dedup: skip if the most recent entry has identical content
-      const last = state.responseHistory[0]
-      if (last && last.content === content && last.type === type) {
+      // Dedup by id when the entry comes from the host, otherwise by content
+      if (meta?.id && state.responseHistory.some((e) => e.id === meta.id)) {
         return state
       }
-      const timestamp = new Date().toISOString()
-      const id = uuidv4()
-      const updated = [
-        { id, type, content, timestamp, sessionId: _currentSessionId },
-        ...state.responseHistory,
-      ]
+      const last = state.responseHistory[0]
+      if (!meta?.id && last && last.content === content && last.type === type) {
+        return state
+      }
+      const timestamp = meta?.timestamp ?? new Date().toISOString()
+      const id = meta?.id ?? uuidv4()
+      const sessionId = meta?.sessionId !== undefined ? meta.sessionId : _currentSessionId
+      const entry: ResponseHistoryEntry = {
+        id,
+        type,
+        content,
+        timestamp,
+        sessionId,
+        provider: meta?.provider,
+        isAutomatic: meta?.isAutomatic,
+      }
+      const updated = [entry, ...state.responseHistory]
 
-      // Persist AI response to DB (fire-and-forget)
-      if (_currentSessionId) {
+      // Persist AI response to DB (fire-and-forget). Only the session host has
+      // a current session id, so UI windows never write duplicates.
+      if (_currentSessionId && (!meta?.sessionId || meta.sessionId === _currentSessionId)) {
         db.query(
           `INSERT INTO ai_responses (id, session_id, type, content, timestamp, is_automatic)
            VALUES (?, ?, ?, ?, ?, ?)`,
-          [id, _currentSessionId, type, content, timestamp, 0],
+          [id, _currentSessionId, type, content, timestamp, meta?.isAutomatic ? 1 : 0],
         ).catch((err) => log.warn('Failed to persist AI response to DB', err))
       }
 

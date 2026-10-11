@@ -7,6 +7,8 @@ import { useConfigStore } from '@/stores/configStore'
 import { useAppStore } from '@/stores/appStore'
 import type { Mode } from '@/types/models'
 import { useModes } from '@/hooks/useModes'
+import { selectMode } from '@/services/session/modeSelection'
+import * as sessionClient from '@/services/session/sessionClient'
 import { cn } from '@/lib/utils'
 
 interface DisplaySource {
@@ -54,8 +56,6 @@ export function PopupMenu() {
   const updateConfig = useConfigStore((s) => s.updateConfig)
 
   const selectedMode = useAppStore((s) => s.selectedMode)
-  const setSelectedMode = useAppStore((s) => s.setSelectedMode)
-  const toggleOverlay = useAppStore((s) => s.toggleOverlay)
 
   const { modes } = useModes()
 
@@ -109,14 +109,14 @@ export function PopupMenu() {
   }, [])
 
   const handlePositionChange = (pos: OverlayPosition) => {
-    setPosition(pos)
-    window.electronAPI?.overlay.setPosition(pos)
+    setPosition(pos) // store setter already sends the IPC
     setShowPositions(false)
     setIsOpen(false)
   }
 
   const handleClearContext = () => {
     clearHistory()
+    sessionClient.clearContext().catch((err) => console.warn('[PopupMenu] clearContext failed:', err))
     setIsOpen(false)
   }
 
@@ -126,13 +126,14 @@ export function PopupMenu() {
   }
 
   const handleSelectMode = (mode: Mode) => {
-    setSelectedMode(mode)
+    selectMode(mode)
     setShowModes(false)
     setIsOpen(false)
   }
 
   const handleHideWidget = () => {
-    toggleOverlay()
+    // Visibility is owned by the main process (same path as the tray + Ctrl+Shift+H)
+    window.electronAPI?.overlay.hide()
     setIsOpen(false)
   }
 
