@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import createIntlMiddleware from "next-intl/middleware";
 import { routing } from "@/i18n/routing";
+import { addCorsHeaders, corsPreflightResponse, isOriginAllowed } from "@/lib/cors";
 
 const intlMiddleware = createIntlMiddleware(routing);
 
@@ -69,8 +70,37 @@ const authMiddleware = auth((req) => {
   return NextResponse.next();
 });
 
+/**
+ * CORS for every API route.
+ *
+ * Only a handful of routes wrap themselves with `withCors`; the rest relied on
+ * a static `Access-Control-Allow-Origin: https://queenmama.app` header from
+ * next.config.ts, which never matched the desktop apps (macOS is native, the
+ * Windows app ran with `webSecurity` off, so browsers never enforced CORS on
+ * them). With `webSecurity` back on, the Windows renderer (loaded from
+ * `file://`, origin "null") needs a real answer on every route it calls:
+ * preflight must succeed *before* the auth check (preflights carry no
+ * credentials) and the actual response must echo the allowed origin.
+ */
+async function apiWithCors(request: NextRequest): Promise<NextResponse> {
+  const origin = request.headers.get("origin");
+
+  if (request.method === "OPTIONS") {
+    return isOriginAllowed(origin)
+      ? corsPreflightResponse(origin)
+      : new NextResponse(null, { status: 403 });
+  }
+
+  const response = await (authMiddleware as (req: NextRequest) => Promise<NextResponse>)(request);
+  return addCorsHeaders(response, origin);
+}
+
 export default async function middleware(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
+
+  if (pathname.startsWith("/api")) {
+    return apiWithCors(request);
+  }
 
   if (isAuthPath(pathname)) {
     return (authMiddleware as (req: NextRequest) => Promise<NextResponse>)(request);

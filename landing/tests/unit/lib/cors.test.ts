@@ -27,6 +27,17 @@ describe("isOriginAllowed", () => {
     expect(isOriginAllowed("https://www.queenmama.co")).toBe(true);
   });
 
+  // Desktop apps (renderer loaded from file:// → Chromium sends origin "null")
+  it('allows the "null" origin used by the Windows desktop app', () => {
+    (process.env as Record<string, string | undefined>).NODE_ENV = "production";
+    expect(isOriginAllowed("null")).toBe(true);
+  });
+
+  it("still blocks unrelated origins in production", () => {
+    (process.env as Record<string, string | undefined>).NODE_ENV = "production";
+    expect(isOriginAllowed("https://evil.example")).toBe(false);
+  });
+
   // Dev origins
   it("allows localhost in development", () => {
     (process.env as Record<string, string | undefined>).NODE_ENV = "development";
@@ -54,10 +65,13 @@ describe("isOriginAllowed", () => {
     expect(isOriginAllowed("https://my-app-abc123.vercel.app")).toBe(false);
   });
 
-  // Rejected origins
-  it("rejects null origin", () => {
-    expect(isOriginAllowed(null)).toBe(false);
+  // Missing Origin header = non-browser client (curl, native apps); CORS does
+  // not apply there and the function never blocked it.
+  it("allows a missing Origin header", () => {
+    expect(isOriginAllowed(null)).toBe(true);
   });
+
+  // Rejected origins
 
   it("rejects unknown origin", () => {
     expect(isOriginAllowed("https://evil.com")).toBe(false);
