@@ -132,7 +132,7 @@ const electronAPI = {
       ipcRenderer.on(IPC_CHANNELS.AUTH_PROTOCOL_CALLBACK, handler)
       return () => ipcRenderer.removeListener(IPC_CHANNELS.AUTH_PROTOCOL_CALLBACK, handler)
     },
-    startOAuthServer: () => ipcRenderer.invoke(IPC_CHANNELS.AUTH_START_OAUTH_SERVER),
+    startOAuthServer: (state?: string) => ipcRenderer.invoke(IPC_CHANNELS.AUTH_START_OAUTH_SERVER, state),
     stopOAuthServer: () => ipcRenderer.invoke(IPC_CHANNELS.AUTH_STOP_OAUTH_SERVER),
     refreshToken: (
       apiBaseUrl: string,

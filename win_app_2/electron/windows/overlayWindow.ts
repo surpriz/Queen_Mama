@@ -48,7 +48,7 @@ export function createOverlayWindow(): BrowserWindow {
     backgroundColor: '#00000000',
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),
-      sandbox: false,
+      sandbox: true,
       contextIsolation: true,
       nodeIntegration: false,
       webSecurity: false,
@@ -112,7 +112,7 @@ export function createOverlayWindow(): BrowserWindow {
 
   // Auto-open DevTools on beta builds (detached so it doesn't break the
   // overlay layout). Remove once audio-capture is diagnosed.
-  if (app.getVersion().includes('beta')) {
+  if (process.env.QM_DEVTOOLS === '1') {
     overlayWindow.webContents.once('did-finish-load', () => {
       overlayWindow?.webContents.openDevTools({ mode: 'detach' })
     })

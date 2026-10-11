@@ -1,6 +1,7 @@
 import { ipcMain, app, shell, safeStorage, BrowserWindow, desktopCapturer, dialog, screen, systemPreferences } from 'electron'
 import * as Sentry from '@sentry/electron/main'
 import { IPC_CHANNELS } from './channels'
+import { assertSafeSql, assertSafeTable, assertSafeIdentifier, assertSafeWhere } from './dbGuard'
 import { v4 as uuidv4 } from 'uuid'
 import * as os from 'os'
 import * as path from 'path'
@@ -81,7 +82,13 @@ export function registerIPCHandlers(): void {
   })
   ipcMain.handle(IPC_CHANNELS.APP_OPEN_EXTERNAL, async (_event, url: string) => {
     try {
-      await shell.openExternal(url)
+      // Only web/mail/Windows-settings links may leave the app. Anything else
+      // (file:, javascript:, custom schemes) could launch arbitrary handlers.
+      const parsed = new URL(String(url))
+      if (!['https:', 'http:', 'mailto:', 'ms-settings:'].includes(parsed.protocol)) {
+        throw new Error(`Blocked external URL scheme: ${parsed.protocol}`)
+      }
+      await shell.openExternal(parsed.toString())
       return true
     } catch (error) {
       console.error('[IPC] APP_OPEN_EXTERNAL failed:', error)
@@ -136,17 +143,26 @@ export function registerIPCHandlers(): void {
   })
 
   // Settings store
+  // The plain store must never touch the `secure.*` namespace (encrypted
+  // tokens): those go through SECURE_STORE_* only.
+  const assertPlainStoreKey = (key: unknown): string => {
+    if (typeof key !== 'string' || key.length === 0 || key.length > 200 || key.startsWith('secure')) {
+      throw new Error('Store access denied')
+    }
+    return key
+  }
+
   ipcMain.handle(IPC_CHANNELS.STORE_GET, (_event, key: string) => {
-    return store.get(key)
+    return store.get(assertPlainStoreKey(key))
   })
 
   ipcMain.handle(IPC_CHANNELS.STORE_SET, (_event, key: string, value: unknown) => {
-    store.set(key, value)
+    store.set(assertPlainStoreKey(key), value)
     return true
   })
 
   ipcMain.handle(IPC_CHANNELS.STORE_DELETE, (_event, key: string) => {
-    store.delete(key)
+    store.delete(assertPlainStoreKey(key))
     return true
   })
 
@@ -443,6 +459,7 @@ export function registerIPCHandlers(): void {
   // Database operations
   ipcMain.handle(IPC_CHANNELS.DB_QUERY, (_event, sql: string, params: unknown[] = []) => {
     try {
+      assertSafeSql(sql)
       return executeQuery(sql, params)
     } catch (error) {
       console.error('[IPC] DB query failed:', error)
@@ -453,6 +470,7 @@ export function registerIPCHandlers(): void {
 
   ipcMain.handle(IPC_CHANNELS.DB_QUERY_GET, (_event, sql: string, params: unknown[] = []) => {
     try {
+      assertSafeSql(sql)
       return executeQueryGet(sql, params)
     } catch (error) {
       console.error('[IPC] DB query get failed:', error)
@@ -463,6 +481,7 @@ export function registerIPCHandlers(): void {
 
   ipcMain.handle(IPC_CHANNELS.DB_QUERY_ALL, (_event, sql: string, params: unknown[] = []) => {
     try {
+      assertSafeSql(sql)
       return executeQueryAll(sql, params)
     } catch (error) {
       console.error('[IPC] DB query all failed:', error)
@@ -475,7 +494,9 @@ export function registerIPCHandlers(): void {
     IPC_CHANNELS.DB_INSERT,
     (_event, table: string, data: Record<string, unknown>) => {
       try {
+        assertSafeTable(table)
         const columns = Object.keys(data)
+        columns.forEach(assertSafeIdentifier)
         const placeholders = columns.map(() => '?').join(', ')
         const values = Object.values(data)
         const sql = `INSERT INTO ${table} (${columns.join(', ')}) VALUES (${placeholders})`
@@ -498,6 +519,9 @@ export function registerIPCHandlers(): void {
       whereParams: unknown[] = []
     ) => {
       try {
+        assertSafeTable(table)
+        assertSafeWhere(where)
+        Object.keys(data).forEach(assertSafeIdentifier)
         const setClause = Object.keys(data)
           .map((col) => `${col} = ?`)
           .join(', ')
@@ -516,6 +540,8 @@ export function registerIPCHandlers(): void {
     IPC_CHANNELS.DB_DELETE,
     (_event, table: string, where: string, whereParams: unknown[] = []) => {
       try {
+        assertSafeTable(table)
+        assertSafeWhere(where)
         const sql = `DELETE FROM ${table} WHERE ${where}`
         return executeQuery(sql, whereParams)
       } catch (error) {
@@ -538,9 +564,9 @@ export function registerIPCHandlers(): void {
   })
 
   // OAuth server for loopback authentication
-  ipcMain.handle(IPC_CHANNELS.AUTH_START_OAUTH_SERVER, async () => {
+  ipcMain.handle(IPC_CHANNELS.AUTH_START_OAUTH_SERVER, async (_event, expectedState?: string) => {
     try {
-      const port = await startOAuthServer()
+      const port = await startOAuthServer(typeof expectedState === 'string' ? expectedState : undefined)
       return { success: true, port }
     } catch (error) {
       console.error('[IPC] OAuth server start failed:', error)

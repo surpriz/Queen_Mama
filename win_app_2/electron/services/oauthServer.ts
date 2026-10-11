@@ -1,11 +1,12 @@
 import { createServer, Server, IncomingMessage, ServerResponse } from 'http'
-import { BrowserWindow } from 'electron'
 import { IPC_CHANNELS } from '../ipc/channels'
-import { safeSendToAllWindows } from '../utils/ipcUtils'
+import { safeSendToMainWindow } from '../utils/ipcUtils'
+import { getMainWindow } from '../windows/mainWindow'
 
 let server: Server | null = null
 let currentPort: number | null = null
 let serverTimeout: ReturnType<typeof setTimeout> | null = null
+let expectedState: string | null = null
 
 // Timeout for OAuth flow (5 minutes)
 const OAUTH_TIMEOUT_MS = 5 * 60 * 1000
@@ -15,10 +16,11 @@ const OAUTH_TIMEOUT_MS = 5 * 60 * 1000
  * This is the recommended approach for desktop OAuth with Electron.
  * Google allows loopback URLs (127.0.0.1) without pre-registration.
  */
-export function startOAuthServer(): Promise<number> {
+export function startOAuthServer(state?: string): Promise<number> {
   return new Promise((resolve, reject) => {
     // Stop any existing server
     stopOAuthServer()
+    expectedState = state ?? null
 
     console.log('[OAuth] Creating server...')
 
@@ -32,10 +34,19 @@ export function startOAuthServer(): Promise<number> {
         const code = url.searchParams.get('code')
         const error = url.searchParams.get('error')
         const errorDescription = url.searchParams.get('error_description')
+        const state = url.searchParams.get('state')
+
+        // Anyone on the machine can hit this loopback port; a code is only
+        // accepted when it carries the state this flow generated.
+        const stateOk = !expectedState || state === expectedState
 
         // Build the callback URL to send to renderer
         let callbackUrl: string
-        if (error) {
+        let succeeded = false
+        if (!stateOk) {
+          console.warn('[OAuth] State mismatch — callback ignored')
+          callbackUrl = 'oauth://callback?error=state_mismatch'
+        } else if (error) {
           console.log(`[OAuth] Received error: ${error}`)
           callbackUrl = `oauth://callback?error=${encodeURIComponent(error)}`
           if (errorDescription) {
@@ -44,21 +55,21 @@ export function startOAuthServer(): Promise<number> {
         } else if (code) {
           console.log(`[OAuth] Received authorization code (length: ${code.length})`)
           callbackUrl = `oauth://callback?code=${encodeURIComponent(code)}`
+          succeeded = true
         } else {
           console.log('[OAuth] No code or error in callback')
           callbackUrl = `oauth://callback?error=no_code`
         }
 
-        // Send to all windows - using safe send to prevent "Object has been destroyed" error
+        // Only the dashboard runs the sign-in flow
         console.log('[OAuth] Sending callback to renderer...')
-        const sentCount = safeSendToAllWindows(IPC_CHANNELS.AUTH_PROTOCOL_CALLBACK, callbackUrl)
-        console.log(`[OAuth] Callback sent to ${sentCount} window(s)`)
+        const sent = safeSendToMainWindow(IPC_CHANNELS.AUTH_PROTOCOL_CALLBACK, callbackUrl)
+        console.log(`[OAuth] Callback sent to dashboard: ${sent}`)
 
         // Focus main window
         try {
-          const windows = BrowserWindow.getAllWindows()
-          const mainWindow = windows.find((w) => !w.isAlwaysOnTop() && !w.isDestroyed())
-          if (mainWindow) {
+          const mainWindow = getMainWindow()
+          if (mainWindow && !mainWindow.isDestroyed()) {
             if (mainWindow.isMinimized()) mainWindow.restore()
             mainWindow.focus()
           }
@@ -66,7 +77,12 @@ export function startOAuthServer(): Promise<number> {
           console.warn('[OAuth] Could not focus main window:', error)
         }
 
-        // Send success response with auto-close script
+        // Success or error page (it used to say "Authentication Successful" even on errors)
+        if (!succeeded) {
+          res.writeHead(400, { 'Content-Type': 'text/html' })
+          res.end(`<!DOCTYPE html><html><head><title>Sign-in failed</title><style>body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;display:flex;justify-content:center;align-items:center;height:100vh;margin:0;background:#1a1a1e;color:#fff}.c{text-align:center;padding:40px}h1{margin:0 0 10px;font-size:22px}p{margin:0;opacity:.7}</style></head><body><div class="c"><h1>Sign-in could not be completed</h1><p>Close this tab and try again in Queen Mama.</p></div></body></html>`)
+          return
+        }
         res.writeHead(200, { 'Content-Type': 'text/html' })
         res.end(`
           <!DOCTYPE html>
@@ -137,10 +153,9 @@ export function startOAuthServer(): Promise<number> {
       }
     })
 
-    // Find an available port
-    // Listen on 0.0.0.0 to accept connections from both 127.0.0.1 and localhost on Windows
-    // Google OAuth will redirect to 127.0.0.1 which should work
-    server.listen(0, () => {
+    // Loopback only: the redirect URI is http://127.0.0.1:PORT/callback, so
+    // there is no reason to accept connections from the network.
+    server.listen(0, '127.0.0.1', () => {
       const address = server?.address()
       if (address && typeof address === 'object') {
         currentPort = address.port
@@ -188,6 +203,7 @@ export function stopOAuthServer(): void {
     currentPort = null
     console.log('[OAuth] Server stopped')
   }
+  expectedState = null
 }
 
 /**

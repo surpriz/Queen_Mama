@@ -49,12 +49,19 @@ function base64UrlEncode(buffer: Uint8Array): string {
 /**
  * Build Google OAuth authorization URL with PKCE
  */
-function buildAuthorizationUrl(codeChallenge: string, redirectUri: string): string {
+function generateState(): string {
+  const bytes = new Uint8Array(16)
+  crypto.getRandomValues(bytes)
+  return Array.from(bytes, (b) => b.toString(16).padStart(2, '0')).join('')
+}
+
+function buildAuthorizationUrl(codeChallenge: string, redirectUri: string, state: string): string {
   const params = new URLSearchParams({
     client_id: GOOGLE_CLIENT_ID,
     redirect_uri: redirectUri,
     response_type: 'code',
     scope: 'openid email profile',
+    state,
     code_challenge: codeChallenge,
     code_challenge_method: 'S256',
     access_type: 'offline',
@@ -89,9 +96,10 @@ export async function startGoogleAuth(): Promise<GoogleAuthResult> {
     }
   }
 
-  // Start the OAuth loopback server
+  // Start the OAuth loopback server; it will only accept a callback carrying this state
+  const state = generateState()
   console.log('[GoogleAuth] Starting OAuth loopback server')
-  const serverResult = await window.electronAPI?.auth?.startOAuthServer()
+  const serverResult = await window.electronAPI?.auth?.startOAuthServer(state)
 
   if (!serverResult?.success || !serverResult.port) {
     console.error('[GoogleAuth] Failed to start OAuth server:', serverResult?.error)
@@ -182,7 +190,7 @@ export async function startGoogleAuth(): Promise<GoogleAuthResult> {
     // Small delay to ensure server is fully ready before opening browser
     setTimeout(() => {
       // Build and open OAuth URL
-      const authUrl = buildAuthorizationUrl(codeChallenge, redirectUri)
+      const authUrl = buildAuthorizationUrl(codeChallenge, redirectUri, state)
       console.log('[GoogleAuth] Opening OAuth URL in browser...')
       console.log('[GoogleAuth] Auth URL:', authUrl.substring(0, 100) + '...')
       window.electronAPI?.openExternal(authUrl)

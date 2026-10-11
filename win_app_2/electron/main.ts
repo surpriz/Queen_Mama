@@ -54,6 +54,7 @@ import { createSessionWindow } from './windows/sessionWindow'
 import { registerIPCHandlers } from './ipc/handlers'
 import { registerGlobalShortcuts } from './services/globalShortcuts'
 import { registerRelayHub, onSessionStateRelayed, sendToSessionWindow } from './services/relayHub'
+import { installContentSecurityPolicy } from './security/contentSecurityPolicy'
 import { IPC_CHANNELS } from './ipc/channels'
 import { initializeDatabase, closeDatabase } from './db/database'
 import { safeSendToAllWindows, safeSendToMainWindow } from './utils/ipcUtils'
@@ -195,6 +196,7 @@ if (!gotTheLock) {
     // they used to be registered twice, here and there)
     registerIPCHandlers()
     registerRelayHub()
+    installContentSecurityPolicy()
 
     // Session state is owned by the hidden session window; main mirrors it
     // into the tray and the meeting detector.
@@ -285,8 +287,9 @@ if (!gotTheLock) {
     stopMonitoring()
     closeDatabase()
 
-    // In dev mode, kill backend/proxy processes to free all ports
-    if (process.env.NODE_ENV !== 'production' || process.env['ELECTRON_RENDERER_URL']) {
+    // Dev convenience only: never kill processes on a user's machine.
+    // (`NODE_ENV` is not defined for the main bundle, so the old check could run in production.)
+    if (!app.isPackaged) {
       const devPorts = [3000, 3001] // backend + WS proxy
       for (const port of devPorts) {
         try {
