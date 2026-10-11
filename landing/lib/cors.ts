@@ -14,10 +14,23 @@ const DEV_ORIGINS = [
   "http://127.0.0.1:3000",
   "http://localhost:5173",
   "http://127.0.0.1:5173",
+  // Tauri web app dev server + custom protocol
+  "http://localhost:1420",
+  "http://127.0.0.1:1420",
+  "tauri://localhost",
 ];
 
 // Preview/staging origins pattern
 const PREVIEW_ORIGIN_PATTERN = /^https:\/\/[\w-]+\.vercel\.app$/;
+
+/**
+ * Desktop apps. The Windows app's renderer is loaded from `file://`, for which
+ * Chromium sends the literal origin "null" (there is no scheme+host to send).
+ * Every API route is token-authenticated, so CORS only gates which *browsers*
+ * may read responses; letting the desktop origin through is the intended
+ * behaviour, not a relaxation of auth.
+ */
+const DESKTOP_ORIGINS = ["null"];
 
 /**
  * Check if an origin is allowed
@@ -28,6 +41,8 @@ export function isOriginAllowed(origin: string | null): boolean {
 
   // Allow production domains
   if (ALLOWED_ORIGINS.includes(origin)) return true;
+
+  if (DESKTOP_ORIGINS.includes(origin)) return true;
 
   // Allow development origins in development
   if (process.env.NODE_ENV === "development" && DEV_ORIGINS.includes(origin)) {

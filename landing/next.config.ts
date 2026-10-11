@@ -33,58 +33,10 @@ const nextConfig: NextConfig = {
 
   // CORS and security headers
   async headers() {
-    // Define allowed origins based on environment
-    const allowedOrigins = [
-      "https://queenmama.app",
-      "https://www.queenmama.app",
-      "https://queenmama.co",
-      "https://www.queenmama.co",
-      // Allow staging domains
-      ...(process.env.NODE_ENV === "development"
-        ? [
-            "http://localhost:3000",
-            "http://127.0.0.1:3000",
-            "http://localhost:1420", // Tauri app dev server
-            "http://127.0.0.1:1420",
-            "tauri://localhost", // Tauri custom protocol
-          ]
-        : []),
-      ...(process.env.VERCEL_ENV === "preview"
-        ? ["https://*.vercel.app"]
-        : []),
-    ];
+    // CORS for /api/* is handled dynamically in middleware.ts (origin allow-list,
+    // desktop apps included); only security headers are set here.
 
     return [
-      {
-        // Apply to all API routes
-        source: "/api/:path*",
-        headers: [
-          {
-            key: "Access-Control-Allow-Origin",
-            // In production, we'll set this dynamically in the API routes
-            // For development, allow all origins (Tauri app runs on different port)
-            value: process.env.NODE_ENV === "development"
-              ? "*"
-              : "https://queenmama.app",
-          },
-          {
-            key: "Access-Control-Allow-Credentials",
-            value: "true",
-          },
-          {
-            key: "Access-Control-Allow-Methods",
-            value: "GET, POST, PUT, DELETE, OPTIONS",
-          },
-          {
-            key: "Access-Control-Allow-Headers",
-            value: "Content-Type, Authorization, X-Requested-With",
-          },
-          {
-            key: "Access-Control-Max-Age",
-            value: "86400", // 24 hours
-          },
-        ],
-      },
       {
         // Apply security headers to all routes
         source: "/:path*",
