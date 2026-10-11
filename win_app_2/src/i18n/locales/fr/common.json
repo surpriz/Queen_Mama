@@ -106,7 +106,8 @@
     "unexpectedError": "Une erreur inattendue s'est produite",
     "transcriptionRetrying": "Transcription interrompue — nouvelle tentative dans {{seconds}}s",
     "transcriptionStopped": "Transcription arrêtée",
-    "transcriptionStoppedMessage": "La connexion n'a pas pu être rétablie. Redémarrez la session pour reprendre la transcription."
+    "transcriptionStoppedMessage": "La connexion n'a pas pu être rétablie. Redémarrez la session pour reprendre la transcription.",
+    "micUnavailable": "Micro indisponible — seul l'interlocuteur sera transcrit"
   },
   "feedback": "Feedback",
   "giveFeedback": "Donner un avis",

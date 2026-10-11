@@ -8,6 +8,28 @@ const LOG_COLORS: Record<LogLevel, string> = {
 }
 const RESET = '\x1b[0m'
 
+const LEVEL_RANK: Record<LogLevel, number> = { debug: 0, info: 1, warn: 2, error: 3 }
+
+/**
+ * Minimum level that is printed. Production builds skip `debug`; set
+ * `localStorage.qmLogLevel = 'debug'` to turn it back on for a support case.
+ */
+function resolveMinLevel(): LogLevel {
+  try {
+    const override = typeof localStorage !== 'undefined' ? localStorage.getItem('qmLogLevel') : null
+    if (override && override in LEVEL_RANK) return override as LogLevel
+  } catch {
+    // localStorage unavailable (worker, tests)
+  }
+  return import.meta.env?.PROD ? 'info' : 'debug'
+}
+
+let minLevel: LogLevel = resolveMinLevel()
+
+export function setLogLevel(level: LogLevel): void {
+  minLevel = level
+}
+
 class Logger {
   private tag: string
 
@@ -16,6 +38,7 @@ class Logger {
   }
 
   private log(level: LogLevel, message: string, data?: unknown): void {
+    if (LEVEL_RANK[level] < LEVEL_RANK[minLevel]) return
     const timestamp = new Date().toISOString()
     const color = LOG_COLORS[level]
     const prefix = `${color}[${level.toUpperCase()}]${RESET} [${this.tag}]`

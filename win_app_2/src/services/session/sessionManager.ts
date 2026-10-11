@@ -125,6 +125,57 @@ export function startSession(title?: string, modeId?: string | null): Session {
   return session
 }
 
+/**
+ * Drop a session that never really started (audio/transcription failed before
+ * any content). Clears the duration timer and the DB row so it doesn't linger
+ * as a ghost "New Session".
+ */
+export async function discardSession(sessionId: string): Promise<void> {
+  if (durationTimer) {
+    clearInterval(durationTimer)
+    durationTimer = null
+  }
+  const store = useSessionStore.getState()
+  store.removeSession(sessionId)
+  if (store.currentSession?.id === sessionId) store.setCurrentSession(null)
+  try {
+    await db.query('DELETE FROM transcript_entries WHERE session_id = ?', [sessionId])
+    await db.query('DELETE FROM sessions WHERE id = ?', [sessionId])
+    log.info(`Session discarded: ${sessionId}`)
+  } catch (err) {
+    log.error('Failed to discard session', err)
+  }
+}
+
+/**
+ * Close sessions left open by a crash / force-quit (mac closes them at launch).
+ * Empty ones are deleted; the rest get an end time so they sync and display.
+ */
+export async function closeOrphanSessions(): Promise<{ closed: number; deleted: number }> {
+  try {
+    const orphans = await db.queryAll<{ id: string; start_time: string; transcript: string }>(
+      'SELECT id, start_time, transcript FROM sessions WHERE end_time IS NULL',
+    )
+    let closed = 0
+    let deleted = 0
+    for (const row of orphans) {
+      if (!row.transcript || row.transcript.trim().length === 0) {
+        await db.query('DELETE FROM transcript_entries WHERE session_id = ?', [row.id])
+        await db.query('DELETE FROM sessions WHERE id = ?', [row.id])
+        deleted++
+      } else {
+        await db.query('UPDATE sessions SET end_time = ? WHERE id = ?', [row.start_time, row.id])
+        closed++
+      }
+    }
+    if (closed || deleted) log.info(`Orphan sessions: closed ${closed}, deleted ${deleted}`)
+    return { closed, deleted }
+  } catch (err) {
+    log.error('Orphan session cleanup failed', err)
+    return { closed: 0, deleted: 0 }
+  }
+}
+
 export function endSession(): void {
   const store = useSessionStore.getState()
   const session = store.currentSession

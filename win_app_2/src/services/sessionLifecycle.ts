@@ -24,7 +24,8 @@ import { extractContactsFromTranscript } from '@/services/contacts/contactExtrac
 import * as contactSyncService from '@/services/contacts/contactSyncService'
 import * as contactDb from '@/services/contacts/contactDb'
 import { useContactStore } from '@/stores/contactStore'
-import { transcriptBuffer, TranscriptBuffer } from '@/services/transcription/transcriptBuffer'
+import { transcriptBuffer, TranscriptBuffer, SYSTEM_FLUSH_INTERVAL } from '@/services/transcription/transcriptBuffer'
+import * as healthCheck from '@/services/health/healthCheckService'
 import * as dedup from '@/services/transcription/transcriptDeduplicator'
 import * as echoCanceller from '@/services/audio/echoCanceller'
 import { EnergyVAD } from '@/services/audio/energyVad'
@@ -45,9 +46,12 @@ import { withTimeout } from '@/lib/utils'
 import * as preGeneration from '@/services/ai/preGenerationService'
 
 const MAX_TRANSCRIPT_MEMORY = 50000 // 50KB - max in-memory transcript size for display
-const systemTranscriptBuffer = new TranscriptBuffer()
+const systemTranscriptBuffer = new TranscriptBuffer(SYSTEM_FLUSH_INTERVAL) // 2 s, mac parity
+const SYSTEM_AUDIO_STALE_MS = 3000
+let audioHealthTimer: ReturnType<typeof setInterval> | null = null
+let lastAudioHealthKey = ''
+let transcriptionErrorsReported = 0
 
-let audioLevelInterval: ReturnType<typeof setInterval> | null = null
 let currentSessionId: string | null = null
 let unsubscribeMoments: (() => void) | null = null
 let fullTranscript = '' // Always grows, persisted to DB via sessionMgr.updateTranscript()
@@ -128,8 +132,16 @@ export async function startSession(mode?: Mode | null, contact?: Contact | null)
     })
 
     // Connect audio level for UI feedback
+    // Capture already throttles the meter to 10 Hz; relay at 4 Hz for the UI
+    // windows (was a separate 100 ms interval running for the whole session).
+    let lastLevelRelayAt = 0
     audioCapture.setOnAudioLevel((level) => {
       useAppStore.getState().setAudioLevel(level)
+      const now = Date.now()
+      if (now - lastLevelRelayAt >= 250 || level === 0) {
+        lastLevelRelayAt = now
+        relay.broadcast('relay:audio-level', { audioLevel: level })
+      }
     })
 
     // Check if system audio was captured — if not, enable Deepgram diarization as fallback.
@@ -139,11 +151,16 @@ export async function startSession(mode?: Mode | null, contact?: Contact | null)
     // system stream falls back to the default DeepgramProvider (Nova-3), which on accounts
     // configured for Flux is `isConfigured=false` and the proxy closes the WS with code 1006.
     const hasSystem = audioCapture.hasSystemAudio()
+    // Set explicitly every session: the flag used to stick, so one session
+    // without system audio diarized the mic for every later session.
+    transcription.setDiarization(!hasSystem)
     if (!hasSystem) {
-      // Fallback: enable Deepgram diarize=true on mic stream
-      transcription.enableDiarization()
       console.log('[Session] System audio unavailable — using Deepgram single-stream diarization fallback')
     }
+    if (audioCapture.isMicUnavailable()) {
+      toast.warning(i18n.t('error.micUnavailable', { defaultValue: 'Microphone unavailable — only the other side will be transcribed' }), undefined, 8000)
+    }
+    startAudioHealthMonitor(hasSystem)
 
     // Helper: update UI + broadcast after transcript changes
     const updateTranscriptUI = () => {
@@ -229,19 +246,14 @@ export async function startSession(mode?: Mode | null, contact?: Contact | null)
         if (currentSessionId) {
           sessionMgr.addTranscriptEntry('Moi', text, true)
         }
+        healthCheck.recordWordsTranscribed(text.split(/\s+/).filter(Boolean).length)
         transcriptBuffer.append(text)
       },
       onInterimTranscript: (text: string) => {
-        const currentStore = useAppStore.getState()
-        currentStore.setInterimTranscript(text)
-
-        window.electronAPI?.relay?.broadcast('relay:transcript', {
-          transcript: currentStore.currentTranscript,
-          interim: text,
-          audioLevel: currentStore.audioLevel,
-          isSessionActive: true,
-          sessionStartedAt: currentStore.sessionStartedAt,
-        })
+        useAppStore.getState().setInterimTranscript(text)
+        // Interims are frequent: relay only the interim text, not the whole
+        // transcript (up to 50 KB per message before).
+        relay.broadcast('relay:interim', { interim: text })
       },
 
       // --- DIARIZED MIC TRANSCRIPTS (fallback when system audio unavailable) ---
@@ -270,14 +282,15 @@ export async function startSession(mode?: Mode | null, contact?: Contact | null)
         // Feed interims into dedup immediately (before mic diarized arrives)
         dedup.addSystemTranscript(text)
       },
-      onError: async (error: Error) => {
+      onError: (error: Error) => {
         console.error('[SessionLifecycle] Transcription error:', error.message)
         useAppStore.getState().setErrorMessage(error.message)
-        // Report to Sentry so we have visibility on transcription failures
-        try {
-          const { captureError } = await import('@/services/crash/crashReporter')
+        // Report the first error of a session; the provider layer already reports
+        // the terminal states (all providers failed / recovery exhausted).
+        if (transcriptionErrorsReported === 0) {
+          transcriptionErrorsReported++
           captureError(error, { service: 'transcription', sessionId: currentSessionId })
-        } catch { /* noop */ }
+        }
       },
       onConnectionChanged: (connected: boolean, provider: string | null) => {
         console.log('[SessionLifecycle] Transcription connected:', connected, provider)
@@ -325,12 +338,6 @@ export async function startSession(mode?: Mode | null, contact?: Contact | null)
     // Broadcast audio level to all windows at 10fps (every 100ms)
     // This ensures the dashboard sidebar shows audio level even when
     // the session was started from the overlay window
-    audioLevelInterval = setInterval(() => {
-      const currentLevel = useAppStore.getState().audioLevel
-      window.electronAPI?.relay?.broadcast('relay:audio-level', {
-        audioLevel: currentLevel,
-      })
-    }, 100)
 
     // Configure auto-answer from user settings
     const userConfig = useConfigStore.getState()
@@ -388,6 +395,7 @@ export async function startSession(mode?: Mode | null, contact?: Contact | null)
 
     // Analytics
     analytics.trackSessionStarted()
+    healthCheck.startMonitoring()
   } catch (error) {
     console.error('[SessionLifecycle] Failed to start session:', error)
     captureError(
@@ -397,6 +405,16 @@ export async function startSession(mode?: Mode | null, contact?: Contact | null)
     store.setErrorMessage(error instanceof Error ? error.message : 'Failed to start session')
     store.setSessionActive(false)
     cleanup()
+
+    // The session row was created before audio/transcription started; without
+    // this it lingered as a ghost "New Session" with a leaked duration timer.
+    if (currentSessionId) {
+      const ghostId = currentSessionId
+      currentSessionId = null
+      setOverlaySessionId(null)
+      await sessionMgr.discardSession(ghostId)
+    }
+    fullTranscript = ''
 
     // Broadcast failure to all windows so dashboard exits "Live Session" state
     window.electronAPI?.relay?.broadcast('relay:session-state', {
@@ -416,6 +434,7 @@ export async function stopSession(): Promise<void> {
   try {
     // Stop all services
     cleanup()
+    healthCheck.stopMonitoring()
 
     store.setSessionActive(false)
 
@@ -560,7 +579,46 @@ export async function toggleSession(mode?: Mode | null): Promise<void> {
   }
 }
 
+function startAudioHealthMonitor(hasSystem: boolean): void {
+  stopAudioHealthMonitor()
+  const publish = () => {
+    const micAvailable = !audioCapture.isMicUnavailable()
+    const last = audioCapture.getLastSystemBufferAt()
+    const systemAudioReceiving = hasSystem && last > 0 && Date.now() - last < SYSTEM_AUDIO_STALE_MS
+    const payload = { micAvailable, systemAudioAvailable: hasSystem, systemAudioReceiving }
+    const key = JSON.stringify(payload)
+    if (key === lastAudioHealthKey) return
+    lastAudioHealthKey = key
+    relay.broadcast('relay:audio-health', payload)
+    if (hasSystem && !systemAudioReceiving && last > 0) {
+      console.warn('[Session] System audio stalled (no buffer for 3s)')
+    }
+  }
+  // Give the capture a moment before judging it stale
+  audioHealthTimer = setInterval(publish, 1000)
+  relay.broadcast('relay:audio-health', {
+    micAvailable: !audioCapture.isMicUnavailable(),
+    systemAudioAvailable: hasSystem,
+    systemAudioReceiving: hasSystem,
+  })
+}
+
+function stopAudioHealthMonitor(): void {
+  if (audioHealthTimer) {
+    clearInterval(audioHealthTimer)
+    audioHealthTimer = null
+  }
+  lastAudioHealthKey = ''
+}
+
 function cleanup(): void {
+  stopAudioHealthMonitor()
+  if (dictationService.isRecording()) {
+    // Dictation shares the session mic; the session ending ends it too
+    dictationService.stopRecording()
+    dictationService.reset()
+  }
+  transcriptionErrorsReported = 0
   transcriptBuffer.stop()
   systemTranscriptBuffer.stop()
   dedup.reset()
@@ -578,11 +636,6 @@ function cleanup(): void {
   if (unsubscribeMoments) {
     unsubscribeMoments()
     unsubscribeMoments = null
-  }
-
-  if (audioLevelInterval) {
-    clearInterval(audioLevelInterval)
-    audioLevelInterval = null
   }
 
   useAppStore.getState().setAudioLevel(0)

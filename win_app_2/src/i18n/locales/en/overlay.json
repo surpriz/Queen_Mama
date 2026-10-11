@@ -29,7 +29,11 @@
     "screenCaptureOff": "Screen capture OFF",
     "summary": "Summary...",
     "stopSession": "Stop session",
-    "startSession": "Start session"
+    "startSession": "Start session",
+    "micOnly": "Mic only",
+    "micOnlyHint": "System audio is not being received — only your voice is transcribed",
+    "noMic": "No mic",
+    "noMicHint": "Microphone unavailable — only the other side is transcribed"
   },
   "response": {
     "justNow": "just now",
@@ -121,5 +125,10 @@
     "q": "Q",
     "hes": "HES",
     "close": "CLOSE"
+  },
+  "dictation": {
+    "start": "Start dictation",
+    "stop": "Stop dictation",
+    "failed": "Dictation unavailable"
   }
 }

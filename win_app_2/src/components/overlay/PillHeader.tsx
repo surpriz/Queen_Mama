@@ -17,6 +17,7 @@ import { useAppStore } from '@/stores/appStore'
 import { useConfigStore } from '@/stores/configStore'
 import type { MomentType } from '@/services/detection/momentDetectionService'
 import { useMomentStore } from '@/stores/momentStore'
+import { useAudioHealthStore } from '@/stores/audioHealthStore'
 import * as sessionClient from '@/services/session/sessionClient'
 import { toast } from '@/stores/toastStore'
 import { PopupMenu } from './PopupMenu'
@@ -67,6 +68,16 @@ export function PillHeader() {
   // Moments are detected in the hidden session window and relayed here
   const currentMoment = useMomentStore((s) => s.current)
   const momentVisible = useMomentStore((s) => s.visible)
+  const micAvailable = useAudioHealthStore((s) => s.micAvailable)
+  const systemAudioAvailable = useAudioHealthStore((s) => s.systemAudioAvailable)
+  const systemAudioReceiving = useAudioHealthStore((s) => s.systemAudioReceiving)
+  const audioWarning: string | null = !isSessionActive
+    ? null
+    : !micAvailable
+      ? t('pillHeader.noMic')
+      : !systemAudioAvailable || !systemAudioReceiving
+        ? t('pillHeader.micOnly')
+        : null
 
   // Pulsing ring states (auto-stop after 3s)
   const [isExpandPulsing, setIsExpandPulsing] = useState(false)
@@ -193,6 +204,16 @@ export function PillHeader() {
         style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}
       >
         {/* 5. Moment badge */}
+        {audioWarning && (
+          <div
+            className="flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-amber-500/20 animate-qm-fade-in"
+            title={!micAvailable ? t('pillHeader.noMicHint') : t('pillHeader.micOnlyHint')}
+          >
+            <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />
+            <span className="text-caption-sm font-semibold text-amber-400">{audioWarning}</span>
+          </div>
+        )}
+
         {momentVisible && currentMoment && (
           <div
             className={cn(

@@ -1,28 +1,32 @@
 /**
  * Dictation Service
  *
- * Uses Deepgram Nova-3 via WebSocket for speech-to-text dictation.
- * Can share the existing audio pipeline when a session is active,
- * or capture standalone mic audio when no session is running.
+ * Speech-to-text for the overlay input, via Deepgram Nova-3 over a direct
+ * WebSocket (short-lived token from the backend, same path as the main
+ * transcription provider — the old port-3001 proxy was never deployed).
+ *
+ * Runs in the hidden session window:
+ *  - during a session it is fed the echo-cancelled mic stream by
+ *    sessionLifecycle (`sendAudio`), so it hears exactly what Deepgram hears;
+ *  - outside a session it opens its own mic capture.
  */
 
 import { createLogger } from '@/lib/logger'
-import { getAccessToken } from '@/services/auth/authenticationManager'
-import { getApiBaseUrl } from '@/services/config/appEnvironment'
+import { getTranscriptionToken } from '@/services/proxy/proxyApiClient'
 import { useAppStore } from '@/stores/appStore'
+import { PcmResampler } from '@/services/audio/resampler'
+import workletUrl from '@/workers/audioProcessor.worklet.ts?worker&url'
 
 const log = createLogger('Dictation')
 
-// WebSocket proxy port (same as transcription service)
-const PROXY_PORT = import.meta.env.VITE_TRANSCRIPTION_PROXY_PORT || 3001
-
-// Keepalive interval (matches macOS and transcription service)
 const KEEPALIVE_INTERVAL = 8000
+const CONNECT_TIMEOUT_MS = 10000
 
 export interface DictationState {
   isRecording: boolean
   interimText: string
   finalText: string
+  error: string | null
 }
 
 type DictationListener = (state: DictationState) => void
@@ -32,19 +36,19 @@ let keepaliveTimer: ReturnType<typeof setInterval> | null = null
 let isRecording = false
 let interimText = ''
 let finalText = ''
+let lastError: string | null = null
 
-// Standalone mic capture (used when no session is active)
 let standaloneAudioContext: AudioContext | null = null
 let standaloneMicStream: MediaStream | null = null
 let standaloneWorkletNode: AudioWorkletNode | null = null
 let standaloneMicSource: MediaStreamAudioSourceNode | null = null
+let standaloneScriptNode: ScriptProcessorNode | null = null
 let usingSharedAudio = false
 
-// Listeners for state changes
 const listeners = new Set<DictationListener>()
 
 function getState(): DictationState {
-  return { isRecording, interimText, finalText }
+  return { isRecording, interimText, finalText, error: lastError }
 }
 
 function notifyListeners(): void {
@@ -62,16 +66,9 @@ export function subscribe(listener: DictationListener): () => void {
 }
 
 async function connectWebSocket(): Promise<void> {
-  const authToken = await getAccessToken()
+  const { token } = await getTranscriptionToken('deepgram')
 
-  const baseUrl = getApiBaseUrl()
-  const url = new URL(baseUrl)
-  const wsProtocol = url.protocol === 'https:' ? 'wss:' : 'ws:'
-  const host = url.hostname
-
-  // Build proxy URL with Deepgram Nova-3 params for dictation
   const params = new URLSearchParams({
-    token: authToken,
     model: 'nova-3',
     language: 'multi',
     smart_format: 'true',
@@ -83,77 +80,74 @@ async function connectWebSocket(): Promise<void> {
     endpointing: '300',
     utterance_end_ms: '1000',
   })
-
-  const proxyUrl = `${wsProtocol}//${host}:${PROXY_PORT}?${params.toString()}`
-  log.info(`Connecting to dictation proxy at ${wsProtocol}//${host}:${PROXY_PORT}...`)
+  const url = `wss://api.deepgram.com/v1/listen?${params.toString()}`
+  log.info('Connecting to Deepgram for dictation...')
 
   return new Promise<void>((resolve, reject) => {
-    const socket = new WebSocket(proxyUrl)
+    let settled = false
+    // Deepgram browser auth: Sec-WebSocket-Protocol subprotocol
+    const socket = new WebSocket(url, ['token', token])
     ws = socket
 
+    const timeout = setTimeout(() => {
+      if (settled) return
+      settled = true
+      socket.close()
+      reject(new Error('Dictation connection timed out'))
+    }, CONNECT_TIMEOUT_MS)
+
     socket.onopen = () => {
+      clearTimeout(timeout)
+      if (settled) return
+      settled = true
       log.info('WebSocket connected')
       startKeepalive()
       resolve()
     }
 
-    socket.onmessage = async (event) => {
+    socket.onmessage = (event) => {
       try {
-        let textData: string
-        if (event.data instanceof Blob) {
-          textData = await event.data.text()
-        } else {
-          textData = event.data
-        }
+        const data = JSON.parse(typeof event.data === 'string' ? event.data : '{}')
 
-        const data = JSON.parse(textData)
-
-        // Handle proxy-specific messages
-        if (data.type === 'connected') {
-          log.info('Proxy connected to Deepgram')
-          return
-        }
-        if (data.type === 'error') {
-          log.error('Proxy error:', data.message)
-          return
-        }
-
-        // Handle Deepgram transcription results
         if (data.type === 'Results') {
-          const transcript = data.channel?.alternatives?.[0]?.transcript || ''
+          const transcript: string = data.channel?.alternatives?.[0]?.transcript || ''
           if (transcript.trim()) {
             if (data.is_final) {
-              // Accumulate final text with space separator
               const separator = finalText.length > 0 ? ' ' : ''
               finalText = finalText + separator + transcript
               interimText = ''
               log.debug(`Final: "${transcript}"`)
             } else {
-              // Show interim text (replaces previous interim)
               interimText = transcript
-              log.debug(`Interim: "${transcript}"`)
             }
             notifyListeners()
           }
+        } else if (data.type === 'Error' || data.type === 'error') {
+          lastError = data.message || 'Deepgram error'
+          log.error('Deepgram error:', data)
+          notifyListeners()
         }
       } catch (error) {
         log.error('Parse error', error)
       }
     }
 
-    socket.onerror = (event: Event) => {
-      const wsEvent = event as ErrorEvent
-      log.error('WebSocket error:', wsEvent.message || 'Unknown error')
-      reject(new Error('Dictation proxy connection failed'))
+    socket.onerror = () => {
+      clearTimeout(timeout)
+      if (!settled) {
+        settled = true
+        reject(new Error('Dictation connection failed'))
+      }
     }
 
     socket.onclose = (event) => {
+      clearTimeout(timeout)
       log.info(`Disconnected - code: ${event.code}, reason: "${event.reason}"`)
       stopKeepalive()
 
-      // If still recording, it was an unexpected disconnect
       if (isRecording) {
         log.warn('Unexpected disconnect during recording')
+        lastError = event.reason || `Connection closed (${event.code})`
         isRecording = false
         notifyListeners()
       }
@@ -196,10 +190,8 @@ async function startStandaloneMicCapture(): Promise<void> {
 
   standaloneAudioContext = new AudioContext({ sampleRate: 48000 })
 
-  // Try AudioWorklet first, fall back to ScriptProcessor
   let useWorklet = true
   try {
-    const workletUrl = new URL('../../../workers/audioProcessor.worklet.ts', import.meta.url).href
     await standaloneAudioContext.audioWorklet.addModule(workletUrl)
   } catch {
     log.warn('Worklet unavailable, using ScriptProcessor fallback')
@@ -222,32 +214,14 @@ async function startStandaloneMicCapture(): Promise<void> {
 
     standaloneMicSource.connect(standaloneWorkletNode)
   } else {
-    const bufferSize = 4096
-    const scriptNode = standaloneAudioContext.createScriptProcessor(bufferSize, 1, 1)
-    const inputSampleRate = standaloneAudioContext.sampleRate
-    const targetSampleRate = 16000
-
-    scriptNode.onaudioprocess = (event) => {
-      const inputData = event.inputBuffer.getChannelData(0)
-      const ratio = targetSampleRate / inputSampleRate
-      const outputLength = Math.round(inputData.length * ratio)
-      const pcm16 = new Int16Array(outputLength)
-
-      for (let i = 0; i < outputLength; i++) {
-        const srcIndex = i / ratio
-        const srcFloor = Math.floor(srcIndex)
-        const srcCeil = Math.min(srcFloor + 1, inputData.length - 1)
-        const frac = srcIndex - srcFloor
-        const sample = inputData[srcFloor] * (1 - frac) + inputData[srcCeil] * frac
-        const clamped = Math.max(-1, Math.min(1, sample))
-        pcm16[i] = clamped < 0 ? clamped * 0x8000 : clamped * 0x7fff
-      }
-
-      sendAudio(pcm16.buffer)
+    const resampler = new PcmResampler(standaloneAudioContext.sampleRate, 16000)
+    standaloneScriptNode = standaloneAudioContext.createScriptProcessor(4096, 1, 1)
+    standaloneScriptNode.onaudioprocess = (event) => {
+      const pcm16 = resampler.process(event.inputBuffer.getChannelData(0))
+      if (pcm16.length > 0) sendAudio(pcm16.buffer)
     }
-
-    standaloneMicSource.connect(scriptNode)
-    scriptNode.connect(standaloneAudioContext.destination)
+    standaloneMicSource.connect(standaloneScriptNode)
+    standaloneScriptNode.connect(standaloneAudioContext.destination)
   }
 
   log.info('Standalone mic capture started')
@@ -255,24 +229,24 @@ async function startStandaloneMicCapture(): Promise<void> {
 
 function stopStandaloneMicCapture(): void {
   standaloneWorkletNode?.disconnect()
+  standaloneScriptNode?.disconnect()
   standaloneMicSource?.disconnect()
   standaloneMicStream?.getTracks().forEach((track) => track.stop())
-  standaloneAudioContext?.close()
+  standaloneAudioContext?.close().catch(() => undefined)
 
   standaloneWorkletNode = null
+  standaloneScriptNode = null
   standaloneMicSource = null
   standaloneMicStream = null
   standaloneAudioContext = null
-
-  log.info('Standalone mic capture stopped')
 }
 
 /**
  * Start dictation recording.
  *
  * @param useSharedAudio - If true, uses the existing session audio pipeline
- *   (caller must route audio via sendAudio). If false or omitted, auto-detects:
- *   uses shared audio when a session is active, otherwise captures standalone mic.
+ *   (sessionLifecycle routes audio via sendAudio). If omitted, auto-detects:
+ *   shared audio when a session is active, otherwise standalone mic.
  */
 export async function startRecording(useSharedAudio?: boolean): Promise<void> {
   if (isRecording) {
@@ -280,17 +254,15 @@ export async function startRecording(useSharedAudio?: boolean): Promise<void> {
     return
   }
 
+  lastError = null
   try {
-    // Auto-detect: share audio if a session is active
     const sessionActive = useAppStore.getState().isSessionActive
     usingSharedAudio = useSharedAudio ?? sessionActive
 
     log.info(`Starting dictation (sharedAudio: ${usingSharedAudio})`)
 
-    // Connect WebSocket to Deepgram
     await connectWebSocket()
 
-    // Start standalone mic capture if not sharing audio
     if (!usingSharedAudio) {
       await startStandaloneMicCapture()
     }
@@ -300,19 +272,28 @@ export async function startRecording(useSharedAudio?: boolean): Promise<void> {
 
     log.info('Dictation recording started')
   } catch (error) {
-    log.error('Failed to start dictation:', error)
+    const message = error instanceof Error ? error.message : String(error)
+    log.error('Failed to start dictation:', message)
+    lastError = message
     cleanup()
+    notifyListeners()
     throw error
   }
 }
 
 /**
- * Stop dictation recording.
+ * Stop dictation recording. Any pending interim text is promoted to final so
+ * the last words spoken before the click are not lost.
  */
 export function stopRecording(): void {
   if (!isRecording) return
 
   log.info('Stopping dictation...')
+  if (interimText.trim()) {
+    const separator = finalText.length > 0 ? ' ' : ''
+    finalText = finalText + separator + interimText.trim()
+    interimText = ''
+  }
   cleanup()
 
   isRecording = false
@@ -331,42 +312,41 @@ export function sendAudio(data: ArrayBuffer): void {
   }
 }
 
-/**
- * Reset the dictation state (clear all accumulated text).
- */
+/** Reset the dictation state (clear all accumulated text). */
 export function reset(): void {
   interimText = ''
   finalText = ''
+  lastError = null
   notifyListeners()
-  log.debug('Dictation state reset')
 }
 
-/**
- * Get the current dictation state snapshot.
- */
 export function getDictationState(): DictationState {
   return getState()
 }
 
-function cleanup(): void {
-  // Close WebSocket
-  stopKeepalive()
-  if (ws && ws.readyState === WebSocket.OPEN) {
-    ws.send(JSON.stringify({ type: 'CloseStream' }))
-    ws.close(1000)
-  }
-  ws = null
+export function isDictating(): boolean {
+  return isRecording
+}
 
-  // Stop standalone mic if we started one
+function cleanup(): void {
+  stopKeepalive()
+  const socket = ws
+  ws = null
+  if (socket) {
+    socket.onclose = null
+    socket.onerror = null
+    if (socket.readyState === WebSocket.OPEN) {
+      socket.send(JSON.stringify({ type: 'CloseStream' }))
+      socket.close(1000)
+    } else if (socket.readyState === WebSocket.CONNECTING) {
+      socket.close()
+    }
+  }
+
   if (!usingSharedAudio) {
     stopStandaloneMicCapture()
   }
   usingSharedAudio = false
-}
-
-// Singleton instance (functional module pattern, consistent with transcription/audio services)
-export function isDictating(): boolean {
-  return isRecording
 }
 
 export const dictationService = {

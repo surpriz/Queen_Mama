@@ -29,7 +29,11 @@
     "screenCaptureOff": "Capture d'écran désactivée",
     "summary": "Résumé...",
     "stopSession": "Arrêter la session",
-    "startSession": "Démarrer la session"
+    "startSession": "Démarrer la session",
+    "micOnly": "Micro seul",
+    "micOnlyHint": "Le son système n'est pas reçu — seule votre voix est transcrite",
+    "noMic": "Sans micro",
+    "noMicHint": "Micro indisponible — seul l'interlocuteur est transcrit"
   },
   "response": {
     "justNow": "à l'instant",
@@ -121,5 +125,10 @@
     "q": "Q",
     "hes": "HÉS",
     "close": "CLOSE"
+  },
+  "dictation": {
+    "start": "Démarrer la dictée",
+    "stop": "Arrêter la dictée",
+    "failed": "Dictée indisponible"
   }
 }

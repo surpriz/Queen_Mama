@@ -124,12 +124,18 @@ export class DeepgramProvider implements TranscriptionProvider {
 
   disconnect(): void {
     this.stopKeepalive()
-    if (this.ws && this.ws.readyState === WebSocket.OPEN) {
-      // Send close frame
-      this.ws.send(JSON.stringify({ type: 'CloseStream' }))
-      this.ws.close(1000)
-    }
+    const ws = this.ws
     this.ws = null
+    if (!ws) return
+    ws.onerror = null
+    ws.onclose = null
+    ws.onmessage = null
+    if (ws.readyState === WebSocket.OPEN) {
+      ws.send(JSON.stringify({ type: 'CloseStream' }))
+      ws.close(1000)
+    } else if (ws.readyState === WebSocket.CONNECTING) {
+      ws.close()
+    }
   }
 
   sendAudio(data: ArrayBuffer): void {

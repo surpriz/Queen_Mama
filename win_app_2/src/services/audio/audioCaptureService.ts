@@ -1,8 +1,39 @@
 import { createLogger } from '@/lib/logger'
 import { useConfigStore } from '@/stores/configStore'
 import { addBreadcrumb } from '../crash/crashReporter'
+import { PcmResampler, rms } from './resampler'
+// Bundled as a classic worker script so the worklet (and the resampler it
+// imports) ships in production. The previous `new URL(...)` reference was never
+// emitted by the build, so packaged apps silently fell back to ScriptProcessor.
+import workletUrl from '@/workers/audioProcessor.worklet.ts?worker&url'
 
 const log = createLogger('AudioCapture')
+
+const LEVEL_EMIT_INTERVAL_MS = 100 // meter updates at 10 Hz (was every worklet block ≈ 375/s)
+let lastLevelEmitAt = 0
+let levelPeak = 0
+
+function emitLevel(level: number): void {
+  if (level > levelPeak) levelPeak = level
+  const now = Date.now()
+  if (now - lastLevelEmitAt < LEVEL_EMIT_INTERVAL_MS) return
+  lastLevelEmitAt = now
+  onAudioLevel?.(levelPeak)
+  levelPeak = 0
+}
+
+let micUnavailable = false
+let lastSystemBufferAt = 0
+
+/** True when the user enabled the mic but capture failed (permission / device). */
+export function isMicUnavailable(): boolean {
+  return micUnavailable
+}
+
+/** Timestamp (ms) of the last system-audio buffer, 0 if none yet. */
+export function getLastSystemBufferAt(): number {
+  return lastSystemBufferAt
+}
 
 export type AudioBufferCallback = (buffer: ArrayBuffer) => void
 export type AudioLevelCallback = (level: number) => void
@@ -97,6 +128,10 @@ export async function startCapture(): Promise<void> {
   }
 
   log.info('Starting dual-stream capture...')
+  micUnavailable = false
+  lastSystemBufferAt = 0
+  lastLevelEmitAt = 0
+  levelPeak = 0
 
   const config = useConfigStore.getState()
   const useMic = config.captureMicrophone
@@ -124,6 +159,7 @@ export async function startCapture(): Promise<void> {
       log.info('Microphone captured')
     } catch (error) {
       log.error('Microphone permission denied', error)
+      micUnavailable = true
       if (!useSystem) {
         throw new Error('Microphone permission denied. Please enable in system settings.')
       }
@@ -146,10 +182,9 @@ export async function startCapture(): Promise<void> {
   // Load AudioWorklet
   let useWorklet = true
   try {
-    const workletUrl = new URL('../../workers/audioProcessor.worklet.ts', import.meta.url).href
     await audioContext.audioWorklet.addModule(workletUrl)
-  } catch {
-    log.warn('Failed to load worklet module, using ScriptProcessorNode fallback')
+  } catch (err) {
+    log.warn('Failed to load worklet module, using ScriptProcessorNode fallback', err)
     useWorklet = false
   }
 
@@ -180,7 +215,7 @@ function startDualStreamWorklet(): void {
       const { type, pcm16, audioLevel } = event.data
       if (type === 'audio') {
         onMicAudioBuffer?.(pcm16)
-        onAudioLevel?.(scalePower(audioLevel))
+        emitLevel(scalePower(audioLevel))
       }
     }
     micSourceNode = audioContext.createMediaStreamSource(micStream)
@@ -195,6 +230,7 @@ function startDualStreamWorklet(): void {
     systemWorkletNode.port.onmessage = (event) => {
       const { type, pcm16 } = event.data
       if (type === 'audio') {
+        lastSystemBufferAt = Date.now()
         onSystemAudioBuffer?.(pcm16)
       }
     }
@@ -213,29 +249,19 @@ function startDualStreamScriptProcessor(): void {
   const inputSampleRate = audioContext.sampleRate
   const targetSampleRate = 16000
 
-  function createProcessor(callback: AudioBufferCallback | null, trackLevel: boolean): ScriptProcessorNode {
+  function createProcessor(callback: AudioBufferCallback | null, trackLevel: boolean, isSystem: boolean): ScriptProcessorNode {
     const scriptNode = audioContext!.createScriptProcessor(bufferSize, 1, 1)
+    const resampler = new PcmResampler(inputSampleRate, targetSampleRate)
     scriptNode.onaudioprocess = (event) => {
       const inputData = event.inputBuffer.getChannelData(0)
 
       if (trackLevel) {
-        let sum = 0
-        for (let i = 0; i < inputData.length; i++) sum += inputData[i] * inputData[i]
-        onAudioLevel?.(scalePower(Math.sqrt(sum / inputData.length)))
+        emitLevel(scalePower(rms(inputData)))
       }
 
-      const ratio = targetSampleRate / inputSampleRate
-      const outputLength = Math.round(inputData.length * ratio)
-      const pcm16 = new Int16Array(outputLength)
-      for (let i = 0; i < outputLength; i++) {
-        const srcIndex = i / ratio
-        const srcFloor = Math.floor(srcIndex)
-        const srcCeil = Math.min(srcFloor + 1, inputData.length - 1)
-        const frac = srcIndex - srcFloor
-        const sample = inputData[srcFloor] * (1 - frac) + inputData[srcCeil] * frac
-        const clamped = Math.max(-1, Math.min(1, sample))
-        pcm16[i] = clamped < 0 ? clamped * 0x8000 : clamped * 0x7fff
-      }
+      const pcm16 = resampler.process(inputData)
+      if (pcm16.length === 0) return
+      if (isSystem) lastSystemBufferAt = Date.now()
       callback?.(pcm16.buffer)
     }
     scriptNode.connect(audioContext!.destination) // Required for ScriptProcessor to work
@@ -243,13 +269,13 @@ function startDualStreamScriptProcessor(): void {
   }
 
   if (micStream) {
-    const micProcessor = createProcessor(onMicAudioBuffer, true)
+    const micProcessor = createProcessor(onMicAudioBuffer, true, false)
     micSourceNode = audioContext.createMediaStreamSource(micStream)
     micSourceNode.connect(micProcessor)
   }
 
   if (systemStream) {
-    const sysProcessor = createProcessor(onSystemAudioBuffer, false)
+    const sysProcessor = createProcessor(onSystemAudioBuffer, false, true)
     systemSourceNode = audioContext.createMediaStreamSource(systemStream)
     systemSourceNode.connect(sysProcessor)
   }

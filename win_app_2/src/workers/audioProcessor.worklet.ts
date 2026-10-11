@@ -1,5 +1,8 @@
-// AudioWorklet processor: resample from native sample rate to 16kHz PCM16
-// This runs in the AudioWorklet thread
+// AudioWorklet processor: resample from the native sample rate to 16 kHz PCM16.
+// Runs on the audio rendering thread. Bundled by Vite through `?worker&url`
+// (see audioCaptureService) so the shared PcmResampler is inlined.
+
+import { PcmResampler, rms } from '../services/audio/resampler'
 
 // AudioWorklet globals (available in worklet scope, not in main thread)
 declare class AudioWorkletProcessor {
@@ -9,13 +12,15 @@ declare class AudioWorkletProcessor {
 }
 declare function registerProcessor(name: string, processorCtor: new (options?: AudioWorkletNodeOptions) => AudioWorkletProcessor): void
 
+const TARGET_SAMPLE_RATE = 16000
+
 class AudioProcessor extends AudioWorkletProcessor {
-  private inputSampleRate: number
-  private targetSampleRate = 16000
+  private readonly resampler: PcmResampler
 
   constructor(options?: AudioWorkletNodeOptions) {
     super()
-    this.inputSampleRate = options?.processorOptions?.sampleRate || 48000
+    const inputSampleRate = options?.processorOptions?.sampleRate || 48000
+    this.resampler = new PcmResampler(inputSampleRate, TARGET_SAMPLE_RATE)
   }
 
   process(inputs: Float32Array[][], _outputs: Float32Array[][], _parameters: Record<string, Float32Array>): boolean {
@@ -23,41 +28,18 @@ class AudioProcessor extends AudioWorkletProcessor {
     if (!input || input.length === 0 || !input[0]) return true
 
     const inputData = input[0] // mono channel
+    const audioLevel = rms(inputData)
+    const pcm16 = this.resampler.process(inputData)
+    if (pcm16.length === 0) return true
 
-    // Calculate RMS for audio level
-    let sum = 0
-    for (let i = 0; i < inputData.length; i++) {
-      sum += inputData[i] * inputData[i]
-    }
-    const rms = Math.sqrt(sum / inputData.length)
-
-    // Resample: linear interpolation from inputSampleRate to 16kHz
-    const ratio = this.targetSampleRate / this.inputSampleRate
-    const outputLength = Math.round(inputData.length * ratio)
-    const resampled = new Float32Array(outputLength)
-
-    for (let i = 0; i < outputLength; i++) {
-      const srcIndex = i / ratio
-      const srcIndexFloor = Math.floor(srcIndex)
-      const srcIndexCeil = Math.min(srcIndexFloor + 1, inputData.length - 1)
-      const frac = srcIndex - srcIndexFloor
-
-      resampled[i] = inputData[srcIndexFloor] * (1 - frac) + inputData[srcIndexCeil] * frac
-    }
-
-    // Convert Float32 to Int16 PCM
-    const pcm16 = new Int16Array(outputLength)
-    for (let i = 0; i < outputLength; i++) {
-      const s = Math.max(-1, Math.min(1, resampled[i]))
-      pcm16[i] = s < 0 ? s * 0x8000 : s * 0x7fff
-    }
-
-    // Post PCM16 data and audio level to main thread
-    this.port.postMessage({
-      type: 'audio',
-      pcm16: pcm16.buffer,
-      audioLevel: rms,
-    }, [pcm16.buffer])
+    this.port.postMessage(
+      {
+        type: 'audio',
+        pcm16: pcm16.buffer,
+        audioLevel,
+      },
+      [pcm16.buffer],
+    )
 
     return true
   }
