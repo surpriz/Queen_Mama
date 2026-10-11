@@ -1,4 +1,5 @@
 import { db } from '@/db/client'
+import { currentOwnerId, ownerFilter } from '@/services/session/userScope'
 import type { Contact, ContactNote, Session } from '@/types/models'
 import { fullName, splitName } from './contactModel'
 
@@ -58,7 +59,8 @@ function rowToNote(row: NoteRow): ContactNote {
 }
 
 export async function getAllContacts(): Promise<Contact[]> {
-  const rows = await db.queryAll<ContactRow>('SELECT * FROM contacts ORDER BY updated_at DESC')
+  const owner = ownerFilter()
+  const rows = await db.queryAll<ContactRow>(`SELECT * FROM contacts WHERE ${owner.sql} ORDER BY updated_at DESC`, owner.params)
   return rows.map(rowToContact)
 }
 
@@ -71,9 +73,10 @@ export async function upsertContact(contact: Contact): Promise<void> {
   const now = new Date().toISOString()
   const name = contact.name?.trim() || fullName(contact)
   await db.query(
-    `INSERT INTO contacts (id, name, first_name, last_name, email, role, company, notes, last_seen, session_count, is_synced, remote_id, created_at, updated_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `INSERT INTO contacts (id, name, first_name, last_name, email, role, company, notes, last_seen, session_count, is_synced, remote_id, created_at, updated_at, owner_user_id)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
      ON CONFLICT(id) DO UPDATE SET
+       owner_user_id = COALESCE(contacts.owner_user_id, excluded.owner_user_id),
        name = excluded.name,
        first_name = excluded.first_name,
        last_name = excluded.last_name,
@@ -101,6 +104,7 @@ export async function upsertContact(contact: Contact): Promise<void> {
       contact.remoteId ?? null,
       contact.createdAt || now,
       now,
+      currentOwnerId(),
     ],
   )
 }

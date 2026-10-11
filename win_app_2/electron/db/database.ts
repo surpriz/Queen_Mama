@@ -197,12 +197,16 @@ export function initializeDatabase(): Database.Database {
   return db
 }
 
-const SCHEMA_VERSION = 1
+const SCHEMA_VERSION = 2
 
 /**
  * Forward-only migrations keyed by `PRAGMA user_version`.
  * v1: indexes for the hot lookups (deletes by session, history by session,
  *     session list ordering, contact sync lookups).
+ * v2: `owner_user_id` on sessions and contacts — local data is scoped to the
+ *     signed-in account so an account switch on the same PC never shows or
+ *     syncs another account's data. Legacy rows (NULL) are adopted by the
+ *     first account that signs in (see renderer `userScope.ts`).
  */
 function applyVersionedMigrations(database: Database.Database): void {
   const current = database.pragma('user_version', { simple: true }) as number
@@ -218,6 +222,16 @@ function applyVersionedMigrations(database: Database.Database): void {
         CREATE INDEX IF NOT EXISTS idx_sessions_sync_status ON sessions(sync_status);
         CREATE INDEX IF NOT EXISTS idx_contacts_remote_id ON contacts(remote_id);
         CREATE INDEX IF NOT EXISTS idx_session_contacts_contact ON session_contacts(contact_id);
+      `)
+    }
+    if (current < 2) {
+      const sessionCols = (database.pragma('table_info(sessions)') as { name: string }[]).map((c) => c.name)
+      if (!sessionCols.includes('owner_user_id')) database.exec(`ALTER TABLE sessions ADD COLUMN owner_user_id TEXT`)
+      const contactCols = (database.pragma('table_info(contacts)') as { name: string }[]).map((c) => c.name)
+      if (!contactCols.includes('owner_user_id')) database.exec(`ALTER TABLE contacts ADD COLUMN owner_user_id TEXT`)
+      database.exec(`
+        CREATE INDEX IF NOT EXISTS idx_sessions_owner ON sessions(owner_user_id, start_time);
+        CREATE INDEX IF NOT EXISTS idx_contacts_owner ON contacts(owner_user_id, updated_at);
       `)
     }
     database.pragma(`user_version = ${SCHEMA_VERSION}`)

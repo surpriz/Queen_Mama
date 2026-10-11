@@ -540,6 +540,12 @@ function saveQueue(): void {
   window.electronAPI?.store.set('sync_queue', JSON.stringify(syncQueue))
 }
 
+/** Forget pending uploads (sign-out): the queue is account-specific. */
+export function clearQueue(): void {
+  syncQueue = { sessions: [], lastSyncAt: null }
+  saveQueue()
+}
+
 export async function loadQueue(): Promise<void> {
   const saved = (await window.electronAPI?.store.get('sync_queue')) as string | null
   if (saved) {

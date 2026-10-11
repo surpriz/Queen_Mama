@@ -2,6 +2,7 @@ import { v4 as uuidv4 } from 'uuid'
 import { createLogger } from '@/lib/logger'
 import { useSessionStore } from '@/stores/sessionStore'
 import { db } from '@/db/client'
+import { currentOwnerId, ownerFilter } from './userScope'
 import { debounce } from '@/lib/utils'
 import { getCachedDeviceId, deleteRemoteSession } from '@/services/sync/syncManager'
 import type { Session, TranscriptEntry } from '@/types/models'
@@ -74,8 +75,11 @@ const debouncedDbTranscript = debounce((id: string, transcript: string) => {
  */
 export async function loadSessions(): Promise<void> {
   try {
+    // Only the signed-in account's rows (legacy NULL rows while signed out)
+    const owner = ownerFilter()
     const rows = await db.queryAll<DbSessionRow>(
-      'SELECT * FROM sessions ORDER BY start_time DESC',
+      `SELECT * FROM sessions WHERE ${owner.sql} ORDER BY start_time DESC`,
+      owner.params,
     )
     const sessions = rows.map(dbRowToSession)
     useSessionStore.getState().setSessions(sessions)
@@ -106,8 +110,8 @@ export function startSession(title?: string, modeId?: string | null): Session {
 
   // SQLite (for persistence)
   db.query(
-    `INSERT INTO sessions (id, title, start_time, end_time, transcript, summary, action_items, mode_id, sync_status, device_id)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    `INSERT INTO sessions (id, title, start_time, end_time, transcript, summary, action_items, mode_id, sync_status, device_id, owner_user_id)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [
       session.id,
       session.title,
@@ -119,6 +123,7 @@ export function startSession(title?: string, modeId?: string | null): Session {
       session.modeId,
       session.syncStatus || 'local',
       session.deviceId || null,
+      currentOwnerId(),
     ],
   ).catch((err) => log.error('Failed to persist new session', err))
 
@@ -414,9 +419,10 @@ export async function upsertImportedSession(session: Session): Promise<void> {
   }
   try {
     await db.query(
-      `INSERT INTO sessions (id, title, start_time, end_time, transcript, summary, action_items, mode_id, sync_status, remote_id, device_id, version, checksum)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `INSERT INTO sessions (id, title, start_time, end_time, transcript, summary, action_items, mode_id, sync_status, remote_id, device_id, version, checksum, owner_user_id)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
        ON CONFLICT(id) DO UPDATE SET
+         owner_user_id = COALESCE(sessions.owner_user_id, excluded.owner_user_id),
          title = excluded.title,
          end_time = excluded.end_time,
          transcript = excluded.transcript,
@@ -440,6 +446,7 @@ export async function upsertImportedSession(session: Session): Promise<void> {
         session.deviceId ?? null,
         1,
         null,
+        currentOwnerId(),
       ],
     )
   } catch (err) {

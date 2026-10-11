@@ -29,10 +29,19 @@ import { modesService } from '@/services/modes/modesService'
 import { useAppStore } from '@/stores/appStore'
 import { useConfigStore } from '@/stores/configStore'
 import { useOverlayStore } from '@/stores/overlayStore'
+import { adoptLegacyRows, installUserScopeSync } from '@/services/session/userScope'
 import { useLicenseStore } from '@/stores/licenseStore'
 import { isSessionHost, getWindowKind } from '@/lib/runtime'
 
 let initialized = false
+
+/** Reload everything that is scoped to the signed-in account. */
+export async function reloadAccountData(): Promise<void> {
+  await loadSessions()
+  const contacts = await contactDb.getAllContacts()
+  useContactStore.getState().setContacts(contacts)
+  await useOverlayStore.getState().loadRecentResponses()
+}
 let postAuthRunning = false
 let postAuthDone = false
 
@@ -88,6 +97,12 @@ export async function runPostAuthTasks(): Promise<void> {
   postAuthRunning = true
 
   try {
+    // Local rows are scoped per account: adopt legacy rows, then reload before
+    // anything (sync, contacts) reads them.
+    await step('Account data scope', async () => {
+      await adoptLegacyRows()
+      await reloadAccountData()
+    })
     await step('Proxy config', () => proxyConfigManager.refreshConfig().then(() => undefined))
     await step('License validation', async () => {
       await licenseManager.revalidate()
@@ -114,6 +129,7 @@ export function resetPostAuth(): void {
   postAuthDone = false
   licenseManager.stopPeriodicRevalidation()
   syncManager.stopPeriodicSync()
+  syncManager.clearQueue()
   // UI windows are not allowed to publish license state; the host drops to
   // FREE here and broadcasts it (the dashboard already cleared the disk cache).
   licenseManager.resetOnLogout().catch((e) => console.warn('[AppInit] License reset failed:', e))
@@ -159,6 +175,7 @@ export async function initializeApp(): Promise<void> {
 
   const kind = getWindowKind()
   console.log(`[AppInit] Starting initialization (${kind})...`)
+  installUserScopeSync(reloadAccountData)
 
   if (isSessionHost()) {
     await initializeSessionHost()

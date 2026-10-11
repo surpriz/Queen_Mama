@@ -3,6 +3,7 @@ import { v4 as uuidv4 } from 'uuid'
 import { ResponseType } from '@/types/models'
 import type { OverlayPosition } from '@/types/electron.d'
 import { db } from '@/db/client'
+import { ownerFilter } from '@/services/session/userScope'
 import { createLogger } from '@/lib/logger'
 
 const log = createLogger('OverlayStore')
@@ -102,8 +103,10 @@ export const useOverlayStore = create<OverlayStoreState>((set) => ({
   loadRecentResponses: async () => {
     try {
       const rows = await db.queryAll<{ id: string; session_id: string; type: string; content: string; timestamp: string; is_automatic: number }>(
-        'SELECT id, session_id, type, content, timestamp, is_automatic FROM ai_responses ORDER BY timestamp DESC LIMIT ?',
-        [MAX_RESPONSES_IN_MEMORY],
+        `SELECT r.id, r.session_id, r.type, r.content, r.timestamp, r.is_automatic
+         FROM ai_responses r JOIN sessions s ON s.id = r.session_id
+         WHERE ${ownerFilter('s.owner_user_id').sql} ORDER BY r.timestamp DESC LIMIT ?`,
+        [...ownerFilter('s.owner_user_id').params, MAX_RESPONSES_IN_MEMORY],
       )
       if (rows.length === 0) return
       set((state) => {
