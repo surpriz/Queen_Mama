@@ -455,7 +455,8 @@ export async function stopSession(): Promise<void> {
   if (!store.isSessionActive) return
 
   store.setFinalizingSession(true)
-  addBreadcrumb('session', `Session stopped (transcript: ${fullTranscript.length} chars)`, 'info')
+  const sessionDurationSeconds = store.sessionStartedAt ? Math.round((Date.now() - store.sessionStartedAt) / 1000) : 0
+  addBreadcrumb('session', `Session stopped (${sessionDurationSeconds}s, transcript: ${fullTranscript.length} chars)`, 'info')
 
   try {
     // Stop all services
@@ -571,7 +572,7 @@ export async function stopSession(): Promise<void> {
       syncManager.queueSessionForSync(currentSessionId)
 
       // Analytics
-      analytics.trackSessionEnded(0, fullTranscript.length, fullTranscript.length > 0)
+      analytics.trackSessionEnded(sessionDurationSeconds, fullTranscript.length, useOverlayStore.getState().responseHistory.length > 0)
     }
 
     currentSessionId = null

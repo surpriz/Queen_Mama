@@ -85,7 +85,11 @@
       "updates": "Mises à jour"
     },
     "account": {
-      "title": "Compte"
+      "title": "Compte",
+      "validating": "Vérification…",
+      "smartUsage": "Mode Smart aujourd'hui",
+      "signOutConfirmTitle": "Se déconnecter ?",
+      "signOutConfirmBody": "Vos sessions et réglages locaux restent sur cet appareil. La synchronisation cloud s'arrête jusqu'à la prochaine connexion."
     },
     "language": {
       "title": "Langue",
@@ -93,7 +97,12 @@
       "appLanguageDescription": "Langue pour la transcription et les réponses IA",
       "uiLanguage": "Langue de l'interface",
       "uiLanguageDescription": "Langue de l'interface de l'application",
-      "autoDetect": "Détection automatique (multilingue)"
+      "autoDetect": "Détection automatique (multilingue)",
+      "system": "Système",
+      "names": {
+        "en": "English",
+        "fr": "Français"
+      }
     },
     "general": {
       "title": "Général",
@@ -132,7 +141,9 @@
       "meetingCostDescription": "Affiche le coût en direct de la réunion dans le widget (participants × taux horaire)",
       "meetingCostCurrency": "Devise",
       "meetingCostRate": "Taux horaire",
-      "meetingCostParticipants": "Participants"
+      "meetingCostParticipants": "Participants",
+      "meetingReminders": "Rappels de réunion",
+      "meetingRemindersDescription": "Proposer de démarrer une session quand un appel Zoom, Teams, Meet, Slack ou Discord est détecté"
     },
     "autoAnswer": {
       "title": "Réponse automatique",
@@ -178,7 +189,11 @@
       "audioLevelTest": "Test du niveau audio",
       "audioLevelTestDescription": "Vérifier l'entrée de votre microphone",
       "startTest": "Démarrer le test",
-      "stopTest": "Arrêter le test"
+      "stopTest": "Arrêter le test",
+      "systemAudioTest": "Test du son système",
+      "systemAudioTestDescription": "Lancez un son et vérifiez que le côté distant de vos appels est capté",
+      "systemAudioUnavailable": "Le son système n'est pas disponible sur cet appareil",
+      "systemAudioDenied": "La capture du son système a été refusée"
     },
     "translation": {
       "title": "Traduction en direct",
@@ -208,7 +223,8 @@
       "cloudSync": "Synchronisation cloud",
       "syncing": "Synchronisation...",
       "syncNow": "Synchroniser",
-      "lastSynced": "Dernière synchronisation : {{time}}"
+      "lastSynced": "Dernière synchronisation : {{time}}",
+      "viewOnDashboard": "Voir sur le dashboard web"
     },
     "shortcuts": {
       "title": "Raccourcis clavier",
@@ -233,7 +249,13 @@
       "restartAndUpdate": "Redémarrer et mettre à jour",
       "updateBlocked": "Mise à jour bloquée par votre réseau d'entreprise.",
       "updateBlockedHelp": "Un pare-feu (proxy d'entreprise) empêche la mise à jour automatique. Téléchargez la dernière version manuellement depuis la page officielle.",
-      "downloadManually": "Télécharger manuellement"
+      "downloadManually": "Télécharger manuellement",
+      "lastChecked": "Dernière vérification : {{time}}",
+      "autoCheck": "Vérifier les mises à jour automatiquement",
+      "autoCheckDescription": "Rechercher une nouvelle version au lancement puis toutes les 4 heures",
+      "autoDownload": "Télécharger les mises à jour automatiquement",
+      "autoDownloadDescription": "Installées au prochain redémarrage une fois téléchargées",
+      "changelog": "Nouveautés (notes de version)"
     }
   },
   "update": {

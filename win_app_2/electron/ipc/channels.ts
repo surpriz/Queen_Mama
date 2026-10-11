@@ -55,6 +55,7 @@ export const IPC_CHANNELS = {
   UPDATER_DOWNLOAD: 'updater:download',
   UPDATER_INSTALL: 'updater:install',
   UPDATER_STATUS: 'updater:status',
+  UPDATER_SET_PREFS: 'updater:set-prefs',
 
   // Tray
   TRAY_UPDATE_ICON: 'tray:update-icon',

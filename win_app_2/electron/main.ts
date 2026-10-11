@@ -47,7 +47,8 @@ import {
   getMainWindow,
 } from './windows/mainWindow'
 import { initAutoUpdater } from './services/updater'
-import { createOverlayWindow } from './windows/overlayWindow'
+import { createOverlayWindow, setOnOverlayVisibilityChanged } from './windows/overlayWindow'
+import Store from 'electron-store'
 import { createTray, updateTrayMenu, updateTrayIcon } from './windows/trayManager'
 import { createSessionWindow } from './windows/sessionWindow'
 import { registerIPCHandlers } from './ipc/handlers'
@@ -55,7 +56,7 @@ import { registerGlobalShortcuts } from './services/globalShortcuts'
 import { registerRelayHub, onSessionStateRelayed, sendToSessionWindow } from './services/relayHub'
 import { IPC_CHANNELS } from './ipc/channels'
 import { initializeDatabase, closeDatabase } from './db/database'
-import { safeSendToAllWindows } from './utils/ipcUtils'
+import { safeSendToAllWindows, safeSendToMainWindow } from './utils/ipcUtils'
 import { startMonitoring, stopMonitoring, setSessionActive, setOnMeetingDetected } from './services/meetingDetectionService'
 import { createMeetingNotificationWindow, showMeetingNotification } from './windows/meetingNotificationWindow'
 
@@ -232,9 +233,19 @@ if (!gotTheLock) {
       }
     })
 
-    // Start meeting detection
+    // Start meeting detection (unless the user turned reminders off)
     setOnMeetingDetected(() => showMeetingNotification())
-    startMonitoring()
+    if (new Store().get('config.meetingDetectionEnabled') !== false) {
+      startMonitoring()
+    } else {
+      console.log('[Main] Meeting reminders disabled by settings')
+    }
+
+    // Overlay visibility → session host (analytics owner) + dashboard
+    setOnOverlayVisibilityChanged((visible) => {
+      sendToSessionWindow(IPC_CHANNELS.OVERLAY_STATE_CHANGED, { visible })
+      safeSendToMainWindow(IPC_CHANNELS.OVERLAY_STATE_CHANGED, { visible })
+    })
 
     // Register global keyboard shortcuts
     registerGlobalShortcuts()

@@ -131,15 +131,26 @@ export function getOverlayWindow(): BrowserWindow | null {
   return overlayWindow
 }
 
+let onVisibilityChanged: ((visible: boolean) => void) | null = null
+
+/** main.ts subscribes to forward visibility changes (analytics, dashboard state). */
+export function setOnOverlayVisibilityChanged(cb: ((visible: boolean) => void) | null): void {
+  onVisibilityChanged = cb
+}
+
 export function showOverlay(): void {
   if (overlayWindow && !overlayWindow.isDestroyed()) {
+    const wasVisible = overlayWindow.isVisible()
     overlayWindow.show()
+    if (!wasVisible) onVisibilityChanged?.(true)
   }
 }
 
 export function hideOverlay(): void {
   if (overlayWindow && !overlayWindow.isDestroyed()) {
+    const wasVisible = overlayWindow.isVisible()
     overlayWindow.hide()
+    if (wasVisible) onVisibilityChanged?.(false)
   }
 }
 

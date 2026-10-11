@@ -1,11 +1,25 @@
 import { autoUpdater, type UpdateInfo } from 'electron-updater'
 import { BrowserWindow } from 'electron'
+import Store from 'electron-store'
 import { safeSendToWindow } from '../utils/ipcUtils'
 
 let mainWindow: BrowserWindow | null = null
 let periodicCheckTimer: NodeJS.Timeout | null = null
 
 const PERIODIC_CHECK_INTERVAL_MS = 4 * 60 * 60 * 1000 // 4 hours
+const store = new Store()
+
+// User preferences (Settings → Updates). Persisted by the renderer under
+// `config.*`; read at boot so the first scheduled check respects them.
+let autoCheck = store.get('config.autoCheckUpdates') !== false
+let autoDownload = store.get('config.autoDownloadUpdates') !== false
+
+export function setUpdaterPrefs(prefs: { autoCheck?: boolean; autoDownload?: boolean }): void {
+  if (typeof prefs.autoCheck === 'boolean') autoCheck = prefs.autoCheck
+  if (typeof prefs.autoDownload === 'boolean') autoDownload = prefs.autoDownload
+  autoUpdater.autoDownload = autoDownload
+  console.log(`[Updater] Prefs: autoCheck=${autoCheck} autoDownload=${autoDownload}`)
+}
 
 export function initAutoUpdater(window: BrowserWindow) {
   mainWindow = window
@@ -20,7 +34,7 @@ export function initAutoUpdater(window: BrowserWindow) {
     })
   }
 
-  autoUpdater.autoDownload = true
+  autoUpdater.autoDownload = autoDownload
   autoUpdater.autoInstallOnAppQuit = true
 
   autoUpdater.on('checking-for-update', () => {
@@ -60,16 +74,16 @@ export function initAutoUpdater(window: BrowserWindow) {
     }
   })
 
-  // Initial check 5s after boot
+  // Initial check 5s after boot (unless the user disabled automatic checks)
   setTimeout(() => {
-    checkForUpdates()
+    if (autoCheck) checkForUpdates()
   }, 5000)
 
   // Periodic recheck every 4 hours while the app is running.
   // Covers long-running sessions where the user never quits the app.
   if (periodicCheckTimer) clearInterval(periodicCheckTimer)
   periodicCheckTimer = setInterval(() => {
-    checkForUpdates()
+    if (autoCheck) checkForUpdates()
   }, PERIODIC_CHECK_INTERVAL_MS)
 }
 
@@ -91,11 +105,10 @@ export function isNetworkBlockError(error: unknown): boolean {
 }
 
 export function checkForUpdates() {
-  try {
-    autoUpdater.checkForUpdatesAndNotify()
-  } catch (error) {
+  // The promise was never awaited, so rejections escaped the try/catch
+  autoUpdater.checkForUpdatesAndNotify().catch((error: unknown) => {
     console.error('[Updater] Check failed:', error)
-  }
+  })
 }
 
 export function quitAndInstall() {

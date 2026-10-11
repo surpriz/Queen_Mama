@@ -55,7 +55,9 @@
     "name": "Name",
     "continueWithoutAccount": "Continue without an account",
     "guestModeTitle": "Guest mode",
-    "guestModeBody": "You're using a guest account. Create an account to keep your sessions and settings across devices and reinstalls."
+    "guestModeBody": "You're using a guest account. Create an account to keep your sessions and settings across devices and reinstalls.",
+    "credentialsAccountExists": "An account already exists for this email with a password. Sign in with your email and password instead.",
+    "emailAlreadyExists": "An account already exists for this email. Sign in instead."
   },
   "license": {
     "free": "FREE",
@@ -66,7 +68,10 @@
     "upgradeToEnterpriseUnlock": "Upgrade to Enterprise to unlock this feature",
     "signInToUse": "Sign in to use this feature",
     "dailyLimitReached": "Daily limit reached ({{used}}/{{limit}})",
-    "featureNotAvailable": "This feature is not available"
+    "featureNotAvailable": "This feature is not available",
+    "trial": "Trial",
+    "trialDaysLeft_one": "{{count}} day left in trial",
+    "trialDaysLeft_other": "{{count}} days left in trial"
   },
   "pricing": {
     "title": "Choose Your Plan",

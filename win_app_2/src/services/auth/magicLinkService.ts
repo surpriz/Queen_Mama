@@ -4,7 +4,7 @@
  * Generates magic links for auto-login to web dashboard
  */
 
-import { getApiBaseUrl } from '@/services/config/appEnvironment'
+import { getApiBaseUrl, getWebBaseUrl } from '@/services/config/appEnvironment'
 import { getAccessToken } from './authenticationManager'
 
 interface MagicLinkResponse {
@@ -53,11 +53,8 @@ export async function openDashboardWithMagicLink(path: string = '/dashboard'): P
     window.electronAPI?.openExternal(url)
   } catch (error) {
     console.warn('[MagicLink] Magic link failed, using fallback URL')
-    // Fallback to direct URL without magic link
-    const baseUrl = import.meta.env.VITE_APP_ENV === 'development'
-      ? 'http://localhost:3000'
-      : 'https://queenmama.co'
-    window.electronAPI?.openExternal(`${baseUrl}${path}`)
+    // Fallback to direct URL without magic link (environment-aware)
+    window.electronAPI?.openExternal(`${getWebBaseUrl()}${path}`)
   }
 }
 

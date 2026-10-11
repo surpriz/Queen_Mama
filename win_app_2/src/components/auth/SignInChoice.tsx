@@ -38,7 +38,12 @@ export function SignInChoice({ onAuthenticated }: SignInChoiceProps) {
       log.info('Google sign-in completed')
     } catch (error) {
       log.error('Google sign-in failed:', error)
-      setErrorMessage(error instanceof Error ? error.message : t('auth.signInFailed'))
+      const code = (error as { code?: string } | null)?.code
+      if (code === 'credentials_account_exists' || code === 'email_exists') {
+        setErrorMessage(t('auth.credentialsAccountExists'))
+      } else {
+        setErrorMessage(error instanceof Error ? error.message : t('auth.signInFailed'))
+      }
     } finally {
       setIsLoading(false)
     }

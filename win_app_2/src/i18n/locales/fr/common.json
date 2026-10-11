@@ -55,7 +55,9 @@
     "name": "Nom",
     "continueWithoutAccount": "Continuer sans compte",
     "guestModeTitle": "Mode invité",
-    "guestModeBody": "Vous utilisez un compte invité. Créez un compte pour conserver vos sessions et réglages entre appareils et réinstallations."
+    "guestModeBody": "Vous utilisez un compte invité. Créez un compte pour conserver vos sessions et réglages entre appareils et réinstallations.",
+    "credentialsAccountExists": "Un compte existe déjà pour cet email avec un mot de passe. Connectez-vous avec votre email et votre mot de passe.",
+    "emailAlreadyExists": "Un compte existe déjà pour cet email. Connectez-vous plutôt."
   },
   "license": {
     "free": "GRATUIT",
@@ -66,7 +68,10 @@
     "upgradeToEnterpriseUnlock": "Passez en Enterprise pour débloquer cette fonctionnalité",
     "signInToUse": "Connectez-vous pour utiliser cette fonctionnalité",
     "dailyLimitReached": "Limite quotidienne atteinte ({{used}}/{{limit}})",
-    "featureNotAvailable": "Cette fonctionnalité n'est pas disponible"
+    "featureNotAvailable": "Cette fonctionnalité n'est pas disponible",
+    "trial": "Essai",
+    "trialDaysLeft_one": "{{count}} jour d'essai restant",
+    "trialDaysLeft_other": "{{count}} jours d'essai restants"
   },
   "pricing": {
     "title": "Choisissez votre offre",

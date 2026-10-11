@@ -1,6 +1,7 @@
 import { Feature } from '@/types/auth'
 import type { FeatureAccess } from '@/types/auth'
 import i18n from '@/i18n'
+import { getWebBaseUrl } from '@/services/config/appEnvironment'
 
 export { Feature }
 
@@ -28,5 +29,5 @@ export function getUpgradeMessage(access: FeatureAccess): string | null {
 }
 
 export function getUpgradeUrl(): string {
-  return 'https://www.queenmama.co/pricing'
+  return `${getWebBaseUrl()}/pricing`
 }

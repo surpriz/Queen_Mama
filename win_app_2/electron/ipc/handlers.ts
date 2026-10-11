@@ -9,7 +9,8 @@ import Store from 'electron-store'
 import { executeQuery, executeQueryGet, executeQueryAll, walCheckpoint } from '../db/database'
 import { startOAuthServer, stopOAuthServer } from '../services/oauthServer'
 import { refreshToken as refreshAuthToken } from '../services/authTokenService'
-import { checkForUpdates, quitAndInstall } from '../services/updater'
+import { checkForUpdates, quitAndInstall, setUpdaterPrefs } from '../services/updater'
+import { startMonitoring, stopMonitoring } from '../services/meetingDetectionService'
 import { safeSendToWindow, safeSendToOverlayWindows, safeSendToMainWindow } from '../utils/ipcUtils'
 import {
   toggleOverlay,
@@ -30,16 +31,45 @@ const store = new Store()
 // Persistent device ID
 let cachedDeviceId: string | null = null
 
+/**
+ * The device id lives OUTSIDE userData: the NSIS uninstaller wipes userData
+ * (`deleteAppDataOnUninstall`), so a reinstall used to mint a new device and
+ * burn one more slot of the user's device limit. An existing userData id is
+ * migrated once (mac keeps it in the Keychain for the same reason).
+ */
 function getDeviceId(): string {
   if (cachedDeviceId) return cachedDeviceId
 
-  const deviceIdPath = path.join(app.getPath('userData'), 'device-id')
-  try {
-    cachedDeviceId = fs.readFileSync(deviceIdPath, 'utf-8').trim()
-  } catch {
-    cachedDeviceId = uuidv4()
-    fs.writeFileSync(deviceIdPath, cachedDeviceId, 'utf-8')
+  const legacyPath = path.join(app.getPath('userData'), 'device-id')
+  const stableDir = path.join(app.getPath('appData'), 'QueenMama')
+  const stablePath = path.join(stableDir, 'device-id')
+
+  const readId = (p: string): string | null => {
+    try {
+      const value = fs.readFileSync(p, 'utf-8').trim()
+      return value.length > 0 ? value : null
+    } catch {
+      return null
+    }
   }
+
+  let id = readId(stablePath)
+  if (!id) {
+    id = readId(legacyPath) ?? uuidv4()
+    try {
+      fs.mkdirSync(stableDir, { recursive: true })
+      fs.writeFileSync(stablePath, id, 'utf-8')
+    } catch (error) {
+      console.warn('[IPC] Could not persist device id outside userData:', error)
+    }
+  }
+  // Keep the legacy copy in sync for older code paths
+  try {
+    if (readId(legacyPath) !== id) fs.writeFileSync(legacyPath, id, 'utf-8')
+  } catch {
+    /* noop */
+  }
+  cachedDeviceId = id
   return cachedDeviceId
 }
 
@@ -386,6 +416,12 @@ export function registerIPCHandlers(): void {
 
   // Meeting detection dismiss
   ipcMain.on(IPC_CHANNELS.MEETING_DISMISS, () => hideMeetingNotification())
+  ipcMain.on(IPC_CHANNELS.MEETING_MONITOR_START, () => startMonitoring())
+  ipcMain.on(IPC_CHANNELS.MEETING_MONITOR_STOP, () => stopMonitoring())
+
+  ipcMain.on(IPC_CHANNELS.UPDATER_SET_PREFS, (_event, prefs: { autoCheck?: boolean; autoDownload?: boolean }) => {
+    setUpdaterPrefs(prefs)
+  })
 
   // i18n: language changed from renderer
   ipcMain.on(IPC_CHANNELS.I18N_LANGUAGE_CHANGED, (_event, _lang: string, strings: { startSession: string; stopSession: string; showHideWidget: string; openDashboard: string; quit: string }) => {

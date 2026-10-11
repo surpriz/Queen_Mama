@@ -16,6 +16,8 @@ interface UpdaterState {
   percent: number
   errorMessage: string | null
   dismissedForSession: boolean
+  lastCheckedAt: string | null
+  setLastCheckedAt: (iso: string) => void
   setStatus: (status: UpdaterStatus) => void
   setAvailable: (version: string | null) => void
   setProgress: (percent: number) => void
@@ -32,6 +34,8 @@ export const useUpdaterStore = create<UpdaterState>((set) => ({
   percent: 0,
   errorMessage: null,
   dismissedForSession: false,
+  lastCheckedAt: null,
+  setLastCheckedAt: (iso) => set({ lastCheckedAt: iso }),
   setStatus: (status) => set({ status }),
   setAvailable: (version) =>
     set({ status: 'downloading', version, percent: 0, errorMessage: null }),

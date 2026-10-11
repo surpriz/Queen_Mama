@@ -26,6 +26,14 @@ export function detectSystemLanguage(): SupportedLanguage {
   return isSupportedLanguage(sysLang) ? sysLang : 'en'
 }
 
+export const SYSTEM_LANGUAGE = 'system'
+
+/** Config value → concrete language ('system' follows the OS, mac parity). */
+export function resolveUiLanguage(value: string | undefined | null): SupportedLanguage {
+  if (!value || value === SYSTEM_LANGUAGE) return detectSystemLanguage()
+  return isSupportedLanguage(value) ? value : detectSystemLanguage()
+}
+
 i18n.use(initReactI18next).init({
   lng: 'en',
   fallbackLng: 'en',

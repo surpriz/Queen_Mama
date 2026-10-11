@@ -9,7 +9,11 @@ import { useAppStore } from '@/stores/appStore'
 import { useAuthStore } from '@/stores/authStore'
 import { useLicenseStore } from '@/stores/licenseStore'
 import { PricingModal } from '@/components/license/PricingModal'
+import { openDashboardWithMagicLink } from '@/services/auth/magicLinkService'
 import type { NavItem } from './DashboardLayout'
+
+// Matches mac (DashboardView.swift): feedback board, not a marketing page
+const FEEDBACK_URL = 'https://queenmama.featurebase.app'
 
 interface SidebarProps {
   activeItem: NavItem
@@ -38,6 +42,7 @@ function AudioLevelBar({ level }: { level: number }) {
 function LicenseBadge() {
   const { t } = useTranslation()
   const plan = useLicenseStore((s) => s.currentLicense.plan)
+  const trial = useLicenseStore((s) => s.currentLicense.trial)
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated)
   const isPro = useLicenseStore((s) => s.isPro)
   const dailyLimit = useLicenseStore((s) => s.currentLicense.features.dailyAiRequestLimit)
@@ -58,9 +63,17 @@ function LicenseBadge() {
         <div className="flex items-center justify-center w-5 h-5 rounded-full bg-gradient-to-br from-qm-gradient-start to-qm-gradient-end shadow-qm-glow">
           <Crown size={11} className="text-white" />
         </div>
-        <span className="text-caption font-semibold text-qm-text-primary tracking-wide">
-          {plan.charAt(0) + plan.slice(1).toLowerCase()}
-        </span>
+        <div className="flex flex-col min-w-0">
+          <span className="text-caption font-semibold text-qm-text-primary tracking-wide">
+            {plan.charAt(0) + plan.slice(1).toLowerCase()}
+            {trial?.isActive && <span className="ml-1 text-qm-text-tertiary font-medium">· {t('license.trial')}</span>}
+          </span>
+          {trial?.isActive && (
+            <span className="text-caption-sm text-qm-text-tertiary">
+              {t('license.trialDaysLeft', { count: trial.daysRemaining })}
+            </span>
+          )}
+        </div>
       </div>
     )
   }
@@ -111,8 +124,9 @@ export function Sidebar({ activeItem, onItemClick }: SidebarProps) {
     return () => clearInterval(interval)
   }, [isSessionActive])
 
+  // Auto-login through a magic link (mac parity); falls back to the plain URL
   const handleOpenWebDashboard = () => {
-    window.open('https://queenmama.co/dashboard', '_blank')
+    void openDashboardWithMagicLink('/dashboard')
   }
 
   return (
@@ -239,7 +253,7 @@ export function Sidebar({ activeItem, onItemClick }: SidebarProps) {
           </div>
         )}
         <button
-          onClick={() => window.open('https://queenmama.co/feedback', '_blank')}
+          onClick={() => window.electronAPI?.openExternal(FEEDBACK_URL)}
           className="flex items-center gap-1.5 text-caption-sm text-qm-text-tertiary hover:text-qm-text-secondary transition-colors"
         >
           <MessageSquareText size={10} />

@@ -1,14 +1,45 @@
 import { createLogger } from '@/lib/logger'
-import { captureError, setTag } from '@/services/crash/crashReporter'
-import { useLicenseStore } from '@/stores/licenseStore'
+import { captureError, captureMessage, setTag } from '@/services/crash/crashReporter'
+import { useLicenseStore, todayKey } from '@/stores/licenseStore'
 import { useAuthStore } from '@/stores/authStore'
 import * as authApi from '../auth/authApiClient'
 import type { License } from '@/types/auth'
-import { FREE_LICENSE } from '@/types/auth'
+import { FREE_LICENSE, SubscriptionPlan } from '@/types/auth'
+import { verifyLicenseSignature, getLicenseSecret } from './licenseSignature'
 
 const log = createLogger('License')
 
-const GRACE_PERIOD_DAYS = 7
+/** Offline grace: 7 days for paid plans, 1 day otherwise (mac parity). */
+export function cacheGraceDays(plan: SubscriptionPlan | string): number {
+  return plan === SubscriptionPlan.Pro || plan === SubscriptionPlan.Enterprise ? 7 : 1
+}
+
+/** Usage counters are per calendar day; the old code never reset them locally. */
+export function ensureUsageDay(): void {
+  const store = useLicenseStore.getState()
+  const today = todayKey()
+  if (store.usageDay !== today) {
+    if (store.usageDay !== null) log.info('New day — resetting usage counters')
+    store.resetUsage()
+  }
+}
+
+async function loadVerifiedCache(): Promise<License | null> {
+  const cachedJson = (await window.electronAPI?.store.get('cached_license')) as string | null
+  if (!cachedJson) return null
+  try {
+    const cached: License = JSON.parse(cachedJson)
+    const check = await verifyLicenseSignature(cached, getLicenseSecret())
+    if (check === 'invalid') {
+      log.warn('SECURITY: cached license has an invalid signature — ignoring it')
+      captureMessage('license_cached_signature_invalid', 'warning').catch(() => undefined)
+      return null
+    }
+    return cached
+  } catch {
+    return null
+  }
+}
 const REVALIDATION_INTERVAL = 60 * 60 * 1000 // 60 minutes
 
 let revalidationTimer: ReturnType<typeof setInterval> | null = null
@@ -23,10 +54,21 @@ export async function revalidate(): Promise<void> {
   }
 
   licenseStore.setValidating(true)
+  ensureUsageDay()
 
   try {
     const deviceInfo = await window.electronAPI?.getDeviceInfo()
-    const license = await authApi.validateLicense(deviceInfo?.deviceId || 'unknown')
+    const fetched = await authApi.validateLicense(deviceInfo?.deviceId || 'unknown')
+
+    // Verify the HMAC before trusting the response (mac parity). Only enforced
+    // when a LICENSE_SECRET is built in; otherwise the server is trusted.
+    const check = await verifyLicenseSignature(fetched, getLicenseSecret())
+    let license = fetched
+    if (check === 'invalid') {
+      log.warn('SECURITY: invalid license signature — falling back to cache / FREE')
+      captureMessage('license_signature_invalid', 'warning').catch(() => undefined)
+      license = (await loadVerifiedCache()) ?? FREE_LICENSE
+    }
 
     licenseStore.setLicense(license)
     licenseStore.setLastValidatedAt(new Date().toISOString())
@@ -36,21 +78,23 @@ export async function revalidate(): Promise<void> {
 
     // Update usage from server
     if (license.usage) {
-      // Direct state update via store
       useLicenseStore.setState({
         smartModeUsedToday: license.usage.smartModeUsedToday,
         aiRequestsToday: license.usage.aiRequestsToday,
+        usageDay: todayKey(),
       })
     }
 
-    // Cache
-    await window.electronAPI?.store.set('cached_license', JSON.stringify(license))
-    await window.electronAPI?.store.set(
-      'cached_license_expiry',
-      Date.now() + GRACE_PERIOD_DAYS * 24 * 60 * 60 * 1000,
-    )
+    // Cache (grace period depends on the plan)
+    if (check !== 'invalid') {
+      await window.electronAPI?.store.set('cached_license', JSON.stringify(license))
+      await window.electronAPI?.store.set(
+        'cached_license_expiry',
+        Date.now() + cacheGraceDays(license.plan) * 24 * 60 * 60 * 1000,
+      )
+    }
 
-    log.info(`License validated: ${license.plan} (${license.status})`)
+    log.info(`License validated: ${license.plan} (${license.status}, signature ${check})`)
 
     // Broadcast to ALL windows so overlay stays in sync
     broadcastLicenseState()
@@ -62,22 +106,18 @@ export async function revalidate(): Promise<void> {
     )
     licenseStore.setOffline(true)
 
-    // Use cached license
-    const cachedJson = (await window.electronAPI?.store.get('cached_license')) as string | null
-    if (cachedJson) {
-      try {
-        const cached: License = JSON.parse(cachedJson)
-        const expiry = (await window.electronAPI?.store.get('cached_license_expiry')) as
-          | number
-          | null
-        if (expiry && Date.now() < expiry) {
-          licenseStore.setLicense(cached)
-        } else {
-          licenseStore.setLicense(FREE_LICENSE)
-        }
-      } catch {
+    // Use cached license (signature re-checked) within its grace period
+    const cached = await loadVerifiedCache()
+    if (cached) {
+      const expiry = (await window.electronAPI?.store.get('cached_license_expiry')) as number | null
+      if (expiry && Date.now() < expiry) {
+        licenseStore.setLicense(cached)
+      } else {
+        log.warn('Cached license expired — dropping to FREE')
         licenseStore.setLicense(FREE_LICENSE)
       }
+    } else {
+      licenseStore.setLicense(FREE_LICENSE)
     }
 
     // The failure path used to stay local: a window that fell back to the
@@ -122,6 +162,7 @@ function broadcastLicenseState(): void {
 export function startPeriodicRevalidation(): void {
   stopPeriodicRevalidation()
   revalidationTimer = setInterval(async () => {
+    ensureUsageDay()
     const authStore = useAuthStore.getState()
     if (!authStore.isAuthenticated) return
 
@@ -164,6 +205,7 @@ export async function resetOnLogout(): Promise<void> {
 }
 
 export async function recordUsage(feature: string, provider?: string): Promise<void> {
+  ensureUsageDay()
   const licenseStore = useLicenseStore.getState()
 
   switch (feature) {

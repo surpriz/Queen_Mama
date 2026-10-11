@@ -7,6 +7,8 @@
  */
 
 import { createLogger } from '@/lib/logger'
+import { useLicenseStore } from '@/stores/licenseStore'
+import { Feature } from '@/types/auth'
 import { getApiBaseUrl } from '@/services/config/appEnvironment'
 import { getAccessToken } from '@/services/auth/authenticationManager'
 import * as contactDb from './contactDb'
@@ -84,6 +86,10 @@ function getBaseUrl(): string {
  */
 export async function pushContacts(): Promise<void> {
   if (state.isSyncing) return
+  if (!useLicenseStore.getState().isFeatureAvailable(Feature.SessionSync)) {
+    log.info('Push skipped: cloud sync not included in the current plan')
+    return
+  }
 
   state.isSyncing = true
   state.lastError = null

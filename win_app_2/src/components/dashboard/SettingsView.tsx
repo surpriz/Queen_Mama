@@ -20,6 +20,12 @@ import {
   isNetworkOnline,
 } from '@/services/sync/syncManager'
 import { useUpdaterStore } from '@/stores/updaterStore'
+import { Modal } from '@/components/common/Modal'
+import { ProFeatureBanner } from '@/components/license/ProFeatureBanner'
+import { openDashboardWithMagicLink } from '@/services/auth/magicLinkService'
+import { SUPPORTED_LANGUAGES, SYSTEM_LANGUAGE } from '@/i18n'
+
+const CHANGELOG_URL = 'https://github.com/surpriz/Queen_Mama/releases'
 
 type SettingsTab = 'account' | 'general' | 'autoAnswer' | 'proactive' | 'audio' | 'translation' | 'sync' | 'shortcuts' | 'updates'
 
@@ -39,6 +45,8 @@ export function SettingsView() {
   const [appVersion, setAppVersion] = useState<string>('')
   const [isCheckingUpdate, setIsCheckingUpdate] = useState(false)
   const [showPricing, setShowPricing] = useState(false)
+  const [confirmSignOut, setConfirmSignOut] = useState(false)
+  const lastCheckedAt = useUpdaterStore((s) => s.lastCheckedAt)
   const updaterStatus = useUpdaterStore((s) => s.status)
   const updaterVersion = useUpdaterStore((s) => s.version)
   const updaterPercent = useUpdaterStore((s) => s.percent)
@@ -113,6 +121,19 @@ export function SettingsView() {
   const handleToggle = (key: keyof typeof config, value: boolean) => {
     config.updateConfig({ [key]: value })
   }
+
+  /** Enabling a gated feature opens the pricing modal instead (mac parity). */
+  const handleGatedToggle = (key: keyof typeof config, feature: Feature, value: boolean) => {
+    if (value && license.canUse(feature).type !== 'allowed') {
+      setShowPricing(true)
+      return
+    }
+    config.updateConfig({ [key]: value })
+  }
+
+  const trial = license.currentLicense.trial
+  const smartLimit = license.currentLicense.features.smartModeLimit
+  const canSync = license.canUse(Feature.SessionSync).type === 'allowed'
 
   const handleSyncNow = async () => {
     setIsSyncing(true)
@@ -230,20 +251,71 @@ export function SettingsView() {
                   </div>
                   <div className="flex justify-between items-center">
                     <span className="text-body-sm text-qm-text-secondary">{t('auth.plan', { ns: 'common' })}</span>
-                    <span className={cn(
-                      "text-body-sm font-medium capitalize",
-                      license.isPro() ? "text-qm-warning" : "text-qm-accent"
-                    )}>
-                      {license.currentLicense.plan}
-                    </span>
+                    <div className="flex items-center gap-2">
+                      <span className={cn(
+                        "text-body-sm font-medium capitalize",
+                        license.isPro() ? "text-qm-warning" : "text-qm-accent"
+                      )}>
+                        {license.currentLicense.plan}
+                      </span>
+                      {trial?.isActive && (
+                        <span className="text-caption text-qm-text-tertiary px-2 py-0.5 rounded-full bg-qm-surface-medium">
+                          {t('license.trialDaysLeft', { ns: 'common', count: trial.daysRemaining })}
+                        </span>
+                      )}
+                      {license.isValidating && (
+                        <span className="text-caption text-qm-text-tertiary">{t('settings.account.validating')}</span>
+                      )}
+                    </div>
                   </div>
+                  {license.currentLicense.features.smartModeEnabled && smartLimit ? (
+                    <div className="flex justify-between items-center">
+                      <span className="text-body-sm text-qm-text-secondary">{t('settings.account.smartUsage')}</span>
+                      <span className="text-body-sm text-qm-text-primary tabular-nums">
+                        {license.smartModeUsedToday}/{smartLimit}
+                      </span>
+                    </div>
+                  ) : null}
+                  {!license.isEnterprise() && (
+                    <button
+                      onClick={() => setShowPricing(true)}
+                      className="w-full mt-2 px-4 py-2 rounded-qm-md bg-gradient-to-r from-qm-gradient-start to-qm-gradient-end text-white text-body-sm font-medium hover:shadow-qm-glow transition-all"
+                    >
+                      {license.isPro() ? t('pricing.upgradeEnterprise', { ns: 'common' }) : t('pricing.upgradePro', { ns: 'common' })}
+                    </button>
+                  )}
                   <button
-                    onClick={() => logout()}
+                    onClick={() => setConfirmSignOut(true)}
                     className="w-full mt-2 px-4 py-2 rounded-qm-md bg-qm-surface-medium hover:bg-qm-error-light text-body-sm text-qm-text-secondary hover:text-qm-error transition-colors"
                   >
                     {t('auth.signOut', { ns: 'common' })}
                   </button>
                 </div>
+                <Modal
+                  isOpen={confirmSignOut}
+                  onClose={() => setConfirmSignOut(false)}
+                  title={t('settings.account.signOutConfirmTitle')}
+                  subtitle={t('settings.account.signOutConfirmBody')}
+                  size="sm"
+                >
+                  <div className="flex gap-2 justify-end">
+                    <button
+                      onClick={() => setConfirmSignOut(false)}
+                      className="px-4 py-2 rounded-qm-md bg-qm-surface-medium hover:bg-qm-surface-hover text-body-sm text-qm-text-primary transition-colors"
+                    >
+                      {t('actions.cancel', { ns: 'common' })}
+                    </button>
+                    <button
+                      onClick={() => {
+                        setConfirmSignOut(false)
+                        void logout()
+                      }}
+                      className="px-4 py-2 rounded-qm-md bg-qm-error text-white text-body-sm font-medium hover:bg-red-600 transition-colors"
+                    >
+                      {t('auth.signOut', { ns: 'common' })}
+                    </button>
+                  </div>
+                </Modal>
                 </div>
               )}
 
@@ -258,7 +330,7 @@ export function SettingsView() {
                   label={t('settings.general.smartMode')}
                   description={t('settings.general.smartModeDescription')}
                   enabled={config.smartModeEnabled}
-                  onToggle={(v) => handleToggle('smartModeEnabled', v)}
+                  onToggle={(v) => handleGatedToggle('smartModeEnabled', Feature.SmartMode, v)}
                 />
                 <AIModelSelector
                   selected={config.selectedAIModel}
@@ -339,8 +411,30 @@ export function SettingsView() {
                   label={t('settings.general.contextIntelligence')}
                   description={t('settings.general.contextIntelligenceDescription')}
                   enabled={config.knowledgeEnabled}
-                  onToggle={(v) => handleToggle('knowledgeEnabled', v)}
+                  onToggle={(v) => handleGatedToggle('knowledgeEnabled', Feature.KnowledgeBase, v)}
                 />
+                <ToggleRow
+                  label={t('settings.general.meetingReminders')}
+                  description={t('settings.general.meetingRemindersDescription')}
+                  enabled={config.meetingDetectionEnabled}
+                  onToggle={(v) => handleToggle('meetingDetectionEnabled', v)}
+                />
+                <div className="flex items-start justify-between py-2 gap-4">
+                  <div className="flex-1">
+                    <p className="text-body-sm text-qm-text-primary">{t('settings.language.uiLanguage')}</p>
+                    <p className="text-caption text-qm-text-tertiary">{t('settings.language.uiLanguageDescription')}</p>
+                  </div>
+                  <select
+                    value={config.uiLanguage}
+                    onChange={(e) => config.updateConfig({ uiLanguage: e.target.value })}
+                    className="px-2 py-1.5 rounded-qm-sm bg-qm-surface-medium text-body-sm text-qm-text-primary"
+                  >
+                    <option value={SYSTEM_LANGUAGE}>{t('settings.language.system')}</option>
+                    {SUPPORTED_LANGUAGES.map((l) => (
+                      <option key={l.code} value={l.code}>{t(`settings.language.names.${l.code}`)}</option>
+                    ))}
+                  </select>
+                </div>
                 <ToggleRow
                   label={t('settings.general.instantResponses')}
                   description={t('settings.general.instantResponsesDescription')}
@@ -389,7 +483,7 @@ export function SettingsView() {
                   label={t('settings.autoAnswer.enable')}
                   description={t('settings.autoAnswer.enableDescription')}
                   enabled={config.autoAnswerEnabled}
-                  onToggle={(v) => handleToggle('autoAnswerEnabled', v)}
+                  onToggle={(v) => handleGatedToggle('autoAnswerEnabled', Feature.AutoAnswer, v)}
                 />
                 <SliderRow
                   label={t('settings.autoAnswer.silenceThreshold')}
@@ -520,13 +614,24 @@ export function SettingsView() {
                   onToggle={(v) => handleToggle('vadEnabled', v)}
                 />
                 <AudioLevelTest />
+                <SystemAudioLevelTest />
               </div>
             </section>
           )}
 
           {activeTab === 'translation' && <TranslationSettingsView />}
 
-          {activeTab === 'sync' && (
+          {activeTab === 'sync' && !canSync && (
+            <section>
+              <h3 className="text-headline font-semibold text-qm-text-primary mb-4">{t('settings.sync.title')}</h3>
+              <ProFeatureBanner
+                featureName={t('settings.sync.cloudSync')}
+                description={t('license.proSyncAvailable', { ns: 'common' })}
+              />
+            </section>
+          )}
+
+          {activeTab === 'sync' && canSync && (
             <section>
               <h3 className="text-headline font-semibold text-qm-text-primary mb-4">{t('settings.sync.title')}</h3>
               <div className="qm-card p-4 space-y-3">
@@ -542,17 +647,22 @@ export function SettingsView() {
                     {t('settings.sync.lastSynced', { time: new Date(lastSync).toLocaleString() })}
                   </p>
                 )}
-                <p className="text-caption text-qm-text-tertiary">
-                  {t('license.proSyncAvailable', { ns: 'common' })}
-                </p>
                 {isAuthenticated && (
-                  <button
-                    onClick={handleSyncNow}
-                    disabled={isSyncing}
-                    className="w-full px-4 py-2 rounded-qm-md bg-qm-surface-medium hover:bg-qm-surface-pressed text-body-sm text-qm-text-primary transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    {isSyncing ? t('settings.sync.syncing') : t('settings.sync.syncNow')}
-                  </button>
+                  <>
+                    <button
+                      onClick={handleSyncNow}
+                      disabled={isSyncing}
+                      className="w-full px-4 py-2 rounded-qm-md bg-qm-surface-medium hover:bg-qm-surface-pressed text-body-sm text-qm-text-primary transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {isSyncing ? t('settings.sync.syncing') : t('settings.sync.syncNow')}
+                    </button>
+                    <button
+                      onClick={() => void openDashboardWithMagicLink('/dashboard/sessions')}
+                      className="w-full px-4 py-2 rounded-qm-md text-body-sm text-qm-accent hover:bg-qm-surface-light transition-colors"
+                    >
+                      {t('settings.sync.viewOnDashboard')}
+                    </button>
+                  </>
                 )}
               </div>
             </section>
@@ -600,6 +710,29 @@ export function SettingsView() {
                 {updateStatus && (
                   <p className="text-caption text-qm-text-tertiary">{updateStatus}</p>
                 )}
+                {lastCheckedAt && (
+                  <p className="text-caption text-qm-text-tertiary">
+                    {t('settings.updates.lastChecked', { time: new Date(lastCheckedAt).toLocaleString() })}
+                  </p>
+                )}
+                <ToggleRow
+                  label={t('settings.updates.autoCheck')}
+                  description={t('settings.updates.autoCheckDescription')}
+                  enabled={config.autoCheckUpdates}
+                  onToggle={(v) => handleToggle('autoCheckUpdates', v)}
+                />
+                <ToggleRow
+                  label={t('settings.updates.autoDownload')}
+                  description={t('settings.updates.autoDownloadDescription')}
+                  enabled={config.autoDownloadUpdates}
+                  onToggle={(v) => handleToggle('autoDownloadUpdates', v)}
+                />
+                <button
+                  onClick={() => window.electronAPI?.openExternal?.(CHANGELOG_URL).catch(() => {})}
+                  className="text-caption text-qm-accent hover:underline"
+                >
+                  {t('settings.updates.changelog')}
+                </button>
                 {updateBlocked ? (
                   <>
                     <p className="text-caption text-qm-text-tertiary">
@@ -929,6 +1062,122 @@ function AudioLevelTest() {
         <div>
           <p className="text-body-sm text-qm-text-primary">{t('settings.audio.audioLevelTest')}</p>
           <p className="text-caption text-qm-text-tertiary">{t('settings.audio.audioLevelTestDescription')}</p>
+        </div>
+        <button
+          onClick={isTesting ? stopTest : startTest}
+          className={`px-3 py-1.5 rounded-qm-md text-caption font-medium transition-colors ${
+            isTesting
+              ? 'bg-red-500/20 text-red-400 hover:bg-red-500/30'
+              : 'bg-qm-accent/20 text-qm-accent hover:bg-qm-accent/30'
+          }`}
+        >
+          {isTesting ? t('settings.audio.stopTest') : t('settings.audio.startTest')}
+        </button>
+      </div>
+      <div className="flex items-center gap-0.5">
+        {Array.from({ length: LEVEL_SEGMENTS }).map((_, i) => (
+          <div
+            key={i}
+            className={`h-4 flex-1 rounded-sm transition-opacity ${SEGMENT_COLORS[i]} ${
+              i < activeSegments ? 'opacity-100' : 'opacity-15'
+            }`}
+          />
+        ))}
+      </div>
+    </div>
+  )
+}
+
+type SystemAudioTestState = 'idle' | 'testing' | 'unavailable' | 'denied'
+
+/**
+ * System-audio (desktop loopback) meter, mac "Test system audio" parity. Uses
+ * the same desktop constraints as the capture service so a silent meter here
+ * means the "Interlocuteur" stream would be silent too.
+ */
+function SystemAudioLevelTest() {
+  const { t } = useTranslation('dashboard')
+  const [state, setState] = useState<SystemAudioTestState>('idle')
+  const [level, setLevel] = useState(0)
+  const streamRef = useRef<MediaStream | null>(null)
+  const contextRef = useRef<AudioContext | null>(null)
+  const rafRef = useRef<number>(0)
+
+  const stopTest = useCallback(() => {
+    if (rafRef.current) cancelAnimationFrame(rafRef.current)
+    streamRef.current?.getTracks().forEach((track) => track.stop())
+    contextRef.current?.close().catch(() => undefined)
+    streamRef.current = null
+    contextRef.current = null
+    setLevel(0)
+    setState('idle')
+  }, [])
+
+  const startTest = useCallback(async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        audio: { mandatory: { chromeMediaSource: 'desktop' } } as unknown as MediaTrackConstraints,
+        video: {
+          mandatory: { chromeMediaSource: 'desktop', minWidth: 1, maxWidth: 1, minHeight: 1, maxHeight: 1 },
+        } as unknown as MediaTrackConstraints,
+      })
+      stream.getVideoTracks().forEach((track) => track.stop())
+      const audioTracks = stream.getAudioTracks()
+      if (audioTracks.length === 0) {
+        setState('unavailable')
+        return
+      }
+      const audioStream = new MediaStream(audioTracks)
+      streamRef.current = audioStream
+      const ctx = new AudioContext()
+      contextRef.current = ctx
+      const source = ctx.createMediaStreamSource(audioStream)
+      const analyser = ctx.createAnalyser()
+      analyser.fftSize = 256
+      source.connect(analyser)
+
+      const dataArray = new Uint8Array(analyser.frequencyBinCount)
+      const tick = () => {
+        analyser.getByteTimeDomainData(dataArray)
+        let sum = 0
+        for (let i = 0; i < dataArray.length; i++) {
+          const v = (dataArray[i] - 128) / 128
+          sum += v * v
+        }
+        setLevel(Math.min(1, Math.sqrt(sum / dataArray.length) * 4))
+        rafRef.current = requestAnimationFrame(tick)
+      }
+      tick()
+      setState('testing')
+    } catch (error) {
+      const name = (error as { name?: string } | null)?.name
+      setState(name === 'NotAllowedError' ? 'denied' : 'unavailable')
+    }
+  }, [])
+
+  useEffect(() => {
+    return () => {
+      if (rafRef.current) cancelAnimationFrame(rafRef.current)
+      streamRef.current?.getTracks().forEach((track) => track.stop())
+      contextRef.current?.close().catch(() => undefined)
+    }
+  }, [])
+
+  const activeSegments = Math.round(level * LEVEL_SEGMENTS)
+  const isTesting = state === 'testing'
+
+  return (
+    <div className="pt-3 border-t border-qm-border-subtle">
+      <div className="flex items-center justify-between mb-2">
+        <div>
+          <p className="text-body-sm text-qm-text-primary">{t('settings.audio.systemAudioTest')}</p>
+          <p className="text-caption text-qm-text-tertiary">
+            {state === 'unavailable'
+              ? t('settings.audio.systemAudioUnavailable')
+              : state === 'denied'
+                ? t('settings.audio.systemAudioDenied')
+                : t('settings.audio.systemAudioTestDescription')}
+          </p>
         </div>
         <button
           onClick={isTesting ? stopTest : startTest}

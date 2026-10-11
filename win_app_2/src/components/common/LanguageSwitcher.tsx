@@ -1,24 +1,24 @@
 import { useTranslation } from 'react-i18next'
 import { useConfigStore } from '@/stores/configStore'
-import { SUPPORTED_LANGUAGES } from '@/i18n'
-import { getTrayStrings } from '@/i18n/trayTranslations'
+import { SUPPORTED_LANGUAGES, SYSTEM_LANGUAGE } from '@/i18n'
 import { cn } from '@/lib/utils'
 
 export function LanguageSwitcher() {
-  const { i18n } = useTranslation()
+  const { t } = useTranslation('dashboard')
   const uiLanguage = useConfigStore((s) => s.uiLanguage)
   const updateConfig = useConfigStore((s) => s.updateConfig)
 
+  // configStore resolves 'system' and syncs i18next + the tray
   const handleChange = (lang: string) => {
     if (lang === uiLanguage) return
-    i18n.changeLanguage(lang)
     updateConfig({ uiLanguage: lang })
-    window.electronAPI?.notifyLanguageChange?.(lang, getTrayStrings(lang))
   }
+
+  const OPTIONS = [{ code: SYSTEM_LANGUAGE, label: t('settings.language.system') }, ...SUPPORTED_LANGUAGES]
 
   return (
     <div className="flex items-center gap-1 px-2 py-1">
-      {SUPPORTED_LANGUAGES.map(({ code, label }, idx) => (
+      {OPTIONS.map(({ code, label }, idx) => (
         <span key={code} className="flex items-center gap-1">
           <button
             onClick={() => handleChange(code)}
@@ -31,7 +31,7 @@ export function LanguageSwitcher() {
           >
             {label}
           </button>
-          {idx < SUPPORTED_LANGUAGES.length - 1 && (
+          {idx < OPTIONS.length - 1 && (
             <span className="text-qm-text-disabled text-caption">|</span>
           )}
         </span>

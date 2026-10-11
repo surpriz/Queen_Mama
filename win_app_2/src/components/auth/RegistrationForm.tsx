@@ -24,7 +24,14 @@ export function RegistrationForm({ onBack }: RegistrationFormProps) {
     try {
       await registerWithCredentials(name, email, password)
     } catch (err) {
-      setError(err instanceof Error ? err.message : t('auth.registrationFailed'))
+      const code = (err as { code?: string } | null)?.code
+      if (code === 'email_exists') {
+        setError(t('auth.emailAlreadyExists'))
+      } else if (code === 'oauth_account_exists') {
+        setError(t('auth.googleLinkedDescription', { email }))
+      } else {
+        setError(err instanceof Error ? err.message : t('auth.registrationFailed'))
+      }
       setIsLoading(false)
     }
   }
