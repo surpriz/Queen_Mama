@@ -42,6 +42,18 @@ export interface AiStateRelay {
   isProcessing: boolean
 }
 
+/** Lightweight interim update (the full transcript is only relayed on finals). */
+export interface InterimRelay {
+  interim: string
+}
+
+/** Which audio sources are live (host → UI badges). */
+export interface AudioHealthRelay {
+  micAvailable: boolean
+  systemAudioAvailable: boolean
+  systemAudioReceiving: boolean
+}
+
 export interface AiResponseHistoryEntry {
   id: string
   type: ResponseType | string
@@ -91,6 +103,8 @@ export interface RelayChannels {
   'relay:transcript': TranscriptRelay
   'relay:audio-level': { audioLevel: number }
   'relay:ai-state': AiStateRelay
+  'relay:interim': InterimRelay
+  'relay:audio-health': AudioHealthRelay
   'relay:ai-response': AiResponseRelay
   'relay:dictation': DictationRelay
   'relay:moment': MomentRelay

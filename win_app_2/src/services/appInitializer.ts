@@ -21,7 +21,7 @@ import * as licenseManager from '@/services/license/licenseManager'
 import * as syncManager from '@/services/sync/syncManager'
 import { useAuthStore } from '@/stores/authStore'
 import { initializeDatabase } from '@/db/client'
-import { loadSessions } from '@/services/session/sessionManager'
+import { loadSessions, closeOrphanSessions } from '@/services/session/sessionManager'
 import * as contactDb from '@/services/contacts/contactDb'
 import * as contactSyncService from '@/services/contacts/contactSyncService'
 import { useContactStore } from '@/stores/contactStore'
@@ -108,6 +108,11 @@ export function resetPostAuth(): void {
 
 async function initializeSessionHost(): Promise<void> {
   await initializeShared()
+  // Sessions left open by a crash / force-quit (mac closes them at launch)
+  await step('Orphan sessions', async () => {
+    const { closed, deleted } = await closeOrphanSessions()
+    if (closed || deleted) await loadSessions()
+  })
   await step('Analytics', () => analyticsService.start())
 
   // React to auth transitions no matter which window produced them (own

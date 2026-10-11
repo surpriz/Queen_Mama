@@ -75,10 +75,12 @@ export class DeepgramFluxProvider implements TranscriptionProvider {
         log.info('Connected')
         addBreadcrumb('transcription', 'DeepgramFlux WebSocket connected', 'info')
         this.startKeepalive()
-        // Diag heartbeat every 5s — proves audio is flowing both ways
-        this.diagInterval = setInterval(() => {
-          log.info(`[diag] DG state=${this.ws?.readyState} audioBytesSent=${this.audioBytesSent} messagesReceived=${this.messagesReceived}`)
-        }, 5000)
+        // Diag heartbeat every 5s — dev builds only (was logging in production)
+        if (import.meta.env.DEV) {
+          this.diagInterval = setInterval(() => {
+            log.info(`[diag] DG state=${this.ws?.readyState} audioBytesSent=${this.audioBytesSent} messagesReceived=${this.messagesReceived}`)
+          }, 5000)
+        }
         resolve()
       }
 
@@ -140,11 +142,24 @@ export class DeepgramFluxProvider implements TranscriptionProvider {
 
   disconnect(): void {
     this.stopKeepalive()
-    if (this.ws?.readyState === WebSocket.OPEN) {
-      this.ws.send(JSON.stringify({ type: 'CloseStream' }))
-      this.ws.close(1000)
+    if (this.diagInterval) {
+      clearInterval(this.diagInterval)
+      this.diagInterval = null
     }
+    const ws = this.ws
     this.ws = null
+    if (!ws) return
+    // Our own close must not look like a failure to the service
+    ws.onerror = null
+    ws.onclose = null
+    ws.onmessage = null
+    if (ws.readyState === WebSocket.OPEN) {
+      ws.send(JSON.stringify({ type: 'CloseStream' }))
+      ws.close(1000)
+    } else if (ws.readyState === WebSocket.CONNECTING) {
+      // A CONNECTING socket used to leak: it opened later and started its keepalive.
+      ws.close()
+    }
   }
 
   sendAudio(data: ArrayBuffer): void {

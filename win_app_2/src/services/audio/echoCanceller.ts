@@ -32,6 +32,8 @@ const MAX_DELAY_SAMPLES = 9_600 // 0.6 s cross-correlation search range
 const MU = 0.5 // NLMS step size (0 < mu <= 1)
 const REGULARIZATION = 1e-6
 const DELAY_REFRESH_INTERVAL = 8_000 // re-estimate bulk delay ≈ every 0.5 s
+const NEAR_HISTORY = 1_600 // 100 ms of near-end kept for the delay cross-correlation
+const ERLE_LOG_INTERVAL_SAMPLES = 16_000 * 4 // log ERLE every ~4 s (was every 50 blocks ≈ 7 lines/s)
 // Geigel double-talk threshold: declare double-talk (freeze adaptation) when the mic
 // peak reaches this fraction of the far peak. Echo is an attenuated copy of the far
 // signal so it stays below; the user's voice crosses it. Biased low so we err toward
@@ -54,8 +56,14 @@ let samplesSinceDelayRefresh = 0
 let dtHold = 0 // remaining hangover samples during which adaptation stays frozen
 let erleNearAcc = 0
 let erleResidAcc = 0
-let processedBlocks = 0
+let samplesSinceErleLog = 0
 let hasReference = false
+// Mic buffers arrive in ~43-sample blocks (one 128-frame worklet block at 48 kHz
+// resampled to 16 kHz), far too short to cross-correlate. The delay estimator
+// therefore works on a rolling window of the most recent near-end samples.
+let nearRing = new Float32Array(NEAR_HISTORY)
+let nearWrite = 0
+let nearCount = 0
 
 /**
  * True once a far-end reference has been received and the filter has enough history
@@ -120,13 +128,20 @@ export function process(buffer: ArrayBuffer): ArrayBuffer {
   const available = Math.min(farCount, REFERENCE_CAPACITY)
   if (available < needed) return buffer
 
+  // Keep a rolling near-end window for the delay estimator.
+  for (let i = 0; i < n; i++) {
+    nearRing[nearWrite] = near[i]
+    nearWrite = (nearWrite + 1) % NEAR_HISTORY
+  }
+  nearCount += n
+
   // Periodically refresh the bulk-delay estimate — but only outside double-talk, since
   // the cross-correlation needs clean echo (the user's voice is uncorrelated with the
   // reference and would bias the lag estimate).
   samplesSinceDelayRefresh += n
-  if (samplesSinceDelayRefresh >= DELAY_REFRESH_INTERVAL && dtHold === 0) {
+  if (samplesSinceDelayRefresh >= DELAY_REFRESH_INTERVAL && dtHold === 0 && nearCount >= NEAR_HISTORY) {
     samplesSinceDelayRefresh = 0
-    refreshDelay(near)
+    refreshDelay(linearizedNear())
   }
 
   // Linearize the far window we need: ends `delaySamples` behind the write head and
@@ -197,8 +212,9 @@ export function process(buffer: ArrayBuffer): ArrayBuffer {
   // Accumulate ERLE (echo return loss enhancement) for diagnostics.
   erleNearAcc += nearEnergy
   erleResidAcc += residEnergy
-  processedBlocks += 1
-  if (processedBlocks % 50 === 0) {
+  samplesSinceErleLog += n
+  if (samplesSinceErleLog >= ERLE_LOG_INTERVAL_SAMPLES) {
+    samplesSinceErleLog = 0
     const erle = erleResidAcc > 0 ? 10 * Math.log10(erleNearAcc / erleResidAcc) : 0
     log.info(`ERLE=${erle.toFixed(1)}dB delay=${delaySamples} (${((delaySamples / SAMPLE_RATE) * 1000).toFixed(0)}ms)`)
     erleNearAcc = 0
@@ -219,8 +235,25 @@ export function reset(): void {
   dtHold = 0
   erleNearAcc = 0
   erleResidAcc = 0
-  processedBlocks = 0
+  samplesSinceErleLog = 0
   hasReference = false
+  nearRing = new Float32Array(NEAR_HISTORY)
+  nearWrite = 0
+  nearCount = 0
+}
+
+/** Current bulk-delay estimate in samples (diagnostics / tests). */
+export function getDelaySamples(): number {
+  return delaySamples
+}
+
+/** Oldest→newest copy of the near-end ring. */
+function linearizedNear(): Float32Array {
+  const out = new Float32Array(NEAR_HISTORY)
+  for (let i = 0; i < NEAR_HISTORY; i++) {
+    out[i] = nearRing[(nearWrite + i) % NEAR_HISTORY]
+  }
+  return out
 }
 
 /**
@@ -229,7 +262,7 @@ export function reset(): void {
  * strongest correlation becomes the new `delaySamples`.
  */
 function refreshDelay(near: Float32Array): void {
-  const win = Math.min(near.length, 1_600)
+  const win = Math.min(near.length, NEAR_HISTORY)
   if (win < 256) return
   const nearSlice = near.subarray(near.length - win)
 

@@ -4,6 +4,7 @@ import { useOverlayStore } from '@/stores/overlayStore'
 import { useLicenseStore } from '@/stores/licenseStore'
 import { useDictationStore } from '@/stores/dictationStore'
 import { useMomentStore } from '@/stores/momentStore'
+import { useAudioHealthStore } from '@/stores/audioHealthStore'
 import { loadSessions } from '@/services/session/sessionManager'
 import { modesService } from '@/services/modes/modesService'
 import * as relay from '@/services/relay/relayClient'
@@ -109,6 +110,11 @@ export function useRelaySync(): void {
         if (Math.abs(store.audioLevel - data.audioLevel) > 0.01) store.setAudioLevel(data.audioLevel)
       }),
       relay.on('relay:ai-state', applyAiState),
+      relay.on('relay:interim', (data) => {
+        const store = useAppStore.getState()
+        if (store.interimTranscript !== data.interim) store.setInterimTranscript(data.interim)
+      }),
+      relay.on('relay:audio-health', (data) => useAudioHealthStore.getState().apply(data)),
       relay.on('relay:ai-response', applyAiResponse),
       relay.on('relay:license', applyLicense),
       relay.on('relay:dictation', (data) => useDictationStore.getState().apply(data)),
@@ -125,6 +131,7 @@ export function useRelaySync(): void {
       if (snap['relay:session-state']) applySessionState(snap['relay:session-state'])
       if (snap['relay:transcript']) applyTranscript(snap['relay:transcript'])
       if (snap['relay:ai-state']) applyAiState(snap['relay:ai-state'])
+      if (snap['relay:audio-health']) useAudioHealthStore.getState().apply(snap['relay:audio-health'])
       if (snap['relay:dictation']) useDictationStore.getState().apply(snap['relay:dictation'])
       if (snap['relay:mode']) void applyMode(snap['relay:mode'])
     })

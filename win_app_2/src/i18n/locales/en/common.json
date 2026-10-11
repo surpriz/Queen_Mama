@@ -106,7 +106,8 @@
     "unexpectedError": "An unexpected error occurred",
     "transcriptionRetrying": "Transcription interrupted — retrying in {{seconds}}s",
     "transcriptionStopped": "Transcription stopped",
-    "transcriptionStoppedMessage": "The connection could not be restored. Restart the session to resume transcription."
+    "transcriptionStoppedMessage": "The connection could not be restored. Restart the session to resume transcription.",
+    "micUnavailable": "Microphone unavailable — only the other side will be transcribed"
   },
   "feedback": "Feedback",
   "giveFeedback": "Give Feedback",

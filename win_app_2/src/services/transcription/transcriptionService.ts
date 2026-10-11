@@ -3,7 +3,6 @@ import type { TranscriptionProvider, TranscriptionProviderType } from './types'
 import { DeepgramProvider } from './deepgramProvider'
 import { AssemblyAIProvider } from './assemblyAIProvider'
 import { DeepgramFluxProvider } from './deepgramFluxProvider'
-import { sleep } from '@/lib/utils'
 import { useConfigStore } from '@/stores/configStore'
 import { captureError, addBreadcrumb } from '../crash/crashReporter'
 
@@ -33,11 +32,17 @@ let autoRecoveryTimer: ReturnType<typeof setInterval> | null = null
 let autoRecoveryCountdown = 0
 let autoRecoveryAttempts = 0
 let stabilityTimer: ReturnType<typeof setTimeout> | null = null
+// Cancellable backoff sleeps (mic + system reconnects): stopping a session must
+// abort a pending reconnect instead of letting it wake up and tear down the
+// *next* session's provider.
+const pendingSleeps = new Set<{ timer: ReturnType<typeof setTimeout>; wake: () => void }>()
+// Reported to Sentry at most once per session (was: every retry)
+let allProvidersFailedReported = false
 
-// Audio batching state
+// Audio batching state (one-shot timers: nothing fires while no audio flows)
 let batchBuffer: ArrayBuffer[] = []
 let batchBufferSize = 0
-let batchTimer: ReturnType<typeof setInterval> | null = null
+let batchTimer: ReturnType<typeof setTimeout> | null = null
 
 // Diagnostic counters
 let audioChunksReceived = 0
@@ -69,7 +74,8 @@ let systemReconnectAttempts = 0
 const MAX_SYSTEM_RECONNECT_ATTEMPTS = 8
 let systemBatchBuffer: ArrayBuffer[] = []
 let systemBatchBufferSize = 0
-let systemBatchTimer: ReturnType<typeof setInterval> | null = null
+let systemBatchTimer: ReturnType<typeof setTimeout> | null = null
+let reconnectCount = 0 // per session, for health reporting
 
 // Track providers that returned 403 (not available for plan) to avoid retrying
 const unavailableProviders = new Set<string>()
@@ -88,6 +94,12 @@ function setupProviderCallbacks(provider: TranscriptionProvider): void {
     }
   }
   provider.onError = (error) => {
+    // A provider that lost the connect race (or an old one we already replaced)
+    // must not trigger a reconnect that replaces the working provider.
+    if (currentProvider !== provider) {
+      log.warn(`Ignoring error from inactive provider ${provider.name}: ${error.message}`)
+      return
+    }
     log.error(`Provider error: ${error.message}`)
     addBreadcrumb('transcription', `Provider ${provider.name} error: ${error.message}`, 'error')
     isConnected = false
@@ -121,11 +133,33 @@ export function setCallbacks(callbacks: {
 }
 
 /**
- * Reset intentional disconnect flag — must be called before connect() when starting a new session
+ * Reset intentional disconnect flag — must be called before connect() when starting a new session.
+ * This is the only place the reconnection budgets are reset: `connect()` is also
+ * used by retries, and resetting there made the 8-attempt cap / 10-min window
+ * unreachable (backoff never grew past ~3–4.5 s, auto-recovery never ran).
  */
 export function resetDisconnectFlag(): void {
   intentionalDisconnect = false
   autoRecoveryAttempts = 0 // fresh session = fresh recovery budget
+  reconnectAttempts = 0
+  reconnectTimestamps = []
+  reconnectCount = 0
+  allProvidersFailedReported = false
+}
+
+/** Number of reconnections performed during the current session (health reporting). */
+export function getReconnectCount(): number {
+  return reconnectCount
+}
+
+/** Explicitly set Deepgram diarization for the next connection (never sticks across sessions). */
+export function setDiarization(enabled: boolean): void {
+  for (const p of providers) {
+    if (p instanceof DeepgramProvider || p instanceof DeepgramFluxProvider) {
+      p.diarize = enabled
+    }
+  }
+  log.info(`Diarization ${enabled ? 'enabled (single-stream fallback)' : 'disabled (dual-stream)'}`)
 }
 
 export async function connect(): Promise<void> {
@@ -143,8 +177,6 @@ export async function connect(): Promise<void> {
     currentProvider.disconnect()
     currentProvider = null
   }
-  reconnectAttempts = 0
-  reconnectTimestamps = []
   stopAutoRecovery()
 
   // Set language from user config on all providers
@@ -165,6 +197,13 @@ export async function connect(): Promise<void> {
       setupProviderCallbacks(provider)
       await provider.connect()
 
+      // Session stopped while we were connecting → don't leak the socket
+      if (intentionalDisconnect) {
+        log.info('Connect completed after stop; closing provider')
+        provider.disconnect()
+        return
+      }
+
       currentProvider = provider
       currentProviderType = provider.name.toLowerCase().includes('assemblyai')
         ? 'assemblyai'
@@ -173,9 +212,6 @@ export async function connect(): Promise<void> {
           : 'deepgram'
       isConnected = true
       onConnectionChanged?.(true, provider.name)
-
-      // Start audio batch timer
-      startBatchTimer()
 
       log.info(`Connected with ${provider.name}`)
       return
@@ -195,12 +231,36 @@ export async function connect(): Promise<void> {
   isConnected = false
   onConnectionChanged?.(false, null)
   const finalError = lastError || new Error('All transcription providers failed')
-  captureError(finalError, {
-    service: 'transcription',
-    phase: 'all_providers_failed',
-    unavailable: Array.from(unavailableProviders),
-  })
+  if (!allProvidersFailedReported) {
+    allProvidersFailedReported = true
+    captureError(finalError, {
+      service: 'transcription',
+      phase: 'all_providers_failed',
+      unavailable: Array.from(unavailableProviders),
+    })
+  }
   throw finalError
+}
+
+function cancelPendingReconnect(): void {
+  for (const entry of pendingSleeps) {
+    clearTimeout(entry.timer)
+    entry.wake()
+  }
+  pendingSleeps.clear()
+}
+
+function reconnectSleep(ms: number): Promise<void> {
+  return new Promise((resolve) => {
+    const entry = {
+      timer: setTimeout(() => {
+        pendingSleeps.delete(entry)
+        resolve()
+      }, ms),
+      wake: resolve,
+    }
+    pendingSleeps.add(entry)
+  })
 }
 
 export function disconnect(): void {
@@ -211,6 +271,7 @@ export function disconnect(): void {
   flushBatch()
   stopBatchTimer()
   stopAutoRecovery()
+  cancelPendingReconnect()
   if (stabilityTimer) {
     clearTimeout(stabilityTimer)
     stabilityTimer = null
@@ -258,16 +319,17 @@ export function flushBatch(): void {
   }
 }
 
-function startBatchTimer(): void {
-  stopBatchTimer()
-  batchTimer = setInterval(() => {
+function scheduleBatchFlush(): void {
+  if (batchTimer) return
+  batchTimer = setTimeout(() => {
+    batchTimer = null
     flushBatch()
   }, BATCH_INTERVAL)
 }
 
 function stopBatchTimer(): void {
   if (batchTimer) {
-    clearInterval(batchTimer)
+    clearTimeout(batchTimer)
     batchTimer = null
   }
 }
@@ -279,9 +341,12 @@ export function sendAudio(data: ArrayBuffer): void {
   batchBuffer.push(data)
   batchBufferSize += data.byteLength
 
-  // Flush immediately if batch exceeds max size
+  // Flush immediately if batch exceeds max size, otherwise on the next tick
   if (batchBufferSize >= MAX_BATCH_SIZE) {
+    stopBatchTimer()
     flushBatch()
+  } else {
+    scheduleBatchFlush()
   }
 }
 
@@ -322,7 +387,7 @@ async function attemptReconnect(): Promise<void> {
   const delay = exponentialDelay + jitter
   log.info(`Reconnecting in ${Math.round(delay)}ms (attempt ${reconnectAttempts}/${MAX_RECONNECT_ATTEMPTS}, window: ${reconnectTimestamps.length}/${MAX_RECONNECTS_IN_WINDOW})`)
 
-  await sleep(delay)
+  await reconnectSleep(delay)
 
   // Check if session was stopped during the sleep
   if (intentionalDisconnect) {
@@ -335,6 +400,7 @@ async function attemptReconnect(): Promise<void> {
     await connect()
     isReconnecting = false
     reconnectAttempts = 0 // Reset linear counter on success (keep window history)
+    reconnectCount++
     log.info('Reconnected successfully')
   } catch {
     isReconnecting = false
@@ -422,14 +488,9 @@ export function getAutoRecoveryCountdown(): number {
   return autoRecoveryCountdown
 }
 
-/** Enable Deepgram diarization on every provider that supports it (fallback when system audio unavailable) */
+/** @deprecated use setDiarization(true); kept for callers that predate per-session reset */
 export function enableDiarization(): void {
-  for (const p of providers) {
-    if (p instanceof DeepgramProvider || p instanceof DeepgramFluxProvider) {
-      p.diarize = true
-      log.info(`Diarization enabled on ${p.name} (fallback mode)`)
-    }
-  }
+  setDiarization(true)
 }
 
 // ============================================================
@@ -468,6 +529,11 @@ export async function connectSystemAudio(): Promise<void> {
     }
 
     await sysProvider.connect()
+    if (intentionalDisconnect) {
+      log.info('System audio connected after stop; closing')
+      sysProvider.disconnect()
+      return
+    }
     systemProvider = sysProvider
     isSystemConnected = true
     // Reset the reconnect budget only after 30s of stability so rapid
@@ -475,12 +541,6 @@ export async function connectSystemAudio(): Promise<void> {
     setTimeout(() => {
       if (isSystemConnected) systemReconnectAttempts = 0
     }, STABILITY_CHECK_DELAY)
-
-    // Start system audio batch timer
-    if (systemBatchTimer) clearInterval(systemBatchTimer)
-    systemBatchTimer = setInterval(() => {
-      flushSystemBatch()
-    }, BATCH_INTERVAL)
 
     log.info('System audio WebSocket connected')
   } catch (error) {
@@ -511,13 +571,13 @@ async function attemptSystemReconnect(): Promise<void> {
       const exponentialDelay = Math.min(MAX_DELAY, BASE_DELAY * Math.pow(2, systemReconnectAttempts - 1))
       const delay = exponentialDelay + Math.random() * 0.5 * exponentialDelay
       log.info(`System audio: reconnecting in ${Math.round(delay)}ms (attempt ${systemReconnectAttempts}/${MAX_SYSTEM_RECONNECT_ATTEMPTS})`)
-      await sleep(delay)
+      await reconnectSleep(delay)
 
       if (intentionalDisconnect) return
 
       // Tear down the dead provider before recreating it
       if (systemBatchTimer) {
-        clearInterval(systemBatchTimer)
+        clearTimeout(systemBatchTimer)
         systemBatchTimer = null
       }
       systemProvider?.disconnect()
@@ -541,7 +601,7 @@ export function disconnectSystemAudio(): void {
   log.info('Disconnecting system audio...')
   flushSystemBatch()
   if (systemBatchTimer) {
-    clearInterval(systemBatchTimer)
+    clearTimeout(systemBatchTimer)
     systemBatchTimer = null
   }
   systemProvider?.disconnect()
@@ -559,7 +619,16 @@ export function sendSystemAudio(data: ArrayBuffer): void {
   systemBatchBufferSize += data.byteLength
 
   if (systemBatchBufferSize >= MAX_BATCH_SIZE) {
+    if (systemBatchTimer) {
+      clearTimeout(systemBatchTimer)
+      systemBatchTimer = null
+    }
     flushSystemBatch()
+  } else if (!systemBatchTimer) {
+    systemBatchTimer = setTimeout(() => {
+      systemBatchTimer = null
+      flushSystemBatch()
+    }, BATCH_INTERVAL)
   }
 }
 
@@ -583,4 +652,9 @@ export function flushSystemBatch(): void {
 /** Get system audio connection state */
 export function getIsSystemConnected(): boolean {
   return isSystemConnected
+}
+
+/** Test hook: the active mic provider (undefined when disconnected). */
+export function __test_getProvider(): TranscriptionProvider | undefined {
+  return currentProvider ?? undefined
 }

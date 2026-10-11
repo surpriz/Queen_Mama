@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { ArrowUp, Brain } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { useAppStore } from '@/stores/appStore'
+import { useDictationStore } from '@/stores/dictationStore'
 import { useConfigStore } from '@/stores/configStore'
 import * as sessionClient from '@/services/session/sessionClient'
 import { DictationButton } from './DictationButton'
@@ -13,13 +14,25 @@ export function InputBar() {
   const { t } = useTranslation('overlay')
   const [input, setInput] = useState('')
   const isProcessing = useAppStore((s) => s.isProcessing)
+  const isDictating = useDictationStore((s) => s.isRecording)
   const smartModeEnabled = useConfigStore((s) => s.smartModeEnabled)
   const updateConfig = useConfigStore((s) => s.updateConfig)
 
   const handleSubmit = async () => {
-    if (!input.trim() || isProcessing) return
+    if (isProcessing) return
 
-    const question = input.trim()
+    let question = input.trim()
+    // Submitting while dictating ends the dictation and uses its text (mac parity)
+    if (isDictating) {
+      try {
+        const { text } = await sessionClient.stopDictation()
+        if (text) question = question ? `${question} ${text}` : text
+      } catch (error) {
+        toast.error(error instanceof Error ? error.message : String(error))
+      }
+      useDictationStore.getState().reset()
+    }
+    if (!question) return
     setInput('')
 
     try {

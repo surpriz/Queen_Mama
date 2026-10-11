@@ -97,21 +97,29 @@ export class AssemblyAIProvider implements TranscriptionProvider {
   }
 
   disconnect(): void {
-    if (this.ws && this.ws.readyState === WebSocket.OPEN) {
-      this.ws.send(JSON.stringify({ terminate_session: true }))
-      this.ws.close(1000)
-    }
+    const ws = this.ws
     this.ws = null
+    if (!ws) return
+    ws.onerror = null
+    ws.onclose = null
+    ws.onmessage = null
+    if (ws.readyState === WebSocket.OPEN) {
+      ws.send(JSON.stringify({ terminate_session: true }))
+      ws.close(1000)
+    } else if (ws.readyState === WebSocket.CONNECTING) {
+      ws.close()
+    }
   }
 
   sendAudio(data: ArrayBuffer): void {
     if (this.ws?.readyState !== WebSocket.OPEN) return
 
-    // AssemblyAI expects base64-encoded audio
+    // AssemblyAI expects base64-encoded audio (chunked conversion, not char-by-char)
     const bytes = new Uint8Array(data)
     let binary = ''
-    for (let i = 0; i < bytes.length; i++) {
-      binary += String.fromCharCode(bytes[i])
+    const CHUNK = 0x8000
+    for (let i = 0; i < bytes.length; i += CHUNK) {
+      binary += String.fromCharCode.apply(null, Array.from(bytes.subarray(i, i + CHUNK)))
     }
     const base64 = btoa(binary)
 

@@ -13,6 +13,7 @@ import { screenCaptureService } from '../screenCapture/screenCaptureService'
 import { flushBatch as flushAudioBatch, flushSystemBatch } from '../transcription/transcriptionService'
 import { transcriptBuffer } from '../transcription/transcriptBuffer'
 import * as preGeneration from './preGenerationService'
+import * as healthCheck from '@/services/health/healthCheckService'
 import type { AIContextParams } from './aiContext'
 import { Feature } from '@/types/auth'
 import type { ResponseType, Mode } from '@/types/models'
@@ -178,6 +179,7 @@ export async function generateStreamingResponse(params: AIContextParams, options
   const maxTokens = params.responseType === 'Recap' ? 3000 : 600
 
   addBreadcrumb('ai', `AI streaming request: ${params.responseType}`, 'info')
+  const requestStartedAt = Date.now()
 
   try {
     const stream = proxyApi.streamAIResponse({
@@ -242,7 +244,8 @@ export async function generateStreamingResponse(params: AIContextParams, options
     recordUsage(estInputTokens, estOutputTokens)
 
     lastResponseTime = Date.now()
-    log.info(`Response generated (${fullContent.length} chars)`)
+    healthCheck.recordAIResponseTime(Date.now() - requestStartedAt)
+    log.info(`Response generated (${fullContent.length} chars, ${Date.now() - requestStartedAt} ms)`)
   } catch (error) {
     log.error('Streaming error', error)
     captureError(
