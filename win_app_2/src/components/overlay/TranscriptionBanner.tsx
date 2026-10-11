@@ -16,9 +16,12 @@ export function TranscriptionBanner() {
   const isSessionActive = useAppStore((s) => s.isSessionActive)
   const connected = useTranscriptionStateStore((s) => s.connected)
   const countdown = useTranscriptionStateStore((s) => s.recoveryCountdown ?? 0)
+  const connecting = useTranscriptionStateStore((s) => s.connecting)
   const [retrying, setRetrying] = useState(false)
 
-  if (!isSessionActive || connected) return null
+  // Initial connect of the session is not a disconnection: stay quiet until the
+  // socket is up or the service reports a real drop / recovery cycle.
+  if (!isSessionActive || connected || (connecting && countdown === 0)) return null
 
   const gaveUp = countdown === -1
   const label = gaveUp
