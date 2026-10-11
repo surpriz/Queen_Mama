@@ -52,6 +52,15 @@ export interface AppConfig {
   // Instant Responses (Enterprise, beta) — pre-generate Assist in the background
   instantResponsesEnabled: boolean
 
+  // Overlay tabs: Decode is opt-in (six tabs don't fit the 380 px pill)
+  showDecodeInOverlay: boolean
+
+  // Meeting cost (live cost in the pill: participants × hourly rate × elapsed)
+  meetingCostEnabled: boolean
+  meetingCostCurrency: string
+  meetingCostHourlyRate: number
+  meetingCostParticipants: number
+
   // Live Translation (DeepL via proxy)
   translationEnabled: boolean
   translationShowInOverlay: boolean
@@ -96,6 +105,13 @@ export const DEFAULT_CONFIG: AppConfig = {
 
   knowledgeEnabled: true,
   instantResponsesEnabled: false,
+
+  showDecodeInOverlay: false,
+
+  meetingCostEnabled: false,
+  meetingCostCurrency: 'EUR',
+  meetingCostHourlyRate: 80,
+  meetingCostParticipants: 2,
 
   translationEnabled: true,
   translationShowInOverlay: true,

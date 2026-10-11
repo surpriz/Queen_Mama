@@ -61,7 +61,28 @@ export interface AiResponseHistoryEntry {
   timestamp: string
   provider?: string
   isAutomatic?: boolean
+  withScreenshot?: boolean
   sessionId?: string | null
+}
+
+/** AI request failure with enough context for a Retry button. */
+export interface AiErrorRelay {
+  message: string
+  retryable: boolean
+  retry?: { type: ResponseType | string; question?: string }
+}
+
+/** Pre-generated Assist buffer state (Enterprise instant responses). */
+export interface PreGenRelay {
+  state: 'idle' | 'generating' | 'ready'
+}
+
+/** Transcription connection state for the overlay banner. */
+export interface TranscriptionStateRelay {
+  connected: boolean
+  provider: string | null
+  /** Seconds until the next auto-recovery attempt; -1 = gave up; 0/undefined = none pending. */
+  recoveryCountdown?: number
 }
 
 export type AiResponseRelay =
@@ -106,6 +127,9 @@ export interface RelayChannels {
   'relay:interim': InterimRelay
   'relay:audio-health': AudioHealthRelay
   'relay:ai-response': AiResponseRelay
+  'relay:ai-error': AiErrorRelay
+  'relay:pregen': PreGenRelay
+  'relay:transcription': TranscriptionStateRelay
   'relay:dictation': DictationRelay
   'relay:moment': MomentRelay
   'relay:mode': ModeRelay
@@ -129,4 +153,6 @@ export type SessionCommand =
   | { cmd: 'dictation.stop'; payload?: undefined }
   | { cmd: 'dictation.cancel'; payload?: undefined }
   | { cmd: 'license.revalidate'; payload?: { force?: boolean } }
+  | { cmd: 'transcription.retry'; payload?: undefined }
+  | { cmd: 'ai.cancel'; payload?: undefined }
   | { cmd: 'host.ping'; payload?: undefined }

@@ -64,3 +64,11 @@ export function cancelDictation(): Promise<void> {
 export function revalidateLicense(force = false): Promise<void> {
   return invoke({ cmd: 'license.revalidate', payload: { force } })
 }
+
+export function retryTranscription(): Promise<void> {
+  return invoke({ cmd: 'transcription.retry' })
+}
+
+export function cancelAI(): Promise<void> {
+  return invoke({ cmd: 'ai.cancel' })
+}

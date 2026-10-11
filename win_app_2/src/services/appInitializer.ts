@@ -28,6 +28,7 @@ import { useContactStore } from '@/stores/contactStore'
 import { modesService } from '@/services/modes/modesService'
 import { useAppStore } from '@/stores/appStore'
 import { useConfigStore } from '@/stores/configStore'
+import { useOverlayStore } from '@/stores/overlayStore'
 import { isSessionHost, getWindowKind } from '@/lib/runtime'
 
 let initialized = false
@@ -61,6 +62,7 @@ async function initializeShared(): Promise<void> {
     const contacts = await contactDb.getAllContacts()
     useContactStore.getState().setContacts(contacts)
   })
+  await step('Recent AI responses', () => useOverlayStore.getState().loadRecentResponses())
   await step('Crash reporter', () => crashReporter.start())
 }
 

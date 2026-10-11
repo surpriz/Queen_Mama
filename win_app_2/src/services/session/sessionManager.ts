@@ -24,6 +24,9 @@ interface DbSessionRow {
   sync_status: string
   remote_id: string | null
   device_id: string | null
+  meeting_participants?: number | null
+  meeting_hourly_rate?: number | null
+  meeting_currency?: string | null
 }
 
 function dbRowToSession(row: DbSessionRow): Session {
@@ -40,6 +43,9 @@ function dbRowToSession(row: DbSessionRow): Session {
     syncStatus: (row.sync_status as Session['syncStatus']) || 'local',
     remoteId: row.remote_id ?? undefined,
     deviceId: row.device_id ?? undefined,
+    meetingParticipants: row.meeting_participants ?? null,
+    meetingHourlyRate: row.meeting_hourly_rate ?? null,
+    meetingCurrency: row.meeting_currency ?? null,
   }
 }
 
@@ -205,11 +211,18 @@ export function endSession(): void {
  * Finalize a session: write transcript, title, summary, and endTime to DB in one shot.
  * All writes are awaited so the DB is consistent before loadSessions().
  */
+export interface MeetingCostSnapshot {
+  participants: number
+  hourlyRate: number
+  currency: string
+}
+
 export async function finalizeSession(
   sessionId: string,
   transcript: string,
   title: string | null,
   summary: string | null,
+  meetingCost?: MeetingCostSnapshot | null,
 ): Promise<void> {
   const store = useSessionStore.getState()
   const endTime = new Date().toISOString()
@@ -218,6 +231,11 @@ export async function finalizeSession(
   const updates: Partial<Session> = { endTime, transcript }
   if (title) updates.title = title
   if (summary) updates.summary = summary
+  if (meetingCost) {
+    updates.meetingParticipants = meetingCost.participants
+    updates.meetingHourlyRate = meetingCost.hourlyRate
+    updates.meetingCurrency = meetingCost.currency
+  }
   store.updateSession(sessionId, updates)
   store.setCurrentSession(null)
 
@@ -231,8 +249,8 @@ export async function finalizeSession(
 
   try {
     const result = await db.query(
-      'UPDATE sessions SET transcript = ?, title = COALESCE(?, title), summary = ?, end_time = ? WHERE id = ?',
-      [transcript, title, summary, endTime, sessionId],
+      'UPDATE sessions SET transcript = ?, title = COALESCE(?, title), summary = ?, end_time = ?, meeting_participants = ?, meeting_hourly_rate = ?, meeting_currency = ? WHERE id = ?',
+      [transcript, title, summary, endTime, meetingCost?.participants ?? null, meetingCost?.hourlyRate ?? null, meetingCost?.currency ?? null, sessionId],
     )
     log.info(`Session finalized: ${sessionId}, rows affected: ${result.changes ?? 0}`)
 

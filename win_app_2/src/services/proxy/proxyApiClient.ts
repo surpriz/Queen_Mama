@@ -2,7 +2,8 @@ import { getApiBaseUrl } from '../config/appEnvironment'
 import { getAccessToken } from '../auth/authenticationManager'
 import { createLogger } from '@/lib/logger'
 import { sleep } from '@/lib/utils'
-import type { ProxyConfig, TranscriptionToken, AIProxyRequest, AIStreamRequest, StreamChunk, TranslationProxyResponse } from '@/types/api'
+import type { ProxyConfig, TranscriptionToken, AIProxyRequest, AIStreamRequest, StreamChunk, StreamOptions, TranslationProxyResponse } from '@/types/api'
+import { AIStreamError } from '@/types/api'
 import { TranslationError } from '@/services/translation/translationProvider'
 import { useConfigStore } from '@/stores/configStore'
 import { resolveBackendModel } from '@/types/config'
@@ -217,29 +218,35 @@ export async function generateAIResponse(request: AIProxyRequest): Promise<strin
 }
 
 // AI Streaming (SSE) - uses /api/proxy/ai/stream with cascade fallback
-export async function* streamAIResponse(
-  request: AIProxyRequest,
-): AsyncGenerator<StreamChunk> {
-  const token = await getAccessToken()
-  const baseUrl = getApiBaseUrl()
+const STREAM_TIMEOUT_MS = 90_000
 
-  // Extract system prompt and user message from messages array
+interface StreamMetadata {
+  provider?: string
+  model?: string
+  effort?: string
+}
+
+let lastStreamMetadata: StreamMetadata = {}
+
+/** Provider/model reported by the backend for the most recent stream. */
+export function getLastStreamMetadata(): StreamMetadata {
+  return lastStreamMetadata
+}
+
+function buildStreamRequest(request: AIProxyRequest): AIStreamRequest {
   const systemMessage = request.messages.find((m) => m.role === 'system')
   const userMessage = request.messages.find((m) => m.role === 'user')
 
   if (!systemMessage || !userMessage) {
-    throw new Error('Missing system or user message')
+    throw new AIStreamError('Missing system or user message', 'backend')
   }
 
-  // Convert to backend format. User-selected model id is sent only when in standard cascade
+  // User-selected model id is sent only when in standard cascade
   // (Smart/Recap keep their own cascades server-side).
   const cascadeMode: 'standard' | 'smart' | 'recap' = request.cascadeMode ?? 'standard'
   const selectedRaw = useConfigStore.getState().selectedAIModel
   const userModel = cascadeMode === 'standard' ? resolveBackendModel(selectedRaw) : undefined
-  // Use console.warn so the message is always visible regardless of DevTools "Default levels" filter.
-  // Prefix with a unique sentinel that's trivial to grep/filter on.
-  // eslint-disable-next-line no-console
-  console.warn(`MODELDBG cascadeMode=${cascadeMode} selectedAIModel=${JSON.stringify(selectedRaw)} sendingModel=${JSON.stringify(userModel)} configStoreKeys=${Object.keys(useConfigStore.getState()).join(',')}`)
+
   const streamRequest: AIStreamRequest = {
     systemPrompt: typeof systemMessage.content === 'string'
       ? systemMessage.content
@@ -257,89 +264,146 @@ export async function* streamAIResponse(
   if (typeof userMessage.content !== 'string') {
     const imageContent = userMessage.content.find((c) => c.type === 'image_url')
     if (imageContent?.image_url?.url) {
-      // Extract base64 data from data URL
       const base64Match = imageContent.image_url.url.match(/^data:image\/\w+;base64,(.+)$/)
       if (base64Match) {
         streamRequest.screenshot = base64Match[1]
       }
     }
   }
+  return streamRequest
+}
 
-  const response = await fetch(`${baseUrl}/api/proxy/ai/stream`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${token}`,
-    },
-    body: JSON.stringify(streamRequest),
-  })
+/**
+ * Stream an AI response. Guarantees (mac `ProxyAPIClient` parity):
+ *  - a hard timeout (default 90 s) and an optional caller AbortSignal, so a hung
+ *    stream can never leave the UI stuck in "processing";
+ *  - one token refresh + retry on 401;
+ *  - backend error frames (`{error: true, message}`) surface as AIStreamError
+ *    instead of being swallowed;
+ *  - provider/model metadata captured for the history badge.
+ */
+export async function* streamAIResponse(
+  request: AIProxyRequest,
+  options: StreamOptions = {},
+): AsyncGenerator<StreamChunk> {
+  const baseUrl = getApiBaseUrl()
+  const streamRequest = buildStreamRequest(request)
+  const body = JSON.stringify(streamRequest)
+  lastStreamMetadata = {}
 
-  if (!response.ok) {
-    const errorText = await response.text().catch(() => '')
-    log.error(`AI streaming failed: ${response.status}`, errorText)
-    throw new Error(`AI streaming failed: ${response.status}`)
+  const controller = new AbortController()
+  let timedOut = false
+  const timeout = setTimeout(() => {
+    timedOut = true
+    controller.abort()
+  }, options.timeoutMs ?? STREAM_TIMEOUT_MS)
+  const onCallerAbort = () => controller.abort()
+  options.signal?.addEventListener('abort', onCallerAbort)
+  if (options.signal?.aborted) controller.abort()
+
+  const classify = (error: unknown): AIStreamError => {
+    if (error instanceof AIStreamError) return error
+    if (controller.signal.aborted) {
+      return timedOut
+        ? new AIStreamError('AI request timed out', 'timeout')
+        : new AIStreamError('AI request cancelled', 'aborted')
+    }
+    const message = error instanceof Error ? error.message : String(error)
+    return new AIStreamError(message || 'Network error', 'network')
   }
 
-  const reader = response.body?.getReader()
-  if (!reader) throw new Error('No response body')
-
-  const decoder = new TextDecoder()
-  let buffer = ''
-
   try {
-    while (true) {
-      const { done, value } = await reader.read()
-      if (done) break
+    let token = await getAccessToken()
+    let response: Response
+    try {
+      response = await fetch(`${baseUrl}/api/proxy/ai/stream`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body,
+        signal: controller.signal,
+      })
+      if (response.status === 401) {
+        log.warn('Stream got 401, refreshing token once')
+        token = await getAccessToken(true)
+        response = await fetch(`${baseUrl}/api/proxy/ai/stream`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+          body,
+          signal: controller.signal,
+        })
+      }
+    } catch (error) {
+      throw classify(error)
+    }
 
-      buffer += decoder.decode(value, { stream: true })
+    if (!response.ok) {
+      const errorText = await response.text().catch(() => '')
+      log.error(`AI streaming failed: ${response.status}`, errorText)
+      const kind = response.status === 401 || response.status === 403 ? 'auth' : response.status >= 500 ? 'server' : 'backend'
+      throw new AIStreamError(`AI streaming failed: ${response.status}`, kind, response.status)
+    }
 
-      // Parse SSE lines
-      const lines = buffer.split('\n')
-      buffer = lines.pop() || ''
+    const reader = response.body?.getReader()
+    if (!reader) throw new AIStreamError('No response body', 'server', response.status)
 
-      for (const line of lines) {
-        const trimmed = line.trim()
-        if (!trimmed || !trimmed.startsWith('data: ')) continue
+    const decoder = new TextDecoder()
+    let buffer = ''
 
-        const data = trimmed.slice(6) // Remove "data: " prefix
-
-        if (data === '[DONE]') {
-          yield { id: '', content: '', done: true }
-          return
-        }
-
+    try {
+      while (true) {
+        let result: ReadableStreamReadResult<Uint8Array>
         try {
-          const parsed = JSON.parse(data)
+          result = await reader.read()
+        } catch (error) {
+          throw classify(error)
+        }
+        if (result.done) break
 
-          // Check for error from backend
-          if (parsed.error) {
-            log.error('AI stream error:', parsed.message)
-            throw new Error(parsed.message || 'AI request failed')
+        buffer += decoder.decode(result.value, { stream: true })
+
+        const lines = buffer.split('\n')
+        buffer = lines.pop() || ''
+
+        for (const line of lines) {
+          const trimmed = line.trim()
+          if (!trimmed || !trimmed.startsWith('data: ')) continue
+
+          const data = trimmed.slice(6)
+          if (data === '[DONE]') {
+            yield { id: '', content: '', done: true }
+            return
           }
 
-          // Log SSE metadata (provider/model/effort) sent before [DONE]
+          let parsed: { error?: unknown; message?: string; provider?: string; model?: string; effort?: string; content?: string; id?: string }
+          try {
+            parsed = JSON.parse(data)
+          } catch {
+            continue // not JSON — ignore keepalive/comment lines
+          }
+
+          if (parsed.error) {
+            const message = parsed.message || (typeof parsed.error === 'string' ? parsed.error : 'AI request failed')
+            log.error('AI stream error frame:', message)
+            throw new AIStreamError(message, 'backend')
+          }
+
           if (parsed.provider) {
-            const effort = parsed.effort || 'unknown'
-            log.info(`Provider: ${parsed.provider}, model: ${parsed.model}, effort: ${effort}`)
+            lastStreamMetadata = { provider: parsed.provider, model: parsed.model, effort: parsed.effort }
+            log.info(`Provider: ${parsed.provider}, model: ${parsed.model}, effort: ${parsed.effort || 'unknown'}`)
           }
 
           const content = parsed.content || ''
-
           if (content) {
             yield { id: parsed.id || '', content, done: false }
           }
-        } catch (parseError) {
-          // Skip unparseable chunks unless it's our own error
-          if (parseError instanceof Error && parseError.message !== 'AI request failed') {
-            // Ignore JSON parse errors
-          } else {
-            throw parseError
-          }
         }
       }
+    } finally {
+      reader.releaseLock()
     }
   } finally {
-    reader.releaseLock()
+    clearTimeout(timeout)
+    options.signal?.removeEventListener('abort', onCallerAbort)
   }
 }
 

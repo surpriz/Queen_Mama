@@ -19,6 +19,7 @@ import * as autoAnswer from '@/services/detection/autoAnswerService'
 import { onMomentsDetected } from '@/services/detection/momentDetectionService'
 import { dictationService } from '@/services/dictation/dictationService'
 import * as licenseManager from '@/services/license/licenseManager'
+import * as transcription from '@/services/transcription/transcriptionService'
 import * as relay from '@/services/relay/relayClient'
 import { broadcastAuthState } from '@/services/relay/authRelay'
 import { ResponseType, type Mode } from '@/types/models'
@@ -126,6 +127,14 @@ async function handleCommand(command: SessionCommand): Promise<unknown> {
     case 'dictation.cancel':
       dictationService.stopRecording()
       dictationService.reset()
+      return undefined
+
+    case 'transcription.retry':
+      await transcription.retryNow()
+      return undefined
+
+    case 'ai.cancel':
+      aiService.cancelCurrentRequest()
       return undefined
 
     case 'license.revalidate':

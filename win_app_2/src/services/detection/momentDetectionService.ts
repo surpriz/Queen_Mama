@@ -230,6 +230,26 @@ type MomentCallback = (moments: DetectedMoment[]) => void
 let momentCallbacks: MomentCallback[] = []
 let lastDetectedMoments: DetectedMoment[] = []
 
+export interface MomentDetectionOptions {
+  /** Minimum confidence (0–1); mapped from the "proactive sensitivity" setting. */
+  sensitivity: number
+  /** Seconds before the same moment type may fire again. */
+  cooldownSeconds: number
+  enabledTypes: Partial<Record<MomentType, boolean>>
+}
+
+let options: MomentDetectionOptions = {
+  sensitivity: 0.7,
+  cooldownSeconds: 15,
+  enabledTypes: { objection: true, expertiseQuestion: true, hesitation: false, closingOpportunity: true },
+}
+const lastFiredAt = new Map<MomentType, number>()
+
+/** Live settings (mac: per-type toggles, sensitivity threshold, cooldown). */
+export function setMomentDetectionOptions(next: Partial<MomentDetectionOptions>): void {
+  options = { ...options, ...next, enabledTypes: { ...options.enabledTypes, ...(next.enabledTypes ?? {}) } }
+}
+
 export function onMomentsDetected(callback: MomentCallback): () => void {
   momentCallbacks.push(callback)
   return () => {
@@ -238,17 +258,29 @@ export function onMomentsDetected(callback: MomentCallback): () => void {
 }
 
 export function processTranscriptForMoments(transcript: string): DetectedMoment[] {
-  const moments = detectMoments(transcript)
+  const now = Date.now()
+  // Sensitivity 0.5–1.0 → threshold 0.85–0.55 (higher sensitivity = lower bar)
+  const threshold = Math.max(0.4, Math.min(0.95, 1.1 - options.sensitivity * 0.6))
+  const moments = detectMoments(transcript).filter((m) => {
+    if (options.enabledTypes[m.type] === false) return false
+    if (m.confidence < threshold) return false
+    const last = lastFiredAt.get(m.type) ?? 0
+    return now - last >= options.cooldownSeconds * 1000
+  })
   const sortedMoments = sortMomentsByImportance(moments)
 
-  // Only notify if moments changed
+  // Fire when the set of moment types changes. The set is also allowed to
+  // become empty, so the same type can fire again later (it used to stick).
   const momentTypes = sortedMoments.map((m) => m.type).join(',')
   const lastTypes = lastDetectedMoments.map((m) => m.type).join(',')
 
-  if (momentTypes !== lastTypes && sortedMoments.length > 0) {
+  if (momentTypes !== lastTypes) {
     lastDetectedMoments = sortedMoments
-    momentCallbacks.forEach((cb) => cb(sortedMoments))
-    log.info(`Detected moments: ${sortedMoments.map((m) => `${m.type}(${m.confidence.toFixed(2)})`).join(', ')}`)
+    if (sortedMoments.length > 0) {
+      for (const m of sortedMoments) lastFiredAt.set(m.type, now)
+      momentCallbacks.forEach((cb) => cb(sortedMoments))
+      log.info(`Detected moments: ${sortedMoments.map((m) => `${m.type}(${m.confidence.toFixed(2)})`).join(', ')}`)
+    }
   }
 
   return sortedMoments
@@ -256,4 +288,5 @@ export function processTranscriptForMoments(transcript: string): DetectedMoment[
 
 export function clearMomentState(): void {
   lastDetectedMoments = []
+  lastFiredAt.clear()
 }

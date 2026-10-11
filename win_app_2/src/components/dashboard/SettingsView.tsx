@@ -286,6 +286,56 @@ export function SettingsView() {
                   onToggle={(v) => handleToggle('showLiveTranscript', v)}
                 />
                 <ToggleRow
+                  label={t('settings.general.showDecode')}
+                  description={t('settings.general.showDecodeDescription')}
+                  enabled={config.showDecodeInOverlay}
+                  onToggle={(v) => handleToggle('showDecodeInOverlay', v)}
+                />
+                <ToggleRow
+                  label={t('settings.general.meetingCost')}
+                  description={t('settings.general.meetingCostDescription')}
+                  enabled={config.meetingCostEnabled}
+                  onToggle={(v) => handleToggle('meetingCostEnabled', v)}
+                />
+                {config.meetingCostEnabled && (
+                  <div className="grid grid-cols-3 gap-3 pl-1">
+                    <label className="flex flex-col gap-1 text-caption text-qm-text-tertiary">
+                      {t('settings.general.meetingCostCurrency')}
+                      <select
+                        value={config.meetingCostCurrency}
+                        onChange={(e) => config.updateConfig({ meetingCostCurrency: e.target.value })}
+                        className="px-2 py-1.5 rounded-qm-sm bg-qm-surface-medium text-body-sm text-qm-text-primary"
+                      >
+                        {['EUR', 'USD', 'GBP', 'CHF', 'CAD'].map((c) => (
+                          <option key={c} value={c}>{c}</option>
+                        ))}
+                      </select>
+                    </label>
+                    <label className="flex flex-col gap-1 text-caption text-qm-text-tertiary">
+                      {t('settings.general.meetingCostRate')}
+                      <input
+                        type="number"
+                        min={1}
+                        max={2000}
+                        value={config.meetingCostHourlyRate}
+                        onChange={(e) => config.updateConfig({ meetingCostHourlyRate: Math.max(1, Number(e.target.value) || 1) })}
+                        className="px-2 py-1.5 rounded-qm-sm bg-qm-surface-medium text-body-sm text-qm-text-primary"
+                      />
+                    </label>
+                    <label className="flex flex-col gap-1 text-caption text-qm-text-tertiary">
+                      {t('settings.general.meetingCostParticipants')}
+                      <input
+                        type="number"
+                        min={1}
+                        max={50}
+                        value={config.meetingCostParticipants}
+                        onChange={(e) => config.updateConfig({ meetingCostParticipants: Math.max(1, Math.min(50, Number(e.target.value) || 1)) })}
+                        className="px-2 py-1.5 rounded-qm-sm bg-qm-surface-medium text-body-sm text-qm-text-primary"
+                      />
+                    </label>
+                  </div>
+                )}
+                <ToggleRow
                   label={t('settings.general.contextIntelligence')}
                   description={t('settings.general.contextIntelligenceDescription')}
                   enabled={config.knowledgeEnabled}
@@ -520,11 +570,11 @@ export function SettingsView() {
                 </div>
                 <div className="flex justify-between items-center py-2">
                   <span className="text-body-sm text-qm-text-secondary">{t('settings.shortcuts.toggleWidget')}</span>
-                  <KeyboardShortcutBadge shortcut="Ctrl+\\" />
+                  <KeyboardShortcutBadge shortcut="Ctrl+Shift+H" />
                 </div>
                 <div className="flex justify-between items-center py-2">
-                  <span className="text-body-sm text-qm-text-secondary">{t('settings.shortcuts.triggerAssist')}</span>
-                  <KeyboardShortcutBadge shortcut="Ctrl+Enter" />
+                  <span className="text-body-sm text-qm-text-secondary">{t('settings.shortcuts.runTab')}</span>
+                  <KeyboardShortcutBadge shortcut="Enter" />
                 </div>
                 <div className="flex justify-between items-center py-2">
                   <span className="text-body-sm text-qm-text-secondary">{t('settings.shortcuts.clearContext')}</span>

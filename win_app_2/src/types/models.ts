@@ -10,6 +10,10 @@ export interface Session {
   actionItems: string[]
   modeId: string | null
   entries: TranscriptEntry[]
+  // Meeting cost snapshot (mac parity)
+  meetingParticipants?: number | null
+  meetingHourlyRate?: number | null
+  meetingCurrency?: string | null
   // Sync metadata
   syncStatus?: 'local' | 'synced' | 'pending' | 'failed'
   remoteId?: string

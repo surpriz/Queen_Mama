@@ -32,10 +32,8 @@ export function registerGlobalShortcuts(): void {
     toggleOverlay()
   })
 
-  registerShortcut('Ctrl+Return', 'Trigger Assist', () => {
-    const ok = sendToSessionWindow(IPC_CHANNELS.SHORTCUT_TRIGGER_ASSIST)
-    console.log(`[Shortcuts] TRIGGER_ASSIST sent to session window: ${ok}`)
-  })
+  // Ctrl+Return is no longer global: it hijacked "send" in Teams/Outlook/Slack
+  // system-wide. Enter / Ctrl+Enter inside the widget run the selected tab.
 
   registerShortcut('Ctrl+Shift+R', 'Clear Context', () => {
     const ok = sendToSessionWindow(IPC_CHANNELS.SHORTCUT_CLEAR_CONTEXT)

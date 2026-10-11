@@ -95,6 +95,14 @@ export function initializeDatabase(): Database.Database {
 
   // Migrate modes table: add missing columns for existing databases
   try {
+    const sessionCols = (db.pragma('table_info(sessions)') as { name: string }[]).map((c) => c.name)
+    if (!sessionCols.includes('meeting_participants')) {
+      db.exec(`ALTER TABLE sessions ADD COLUMN meeting_participants INTEGER`)
+      db.exec(`ALTER TABLE sessions ADD COLUMN meeting_hourly_rate REAL`)
+      db.exec(`ALTER TABLE sessions ADD COLUMN meeting_currency TEXT`)
+      console.log('[Database] Migrated sessions: added meeting cost columns')
+    }
+
     const columns = db.pragma('table_info(modes)') as { name: string }[]
     const columnNames = columns.map((c) => c.name)
     if (!columnNames.includes('is_built_in')) {

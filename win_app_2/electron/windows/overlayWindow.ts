@@ -6,6 +6,19 @@ const store = new Store()
 
 let overlayWindow: BrowserWindow | null = null
 let currentPosition: OverlayPosition = 'topRight'
+let programmaticMove = false
+
+function withProgrammaticMove(fn: () => void): void {
+  programmaticMove = true
+  try {
+    fn()
+  } finally {
+    // 'moved' fires asynchronously after setBounds/setPosition
+    setTimeout(() => {
+      programmaticMove = false
+    }, 50)
+  }
+}
 
 export type OverlayPosition =
   | 'topLeft'
@@ -74,6 +87,19 @@ export function createOverlayWindow(): BrowserWindow {
   // Clean up reference when window is closed
   overlayWindow.on('closed', () => {
     overlayWindow = null
+  })
+
+  // Remember where the user dragged the widget so expand/collapse anchors to
+  // the corner it is actually in (presets used to be stale after a drag).
+  overlayWindow.on('moved', () => {
+    if (!overlayWindow || overlayWindow.isDestroyed() || programmaticMove) return
+    const bounds = overlayWindow.getBounds()
+    const area = screen.getDisplayMatching(bounds).workArea
+    const centerX = bounds.x + bounds.width / 2 - area.x
+    const centerY = bounds.y + bounds.height / 2 - area.y
+    const horizontal = centerX < area.width / 3 ? 'Left' : centerX > (2 * area.width) / 3 ? 'Right' : 'Center'
+    const vertical = centerY < area.height / 2 ? 'top' : 'bottom'
+    currentPosition = `${vertical}${horizontal}` as OverlayPosition
   })
 
   if (process.env['ELECTRON_RENDERER_URL']) {
@@ -176,14 +202,17 @@ export function setOverlayExpanded(expanded: boolean): void {
     newY = currentBounds.y + currentBounds.height - size.height
   }
 
-  const display = screen.getPrimaryDisplay()
-  const { width: screenW, height: screenH } = display.workAreaSize
+  // Clamp to the display the widget is on — clamping to the primary display
+  // yanked it back onto the main monitor when expanded on a secondary one.
+  const area = screen.getDisplayMatching(currentBounds).workArea
 
-  overlayWindow.setBounds({
-    x: Math.max(0, Math.min(newX, screenW - size.width)),
-    y: Math.max(0, Math.min(newY, screenH - size.height)),
-    width: size.width,
-    height: size.height,
+  withProgrammaticMove(() => {
+    overlayWindow!.setBounds({
+      x: Math.max(area.x, Math.min(newX, area.x + area.width - size.width)),
+      y: Math.max(area.y, Math.min(newY, area.y + area.height - size.height)),
+      width: size.width,
+      height: size.height,
+    })
   })
 }
 
@@ -202,9 +231,11 @@ export function setOverlayPosition(position: OverlayPosition): void {
 
   currentPosition = position
 
-  const display = screen.getPrimaryDisplay()
-  const { width: screenW, height: screenH } = display.workAreaSize
+  // Presets apply on the display the widget currently lives on
   const bounds = overlayWindow.getBounds()
+  const area = screen.getDisplayMatching(bounds).workArea
+  const screenW = area.width
+  const screenH = area.height
 
   let x: number
   let y: number
@@ -236,5 +267,7 @@ export function setOverlayPosition(position: OverlayPosition): void {
       break
   }
 
-  overlayWindow.setPosition(x, y)
+  withProgrammaticMove(() => {
+    overlayWindow!.setPosition(area.x + x, area.y + y)
+  })
 }
