@@ -93,7 +93,7 @@ export type RefreshTokenResult =
 
 export interface AuthAPI {
   onProtocolCallback: (callback: (url: string) => void) => () => void
-  startOAuthServer: () => Promise<{ success: boolean; port?: number; error?: string }>
+  startOAuthServer: (state?: string) => Promise<{ success: boolean; port?: number; error?: string }>
   stopOAuthServer: () => Promise<{ success: boolean }>
   refreshToken: (apiBaseUrl: string) => Promise<RefreshTokenResult>
 }

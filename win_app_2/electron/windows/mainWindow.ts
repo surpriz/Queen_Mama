@@ -61,7 +61,7 @@ export function createMainWindow(): BrowserWindow {
     icon,
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),
-      sandbox: false,
+      sandbox: true,
       contextIsolation: true,
       nodeIntegration: false,
       webSecurity: false,
@@ -140,7 +140,9 @@ export function createMainWindow(): BrowserWindow {
 
   // Auto-open DevTools on beta builds so testers can capture renderer logs.
   // Remove once the audio-capture issue is diagnosed.
-  if (app.getVersion().includes('beta')) {
+  // DevTools are opt-in (QM_DEVTOOLS=1); beta builds used to open them on
+  // every launch, which also exposed a non-content-protected window.
+  if (process.env.QM_DEVTOOLS === '1') {
     mainWindow.webContents.once('did-finish-load', () => {
       mainWindow?.webContents.openDevTools({ mode: 'detach' })
     })

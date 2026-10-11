@@ -24,7 +24,7 @@ export function createSessionWindow(): BrowserWindow {
     focusable: false,
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),
-      sandbox: false,
+      sandbox: true,
       contextIsolation: true,
       nodeIntegration: false,
       webSecurity: false,
