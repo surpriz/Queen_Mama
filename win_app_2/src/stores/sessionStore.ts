@@ -76,7 +76,8 @@ export const useSessionStore = create<SessionStoreState>((set, get) => ({
 
   recentSessions: (count) => {
     const { sessions } = get()
-    return sessions
+    // Copy before sorting: sorting the store array in place mutated state
+    return [...sessions]
       .sort((a, b) => new Date(b.startTime).getTime() - new Date(a.startTime).getTime())
       .slice(0, count)
   },

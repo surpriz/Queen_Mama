@@ -26,6 +26,7 @@ import * as contactDb from '@/services/contacts/contactDb'
 import { useContactStore } from '@/stores/contactStore'
 import { transcriptBuffer, TranscriptBuffer, SYSTEM_FLUSH_INTERVAL } from '@/services/transcription/transcriptBuffer'
 import * as healthCheck from '@/services/health/healthCheckService'
+import { extractActionItems } from '@/services/session/actionItems'
 import * as dedup from '@/services/transcription/transcriptDeduplicator'
 import * as echoCanceller from '@/services/audio/echoCanceller'
 import { EnergyVAD } from '@/services/audio/energyVad'
@@ -533,6 +534,12 @@ export async function stopSession(): Promise<void> {
 
       console.log(`[SessionLifecycle] Final summary (${generatedSummary.length} chars): ${generatedSummary.slice(0, 80)}...`)
 
+      // Action items (mac parity: shown in the session detail and synced)
+      let actionItems: string[] | null = null
+      if (fullTranscript.length > 200) {
+        actionItems = await extractActionItems(fullTranscript)
+      }
+
       // Extract contacts from transcript
       try {
         const extractedContacts = await extractContactsFromTranscript(fullTranscript, currentSessionId)
@@ -565,6 +572,7 @@ export async function stopSession(): Promise<void> {
         costCfg.meetingCostEnabled
           ? { participants: costCfg.meetingCostParticipants, hourlyRate: costCfg.meetingCostHourlyRate, currency: costCfg.meetingCostCurrency }
           : null,
+        actionItems,
       )
 
       // Queue for sync AFTER finalize so summary is included

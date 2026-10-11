@@ -50,7 +50,11 @@
     "markdown": "Markdown",
     "plainText": "Plain Text",
     "json": "JSON",
-    "csv": "CSV"
+    "csv": "CSV",
+    "actionItems": "Action items",
+    "speakerMe": "Me",
+    "speakerThem": "Other",
+    "loadingEntries": "Loading transcript…"
   },
   "liveSession": {
     "title": "Live Session",

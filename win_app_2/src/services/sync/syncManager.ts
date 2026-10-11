@@ -4,6 +4,8 @@ import { getAccessToken, getDeviceId as getAuthDeviceId } from '../auth/authenti
 import { getApiBaseUrl } from '../config/appEnvironment'
 import { useSessionStore } from '@/stores/sessionStore'
 import { useLicenseStore } from '@/stores/licenseStore'
+import { useAuthStore } from '@/stores/authStore'
+import { upsertImportedSession, markSessionsSynced, deleteSession as deleteLocalSession } from '@/services/session/sessionManager'
 import { Feature } from '@/types/auth'
 import type { Session } from '@/types/models'
 import type { SyncSessionPayload, RemoteSession } from '@/types/api'
@@ -32,6 +34,26 @@ let cachedDeviceId: string | null = null
 
 const BATCH_SIZE = 10
 const SYNC_INTERVAL = 5 * 60 * 1000 // 5 minutes
+const PULL_LIMIT = 200
+
+/** Sync requires an authenticated user with the session-sync feature. */
+function canSyncNow(): boolean {
+  if (!useAuthStore.getState().isAuthenticated) return false
+  return useLicenseStore.getState().canUse(Feature.SessionSync).type === 'allowed'
+}
+
+/** Authenticated fetch with one token refresh + retry on 401. */
+async function authedFetch(input: string, init: RequestInit = {}): Promise<Response> {
+  const baseHeaders = (init.headers ?? {}) as Record<string, string>
+  let token = await getAccessToken()
+  let response = await fetch(input, { ...init, headers: { ...baseHeaders, Authorization: `Bearer ${token}` } })
+  if (response.status === 401) {
+    log.warn('401 during sync, refreshing token once')
+    token = await getAccessToken(true)
+    response = await fetch(input, { ...init, headers: { ...baseHeaders, Authorization: `Bearer ${token}` } })
+  }
+  return response
+}
 
 // Listen for online/offline events
 if (typeof window !== 'undefined') {
@@ -144,7 +166,6 @@ export async function uploadPendingSessions(): Promise<{ uploaded: number; faile
   let failed = 0
 
   try {
-    const token = await getAccessToken()
     const baseUrl = getApiBaseUrl()
 
     // Upload in batches
@@ -152,12 +173,9 @@ export async function uploadPendingSessions(): Promise<{ uploaded: number; faile
       const batch = syncQueue.sessions.splice(0, BATCH_SIZE)
 
       try {
-        const response = await fetch(`${baseUrl}/api/sync/sessions`, {
+        const response = await authedFetch(`${baseUrl}/api/sync/sessions`, {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${token}`,
-          },
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ sessions: batch }),
         })
 
@@ -177,19 +195,31 @@ export async function uploadPendingSessions(): Promise<{ uploaded: number; faile
             break
           }
         } else {
-          const result = await response.json()
-          const syncedCount = result.synced ?? result.uploaded ?? batch.length
-          uploaded += syncedCount
+          const result = (await response.json()) as {
+            synced?: number
+            results?: Array<{ originalId: string; status: string }>
+            errors?: Array<{ originalId: string; error: string }>
+          }
+          // Per-session outcome: the server reports partial failures in
+          // `errors`; those items stay queued instead of being dropped.
+          const failedIds = new Set((result.errors ?? []).map((e) => e.originalId))
+          const okItems = batch.filter((item) => !failedIds.has(item.originalId))
+          const failedItems = batch.filter((item) => failedIds.has(item.originalId))
+          uploaded += okItems.length
+          failed += failedItems.length
+          if (failedItems.length) {
+            syncQueue.sessions.push(...failedItems)
+            log.error('Sync errors:', result.errors)
+          }
           // Remember what was uploaded so the periodic full sync can skip
           // unchanged sessions (dirty check in requeueAllLocalSessions)
           syncQueue.syncedChecksums = syncQueue.syncedChecksums ?? {}
-          for (const item of batch) {
+          for (const item of okItems) {
             if (item.checksum) syncQueue.syncedChecksums[item.originalId] = item.checksum
           }
-          log.info(`Uploaded ${syncedCount}/${batch.length} sessions`, result)
-          if (result.errors?.length) {
-            log.error('Sync errors:', result.errors)
-          }
+          await markSessionsSynced(okItems.map((i) => i.originalId))
+          log.info(`Uploaded ${okItems.length}/${batch.length} sessions`)
+          if (failedItems.length === batch.length) break // nothing got through — stop hammering
         }
       } catch (error) {
         syncQueue.sessions.unshift(...batch)
@@ -240,16 +270,9 @@ async function handleConflicts(conflicts: Array<{ sessionId: string; localVersio
     const remoteTime = conflict.remoteData.endTime ? new Date(conflict.remoteData.endTime).getTime() : 0
 
     if (remoteTime > localTime) {
-      // Remote is newer, merge by taking remote
+      // Remote is newer, merge by taking remote (persisted, not just in memory)
       resolutions.push({ sessionId: conflict.sessionId, resolution: 'remote' })
-
-      // Update local session with remote data
-      useSessionStore.getState().updateSession(conflict.sessionId, {
-        title: conflict.remoteData.title,
-        transcript: conflict.remoteData.transcript,
-        summary: conflict.remoteData.summary,
-        actionItems: conflict.remoteData.actionItems,
-      })
+      await upsertImportedSession(remoteToSession(conflict.remoteData, localSession))
     } else {
       // Local is newer or same, keep local
       resolutions.push({ sessionId: conflict.sessionId, resolution: 'local' })
@@ -259,23 +282,39 @@ async function handleConflicts(conflicts: Array<{ sessionId: string; localVersio
   log.info(`Resolved ${resolutions.length} conflicts`)
 }
 
+/** Map a server row onto a local Session (modeUsed → modeId, mac parity). */
+function remoteToSession(remote: RemoteSession, local?: Session): Session {
+  return {
+    id: remote.originalId,
+    title: remote.title,
+    startTime: remote.startTime,
+    endTime: remote.endTime ?? null,
+    transcript: remote.transcript ?? local?.transcript ?? '',
+    summary: remote.summary ?? local?.summary ?? null,
+    actionItems: remote.actionItems ?? local?.actionItems ?? [],
+    modeId: remote.modeUsed ?? local?.modeId ?? null,
+    entries: local?.entries ?? [],
+    syncStatus: 'synced',
+    remoteId: remote.id,
+    deviceId: remote.deviceId,
+  }
+}
+
 export async function pullRemoteSessions(): Promise<RemoteSession[]> {
   if (!isOnline) return []
+  if (!canSyncNow()) {
+    log.info('Pull skipped: sync not available (unauthenticated or plan)')
+    return []
+  }
 
   try {
-    const token = await getAccessToken()
     const baseUrl = getApiBaseUrl()
 
-    const params = new URLSearchParams({
-      allDevices: 'true',
-      ...(syncQueue.lastSyncAt && { since: syncQueue.lastSyncAt }),
-    })
+    // `full=true` is required to get transcript/summary/actionItems/modeUsed;
+    // the server ignores `since`, so we page the latest PULL_LIMIT rows.
+    const params = new URLSearchParams({ allDevices: 'true', full: 'true', limit: String(PULL_LIMIT) })
 
-    const response = await fetch(`${baseUrl}/api/sync/sessions?${params}`, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    })
+    const response = await authedFetch(`${baseUrl}/api/sync/sessions?${params}`)
 
     if (!response.ok) {
       captureError(new Error(`Sync pull failed: HTTP ${response.status}`), { service: 'sync', operation: 'pull', status: response.status })
@@ -292,40 +331,53 @@ export async function pullRemoteSessions(): Promise<RemoteSession[]> {
   }
 }
 
-export async function reconcileRemoteSessions(): Promise<void> {
+/** Sessions that were deleted on the web dashboard, found by the last reconcile. */
+let lastRemoteDeletions: string[] = []
+
+export function getRemoteDeletions(): string[] {
+  return lastRemoteDeletions
+}
+
+export async function reconcileRemoteSessions(): Promise<{ imported: number; deleted: number }> {
+  if (!canSyncNow()) return { imported: 0, deleted: 0 }
   const remoteSessions = await pullRemoteSessions()
   const sessionStore = useSessionStore.getState()
+  let imported = 0
+  let deleted = 0
+
+  const remoteIds = new Set(remoteSessions.map((r) => r.originalId))
 
   for (const remote of remoteSessions) {
     const local = sessionStore.sessions.find((s) => s.id === remote.originalId)
-
-    if (remote.deletedAt) {
-      // Remote was deleted
-      if (local) {
-        sessionStore.removeSession(remote.originalId)
-        log.info(`Removed locally deleted session: ${remote.originalId}`)
-      }
-      continue
-    }
-
     if (!local) {
-      // New remote session, add locally
-      sessionStore.addSession({
-        id: remote.originalId,
-        title: remote.title,
-        startTime: remote.startTime,
-        endTime: remote.endTime,
-        transcript: remote.transcript,
-        summary: remote.summary,
-        actionItems: remote.actionItems,
-        modeId: null,
-        entries: [],
-        syncStatus: 'synced',
-        deviceId: remote.deviceId,
-      })
-      log.info(`Added remote session locally: ${remote.originalId}`)
+      // New remote session: persisted to SQLite so it survives a restart
+      await upsertImportedSession(remoteToSession(remote))
+      imported++
+      log.info(`Imported remote session: ${remote.originalId}`)
+    } else if (local.syncStatus !== 'synced') {
+      // Known locally and present remotely → mark as synced
+      await markSessionsSynced([local.id])
     }
   }
+
+  // Remote deletions (mac SessionListView.processRemoteDeletions): a session we
+  // know is on the server but that the full listing no longer contains was
+  // deleted on the web — mirror it locally. Only trusted when the listing is
+  // non-empty and not truncated (a failed pull must never wipe local data).
+  if (remoteSessions.length > 0 && remoteSessions.length < PULL_LIMIT) {
+    const deletedRemotely = useSessionStore
+      .getState()
+      .sessions.filter((s) => s.syncStatus === 'synced' && s.endTime && !remoteIds.has(s.id))
+      .map((s) => s.id)
+    for (const id of deletedRemotely) {
+      await deleteLocalSession(id)
+      deleted++
+      log.info(`Removed session deleted remotely: ${id}`)
+    }
+    lastRemoteDeletions = deletedRemotely
+  }
+
+  return { imported, deleted }
 }
 
 /**
@@ -337,17 +389,11 @@ export async function deleteRemoteSession(sessionId: string): Promise<void> {
     log.warn(`Offline, cannot delete remote session ${sessionId}`)
     return
   }
+  if (!useAuthStore.getState().isAuthenticated) return
 
   try {
-    const token = await getAccessToken()
     const baseUrl = getApiBaseUrl()
-
-    const response = await fetch(`${baseUrl}/api/sync/sessions/${sessionId}`, {
-      method: 'DELETE',
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    })
+    const response = await authedFetch(`${baseUrl}/api/sync/sessions/${sessionId}`, { method: 'DELETE' })
 
     if (response.ok) {
       log.info(`Remote session deleted: ${sessionId}`)
@@ -395,6 +441,10 @@ export function requeueAllLocalSessions(): number {
 }
 
 export async function performFullSync(): Promise<void> {
+  if (!canSyncNow()) {
+    log.info('Full sync skipped: not available')
+    return
+  }
   log.info('Performing full sync...')
 
   // Re-queue any local sessions that haven't been synced yet

@@ -165,5 +165,10 @@
     "tooltip": "{{participants}} pers. × {{rate}} {{currency}}/h — cliquer pour ajuster",
     "fewer": "Moins de participants",
     "more": "Plus de participants"
+  },
+  "meetingReminder": {
+    "detected": "{{app}} détecté",
+    "startQuestion": "Démarrer une session ?",
+    "start": "Démarrer"
   }
 }

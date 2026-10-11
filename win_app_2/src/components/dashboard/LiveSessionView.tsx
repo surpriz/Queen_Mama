@@ -9,6 +9,8 @@ import { ContactPicker } from '@/components/overlay/ContactPicker'
 import { StatusIndicator } from '@/components/common/StatusIndicator'
 import { KeyboardShortcutBadge } from '@/components/common/KeyboardShortcutBadge'
 import { cn } from '@/lib/utils'
+import { TranscriptBubble } from '@/components/common/TranscriptBubble'
+import { parseTranscriptLines } from '@/services/session/transcriptEntries'
 import type { Contact } from '@/types/models'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
@@ -29,38 +31,6 @@ function ProviderBadge({ provider }: { provider: string }) {
   )
 }
 
-type TranscriptLine = { speaker: 'me' | 'them' | null; text: string }
-
-function parseTranscriptLines(transcript: string): TranscriptLine[] {
-  if (!transcript) return []
-  return transcript.split('\n').map((line) => {
-    if (line.startsWith('Moi: ')) return { speaker: 'me', text: line.slice(5) }
-    if (line.startsWith('Interlocuteur: ')) return { speaker: 'them', text: line.slice(15) }
-    return { speaker: null, text: line }
-  })
-}
-
-function TranscriptBubble({ line }: { line: TranscriptLine }) {
-  if (line.speaker === null) {
-    if (!line.text.trim()) return null
-    return <div className="text-qm-text-primary mb-2">{line.text}</div>
-  }
-  const isMe = line.speaker === 'me'
-  return (
-    <div className={cn('flex mb-2', isMe ? 'justify-end' : 'justify-start')}>
-      <div
-        className={cn(
-          'max-w-[80%] px-3 py-2 rounded-qm-md text-body-sm leading-relaxed',
-          isMe
-            ? 'bg-qm-accent text-white rounded-br-sm'
-            : 'bg-qm-surface-medium text-qm-text-primary rounded-bl-sm',
-        )}
-      >
-        {line.text}
-      </div>
-    </div>
-  )
-}
 
 export function LiveSessionView() {
   const { t } = useTranslation('dashboard')
