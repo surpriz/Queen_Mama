@@ -28,6 +28,22 @@ export interface SessionStateRelay {
   isFinalizingSession?: boolean
   sessionFinalized?: boolean
   currentSessionId?: string | null
+  /** Contact linked to the running session (drives the overlay Briefing tab). */
+  currentContactId?: string | null
+}
+
+/** Extracted contact proposed after a session (host → dashboard review sheet). */
+export interface ContactProposalRelay {
+  sessionId: string
+  contact: {
+    firstName: string
+    lastName?: string
+    email?: string
+    company?: string
+    role?: string
+    confidence: number
+    suggestedNotes: string[]
+  }
 }
 
 export interface TranscriptRelay {
@@ -136,6 +152,7 @@ export interface RelayChannels {
   'relay:error': ErrorRelay
   'relay:overlay': OverlayRelay
   'relay:config': Record<string, unknown>
+  'relay:contact-proposal': ContactProposalRelay
 }
 
 export type RelayChannel = keyof RelayChannels

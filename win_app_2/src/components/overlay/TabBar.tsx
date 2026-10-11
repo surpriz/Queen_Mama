@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { Sparkles, MessageSquare, MessageCircleQuestion, RotateCcw, BookA, Languages } from 'lucide-react'
+import { Sparkles, MessageSquare, MessageCircleQuestion, RotateCcw, BookA, Languages, UserRound } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { useOverlayStore } from '@/stores/overlayStore'
+import { useAppStore } from '@/stores/appStore'
 import { useConfigStore } from '@/stores/configStore'
 import { useLicenseStore } from '@/stores/licenseStore'
 import { Feature } from '@/types/auth'
@@ -22,6 +23,7 @@ export function TabBar({ onTabSelected }: TabBarProps) {
   const translationEnabled = useConfigStore((s) => s.translationEnabled)
   const translationShowInOverlay = useConfigStore((s) => s.translationShowInOverlay)
   const showDecode = useConfigStore((s) => s.showDecodeInOverlay)
+  const hasLinkedContact = useAppStore((s) => s.currentContactId !== null)
   const canUseTranslation = useLicenseStore((s) => s.isFeatureAvailable(Feature.LiveTranslation))
 
   const TABS: ReadonlyArray<{ type: ResponseType; label: string; hint: string; icon: typeof Sparkles }> = [
@@ -31,6 +33,8 @@ export function TabBar({ onTabSelected }: TabBarProps) {
     { type: ResponseType.Recap, label: t('tabs.recap'), hint: t('tabHints.recap'), icon: RotateCcw },
     // Decode is opt-in (mac `showDecodeInOverlay`): six tabs don't fit a 380 px pill
     ...(showDecode ? [{ type: ResponseType.Decode, label: t('tabs.decode'), hint: t('tabHints.decode'), icon: BookA }] : []),
+    // Briefing only when the running session is linked to a contact (mac parity)
+    ...(hasLinkedContact ? [{ type: ResponseType.Briefing, label: t('tabs.briefing'), hint: t('tabHints.briefing'), icon: UserRound }] : []),
     ...(translationEnabled && translationShowInOverlay && canUseTranslation
       ? [{ type: ResponseType.Translate, label: t('tabs.translate'), hint: t('tabHints.translate'), icon: Languages }]
       : []),
