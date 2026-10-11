@@ -12,6 +12,7 @@ import { SettingsView } from './SettingsView'
 import { FreeWelcomeBanner } from '@/components/license/FreeWelcomeBanner'
 import { PricingModal } from '@/components/license/PricingModal'
 import { UpdateBanner } from '@/components/common/UpdateBanner'
+import { ContactExtractionSheet } from './ContactExtractionSheet'
 
 export type NavItem = 'sessions' | 'live' | 'modes' | 'contacts' | 'settings'
 
@@ -107,6 +108,8 @@ export function DashboardLayout() {
           </div>
         )}
       </div>
+
+      <ContactExtractionSheet />
 
       <PricingModal
         isOpen={showPricing}

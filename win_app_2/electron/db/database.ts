@@ -1,4 +1,5 @@
 import Database from 'better-sqlite3'
+import { randomUUID } from 'crypto'
 import { app } from 'electron'
 import * as path from 'path'
 
@@ -86,6 +87,15 @@ export function initializeDatabase(): Database.Database {
       updated_at TEXT NOT NULL
     );
 
+    CREATE TABLE IF NOT EXISTS contact_notes (
+      id TEXT PRIMARY KEY,
+      contact_id TEXT NOT NULL REFERENCES contacts(id) ON DELETE CASCADE,
+      text TEXT NOT NULL DEFAULT '',
+      created_at TEXT NOT NULL,
+      remote_id TEXT
+    );
+    CREATE INDEX IF NOT EXISTS idx_contact_notes_contact ON contact_notes(contact_id, created_at);
+
     CREATE TABLE IF NOT EXISTS session_contacts (
       session_id TEXT NOT NULL REFERENCES sessions(id) ON DELETE CASCADE,
       contact_id TEXT NOT NULL REFERENCES contacts(id) ON DELETE CASCADE,
@@ -141,6 +151,24 @@ export function initializeDatabase(): Database.Database {
   try {
     const contactCols = db.pragma('table_info(contacts)') as { name: string }[]
     const contactColNames = contactCols.map((c) => c.name)
+    if (!contactColNames.includes('first_name')) {
+      db.exec(`ALTER TABLE contacts ADD COLUMN first_name TEXT`)
+      db.exec(`ALTER TABLE contacts ADD COLUMN last_name TEXT`)
+      // Split the legacy single `name` into first/last (mac model parity)
+      const rows = db.prepare('SELECT id, name FROM contacts').all() as { id: string; name: string }[]
+      const update = db.prepare('UPDATE contacts SET first_name = ?, last_name = ? WHERE id = ?')
+      for (const row of rows) {
+        const parts = (row.name || '').trim().split(/\s+/).filter(Boolean)
+        update.run(parts[0] ?? '', parts.length > 1 ? parts.slice(1).join(' ') : null, row.id)
+      }
+      // Legacy free-text notes become the first entry of the notes timeline
+      const withNotes = db.prepare(`SELECT id, notes, updated_at FROM contacts WHERE notes IS NOT NULL AND trim(notes) <> ''`).all() as { id: string; notes: string; updated_at: string }[]
+      const insertNote = db.prepare('INSERT OR IGNORE INTO contact_notes (id, contact_id, text, created_at) VALUES (?, ?, ?, ?)')
+      for (const row of withNotes) {
+        insertNote.run(randomUUID(), row.id, row.notes.trim(), row.updated_at || new Date().toISOString())
+      }
+      console.log(`[Database] Migrated contacts: added first_name/last_name (${rows.length} rows), ${withNotes.length} notes moved to timeline`)
+    }
     if (!contactColNames.includes('email')) {
       db.exec(`ALTER TABLE contacts ADD COLUMN email TEXT`)
       console.log('[Database] Migrated contacts: added email')

@@ -12,6 +12,8 @@ interface AppState {
   isProcessing: boolean
   audioLevel: number
   selectedMode: Mode | null
+  /** Contact linked to the running session (relayed from the host). */
+  currentContactId: string | null
   errorMessage: string | null
   isFinalizingSession: boolean
   sessionJustFinalized: boolean
@@ -45,6 +47,7 @@ export const useAppStore = create<AppState>((set) => ({
   isProcessing: false,
   audioLevel: 0,
   selectedMode: null,
+  currentContactId: null,
   errorMessage: null,
   isFinalizingSession: false,
   sessionJustFinalized: false,

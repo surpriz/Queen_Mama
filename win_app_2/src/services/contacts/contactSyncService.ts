@@ -1,19 +1,29 @@
 /**
  * ContactSyncService - Bidirectional contact sync with backend
  * Matches macOS ContactSyncManager behavior:
- * - Push: Local unsynced contacts → Server (batch of 10)
- * - Pull: Server contacts → Local (deduplication by remoteId/email)
+ * - Push: Local unsynced contacts (+ their notes) → Server (batch of 10)
+ * - Pull: Server contacts (+ notes) → Local (match by remoteId / email, merge notes)
  * - Authentication-gated (requires pro subscription)
+ *
+ * Wire format (`landing/lib/validations.ts` contactSyncSchema): firstName,
+ * lastName, email, company, role, lastSeenAt, notes[{originalId, content, createdAt}].
  */
 
 import { createLogger } from '@/lib/logger'
 import { getApiBaseUrl } from '@/services/config/appEnvironment'
 import { getAccessToken } from '@/services/auth/authenticationManager'
 import * as contactDb from './contactDb'
+import { fullName } from './contactModel'
 import type { Contact } from '@/types/models'
 
 const log = createLogger('ContactSync')
 const BATCH_SIZE = 10
+
+interface SyncableNote {
+  originalId: string
+  content: string
+  createdAt: string
+}
 
 interface SyncableContact {
   deviceId: string
@@ -25,7 +35,27 @@ interface SyncableContact {
   role?: string
   lastSeenAt: string
   version: number
-  notes?: string
+  notes?: SyncableNote[]
+}
+
+interface RemoteNote {
+  id: string
+  content: string
+  createdAt: string
+}
+
+interface RemoteContact {
+  id: string
+  firstName: string
+  lastName?: string | null
+  email?: string | null
+  company?: string | null
+  role?: string | null
+  originalId?: string | null
+  lastSeenAt?: string
+  createdAt?: string
+  updatedAt?: string
+  notes?: RemoteNote[]
 }
 
 interface SyncState {
@@ -80,7 +110,7 @@ function getBaseUrl(): string {
 }
 
 /**
- * Push unsynced contacts to server
+ * Push unsynced contacts (with their notes) to server
  */
 export async function pushContacts(): Promise<void> {
   if (state.isSyncing) return
@@ -105,26 +135,29 @@ export async function pushContacts(): Promise<void> {
     const deviceId = await getDeviceId()
     const baseUrl = getBaseUrl()
 
-    // Process in batches of 10
     for (let i = 0; i < unsyncedContacts.length; i += BATCH_SIZE) {
       const batch = unsyncedContacts.slice(i, i + BATCH_SIZE)
-      const payload: SyncableContact[] = batch.map((c) => {
-        const nameParts = c.name.trim().split(/\s+/)
-        const firstName = nameParts[0] || c.name
-        const lastName = nameParts.length > 1 ? nameParts.slice(1).join(' ') : undefined
-        return {
+      const payload: SyncableContact[] = []
+      const noteIdsByContact = new Map<string, string[]>()
+
+      for (const c of batch) {
+        const notes = await contactDb.getNotes(c.id)
+        noteIdsByContact.set(c.id, notes.map((n) => n.id))
+        payload.push({
           deviceId,
           originalId: c.id,
-          firstName,
-          lastName,
+          firstName: c.firstName || c.name,
+          lastName: c.lastName,
           email: c.email,
           company: c.company,
           role: c.role,
           lastSeenAt: c.lastSeen || c.createdAt,
           version: 1,
-          notes: c.notes || undefined,
-        }
-      })
+          notes: notes.length
+            ? notes.map((n) => ({ originalId: n.id, content: n.text, createdAt: n.createdAt }))
+            : undefined,
+        })
+      }
 
       const response = await fetch(`${baseUrl}/api/sync/contacts`, {
         method: 'POST',
@@ -144,11 +177,14 @@ export async function pushContacts(): Promise<void> {
 
       const result = await response.json()
 
-      // Mark contacts as synced with remote IDs
       if (result.results && Array.isArray(result.results)) {
         for (const synced of result.results) {
           if (synced.originalId && synced.syncedId) {
             await contactDb.markContactSynced(synced.originalId, synced.syncedId)
+            // The server stores pushed notes as `${syncedId}-${originalId}`
+            for (const noteId of noteIdsByContact.get(synced.originalId) ?? []) {
+              await contactDb.markNoteSynced(noteId, `${synced.syncedId}-${noteId}`)
+            }
           }
         }
       }
@@ -170,7 +206,9 @@ export async function pushContacts(): Promise<void> {
 }
 
 /**
- * Pull contacts from server
+ * Pull contacts (with notes) from server. New contacts are imported; known
+ * ones (by remoteId or email) get missing fields and new notes merged in.
+ * Returns the contacts that were created or updated.
  */
 export async function pullContacts(): Promise<Contact[]> {
   if (state.isPulling) return []
@@ -188,7 +226,7 @@ export async function pullContacts(): Promise<Contact[]> {
 
     const baseUrl = getBaseUrl()
 
-    const response = await fetch(`${baseUrl}/api/contacts`, {
+    const response = await fetch(`${baseUrl}/api/sync/contacts?includeNotes=true&limit=500`, {
       method: 'GET',
       headers,
     })
@@ -204,47 +242,77 @@ export async function pullContacts(): Promise<Contact[]> {
     }
 
     const result = await response.json()
-    const remoteContacts = result.contacts || []
+    const remoteContacts: RemoteContact[] = result.contacts || []
 
-    // Get existing contacts for deduplication
     const existingContacts = await contactDb.getAllContacts()
-    const existingRemoteIds = new Set(existingContacts.map((c) => c.remoteId).filter(Boolean))
-    const existingEmails = new Set(existingContacts.map((c) => c.email?.toLowerCase()).filter(Boolean))
+    const byRemoteId = new Map(existingContacts.filter((c) => c.remoteId).map((c) => [c.remoteId as string, c]))
+    const byLocalId = new Map(existingContacts.map((c) => [c.id, c]))
+    const byEmail = new Map(
+      existingContacts.filter((c) => c.email).map((c) => [(c.email as string).toLowerCase(), c]),
+    )
 
-    const imported: Contact[] = []
+    const touched: Contact[] = []
     const now = new Date().toISOString()
 
     for (const remote of remoteContacts) {
-      // Skip if already imported by remoteId
-      if (existingRemoteIds.has(remote.id)) continue
-      // Skip if email matches an existing contact
-      if (remote.email && existingEmails.has(remote.email.toLowerCase())) continue
+      const local =
+        byRemoteId.get(remote.id) ??
+        (remote.originalId ? byLocalId.get(remote.originalId) : undefined) ??
+        (remote.email ? byEmail.get(remote.email.toLowerCase()) : undefined)
 
-      const fullName = [remote.firstName, remote.lastName].filter(Boolean).join(' ') || 'Unknown'
-      const sessionCount = remote._count?.sessions ?? 0
+      let contact: Contact
+      if (local) {
+        contact = {
+          ...local,
+          firstName: local.firstName || remote.firstName,
+          lastName: local.lastName ?? remote.lastName ?? undefined,
+          name: local.name || fullName({ firstName: remote.firstName, lastName: remote.lastName ?? undefined }),
+          email: local.email ?? remote.email ?? undefined,
+          role: local.role ?? remote.role ?? undefined,
+          company: local.company ?? remote.company ?? undefined,
+          remoteId: remote.id,
+          isSynced: true,
+          updatedAt: now,
+        }
+      } else {
+        contact = {
+          id: crypto.randomUUID(),
+          firstName: remote.firstName,
+          lastName: remote.lastName ?? undefined,
+          name: fullName({ firstName: remote.firstName, lastName: remote.lastName ?? undefined }) || 'Unknown',
+          email: remote.email ?? undefined,
+          role: remote.role ?? undefined,
+          company: remote.company ?? undefined,
+          notes: '',
+          lastSeen: remote.lastSeenAt,
+          sessionCount: 0,
+          isSynced: true,
+          remoteId: remote.id,
+          createdAt: remote.createdAt || now,
+          updatedAt: now,
+        }
+      }
+      await contactDb.upsertContact(contact)
 
-      const newContact: Contact = {
-        id: crypto.randomUUID(),
-        name: fullName,
-        email: remote.email ?? undefined,
-        role: remote.role ?? undefined,
-        company: remote.company ?? undefined,
-        notes: '',
-        lastSeen: remote.lastSeenAt,
-        sessionCount,
-        isSynced: true,
-        remoteId: remote.id,
-        createdAt: remote.createdAt || now,
-        updatedAt: now,
+      // Merge notes: skip the ones we already have (by remote id, or that were
+      // pushed from here: `${remoteContactId}-${localNoteId}`)
+      if (remote.notes?.length) {
+        const localNotes = await contactDb.getNotes(contact.id)
+        const knownRemote = new Set(localNotes.map((n) => n.remoteId).filter(Boolean))
+        const knownLocal = new Set(localNotes.map((n) => `${remote.id}-${n.id}`))
+        for (const note of remote.notes) {
+          if (knownRemote.has(note.id) || knownLocal.has(note.id)) continue
+          await contactDb.addNote(contact.id, note.content, { createdAt: note.createdAt, remoteId: note.id })
+        }
       }
 
-      await contactDb.upsertContact(newContact)
-      imported.push(newContact)
+      const refreshed = await contactDb.getContact(contact.id)
+      if (refreshed) touched.push(refreshed)
     }
 
     state.lastSyncAt = now
-    log.info(`Pull complete: ${imported.length} new contacts imported (${remoteContacts.length} total on server)`)
-    return imported
+    log.info(`Pull complete: ${touched.length} contacts created/updated (${remoteContacts.length} total on server)`)
+    return touched
   } catch (err) {
     const msg = err instanceof Error ? err.message : 'Pull failed'
     log.error(msg)

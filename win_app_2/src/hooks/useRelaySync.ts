@@ -7,6 +7,8 @@ import { useMomentStore } from '@/stores/momentStore'
 import { useAudioHealthStore } from '@/stores/audioHealthStore'
 import { usePreGenStore } from '@/stores/preGenStore'
 import { useTranscriptionStateStore } from '@/stores/transcriptionStateStore'
+import { useContactProposalStore } from '@/stores/contactProposalStore'
+import { getWindowKind } from '@/lib/runtime'
 import { loadSessions } from '@/services/session/sessionManager'
 import { modesService } from '@/services/modes/modesService'
 import * as relay from '@/services/relay/relayClient'
@@ -43,6 +45,9 @@ function applySessionState(data: SessionStateRelay): void {
   }
   if (data.sessionStartedAt !== undefined && data.sessionStartedAt !== store.sessionStartedAt) {
     useAppStore.setState({ sessionStartedAt: data.sessionStartedAt })
+  }
+  if (data.currentContactId !== undefined && data.currentContactId !== store.currentContactId) {
+    useAppStore.setState({ currentContactId: data.currentContactId })
   }
   if (data.isFinalizingSession !== undefined) {
     store.setFinalizingSession(data.isFinalizingSession)
@@ -120,6 +125,10 @@ export function useRelaySync(): void {
       relay.on('relay:ai-error', (data) => useOverlayStore.getState().setLastError(data)),
       relay.on('relay:pregen', (data) => usePreGenStore.getState().apply(data)),
       relay.on('relay:transcription', (data) => useTranscriptionStateStore.getState().apply(data)),
+      relay.on('relay:contact-proposal', (data) => {
+        // Only the dashboard shows the review sheet
+        if (getWindowKind() === 'dashboard') useContactProposalStore.getState().propose(data)
+      }),
       relay.on('relay:ai-response', applyAiResponse),
       relay.on('relay:license', applyLicense),
       relay.on('relay:dictation', (data) => useDictationStore.getState().apply(data)),

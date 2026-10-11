@@ -12,6 +12,9 @@ import { useTranslation } from 'react-i18next'
 import { useContactStore } from '@/stores/contactStore'
 import * as contactDb from '@/services/contacts/contactDb'
 import * as contactSyncService from '@/services/contacts/contactSyncService'
+import { useLicenseStore } from '@/stores/licenseStore'
+import { Feature } from '@/types/auth'
+import { buildContact, splitName, initials, displaySubtitle } from '@/services/contacts/contactModel'
 import type { Contact } from '@/types/models'
 
 interface ContactPickerProps {
@@ -27,6 +30,7 @@ export function ContactPicker({ sessionId, onStart, onClose }: ContactPickerProp
   const { t } = useTranslation('overlay')
   const contacts = useContactStore((s) => s.contacts)
   const addContact = useContactStore((s) => s.addContact)
+  const canSync = useLicenseStore((s) => s.isFeatureAvailable(Feature.SessionSync))
   const [search, setSearch] = useState('')
   const [isCreating, setIsCreating] = useState(false)
 
@@ -71,29 +75,21 @@ export function ContactPicker({ sessionId, onStart, onClose }: ContactPickerProp
       await contactDb.linkContactToSession(contact.id, sessionId)
     }
 
-    // Queue for sync
-    contactSyncService.pushContacts().catch(() => {})
+    // Queue for sync (licensed only)
+    if (canSync) contactSyncService.pushContacts().catch(() => {})
 
     onStart(updated)
-  }, [sessionId, addContact, onStart])
+  }, [sessionId, addContact, onStart, canSync])
 
   const handleCreateAndStart = useCallback(async () => {
     if (!newName.trim() || isSaving) return
     setIsSaving(true)
 
     const now = new Date().toISOString()
-    const newContact: Contact = {
-      id: crypto.randomUUID(),
-      name: newName.trim(),
-      email: newEmail.trim() || undefined,
-      role: newRole.trim() || undefined,
-      company: newCompany.trim() || undefined,
-      notes: '',
-      lastSeen: now,
-      sessionCount: 0,
-      createdAt: now,
-      updatedAt: now,
-    }
+    const newContact = buildContact(
+      { ...splitName(newName), email: newEmail, role: newRole, company: newCompany },
+      { lastSeen: now },
+    )
 
     await contactDb.upsertContact(newContact)
     addContact(newContact)
@@ -102,12 +98,12 @@ export function ContactPicker({ sessionId, onStart, onClose }: ContactPickerProp
       await contactDb.linkContactToSession(newContact.id, sessionId)
     }
 
-    // Queue for sync
-    contactSyncService.pushContacts().catch(() => {})
+    // Queue for sync (licensed only)
+    if (canSync) contactSyncService.pushContacts().catch(() => {})
 
     setIsSaving(false)
     onStart(newContact)
-  }, [newName, newEmail, newRole, newCompany, isSaving, sessionId, addContact, onStart])
+  }, [newName, newEmail, newRole, newCompany, isSaving, sessionId, addContact, onStart, canSync])
 
   const handleStartSolo = useCallback(() => {
     onStart(null)
@@ -291,11 +287,7 @@ function ContactPickerItem({
   onSelect: () => void
 }) {
   const { t } = useTranslation('overlay')
-  const initials = (() => {
-    const parts = contact.name.trim().split(/\s+/)
-    if (parts.length >= 2) return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase()
-    return contact.name.slice(0, 2).toUpperCase()
-  })()
+  const avatar = initials(contact)
 
   return (
     <button
@@ -304,13 +296,13 @@ function ContactPickerItem({
     >
       <div className="w-8 h-8 rounded-full bg-qm-accent/20 flex items-center justify-center flex-shrink-0">
         <span className="text-body-sm font-semibold text-qm-accent">
-          {initials}
+          {avatar}
         </span>
       </div>
       <div className="flex-1 min-w-0">
         <p className="text-body-sm font-medium text-qm-text-primary truncate">{contact.name}</p>
         <p className="text-caption text-qm-text-tertiary truncate">
-          {[contact.role, contact.company].filter(Boolean).join(' @ ') || t('contactPicker.noDetails')}
+          {displaySubtitle(contact) || contact.email || t('contactPicker.noDetails')}
         </p>
       </div>
       <div className="flex items-center gap-2 flex-shrink-0">
