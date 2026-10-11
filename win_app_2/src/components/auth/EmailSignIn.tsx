@@ -61,9 +61,10 @@ export function EmailSignIn({ onBack, onSwitchToGoogle, onSwitchToRegister }: Em
     try {
       await loginWithCredentials(viewState.email, password)
     } catch (err) {
+      const code = (err as { code?: string } | null)?.code
       const message = err instanceof Error ? err.message : t('auth.signInFailed')
       // If error indicates OAuth user, switch to Google view
-      if (message.toLowerCase().includes('google') || message.toLowerCase().includes('oauth')) {
+      if (code === 'oauth_account_exists' || code === 'oauth_user' || message.toLowerCase().includes('google') || message.toLowerCase().includes('oauth')) {
         setViewState({ type: 'useGoogle', email: viewState.email })
       } else {
         setError(message)

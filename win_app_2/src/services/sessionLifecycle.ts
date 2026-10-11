@@ -20,12 +20,12 @@ import * as analytics from '@/services/analytics/analyticsService'
 import { configurationManager } from '@/services/config/configurationManager'
 import { useConfigStore } from '@/stores/configStore'
 import { ResponseType, type Mode } from '@/types/models'
-import { extractContactsFromTranscript } from '@/services/contacts/contactExtractor'
-import * as contactSyncService from '@/services/contacts/contactSyncService'
+import { extractContactFromTranscript } from '@/services/contacts/contactExtractor'
 import * as contactDb from '@/services/contacts/contactDb'
 import { useContactStore } from '@/stores/contactStore'
 import { transcriptBuffer, TranscriptBuffer, SYSTEM_FLUSH_INTERVAL } from '@/services/transcription/transcriptBuffer'
 import * as healthCheck from '@/services/health/healthCheckService'
+import { extractActionItems } from '@/services/session/actionItems'
 import * as dedup from '@/services/transcription/transcriptDeduplicator'
 import * as echoCanceller from '@/services/audio/echoCanceller'
 import { EnergyVAD } from '@/services/audio/energyVad'
@@ -79,6 +79,7 @@ function applyDetectionConfig(): void {
 }
 
 let currentSessionId: string | null = null
+let currentContactId: string | null = null
 let unsubscribeMoments: (() => void) | null = null
 let fullTranscript = '' // Always grows, persisted to DB via sessionMgr.updateTranscript()
 let userSpeakerIndex: number | null = null // First speaker seen in single-stream diarized fallback = mic owner = "Moi"
@@ -103,6 +104,7 @@ export async function startSession(mode?: Mode | null, contact?: Contact | null)
     // Create session record
     const session = sessionMgr.startSession('New Session', mode?.id ?? null)
     currentSessionId = session.id
+    currentContactId = contact?.id ?? null
     setOverlaySessionId(session.id)
 
     // Broadcast session started to all windows
@@ -110,6 +112,7 @@ export async function startSession(mode?: Mode | null, contact?: Contact | null)
       isSessionActive: true,
       sessionStartedAt: useAppStore.getState().sessionStartedAt,
       currentSessionId,
+      currentContactId,
     })
 
     // Link contact to session if provided
@@ -455,7 +458,8 @@ export async function stopSession(): Promise<void> {
   if (!store.isSessionActive) return
 
   store.setFinalizingSession(true)
-  addBreadcrumb('session', `Session stopped (transcript: ${fullTranscript.length} chars)`, 'info')
+  const sessionDurationSeconds = store.sessionStartedAt ? Math.round((Date.now() - store.sessionStartedAt) / 1000) : 0
+  addBreadcrumb('session', `Session stopped (${sessionDurationSeconds}s, transcript: ${fullTranscript.length} chars)`, 'info')
 
   try {
     // Stop all services
@@ -533,26 +537,32 @@ export async function stopSession(): Promise<void> {
 
       console.log(`[SessionLifecycle] Final summary (${generatedSummary.length} chars): ${generatedSummary.slice(0, 80)}...`)
 
-      // Extract contacts from transcript
-      try {
-        const extractedContacts = await extractContactsFromTranscript(fullTranscript, currentSessionId)
-        if (extractedContacts.length > 0) {
-          const contactStore = useContactStore.getState()
-          for (const contact of extractedContacts) {
-            contactStore.addContact(contact)
-          }
-          console.log(`[SessionLifecycle] Extracted ${extractedContacts.length} contacts`)
-          // Push newly created/updated contacts to server
-          contactSyncService.pushContacts().catch((e) =>
-            console.warn('[SessionLifecycle] Contact push failed:', e),
-          )
-        }
-      } catch (err) {
-        console.error('[SessionLifecycle] Contact extraction failed:', err)
-        captureError(
-          err instanceof Error ? err : new Error('Contact extraction failed'),
-          { service: 'session', operation: 'contactExtraction', sessionId: currentSessionId },
-        )
+      // Action items (mac parity: shown in the session detail and synced)
+      let actionItems: string[] | null = null
+      if (fullTranscript.length > 200) {
+        actionItems = await extractActionItems(fullTranscript)
+      }
+
+      // Contact extraction is proposed to the user after the session is
+      // persisted (mac parity): one "other party" contact, confidence ≥ 0.7,
+      // reviewed in the dashboard sheet — never auto-added, never awaited here.
+      if (!currentContactId) {
+        const sessionIdForExtraction = currentSessionId
+        const transcriptForExtraction = fullTranscript
+        setTimeout(() => {
+          extractContactFromTranscript(transcriptForExtraction)
+            .then((extracted) => {
+              if (!extracted) return
+              relay.broadcast('relay:contact-proposal', { sessionId: sessionIdForExtraction, contact: extracted })
+              console.log(`[SessionLifecycle] Contact proposal relayed: ${extracted.firstName}`)
+            })
+            .catch((err) => {
+              captureError(
+                err instanceof Error ? err : new Error('Contact extraction failed'),
+                { service: 'session', operation: 'contactExtraction', sessionId: sessionIdForExtraction },
+              )
+            })
+        }, 0)
       }
 
       // Finalize: write transcript + title + summary + endTime to DB in one awaited call
@@ -565,16 +575,18 @@ export async function stopSession(): Promise<void> {
         costCfg.meetingCostEnabled
           ? { participants: costCfg.meetingCostParticipants, hourlyRate: costCfg.meetingCostHourlyRate, currency: costCfg.meetingCostCurrency }
           : null,
+        actionItems,
       )
 
       // Queue for sync AFTER finalize so summary is included
       syncManager.queueSessionForSync(currentSessionId)
 
       // Analytics
-      analytics.trackSessionEnded(0, fullTranscript.length, fullTranscript.length > 0)
+      analytics.trackSessionEnded(sessionDurationSeconds, fullTranscript.length, useOverlayStore.getState().responseHistory.length > 0)
     }
 
     currentSessionId = null
+    currentContactId = null
     setOverlaySessionId(null)
     fullTranscript = ''
 
@@ -588,6 +600,7 @@ export async function stopSession(): Promise<void> {
       isFinalizingSession: false,
       sessionFinalized: true,
       currentSessionId: null,
+      currentContactId: null,
     })
 
     // Also set success state on local store

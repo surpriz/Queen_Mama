@@ -51,6 +51,8 @@ export enum ResponseType {
   Decode = 'Decode',
   Custom = 'Custom',
   Translate = 'Translate',
+  /** Passive tab: contact briefing for the linked contact (no AI call). */
+  Briefing = 'Briefing',
 }
 
 const LANGUAGE_INSTRUCTION = `
@@ -585,6 +587,13 @@ FORMAT:
     classicSystemPromptAddition: '',
     systemPromptAddition: '',
   },
+  [ResponseType.Briefing]: {
+    icon: 'UserRound',
+    label: 'Briefing',
+    shortLabel: 'Briefing',
+    classicSystemPromptAddition: '',
+    systemPromptAddition: '',
+  },
 }
 
 export enum AIProviderType {
@@ -793,10 +802,14 @@ export const BUILT_IN_MODE_NAMES = ['Default', 'Limitless', 'Professional', 'Int
 
 export interface Contact {
   id: string
+  /** Display name — always `firstName + lastName` (kept for search/sort and older callers). */
   name: string
+  firstName: string
+  lastName?: string
   email?: string
   role?: string
   company?: string
+  /** Read-only summary of the notes timeline (joined, newest first) used by the AI context. */
   notes: string
   lastSeen?: string
   sessionCount: number
@@ -804,4 +817,13 @@ export interface Contact {
   remoteId?: string
   createdAt: string
   updatedAt: string
+}
+
+/** Timestamped note on a contact (mac ContactNote parity). */
+export interface ContactNote {
+  id: string
+  contactId: string
+  text: string
+  createdAt: string
+  remoteId?: string
 }

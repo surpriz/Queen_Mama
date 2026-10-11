@@ -159,17 +159,21 @@ export interface SyncResult {
   errors: string[]
 }
 
+/** Row returned by GET /api/sync/sessions?full=true (no `deletedAt`: deletions are inferred by absence). */
 export interface RemoteSession {
   id: string
   originalId: string
   title: string
   startTime: string
   endTime: string | null
-  transcript: string
-  summary: string | null
-  actionItems: string[]
+  transcript?: string | null
+  summary?: string | null
+  actionItems?: string[] | null
+  modeUsed?: string | null
   deviceId: string
-  deletedAt: string | null
+  version?: number
+  checksum?: string | null
+  updatedAt?: string
 }
 
 export interface UsageRecordRequest {

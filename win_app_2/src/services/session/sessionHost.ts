@@ -19,6 +19,7 @@ import * as autoAnswer from '@/services/detection/autoAnswerService'
 import { onMomentsDetected } from '@/services/detection/momentDetectionService'
 import { dictationService } from '@/services/dictation/dictationService'
 import * as licenseManager from '@/services/license/licenseManager'
+import * as analytics from '@/services/analytics/analyticsService'
 import * as transcription from '@/services/transcription/transcriptionService'
 import * as relay from '@/services/relay/relayClient'
 import { broadcastAuthState } from '@/services/relay/authRelay'
@@ -188,6 +189,12 @@ function installShortcutHandlers(): void {
   disposers.push(
     api.onShortcutClearContext(() => {
       lifecycle.clearContext()
+    }),
+  )
+  disposers.push(
+    api.onOverlayStateChanged((state) => {
+      const visible = (state as { visible?: boolean } | undefined)?.visible
+      if (typeof visible === 'boolean') analytics.trackOverlayToggled(visible)
     }),
   )
   if (api.session?.onLicenseRevalidateRequest) {

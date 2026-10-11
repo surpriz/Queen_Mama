@@ -16,6 +16,7 @@ const EXPERIMENT_KEY: Record<ResponseType, string> = {
   [ResponseType.Decode]: 'decode',
   [ResponseType.Custom]: 'custom',
   [ResponseType.Translate]: 'translate',
+  [ResponseType.Briefing]: 'briefing',
 }
 
 // Match macOS transcript limits: 10000 standard (~12 min), 50000 recap (~1h)

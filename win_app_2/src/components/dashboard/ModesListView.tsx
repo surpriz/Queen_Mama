@@ -4,6 +4,9 @@ import { Plus, Edit, Trash2, Check, Copy, Briefcase, Users, TrendingUp, Sparkles
 import { BUILT_IN_MODE_NAMES, type Mode } from '@/types/models'
 import { useAppStore } from '@/stores/appStore'
 import { selectMode } from '@/services/session/modeSelection'
+import { PricingModal } from '@/components/license/PricingModal'
+import { useLicenseStore } from '@/stores/licenseStore'
+import { Feature } from '@/types/auth'
 import { cn } from '@/lib/utils'
 import { ModeEditor } from './ModeEditor'
 import { useModes } from '@/hooks/useModes'
@@ -30,6 +33,7 @@ export function ModesListView() {
   const { modes, loading, saveMode, deleteMode } = useModes()
   const [editingMode, setEditingMode] = useState<Mode | null>(null)
   const [isCreating, setIsCreating] = useState(false)
+  const [showPricing, setShowPricing] = useState(false)
   const [viewingMode, setViewingMode] = useState<Mode | null>(null)
 
   /** Map a built-in mode name to its translated description */
@@ -211,11 +215,19 @@ export function ModesListView() {
         <div className="flex items-center justify-between p-4">
           <h2 className="text-title-sm font-semibold text-qm-text-primary">{t('modes.title', { ns: 'dashboard' })}</h2>
           <button
-            onClick={() => setIsCreating(true)}
+            onClick={() => {
+              // Custom modes are a Pro feature (mac Feature.customModes)
+              if (useLicenseStore.getState().canUse(Feature.CustomModes).type !== 'allowed') {
+                setShowPricing(true)
+                return
+              }
+              setIsCreating(true)
+            }}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-qm-pill bg-gradient-to-r from-qm-gradient-start to-qm-gradient-end text-white text-caption font-medium hover:shadow-qm-glow hover-scale transition-all"
           >
             <Plus size={12} /> {t('modes.newMode', { ns: 'dashboard' })}
           </button>
+          <PricingModal isOpen={showPricing} onClose={() => setShowPricing(false)} />
         </div>
 
         {loading ? (

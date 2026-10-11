@@ -224,6 +224,12 @@ const electronAPI = {
     return () => ipcRenderer.removeListener(IPC_CHANNELS.MEETING_DETECTED, handler)
   },
   meetingDismiss: (appName: string) => ipcRenderer.send(IPC_CHANNELS.MEETING_DISMISS, appName),
+  /** Meeting reminders on/off (Settings toggle) */
+  setMeetingMonitoring: (enabled: boolean) =>
+    ipcRenderer.send(enabled ? IPC_CHANNELS.MEETING_MONITOR_START : IPC_CHANNELS.MEETING_MONITOR_STOP),
+  /** Updater preferences (auto-check / auto-download) */
+  setUpdaterPrefs: (prefs: { autoCheck: boolean; autoDownload: boolean }) =>
+    ipcRenderer.send(IPC_CHANNELS.UPDATER_SET_PREFS, prefs),
 
   // Event listeners (main → renderer)
   onSessionToggle: (callback: (data?: { mode?: unknown }) => void) => {

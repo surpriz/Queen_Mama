@@ -2,6 +2,7 @@ import { v4 as uuidv4 } from 'uuid'
 import { createLogger } from '@/lib/logger'
 import { useSessionStore } from '@/stores/sessionStore'
 import { db } from '@/db/client'
+import { currentOwnerId, ownerFilter } from './userScope'
 import { debounce } from '@/lib/utils'
 import { getCachedDeviceId, deleteRemoteSession } from '@/services/sync/syncManager'
 import type { Session, TranscriptEntry } from '@/types/models'
@@ -74,8 +75,11 @@ const debouncedDbTranscript = debounce((id: string, transcript: string) => {
  */
 export async function loadSessions(): Promise<void> {
   try {
+    // Only the signed-in account's rows (legacy NULL rows while signed out)
+    const owner = ownerFilter()
     const rows = await db.queryAll<DbSessionRow>(
-      'SELECT * FROM sessions ORDER BY start_time DESC',
+      `SELECT * FROM sessions WHERE ${owner.sql} ORDER BY start_time DESC`,
+      owner.params,
     )
     const sessions = rows.map(dbRowToSession)
     useSessionStore.getState().setSessions(sessions)
@@ -106,8 +110,8 @@ export function startSession(title?: string, modeId?: string | null): Session {
 
   // SQLite (for persistence)
   db.query(
-    `INSERT INTO sessions (id, title, start_time, end_time, transcript, summary, action_items, mode_id, sync_status, device_id)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    `INSERT INTO sessions (id, title, start_time, end_time, transcript, summary, action_items, mode_id, sync_status, device_id, owner_user_id)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [
       session.id,
       session.title,
@@ -119,6 +123,7 @@ export function startSession(title?: string, modeId?: string | null): Session {
       session.modeId,
       session.syncStatus || 'local',
       session.deviceId || null,
+      currentOwnerId(),
     ],
   ).catch((err) => log.error('Failed to persist new session', err))
 
@@ -223,6 +228,7 @@ export async function finalizeSession(
   title: string | null,
   summary: string | null,
   meetingCost?: MeetingCostSnapshot | null,
+  actionItems?: string[] | null,
 ): Promise<void> {
   const store = useSessionStore.getState()
   const endTime = new Date().toISOString()
@@ -231,6 +237,7 @@ export async function finalizeSession(
   const updates: Partial<Session> = { endTime, transcript }
   if (title) updates.title = title
   if (summary) updates.summary = summary
+  if (actionItems) updates.actionItems = actionItems
   if (meetingCost) {
     updates.meetingParticipants = meetingCost.participants
     updates.meetingHourlyRate = meetingCost.hourlyRate
@@ -249,8 +256,8 @@ export async function finalizeSession(
 
   try {
     const result = await db.query(
-      'UPDATE sessions SET transcript = ?, title = COALESCE(?, title), summary = ?, end_time = ?, meeting_participants = ?, meeting_hourly_rate = ?, meeting_currency = ? WHERE id = ?',
-      [transcript, title, summary, endTime, meetingCost?.participants ?? null, meetingCost?.hourlyRate ?? null, meetingCost?.currency ?? null, sessionId],
+      'UPDATE sessions SET transcript = ?, title = COALESCE(?, title), summary = ?, end_time = ?, meeting_participants = ?, meeting_hourly_rate = ?, meeting_currency = ?, action_items = COALESCE(?, action_items) WHERE id = ?',
+      [transcript, title, summary, endTime, meetingCost?.participants ?? null, meetingCost?.hourlyRate ?? null, meetingCost?.currency ?? null, actionItems ? JSON.stringify(actionItems) : null, sessionId],
     )
     log.info(`Session finalized: ${sessionId}, rows affected: ${result.changes ?? 0}`)
 
@@ -395,6 +402,69 @@ export function setActionItems(items: string[]): void {
     'UPDATE sessions SET action_items = ? WHERE id = ?',
     [JSON.stringify(items), session.id],
   ).catch((err) => log.error('Failed to persist action items', err))
+}
+
+/**
+ * Persist a session imported from the server (other device / web). Writes the
+ * SQLite row and the store; previously imports lived only in memory and
+ * vanished on restart.
+ */
+export async function upsertImportedSession(session: Session): Promise<void> {
+  const store = useSessionStore.getState()
+  const exists = store.sessions.some((s) => s.id === session.id)
+  if (exists) {
+    store.updateSession(session.id, session)
+  } else {
+    store.addSession(session)
+  }
+  try {
+    await db.query(
+      `INSERT INTO sessions (id, title, start_time, end_time, transcript, summary, action_items, mode_id, sync_status, remote_id, device_id, version, checksum, owner_user_id)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+       ON CONFLICT(id) DO UPDATE SET
+         owner_user_id = COALESCE(sessions.owner_user_id, excluded.owner_user_id),
+         title = excluded.title,
+         end_time = excluded.end_time,
+         transcript = excluded.transcript,
+         summary = excluded.summary,
+         action_items = excluded.action_items,
+         mode_id = COALESCE(excluded.mode_id, sessions.mode_id),
+         sync_status = excluded.sync_status,
+         remote_id = COALESCE(excluded.remote_id, sessions.remote_id),
+         version = excluded.version`,
+      [
+        session.id,
+        session.title,
+        session.startTime,
+        session.endTime,
+        session.transcript,
+        session.summary,
+        JSON.stringify(session.actionItems ?? []),
+        session.modeId,
+        session.syncStatus ?? 'synced',
+        session.remoteId ?? null,
+        session.deviceId ?? null,
+        1,
+        null,
+        currentOwnerId(),
+      ],
+    )
+  } catch (err) {
+    log.error(`Failed to persist imported session ${session.id}`, err)
+  }
+}
+
+/** Mark local sessions as synced (store + DB) after a successful upload. */
+export async function markSessionsSynced(ids: string[]): Promise<void> {
+  if (ids.length === 0) return
+  const store = useSessionStore.getState()
+  for (const id of ids) store.updateSession(id, { syncStatus: 'synced' })
+  try {
+    const placeholders = ids.map(() => '?').join(', ')
+    await db.query(`UPDATE sessions SET sync_status = 'synced' WHERE id IN (${placeholders})`, ids)
+  } catch (err) {
+    log.error('Failed to mark sessions synced', err)
+  }
 }
 
 export async function deleteSession(id: string): Promise<void> {

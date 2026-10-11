@@ -68,7 +68,6 @@ export const db = {
   },
 }
 
-// Accessor function for sessionDb and other consumers
 export function getDb() {
   return db
 }
@@ -83,5 +82,3 @@ export function closeDatabase(): void {
   // Database is closed in main process
 }
 
-// Re-export schema for type definitions
-export * from './schema'

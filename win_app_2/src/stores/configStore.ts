@@ -2,7 +2,7 @@ import { create } from 'zustand'
 import { subscribeWithSelector } from 'zustand/middleware'
 import type { AppConfig } from '@/types/config'
 import { DEFAULT_CONFIG } from '@/types/config'
-import i18n, { detectSystemLanguage } from '@/i18n'
+import i18n, { resolveUiLanguage, SYSTEM_LANGUAGE } from '@/i18n'
 import { getTrayStrings } from '@/i18n/trayTranslations'
 
 interface ConfigStoreState extends AppConfig {
@@ -25,6 +25,18 @@ export const useConfigStore = create<ConfigStoreState>()(subscribeWithSelector((
     if ('isUndetectabilityEnabled' in partial) {
       window.electronAPI?.setDisplayAffinity(!!partial.isUndetectabilityEnabled)
     }
+    if ('meetingDetectionEnabled' in partial) {
+      window.electronAPI?.setMeetingMonitoring?.(partial.meetingDetectionEnabled !== false)
+    }
+    if ('autoCheckUpdates' in partial || 'autoDownloadUpdates' in partial) {
+      const next = { ...useConfigStore.getState(), ...partial }
+      window.electronAPI?.setUpdaterPrefs?.({ autoCheck: next.autoCheckUpdates, autoDownload: next.autoDownloadUpdates })
+    }
+    if ('uiLanguage' in partial && partial.uiLanguage) {
+      const resolved = resolveUiLanguage(partial.uiLanguage)
+      if (i18n.language !== resolved) i18n.changeLanguage(resolved)
+      window.electronAPI?.notifyLanguageChange?.(resolved, getTrayStrings(resolved))
+    }
     // Broadcast partial config to other windows (dashboard <-> overlay) so each
     // window's Zustand instance stays in sync without a restart.
     window.electronAPI?.relay?.broadcast('relay:config', partial as Record<string, unknown>)
@@ -45,11 +57,10 @@ export const useConfigStore = create<ConfigStoreState>()(subscribeWithSelector((
         ;(loaded as Record<string, unknown>)[key] = value
       }
     }
-    // Detect system language on first launch
+    // Follow the OS language until the user picks one ('system', mac parity)
     if (!loaded.uiLanguage) {
-      const detected = detectSystemLanguage()
-      loaded.uiLanguage = detected
-      window.electronAPI?.store.set('config.uiLanguage', detected)
+      loaded.uiLanguage = SYSTEM_LANGUAGE
+      window.electronAPI?.store.set('config.uiLanguage', SYSTEM_LANGUAGE)
     }
     // Migration: force auto-detect for all users (replaces fixed language setting)
     if (loaded.primaryLanguage && loaded.primaryLanguage !== 'multi') {
@@ -61,14 +72,12 @@ export const useConfigStore = create<ConfigStoreState>()(subscribeWithSelector((
       // Always sync content protection state on startup so disabling invisibility
       // actually reverses the main-process protection set at window creation.
       window.electronAPI?.setDisplayAffinity(!!loaded.isUndetectabilityEnabled)
-      // Sync i18next with stored UI language
-      if (loaded.uiLanguage && i18n.language !== loaded.uiLanguage) {
-        i18n.changeLanguage(loaded.uiLanguage)
+      // Sync i18next + tray with the resolved UI language
+      const resolved = resolveUiLanguage(loaded.uiLanguage)
+      if (i18n.language !== resolved) {
+        i18n.changeLanguage(resolved)
       }
-      // Sync tray with stored UI language
-      if (loaded.uiLanguage) {
-        window.electronAPI?.notifyLanguageChange?.(loaded.uiLanguage, getTrayStrings(loaded.uiLanguage))
-      }
+      window.electronAPI?.notifyLanguageChange?.(resolved, getTrayStrings(resolved))
     }
   },
 })))
@@ -77,8 +86,9 @@ export const useConfigStore = create<ConfigStoreState>()(subscribeWithSelector((
 useConfigStore.subscribe(
   (state) => state.uiLanguage,
   (lang) => {
-    if (lang && i18n.language !== lang) {
-      i18n.changeLanguage(lang)
+    const resolved = resolveUiLanguage(lang)
+    if (i18n.language !== resolved) {
+      i18n.changeLanguage(resolved)
     }
   },
 )

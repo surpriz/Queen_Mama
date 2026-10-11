@@ -55,6 +55,13 @@ export interface AppConfig {
   // Overlay tabs: Decode is opt-in (six tabs don't fit the 380 px pill)
   showDecodeInOverlay: boolean
 
+  // Meeting reminders (Zoom/Teams/Meet detection → "Start a session?")
+  meetingDetectionEnabled: boolean
+
+  // Updater preferences (mac Sparkle parity)
+  autoCheckUpdates: boolean
+  autoDownloadUpdates: boolean
+
   // Meeting cost (live cost in the pill: participants × hourly rate × elapsed)
   meetingCostEnabled: boolean
   meetingCostCurrency: string
@@ -82,7 +89,7 @@ export const DEFAULT_CONFIG: AppConfig = {
   selectedAIProvider: 'OpenAI' as AIProviderType,
   selectedAIModel: 'auto',
   primaryLanguage: 'multi',
-  uiLanguage: 'en',
+  uiLanguage: 'system',
 
   autoAnswerEnabled: false,
   autoAnswerSilenceThreshold: 2.5,
@@ -107,6 +114,11 @@ export const DEFAULT_CONFIG: AppConfig = {
   instantResponsesEnabled: false,
 
   showDecodeInOverlay: false,
+
+  meetingDetectionEnabled: true,
+
+  autoCheckUpdates: true,
+  autoDownloadUpdates: true,
 
   meetingCostEnabled: false,
   meetingCostCurrency: 'EUR',

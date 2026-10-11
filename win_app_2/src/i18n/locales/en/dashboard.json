@@ -50,7 +50,11 @@
     "markdown": "Markdown",
     "plainText": "Plain Text",
     "json": "JSON",
-    "csv": "CSV"
+    "csv": "CSV",
+    "actionItems": "Action items",
+    "speakerMe": "Me",
+    "speakerThem": "Other",
+    "loadingEntries": "Loading transcript…"
   },
   "liveSession": {
     "title": "Live Session",
@@ -85,7 +89,11 @@
       "updates": "Updates"
     },
     "account": {
-      "title": "Account"
+      "title": "Account",
+      "validating": "Checking…",
+      "smartUsage": "Smart mode today",
+      "signOutConfirmTitle": "Sign out?",
+      "signOutConfirmBody": "Your local sessions and settings stay on this device. Cloud sync stops until you sign in again."
     },
     "language": {
       "title": "Language",
@@ -93,7 +101,12 @@
       "appLanguageDescription": "Language for transcription and AI responses",
       "uiLanguage": "Interface Language",
       "uiLanguageDescription": "Language for the application interface",
-      "autoDetect": "Auto-detect (multilingual)"
+      "autoDetect": "Auto-detect (multilingual)",
+      "system": "System",
+      "names": {
+        "en": "English",
+        "fr": "Français"
+      }
     },
     "general": {
       "title": "General",
@@ -132,7 +145,9 @@
       "meetingCostDescription": "Show the live cost of the meeting in the widget (participants × hourly rate)",
       "meetingCostCurrency": "Currency",
       "meetingCostRate": "Hourly rate",
-      "meetingCostParticipants": "Participants"
+      "meetingCostParticipants": "Participants",
+      "meetingReminders": "Meeting reminders",
+      "meetingRemindersDescription": "Offer to start a session when Zoom, Teams, Meet, Slack or Discord calls are detected"
     },
     "autoAnswer": {
       "title": "Auto-Answer",
@@ -178,7 +193,11 @@
       "audioLevelTest": "Audio Level Test",
       "audioLevelTestDescription": "Check your microphone input",
       "startTest": "Start Test",
-      "stopTest": "Stop Test"
+      "stopTest": "Stop Test",
+      "systemAudioTest": "System audio test",
+      "systemAudioTestDescription": "Play something and check that the other side of your calls is being captured",
+      "systemAudioUnavailable": "System audio is not available on this device",
+      "systemAudioDenied": "System audio capture was denied"
     },
     "translation": {
       "title": "Live Translation",
@@ -208,7 +227,8 @@
       "cloudSync": "Cloud Sync",
       "syncing": "Syncing...",
       "syncNow": "Sync Now",
-      "lastSynced": "Last synced: {{time}}"
+      "lastSynced": "Last synced: {{time}}",
+      "viewOnDashboard": "View on web dashboard"
     },
     "shortcuts": {
       "title": "Keyboard Shortcuts",
@@ -233,7 +253,13 @@
       "restartAndUpdate": "Restart & Update Now",
       "updateBlocked": "Update blocked by your corporate network.",
       "updateBlockedHelp": "A firewall (corporate proxy) is preventing the automatic update. Download the latest version manually from the official page.",
-      "downloadManually": "Download manually"
+      "downloadManually": "Download manually",
+      "lastChecked": "Last checked: {{time}}",
+      "autoCheck": "Check for updates automatically",
+      "autoCheckDescription": "Look for new versions at launch and every 4 hours",
+      "autoDownload": "Download updates automatically",
+      "autoDownloadDescription": "Install on the next restart once downloaded",
+      "changelog": "What's new (release notes)"
     }
   },
   "update": {
@@ -278,7 +304,33 @@
     "createContact": "Create Contact",
     "sessionCount": "{{count}} session",
     "sessionCount_other": "{{count}} sessions",
-    "synced": "synced"
+    "synced": "synced",
+    "firstName": "First name",
+    "lastName": "Last name",
+    "confirmDelete": "Confirm delete?",
+    "notesTimeline": "Notes",
+    "addNote": "Add",
+    "addNotePlaceholder": "Add a note about this person…",
+    "noNotes": "No notes yet.",
+    "linkedSessions": "Sessions with this contact",
+    "noLinkedSessions": "No session linked yet.",
+    "pull": "Pull",
+    "pulling": "Pulling…",
+    "pullHint": "Download contacts from your account",
+    "sync": "Sync",
+    "syncing": "Syncing…",
+    "syncHint": "Push local changes, then pull",
+    "pulled": "{{count}} contacts updated from your account",
+    "syncDone": "Contacts synced",
+    "extraction": {
+      "title": "Contact detected",
+      "subtitle": "Review the details found in the conversation before saving",
+      "confidence": "{{percent}}% confidence",
+      "suggestedNotes": "Suggested notes",
+      "dismiss": "Dismiss",
+      "save": "Add contact",
+      "saved": "{{name}} added to your contacts"
+    }
   },
   "modes": {
     "title": "Modes",

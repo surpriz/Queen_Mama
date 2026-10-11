@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { Crown, Check, Minus, Loader2, X } from 'lucide-react'
 import { useLicenseStore } from '@/stores/licenseStore'
 import { SubscriptionPlan } from '@/types/auth'
+import { openDashboardWithMagicLink } from '@/services/auth/magicLinkService'
 import { cn } from '@/lib/utils'
 
 interface PricingModalProps {
@@ -28,11 +29,8 @@ export function PricingModal({ isOpen, onClose, contextMessage }: PricingModalPr
 
   const handleUpgrade = async (plan: string) => {
     setLoadingPlan(plan)
-    try {
-      window.electronAPI?.openExternal('https://www.queenmama.co/dashboard/billing')
-    } catch {
-      window.open('https://www.queenmama.co/dashboard/billing', '_blank')
-    }
+    // Magic link = already signed in on the billing page (mac parity, env-aware)
+    await openDashboardWithMagicLink('/dashboard/billing')
     setTimeout(() => {
       setLoadingPlan(null)
       onClose()

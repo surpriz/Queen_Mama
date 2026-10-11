@@ -1,11 +1,14 @@
-import { ArrowLeft, Download, Copy, Check, ChevronDown, CheckCircle, Clock, Circle } from 'lucide-react'
-import { useState, useRef, useEffect } from 'react'
+import { ArrowLeft, Download, Copy, Check, ChevronDown, CheckCircle, Clock, Circle, ListChecks } from 'lucide-react'
+import { useState, useRef, useEffect, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import { useSessionStore } from '@/stores/sessionStore'
 import { exportSession, type ExportFormat } from '@/services/session/sessionExport'
+import { loadEntriesForSession, sessionLines } from '@/services/session/transcriptEntries'
+import { TranscriptBubble } from '@/components/common/TranscriptBubble'
 import { formatDate, formatDuration } from '@/lib/utils'
+import type { TranscriptEntry } from '@/types/models'
 
 interface SessionDetailProps {
   sessionId: string
@@ -18,6 +21,7 @@ export function SessionDetail({ sessionId, onBack }: SessionDetailProps) {
   const [copied, setCopied] = useState(false)
   const [copiedSummary, setCopiedSummary] = useState(false)
   const [showExportMenu, setShowExportMenu] = useState(false)
+  const [entries, setEntries] = useState<TranscriptEntry[] | null>(null)
   const exportMenuRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -30,7 +34,30 @@ export function SessionDetail({ sessionId, onBack }: SessionDetailProps) {
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [])
 
-  if (!session) {
+  // Entries (speaker turns, timestamps, translations) are persisted but were
+  // never read back; load them when a session is opened.
+  useEffect(() => {
+    let cancelled = false
+    setEntries(null)
+    loadEntriesForSession(sessionId).then((rows) => {
+      if (!cancelled) setEntries(rows)
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [sessionId])
+
+  const lines = useMemo(
+    () => (session ? sessionLines(session.transcript, entries ?? session.entries) : []),
+    [session, entries],
+  )
+
+  const sessionWithEntries = useMemo(
+    () => (session && entries && entries.length > 0 ? { ...session, entries } : session),
+    [session, entries],
+  )
+
+  if (!session || !sessionWithEntries) {
     return (
       <div className="p-6">
         <button onClick={onBack} className="text-body-sm text-qm-text-secondary hover:text-qm-text-primary">
@@ -46,13 +73,13 @@ export function SessionDetail({ sessionId, onBack }: SessionDetailProps) {
     : null
 
   const handleCopy = () => {
-    navigator.clipboard.writeText(exportSession(session, 'plaintext'))
+    navigator.clipboard.writeText(exportSession(sessionWithEntries, 'plaintext'))
     setCopied(true)
     setTimeout(() => setCopied(false), 2000)
   }
 
   const handleExport = (format: ExportFormat) => {
-    const content = exportSession(session, format)
+    const content = exportSession(sessionWithEntries, format)
     const extMap: Record<ExportFormat, string> = {
       markdown: 'md',
       plaintext: 'txt',
@@ -139,30 +166,15 @@ export function SessionDetail({ sessionId, onBack }: SessionDetailProps) {
               </button>
               {showExportMenu && (
                 <div className="absolute right-0 top-full mt-1 w-40 rounded-qm-md bg-qm-surface-medium border border-qm-border-subtle shadow-lg z-50 py-1">
-                  <button
-                    onClick={() => handleExport('markdown')}
-                    className="w-full text-left px-3 py-1.5 text-body-sm text-qm-text-secondary hover:bg-qm-surface-hover transition-colors"
-                  >
-                    {t('sessionDetail.markdown')}
-                  </button>
-                  <button
-                    onClick={() => handleExport('plaintext')}
-                    className="w-full text-left px-3 py-1.5 text-body-sm text-qm-text-secondary hover:bg-qm-surface-hover transition-colors"
-                  >
-                    {t('sessionDetail.plainText')}
-                  </button>
-                  <button
-                    onClick={() => handleExport('json')}
-                    className="w-full text-left px-3 py-1.5 text-body-sm text-qm-text-secondary hover:bg-qm-surface-hover transition-colors"
-                  >
-                    {t('sessionDetail.json')}
-                  </button>
-                  <button
-                    onClick={() => handleExport('csv')}
-                    className="w-full text-left px-3 py-1.5 text-body-sm text-qm-text-secondary hover:bg-qm-surface-hover transition-colors"
-                  >
-                    {t('sessionDetail.csv')}
-                  </button>
+                  {(['markdown', 'plaintext', 'json', 'csv'] as ExportFormat[]).map((format) => (
+                    <button
+                      key={format}
+                      onClick={() => handleExport(format)}
+                      className="w-full text-left px-3 py-1.5 text-body-sm text-qm-text-secondary hover:bg-qm-surface-hover transition-colors"
+                    >
+                      {t(`sessionDetail.${format === 'plaintext' ? 'plainText' : format}`)}
+                    </button>
+                  ))}
                 </div>
               )}
             </div>
@@ -195,12 +207,40 @@ export function SessionDetail({ sessionId, onBack }: SessionDetailProps) {
           </div>
         )}
 
-        {/* Transcript */}
+        {/* Action items (mac parity) */}
+        {session.actionItems && session.actionItems.length > 0 && (
+          <div className="qm-card p-4">
+            <div className="flex items-center gap-2 mb-2">
+              <ListChecks size={14} className="text-qm-accent" />
+              <h3 className="text-label-md text-qm-text-secondary tracking-tight">{t('sessionDetail.actionItems')}</h3>
+            </div>
+            <ul className="space-y-1.5">
+              {session.actionItems.map((item, i) => (
+                <li key={i} className="flex items-start gap-2 text-body-sm text-qm-text-primary">
+                  <span className="mt-[7px] w-1.5 h-1.5 rounded-full bg-gradient-to-br from-qm-gradient-start to-qm-gradient-end flex-shrink-0" />
+                  <span>{item}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        {/* Transcript — speaker bubbles (mac SessionTranscriptView) */}
         <div className="p-4 rounded-qm-lg bg-qm-surface-light border border-qm-border-subtle">
-          <h3 className="text-label-md text-qm-text-secondary mb-2">{t('sessionDetail.transcript')}</h3>
-          <p className="text-body-md text-qm-text-primary leading-relaxed whitespace-pre-wrap">
-            {session.transcript || t('sessionDetail.noTranscript')}
-          </p>
+          <h3 className="text-label-md text-qm-text-secondary mb-3">{t('sessionDetail.transcript')}</h3>
+          {entries === null && !session.transcript ? (
+            <p className="text-body-sm text-qm-text-tertiary">{t('sessionDetail.loadingEntries')}</p>
+          ) : lines.length > 0 ? (
+            <div>
+              {lines.map((line, i) => (
+                <TranscriptBubble key={i} line={line} />
+              ))}
+            </div>
+          ) : (
+            <p className="text-body-md text-qm-text-primary leading-relaxed whitespace-pre-wrap">
+              {session.transcript || t('sessionDetail.noTranscript')}
+            </p>
+          )}
         </div>
       </div>
     </div>

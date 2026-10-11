@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import type { License, Feature, FeatureAccess } from '@/types/auth'
 import { FREE_LICENSE, SubscriptionPlan, SubscriptionStatus } from '@/types/auth'
+import { useAuthStore } from '@/stores/authStore'
 
 interface LicenseStoreState {
   currentLicense: License
@@ -9,6 +10,8 @@ interface LicenseStoreState {
   lastValidatedAt: string | null
   smartModeUsedToday: number
   aiRequestsToday: number
+  /** YYYY-MM-DD the usage counters belong to (daily reset). */
+  usageDay: string | null
 
   // Actions
   setLicense: (license: License) => void
@@ -26,6 +29,13 @@ interface LicenseStoreState {
   isFeatureAvailable: (feature: Feature) => boolean
 }
 
+export function todayKey(date: Date = new Date()): string {
+  const y = date.getFullYear()
+  const m = String(date.getMonth() + 1).padStart(2, '0')
+  const d = String(date.getDate()).padStart(2, '0')
+  return `${y}-${m}-${d}`
+}
+
 export const useLicenseStore = create<LicenseStoreState>((set, get) => ({
   currentLicense: FREE_LICENSE,
   isValidating: false,
@@ -33,6 +43,7 @@ export const useLicenseStore = create<LicenseStoreState>((set, get) => ({
   lastValidatedAt: null,
   smartModeUsedToday: 0,
   aiRequestsToday: 0,
+  usageDay: null,
 
   setLicense: (license) => set({ currentLicense: license }),
   setValidating: (validating) => set({ isValidating: validating }),
@@ -42,9 +53,11 @@ export const useLicenseStore = create<LicenseStoreState>((set, get) => ({
     set((state) => ({ smartModeUsedToday: state.smartModeUsedToday + 1 })),
   recordAiRequestUsage: () =>
     set((state) => ({ aiRequestsToday: state.aiRequestsToday + 1 })),
-  resetUsage: () => set({ smartModeUsedToday: 0, aiRequestsToday: 0 }),
+  resetUsage: () => set({ smartModeUsedToday: 0, aiRequestsToday: 0, usageDay: todayKey() }),
 
   canUse: (feature: Feature): FeatureAccess => {
+    // mac blocks every feature while signed out (guests are authenticated users)
+    if (!useAuthStore.getState().isAuthenticated) return { type: 'requiresAuth' }
     const state = get()
     const features = state.currentLicense.features
 

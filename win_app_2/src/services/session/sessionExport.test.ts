@@ -1,5 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import { useLicenseStore } from '@/stores/licenseStore'
+import { useAuthStore } from '@/stores/authStore'
+import type { AuthUser } from '@/types/auth'
 import { FREE_LICENSE, SubscriptionPlan, SubscriptionStatus } from '@/types/auth'
 import {
   exportSession,
@@ -67,6 +69,8 @@ const mockSession: Session = {
 }
 
 beforeEach(() => {
+  // Feature gating requires a signed-in user (mac parity)
+  useAuthStore.getState().setAuthenticated({ id: 'u1', email: 'a@b.c' } as AuthUser)
   useLicenseStore.setState({
     currentLicense: FREE_LICENSE,
     isValidating: false,

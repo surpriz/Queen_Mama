@@ -1,4 +1,6 @@
 import Database from 'better-sqlite3'
+import Store from 'electron-store'
+import { randomUUID } from 'crypto'
 import { app } from 'electron'
 import * as path from 'path'
 
@@ -86,6 +88,15 @@ export function initializeDatabase(): Database.Database {
       updated_at TEXT NOT NULL
     );
 
+    CREATE TABLE IF NOT EXISTS contact_notes (
+      id TEXT PRIMARY KEY,
+      contact_id TEXT NOT NULL REFERENCES contacts(id) ON DELETE CASCADE,
+      text TEXT NOT NULL DEFAULT '',
+      created_at TEXT NOT NULL,
+      remote_id TEXT
+    );
+    CREATE INDEX IF NOT EXISTS idx_contact_notes_contact ON contact_notes(contact_id, created_at);
+
     CREATE TABLE IF NOT EXISTS session_contacts (
       session_id TEXT NOT NULL REFERENCES sessions(id) ON DELETE CASCADE,
       contact_id TEXT NOT NULL REFERENCES contacts(id) ON DELETE CASCADE,
@@ -141,6 +152,24 @@ export function initializeDatabase(): Database.Database {
   try {
     const contactCols = db.pragma('table_info(contacts)') as { name: string }[]
     const contactColNames = contactCols.map((c) => c.name)
+    if (!contactColNames.includes('first_name')) {
+      db.exec(`ALTER TABLE contacts ADD COLUMN first_name TEXT`)
+      db.exec(`ALTER TABLE contacts ADD COLUMN last_name TEXT`)
+      // Split the legacy single `name` into first/last (mac model parity)
+      const rows = db.prepare('SELECT id, name FROM contacts').all() as { id: string; name: string }[]
+      const update = db.prepare('UPDATE contacts SET first_name = ?, last_name = ? WHERE id = ?')
+      for (const row of rows) {
+        const parts = (row.name || '').trim().split(/\s+/).filter(Boolean)
+        update.run(parts[0] ?? '', parts.length > 1 ? parts.slice(1).join(' ') : null, row.id)
+      }
+      // Legacy free-text notes become the first entry of the notes timeline
+      const withNotes = db.prepare(`SELECT id, notes, updated_at FROM contacts WHERE notes IS NOT NULL AND trim(notes) <> ''`).all() as { id: string; notes: string; updated_at: string }[]
+      const insertNote = db.prepare('INSERT OR IGNORE INTO contact_notes (id, contact_id, text, created_at) VALUES (?, ?, ?, ?)')
+      for (const row of withNotes) {
+        insertNote.run(randomUUID(), row.id, row.notes.trim(), row.updated_at || new Date().toISOString())
+      }
+      console.log(`[Database] Migrated contacts: added first_name/last_name (${rows.length} rows), ${withNotes.length} notes moved to timeline`)
+    }
     if (!contactColNames.includes('email')) {
       db.exec(`ALTER TABLE contacts ADD COLUMN email TEXT`)
       console.log('[Database] Migrated contacts: added email')
@@ -157,12 +186,81 @@ export function initializeDatabase(): Database.Database {
     console.error('[Database] Contacts migration error:', err)
   }
 
+  // Versioned migrations (PRAGMA user_version). The guarded ALTERs above stay
+  // as a safety net for databases created before versioning existed.
+  applyVersionedMigrations(db)
+
   // Seed built-in modes if table is empty, then sync prompts for existing installs
   seedBuiltInModes(db)
   syncBuiltInModes(db)
 
   console.log('[Database] Tables created')
   return db
+}
+
+const SCHEMA_VERSION = 2
+
+/** Account signed in on this machine when the upgrade runs (persisted by the renderer as `auth.user`). */
+function signedInUserIdAtUpgrade(): string | null {
+  try {
+    const raw = new Store().get('auth.user') as string | undefined
+    if (!raw) return null
+    const parsed = JSON.parse(raw) as { id?: unknown }
+    return typeof parsed.id === 'string' && parsed.id ? parsed.id : null
+  } catch {
+    return null
+  }
+}
+
+/**
+ * Forward-only migrations keyed by `PRAGMA user_version`.
+ * v1: indexes for the hot lookups (deletes by session, history by session,
+ *     session list ordering, contact sync lookups).
+ * v2: `owner_user_id` on sessions and contacts — local data is scoped to the
+ *     signed-in account so an account switch on the same PC never shows or
+ *     syncs another account's data. Rows that predate the column are assigned
+ *     ONCE, here, to the account that was signed in when the app was upgraded
+ *     (`auth.user` on disk). If nobody was signed in they stay unowned and are
+ *     never attached to a later account automatically.
+ */
+function applyVersionedMigrations(database: Database.Database): void {
+  const current = database.pragma('user_version', { simple: true }) as number
+  if (current >= SCHEMA_VERSION) return
+
+  const migrate = database.transaction(() => {
+    if (current < 1) {
+      database.exec(`
+        CREATE INDEX IF NOT EXISTS idx_transcript_entries_session ON transcript_entries(session_id, timestamp);
+        CREATE INDEX IF NOT EXISTS idx_ai_responses_session ON ai_responses(session_id);
+        CREATE INDEX IF NOT EXISTS idx_ai_responses_timestamp ON ai_responses(timestamp);
+        CREATE INDEX IF NOT EXISTS idx_sessions_start_time ON sessions(start_time);
+        CREATE INDEX IF NOT EXISTS idx_sessions_sync_status ON sessions(sync_status);
+        CREATE INDEX IF NOT EXISTS idx_contacts_remote_id ON contacts(remote_id);
+        CREATE INDEX IF NOT EXISTS idx_session_contacts_contact ON session_contacts(contact_id);
+      `)
+    }
+    if (current < 2) {
+      const sessionCols = (database.pragma('table_info(sessions)') as { name: string }[]).map((c) => c.name)
+      if (!sessionCols.includes('owner_user_id')) database.exec(`ALTER TABLE sessions ADD COLUMN owner_user_id TEXT`)
+      const contactCols = (database.pragma('table_info(contacts)') as { name: string }[]).map((c) => c.name)
+      if (!contactCols.includes('owner_user_id')) database.exec(`ALTER TABLE contacts ADD COLUMN owner_user_id TEXT`)
+      database.exec(`
+        CREATE INDEX IF NOT EXISTS idx_sessions_owner ON sessions(owner_user_id, start_time);
+        CREATE INDEX IF NOT EXISTS idx_contacts_owner ON contacts(owner_user_id, updated_at);
+      `)
+      const upgradeOwner = signedInUserIdAtUpgrade()
+      if (upgradeOwner) {
+        const s = database.prepare('UPDATE sessions SET owner_user_id = ? WHERE owner_user_id IS NULL').run(upgradeOwner)
+        const c = database.prepare('UPDATE contacts SET owner_user_id = ? WHERE owner_user_id IS NULL').run(upgradeOwner)
+        console.log(`[Database] Assigned pre-existing rows to the signed-in account: ${s.changes} sessions, ${c.changes} contacts`)
+      } else {
+        console.log('[Database] No signed-in account at upgrade; pre-existing rows stay unowned')
+      }
+    }
+    database.pragma(`user_version = ${SCHEMA_VERSION}`)
+  })
+  migrate()
+  console.log(`[Database] Migrated schema ${current} → ${SCHEMA_VERSION}`)
 }
 
 // Canonical built-in mode definitions — single source of truth for the database layer

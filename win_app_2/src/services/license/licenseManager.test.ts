@@ -143,6 +143,16 @@ describe('licenseManager', () => {
 
 describe('licenseStore feature gating', () => {
   describe('canUse', () => {
+    beforeEach(() => {
+      useAuthStore.getState().setAuthenticated({ id: 'u1', email: 'a@b.c' } as never)
+    })
+
+    it('denies every feature while signed out (mac blocks everything unauthenticated)', () => {
+      useAuthStore.getState().setUnauthenticated()
+      expect(useLicenseStore.getState().canUse(Feature.SessionStart).type).toBe('requiresAuth')
+      expect(useLicenseStore.getState().canUse(Feature.AiRequest).type).toBe('requiresAuth')
+    })
+
     it('should allow sessionStart for free users', () => {
       const result = useLicenseStore.getState().canUse(Feature.SessionStart)
       expect(result.type).toBe('allowed')

@@ -27,6 +27,7 @@ export function useUpdater() {
         case 'update-available': {
           const info = payload.data as { version?: string } | undefined
           s.setAvailable(info?.version ?? null)
+          s.setLastCheckedAt(new Date().toISOString())
           toast.info(
             t('update.toast.availableTitle'),
             t('update.toast.availableDescription', { version: info?.version ?? '' }),
@@ -36,6 +37,7 @@ export function useUpdater() {
         }
         case 'update-not-available':
           s.setStatus('not-available')
+          s.setLastCheckedAt(new Date().toISOString())
           break
         case 'download-progress': {
           const progress = payload.data as { percent?: number } | undefined

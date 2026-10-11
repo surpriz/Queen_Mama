@@ -29,9 +29,19 @@ import { modesService } from '@/services/modes/modesService'
 import { useAppStore } from '@/stores/appStore'
 import { useConfigStore } from '@/stores/configStore'
 import { useOverlayStore } from '@/stores/overlayStore'
+import { installUserScopeSync } from '@/services/session/userScope'
+import { useLicenseStore } from '@/stores/licenseStore'
 import { isSessionHost, getWindowKind } from '@/lib/runtime'
 
 let initialized = false
+
+/** Reload everything that is scoped to the signed-in account. */
+export async function reloadAccountData(): Promise<void> {
+  await loadSessions()
+  const contacts = await contactDb.getAllContacts()
+  useContactStore.getState().setContacts(contacts)
+  await useOverlayStore.getState().loadRecentResponses()
+}
 let postAuthRunning = false
 let postAuthDone = false
 
@@ -46,6 +56,8 @@ async function step(label: string, fn: () => Promise<void> | void): Promise<void
 
 /** Boot steps every window needs (config, device id, DB handle, local caches). */
 async function initializeShared(): Promise<void> {
+  // Crash reporting first so DB / session-load failures are captured too
+  await step('Crash reporter', () => crashReporter.start())
   await step('Config load', () => useConfigStore.getState().loadFromStorage())
   await step('Device ID', () => syncManager.initDeviceId())
   await step('Database init', async () => {
@@ -63,7 +75,14 @@ async function initializeShared(): Promise<void> {
     useContactStore.getState().setContacts(contacts)
   })
   await step('Recent AI responses', () => useOverlayStore.getState().loadRecentResponses())
-  await step('Crash reporter', () => crashReporter.start())
+}
+
+/** PostHog identity (host only): user + current plan, refreshed when the plan changes. */
+function identifyAnalyticsUser(): void {
+  const user = useAuthStore.getState().currentUser
+  if (!user) return
+  const plan = useLicenseStore.getState().currentLicense.plan
+  analyticsService.identify(user.id, user.email, user.name ?? null, plan)
 }
 
 /**
@@ -78,11 +97,15 @@ export async function runPostAuthTasks(): Promise<void> {
   postAuthRunning = true
 
   try {
+    // Local rows are scoped per account: reload for this account before
+    // anything (sync, contacts) reads them.
+    await step('Account data scope', () => reloadAccountData())
     await step('Proxy config', () => proxyConfigManager.refreshConfig().then(() => undefined))
     await step('License validation', async () => {
       await licenseManager.revalidate()
       licenseManager.startPeriodicRevalidation()
     })
+    identifyAnalyticsUser()
     await step('Sync queue', () => syncManager.loadQueue())
     syncManager.startPeriodicSync()
     await step('Contacts pull', async () => {
@@ -103,9 +126,11 @@ export function resetPostAuth(): void {
   postAuthDone = false
   licenseManager.stopPeriodicRevalidation()
   syncManager.stopPeriodicSync()
+  syncManager.clearQueue()
   // UI windows are not allowed to publish license state; the host drops to
   // FREE here and broadcasts it (the dashboard already cleared the disk cache).
   licenseManager.resetOnLogout().catch((e) => console.warn('[AppInit] License reset failed:', e))
+  analyticsService.reset()
 }
 
 async function initializeSessionHost(): Promise<void> {
@@ -116,6 +141,12 @@ async function initializeSessionHost(): Promise<void> {
     if (closed || deleted) await loadSessions()
   })
   await step('Analytics', () => analyticsService.start())
+  // Re-identify when the plan changes (upgrade mid-session)
+  useLicenseStore.subscribe((state, prev) => {
+    if (state.currentLicense.plan !== prev.currentLicense.plan && useAuthStore.getState().isAuthenticated) {
+      identifyAnalyticsUser()
+    }
+  })
 
   // React to auth transitions no matter which window produced them (own
   // checkExistingAuth below, or a login/logout relayed from the dashboard).
@@ -141,6 +172,7 @@ export async function initializeApp(): Promise<void> {
 
   const kind = getWindowKind()
   console.log(`[AppInit] Starting initialization (${kind})...`)
+  installUserScopeSync(reloadAccountData)
 
   if (isSessionHost()) {
     await initializeSessionHost()

@@ -6,6 +6,7 @@ import { TranscriptPanel } from './TranscriptPanel'
 import { TranscriptionBanner } from './TranscriptionBanner'
 import { ResponseDisplay } from './ResponseDisplay'
 import { TranslateTab } from './TranslateTab'
+import { ContactBriefingView } from './ContactBriefingView'
 import { ActionBar } from './ActionBar'
 import { InputBar } from './InputBar'
 import { useConfigStore } from '@/stores/configStore'
@@ -25,7 +26,7 @@ export function useTabTrigger() {
 
   return useCallback(
     (type: ResponseType) => {
-      if (type === ResponseType.Translate) return // Translate tab is passive — no AI trigger
+      if (type === ResponseType.Translate || type === ResponseType.Briefing) return // passive tabs — no AI trigger
       const { isSessionActive, currentTranscript, isProcessing } = useAppStore.getState()
       if (isProcessing) return
       const hasTranscript = isSessionActive && currentTranscript.trim().length > 0
@@ -51,6 +52,8 @@ export function ExpandedContent() {
   const isSessionActive = useAppStore((s) => s.isSessionActive)
   const selectedTab = useOverlayStore((s) => s.selectedTab)
   const isTranslateTab = selectedTab === ResponseType.Translate
+  const isBriefingTab = selectedTab === ResponseType.Briefing
+  const isPassiveTab = isTranslateTab || isBriefingTab
   const handleTabSelected = useTabTrigger()
 
   return (
@@ -58,13 +61,13 @@ export function ExpandedContent() {
       <TranscriptionBanner />
       {showLiveTranscript && <TranscriptPanel />}
 
-      {isTranslateTab ? <TranslateTab /> : <ResponseDisplay />}
+      {isTranslateTab ? <TranslateTab /> : isBriefingTab ? <ContactBriefingView /> : <ResponseDisplay />}
 
       <TabBar onTabSelected={handleTabSelected} />
 
-      {!isTranslateTab && <ActionBar />}
+      {!isPassiveTab && <ActionBar />}
 
-      {!isSessionActive && !isTranslateTab && (
+      {!isSessionActive && !isPassiveTab && (
         <div className="px-3 py-1">
           {autoScreenCapture ? (
             <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-yellow-500/10">
@@ -80,7 +83,7 @@ export function ExpandedContent() {
         </div>
       )}
 
-      {!isTranslateTab && <InputBar />}
+      {!isPassiveTab && <InputBar />}
     </div>
   )
 }

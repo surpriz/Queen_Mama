@@ -219,6 +219,8 @@ export interface ElectronAPI {
   // Meeting detection
   onMeetingDetected: (callback: (data: { appName: string }) => void) => () => void
   meetingDismiss: (appName: string) => void
+  setMeetingMonitoring: (enabled: boolean) => void
+  setUpdaterPrefs: (prefs: { autoCheck: boolean; autoDownload: boolean }) => void
 
   // Event listeners
   onSessionToggle: (callback: () => void) => () => void

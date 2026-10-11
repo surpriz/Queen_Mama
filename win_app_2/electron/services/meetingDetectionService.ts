@@ -1,26 +1,30 @@
 /**
  * Meeting Detection Service (Main Process)
  *
- * Polls running Windows processes every 15 seconds using PowerShell
- * to detect active meeting/call applications. When a meeting is detected
- * and no session is active, sends an IPC message to the renderer.
+ * Detects active meeting/call applications while no session is running and
+ * asks the user to start one (30-minute cooldown per app).
  *
- * Supported apps:
- * - Zoom (Zoom.exe)
- * - Microsoft Teams (Teams.exe / ms-teams.exe)
- * - Google Meet (browser window title)
- * - Slack Huddle (Slack.exe + "Huddle" in title)
- * - Discord Voice (Discord.exe + "Voice Connected" in title)
- *
- * Uses a 30-minute cooldown per app to avoid spamming reminders.
+ * Cost model (the previous version spawned `powershell.exe Get-Process` every
+ * 15–60 s, ~1 s of CPU per scan and a frequent antivirus trigger):
+ *  - Process scan: `tasklist /FO CSV /NH` every 20 s — a native tool with no
+ *    runtime start-up, ~50 ms. Enough for apps where "running" ≈ "in a call"
+ *    (Zoom, WebEx) and to know whether Teams / Slack / Discord / a browser is
+ *    running at all.
+ *  - Window-title scan (PowerShell, the only way to read titles without a
+ *    native module): only when one of the title-based apps is running, at most
+ *    every 30 s.
+ *  - Nothing runs while a session is active or when the user disabled the
+ *    feature (`config.meetingDetectionEnabled` in electron-store).
  */
 
 import { exec } from 'child_process'
 import { promisify } from 'util'
+import Store from 'electron-store'
 import { IPC_CHANNELS } from '../ipc/channels'
 import { safeSendToAllWindows } from '../utils/ipcUtils'
 
 const execAsync = promisify(exec)
+const store = new Store()
 
 // ---------------------------------------------------------------------------
 // Types
@@ -47,9 +51,8 @@ interface MeetingApp {
 // Configuration
 // ---------------------------------------------------------------------------
 
-const POLL_INTERVAL_MS = 15_000 // 15 seconds (base)
-const POLL_INTERVAL_MAX_MS = 60_000 // backoff cap when nothing is detected
-const IDLE_SCANS_BEFORE_BACKOFF = 8 // ~2min of empty scans before slowing down
+const PROCESS_SCAN_INTERVAL_MS = 20_000
+const TITLE_SCAN_MIN_INTERVAL_MS = 30_000
 const COOLDOWN_MS = 30 * 60 * 1000 // 30 minutes
 
 /**
@@ -63,12 +66,16 @@ const MEETING_APPS: MeetingApp[] = [
     // Zoom running = meeting in progress (users rarely leave it open idle)
   },
   {
+    displayName: 'WebEx',
+    processNames: ['webexmta', 'ciscocollabhost', 'atmgr', 'webex'],
+    // The meeting host processes only exist during a call
+  },
+  {
     displayName: 'Microsoft Teams',
     processNames: ['teams', 'ms-teams'],
     titleMatcher: (title: string) => {
       // Teams is often open in the background. Only trigger for likely meeting windows.
       const lower = title.toLowerCase()
-      // Idle / non-meeting titles to ignore
       const idlePrefixes = [
         'microsoft teams',
         'chat ',
@@ -85,7 +92,6 @@ const MEETING_APPS: MeetingApp[] = [
       if (idlePrefixes.some((p) => lower.startsWith(p)) || lower === '' || lower === 'microsoft teams') {
         return false
       }
-      // Anything else (meeting title, "Meeting with...") is likely an active call
       return true
     },
   },
@@ -98,17 +104,15 @@ const MEETING_APPS: MeetingApp[] = [
       return (
         lower.includes('google meet') ||
         lower.includes('meet.google.com') ||
-        // Google Meet tab titles: "Meet - <name>" or "Meet \u2013 <name>"
-        /\bmeet\s*[-\u2013\u2014]/.test(lower)
+        // Google Meet tab titles: "Meet - <name>" or "Meet – <name>"
+        /\bmeet\s*[-–—]/.test(lower)
       )
     },
   },
   {
     displayName: 'Slack Huddle',
     processNames: ['slack'],
-    titleMatcher: (title: string) => {
-      return title.toLowerCase().includes('huddle')
-    },
+    titleMatcher: (title: string) => title.toLowerCase().includes('huddle'),
   },
   {
     displayName: 'Discord',
@@ -120,21 +124,19 @@ const MEETING_APPS: MeetingApp[] = [
   },
 ]
 
+const TITLE_BASED_PROCESSES = new Set(
+  MEETING_APPS.filter((a) => a.titleMatcher).flatMap((a) => a.processNames),
+)
+
 // ---------------------------------------------------------------------------
-// PowerShell command to enumerate visible windows with process names + titles
+// Commands
 // ---------------------------------------------------------------------------
 
-/**
- * PowerShell script that lists all visible windows with their process name
- * and window title, separated by a pipe delimiter.
- *
- * Output format (one per line):
- *   ProcessName|WindowTitle
- *
- * We use Get-Process with a MainWindowTitle filter to only list processes
- * that have a visible window (avoids background services).
- */
-const PS_COMMAND = [
+/** `tasklist /FO CSV /NH` → "Image Name","PID","Session Name","Session#","Mem Usage" */
+const TASKLIST_COMMAND = 'tasklist /FO CSV /NH'
+
+/** PowerShell window-title enumeration (only for apps that need titles). */
+const PS_TITLES_COMMAND = [
   'powershell.exe',
   '-NoProfile',
   '-NonInteractive',
@@ -149,7 +151,7 @@ const PS_COMMAND = [
 let pollTimer: ReturnType<typeof setTimeout> | null = null
 let isMonitoring = false
 let isSessionActive = false
-let consecutiveIdleScans = 0
+let lastTitleScanAt = 0
 let onMeetingDetectedCallback: ((appName: string) => void) | null = null
 
 export function setOnMeetingDetected(cb: (appName: string) => void): void {
@@ -160,19 +162,41 @@ export function setOnMeetingDetected(cb: (appName: string) => void): void {
 const cooldowns = new Map<string, number>()
 
 // ---------------------------------------------------------------------------
-// Window Enumeration
+// Enumeration
 // ---------------------------------------------------------------------------
 
-async function getVisibleWindows(): Promise<WindowInfo[]> {
+/** Lowercase process names (without .exe) of everything running. */
+async function getRunningProcesses(): Promise<Set<string>> {
+  if (process.platform !== 'win32') return new Set()
   try {
-    // Async exec — execSync here used to block the main-process event loop
-    // (windows, IPC, menus frozen) for up to 10s per scan.
-    const { stdout } = await execAsync(PS_COMMAND, {
+    const { stdout } = await execAsync(TASKLIST_COMMAND, {
       encoding: 'utf-8',
-      timeout: 10_000, // 10s timeout to avoid hanging
-      windowsHide: true, // hide the PowerShell console window
+      timeout: 8_000,
+      windowsHide: true,
+      maxBuffer: 4 * 1024 * 1024,
     })
+    const names = new Set<string>()
+    for (const line of stdout.split('\n')) {
+      // First CSV field, quoted: "zoom.exe"
+      const match = line.match(/^"([^"]+)"/)
+      if (!match) continue
+      names.add(match[1].toLowerCase().replace(/\.exe$/, ''))
+    }
+    return names
+  } catch (error) {
+    console.error('[MeetingDetection] tasklist failed:', error)
+    return new Set()
+  }
+}
 
+async function getVisibleWindows(): Promise<WindowInfo[]> {
+  if (process.platform !== 'win32') return []
+  try {
+    const { stdout } = await execAsync(PS_TITLES_COMMAND, {
+      encoding: 'utf-8',
+      timeout: 10_000,
+      windowsHide: true,
+    })
     const lines = stdout.trim().split('\n').filter(Boolean)
     return lines.map((line) => {
       const pipeIndex = line.indexOf('|')
@@ -185,10 +209,13 @@ async function getVisibleWindows(): Promise<WindowInfo[]> {
       }
     })
   } catch (error) {
-    // PowerShell may fail on non-Windows or if the command times out
     console.error('[MeetingDetection] Failed to enumerate windows:', error)
     return []
   }
+}
+
+function processMatches(app: MeetingApp, name: string): boolean {
+  return app.processNames.some((pn) => name === pn || name.startsWith(pn))
 }
 
 // ---------------------------------------------------------------------------
@@ -196,72 +223,50 @@ async function getVisibleWindows(): Promise<WindowInfo[]> {
 // ---------------------------------------------------------------------------
 
 async function scanForMeetings(): Promise<void> {
-  if (!isMonitoring) return
+  if (!isMonitoring || isSessionActive) return
 
-  // Skip scan if a session is already active
-  if (isSessionActive) {
-    return
-  }
+  const running = await getRunningProcesses()
+  if (running.size === 0) return
 
-  const windows = await getVisibleWindows()
-  if (windows.length === 0) {
-    consecutiveIdleScans++
-    return
-  }
-
+  // 1. Process-only apps (Zoom, WebEx): running means in a call
   for (const app of MEETING_APPS) {
-    // Find all windows belonging to this app's processes
-    const matchingWindows = windows.filter((w) =>
-      app.processNames.some((pn) => w.processName === pn || w.processName.startsWith(pn))
-    )
-
-    if (matchingWindows.length === 0) continue
-
-    // If the app has a title matcher, at least one window must pass it
-    let detected = false
-    if (app.titleMatcher) {
-      detected = matchingWindows.some((w) => app.titleMatcher!(w.windowTitle))
-      if (detected) {
-        const matchedTitles = matchingWindows
-          .filter((w) => app.titleMatcher!(w.windowTitle))
-          .map((w) => w.windowTitle)
-        console.log(
-          `[MeetingDetection] Active call detected in ${app.displayName}: ${JSON.stringify(matchedTitles)}`
-        )
-      }
-    } else {
-      // Process match alone is enough (e.g., Zoom)
-      detected = true
-      console.log(
-        `[MeetingDetection] Meeting app detected: ${app.displayName} (process running)`
-      )
-    }
-
-    if (detected) {
-      consecutiveIdleScans = 0 // meeting activity → back to fast polling
+    if (app.titleMatcher) continue
+    if ([...running].some((name) => processMatches(app, name))) {
+      console.log(`[MeetingDetection] Meeting app detected: ${app.displayName} (process running)`)
       triggerIfEligible(app.displayName)
-      // Only trigger for the first detected app per scan cycle
       return
     }
   }
 
-  consecutiveIdleScans++
+  // 2. Title-based apps: only pay for the PowerShell scan when one is running
+  const needsTitles = [...running].some((name) => [...TITLE_BASED_PROCESSES].some((pn) => name === pn || name.startsWith(pn)))
+  if (!needsTitles) return
+  const now = Date.now()
+  if (now - lastTitleScanAt < TITLE_SCAN_MIN_INTERVAL_MS) return
+  lastTitleScanAt = now
+
+  const windows = await getVisibleWindows()
+  if (windows.length === 0) return
+
+  for (const app of MEETING_APPS) {
+    if (!app.titleMatcher) continue
+    const matching = windows.filter((w) => processMatches(app, w.processName) && app.titleMatcher!(w.windowTitle))
+    if (matching.length > 0) {
+      console.log(`[MeetingDetection] Active call detected in ${app.displayName}: ${JSON.stringify(matching.map((w) => w.windowTitle))}`)
+      triggerIfEligible(app.displayName)
+      return
+    }
+  }
 }
 
 function triggerIfEligible(appName: string): void {
-  // Check cooldown
   const lastTriggered = cooldowns.get(appName) ?? 0
   const now = Date.now()
   if (now - lastTriggered < COOLDOWN_MS) {
-    console.log(
-      `[MeetingDetection] ${appName} in cooldown (${Math.round((COOLDOWN_MS - (now - lastTriggered)) / 60_000)}min remaining)`
-    )
     return
   }
 
-  // Record cooldown
   cooldowns.set(appName, now)
-
   console.log(`[MeetingDetection] Triggering reminder for: ${appName}`)
 
   // Show notification window before IPC arrives at renderer
@@ -275,35 +280,37 @@ function triggerIfEligible(appName: string): void {
 // Public API
 // ---------------------------------------------------------------------------
 
+/** User preference (Settings → meeting reminders); defaults to enabled. */
+export function isDetectionEnabledByUser(): boolean {
+  return store.get('config.meetingDetectionEnabled') !== false
+}
+
 /**
- * Start monitoring for meeting applications.
- * Performs an immediate scan and then polls every 15 seconds.
+ * Start monitoring for meeting applications (no-op when the user disabled it).
+ * Performs an immediate scan and then polls every 20 seconds.
  */
 export function startMonitoring(): void {
   if (isMonitoring) {
     console.log('[MeetingDetection] Already monitoring')
     return
   }
+  if (!isDetectionEnabledByUser()) {
+    console.log('[MeetingDetection] Disabled by user setting')
+    return
+  }
 
   isMonitoring = true
-  consecutiveIdleScans = 0
-  console.log('[MeetingDetection] Started monitoring (poll: 15s, backoff to 60s when idle, cooldown: 30min)')
-
-  // Immediate scan, then adaptive polling
+  console.log('[MeetingDetection] Started monitoring (tasklist every 20s, titles ≤ every 30s, cooldown: 30min)')
   void runScanLoop()
 }
 
-/** setTimeout chain so the delay can adapt: 15s while active, 60s after ~2min idle. */
 async function runScanLoop(): Promise<void> {
   if (!isMonitoring) return
 
   await scanForMeetings()
 
   if (!isMonitoring) return
-  const delay = consecutiveIdleScans >= IDLE_SCANS_BEFORE_BACKOFF
-    ? POLL_INTERVAL_MAX_MS
-    : POLL_INTERVAL_MS
-  pollTimer = setTimeout(() => void runScanLoop(), delay)
+  pollTimer = setTimeout(() => void runScanLoop(), PROCESS_SCAN_INTERVAL_MS)
 }
 
 /**
@@ -328,10 +335,6 @@ export function stopMonitoring(): void {
  */
 export function setSessionActive(active: boolean): void {
   isSessionActive = active
-  if (!active) {
-    // Session just ended — user is around, resume fast polling
-    consecutiveIdleScans = 0
-  }
   console.log(`[MeetingDetection] Session active state updated: ${active}`)
 }
 

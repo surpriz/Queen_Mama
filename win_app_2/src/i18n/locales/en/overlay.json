@@ -5,7 +5,8 @@
     "followUp": "Follow-up",
     "recap": "Recap",
     "decode": "Decode",
-    "translate": "Translate"
+    "translate": "Translate",
+    "briefing": "Briefing"
   },
   "translate": {
     "header": {
@@ -153,7 +154,8 @@
     "followUp": "Good follow-up questions to ask",
     "recap": "Summarize the conversation so far",
     "decode": "Explain what is on screen or just said",
-    "translate": "Live translation of the other side"
+    "translate": "Live translation of the other side",
+    "briefing": "Who you are talking to: past sessions and your notes"
   },
   "transcriptionBanner": {
     "reconnecting": "Transcription disconnected — reconnecting…",
@@ -165,5 +167,20 @@
     "tooltip": "{{participants}} people × {{rate}} {{currency}}/h — click to adjust",
     "fewer": "Fewer participants",
     "more": "More participants"
+  },
+  "briefing": {
+    "emptyTitle": "No contact linked",
+    "emptySubtitle": "Pick a contact when starting the session to see a briefing here.",
+    "sessions": "sessions",
+    "lastSeen": "Last seen {{date}}",
+    "previousSessions": "Previous sessions",
+    "noSessions": "No previous session.",
+    "notes": "Notes",
+    "noNotes": "No notes yet."
+  },
+  "meetingReminder": {
+    "detected": "{{app}} detected",
+    "startQuestion": "Start a session?",
+    "start": "Start"
   }
 }
