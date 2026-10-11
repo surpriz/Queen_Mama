@@ -8,7 +8,7 @@ vi.mock('@/db/client', () => ({
 import { useAuthStore } from '@/stores/authStore'
 import { useSessionStore } from '@/stores/sessionStore'
 import { useContactStore } from '@/stores/contactStore'
-import { ownerFilter, adoptLegacyRows, installUserScopeSync } from './userScope'
+import { ownerFilter, installUserScopeSync } from './userScope'
 import type { AuthUser } from '@/types/auth'
 import type { Session, Contact } from '@/types/models'
 
@@ -29,14 +29,14 @@ describe('userScope', () => {
     expect(ownerFilter('s.owner_user_id')).toEqual({ sql: 's.owner_user_id = ?', params: ['user-a'] })
   })
 
-  it('adopts legacy rows only when signed in', async () => {
-    await adoptLegacyRows()
-    expect(dbQuery).not.toHaveBeenCalled()
+  it('never rewrites row ownership from the renderer (no adoption on sign-in)', async () => {
+    const reload = vi.fn().mockResolvedValue(undefined)
+    const dispose = installUserScopeSync(reload)
     useAuthStore.getState().setAuthenticated(userA)
-    await adoptLegacyRows()
-    expect(dbQuery).toHaveBeenCalledTimes(2)
-    expect(dbQuery.mock.calls[0][0]).toContain('UPDATE sessions SET owner_user_id = ? WHERE owner_user_id IS NULL')
-    expect(dbQuery.mock.calls[0][1]).toEqual(['user-a'])
+    await new Promise((r) => setTimeout(r, 0))
+    expect(dbQuery).not.toHaveBeenCalled()
+    expect(reload).toHaveBeenCalledTimes(1)
+    dispose()
   })
 
   it('clears in-memory data on account switch and reloads for the new account', async () => {

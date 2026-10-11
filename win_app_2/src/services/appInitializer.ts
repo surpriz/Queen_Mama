@@ -29,7 +29,7 @@ import { modesService } from '@/services/modes/modesService'
 import { useAppStore } from '@/stores/appStore'
 import { useConfigStore } from '@/stores/configStore'
 import { useOverlayStore } from '@/stores/overlayStore'
-import { adoptLegacyRows, installUserScopeSync } from '@/services/session/userScope'
+import { installUserScopeSync } from '@/services/session/userScope'
 import { useLicenseStore } from '@/stores/licenseStore'
 import { isSessionHost, getWindowKind } from '@/lib/runtime'
 
@@ -97,12 +97,9 @@ export async function runPostAuthTasks(): Promise<void> {
   postAuthRunning = true
 
   try {
-    // Local rows are scoped per account: adopt legacy rows, then reload before
+    // Local rows are scoped per account: reload for this account before
     // anything (sync, contacts) reads them.
-    await step('Account data scope', async () => {
-      await adoptLegacyRows()
-      await reloadAccountData()
-    })
+    await step('Account data scope', () => reloadAccountData())
     await step('Proxy config', () => proxyConfigManager.refreshConfig().then(() => undefined))
     await step('License validation', async () => {
       await licenseManager.revalidate()

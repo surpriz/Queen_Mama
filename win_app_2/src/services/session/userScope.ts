@@ -4,8 +4,10 @@
  * The SQLite database lives in the Windows user profile, not in the Queen Mama
  * account. Without an owner column, signing out and signing in with another
  * account on the same PC showed (and would sync up) the previous account's
- * sessions and contacts. Rows carry `owner_user_id`; rows created before this
- * existed (NULL) are adopted by the first account that signs in.
+ * sessions and contacts. Rows carry `owner_user_id`. Rows created before the
+ * column existed were assigned once, by the DB migration, to the account that
+ * was signed in during the upgrade; they are never attached to a later account
+ * automatically (that would be the same cross-account leak in disguise).
  */
 
 import { db } from '@/db/client'
@@ -28,18 +30,15 @@ export function ownerFilter(column = 'owner_user_id'): { sql: string; params: un
   return owner ? { sql: `${column} = ?`, params: [owner] } : { sql: `${column} IS NULL`, params: [] }
 }
 
-/** Assign legacy (NULL owner) rows to the signed-in account. Idempotent. */
-export async function adoptLegacyRows(): Promise<void> {
-  const owner = currentOwnerId()
-  if (!owner) return
+/** Number of rows no account owns (diagnostics only; nothing adopts them). */
+export async function countUnownedRows(): Promise<{ sessions: number; contacts: number }> {
   try {
-    const s = await db.query('UPDATE sessions SET owner_user_id = ? WHERE owner_user_id IS NULL', [owner])
-    const c = await db.query('UPDATE contacts SET owner_user_id = ? WHERE owner_user_id IS NULL', [owner])
-    if ((s.changes ?? 0) > 0 || (c.changes ?? 0) > 0) {
-      log.info(`Adopted legacy rows: ${s.changes ?? 0} sessions, ${c.changes ?? 0} contacts`)
-    }
+    const s = await db.queryGet<{ n: number }>('SELECT COUNT(*) AS n FROM sessions WHERE owner_user_id IS NULL')
+    const c = await db.queryGet<{ n: number }>('SELECT COUNT(*) AS n FROM contacts WHERE owner_user_id IS NULL')
+    return { sessions: s?.n ?? 0, contacts: c?.n ?? 0 }
   } catch (err) {
-    log.warn('Legacy row adoption failed', err)
+    log.warn('Unowned row count failed', err)
+    return { sessions: 0, contacts: 0 }
   }
 }
 
@@ -55,7 +54,7 @@ let installed = false
 
 /**
  * Keep in-memory data aligned with the signed-in account in every window:
- * sign-out clears it, sign-in adopts legacy rows and reloads.
+ * sign-out clears it, sign-in reloads the new account's rows.
  */
 export function installUserScopeSync(reload: () => Promise<void>): () => void {
   if (installed) return () => undefined
@@ -67,9 +66,7 @@ export function installUserScopeSync(reload: () => Promise<void>): () => void {
     lastUserId = userId
     clearAccountState()
     if (userId) {
-      adoptLegacyRows()
-        .then(reload)
-        .catch((err) => log.warn('Reload after sign-in failed', err))
+      reload().catch((err) => log.warn('Reload after sign-in failed', err))
     }
   })
   return () => {
