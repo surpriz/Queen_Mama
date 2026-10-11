@@ -500,28 +500,28 @@ export function SessionsView() {
                 <div className="grid grid-cols-3 gap-3 w-full max-w-md">
                   <div className="qm-card p-4 flex flex-col items-start gap-1">
                     <span className="text-caption-sm text-qm-text-tertiary uppercase tracking-wider">
-                      Total
+                      {t('sessions.stats.total')}
                     </span>
                     <span className="font-display text-[24px] font-bold text-qm-text-primary tabular-nums tracking-tight">
                       {total}
                     </span>
-                    <span className="text-caption-sm text-qm-text-tertiary">sessions</span>
+                    <span className="text-caption-sm text-qm-text-tertiary">{t('sessions.stats.sessions')}</span>
                   </div>
                   <div className="qm-card p-4 flex flex-col items-start gap-1">
                     <span className="text-caption-sm text-qm-text-tertiary uppercase tracking-wider">
-                      Time
+                      {t('sessions.stats.time')}
                     </span>
                     <span className="font-display text-[24px] font-bold text-qm-text-primary tabular-nums tracking-tight">
                       {totalMinutes}
-                      <span className="text-body-sm font-medium text-qm-text-tertiary ml-1">min</span>
+                      <span className="text-body-sm font-medium text-qm-text-tertiary ml-1">{t('sessions.stats.min')}</span>
                     </span>
                     <span className="text-caption-sm text-qm-text-tertiary">
-                      avg {avgMinutes}m
+                      {t('sessions.stats.avg', { minutes: avgMinutes })}
                     </span>
                   </div>
                   <div className="qm-card p-4 flex flex-col items-start gap-1">
                     <span className="text-caption-sm text-qm-text-tertiary uppercase tracking-wider">
-                      Synced
+                      {t('sessions.stats.synced')}
                     </span>
                     <span className="font-display text-[24px] font-bold text-qm-text-primary tabular-nums tracking-tight">
                       {syncedCount}

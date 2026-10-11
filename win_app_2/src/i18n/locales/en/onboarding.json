@@ -1,0 +1,121 @@
+{
+  "steps": {
+    "welcome": "Welcome",
+    "permissions": "Permissions",
+    "account": "Account",
+    "tour": "Tour",
+    "ready": "Ready"
+  },
+  "nav": {
+    "back": "Back",
+    "continue": "Continue",
+    "previous": "Previous",
+    "next": "Next",
+    "gotIt": "Got it!",
+    "getStarted": "Get Started"
+  },
+  "welcome": {
+    "title": "Welcome to Queen Mama",
+    "subtitle": "Your AI-powered assistant for real-time coaching during important conversations",
+    "transcription": "Real-time Transcription",
+    "transcriptionDescription": "Automatically captures and transcribes your conversations",
+    "assistance": "AI Assistance",
+    "assistanceDescription": "Get intelligent suggestions and answers in real-time",
+    "undetectable": "Undetectable",
+    "undetectableDescription": "Works invisibly during screen sharing and recordings"
+  },
+  "permissions": {
+    "title": "App Permissions",
+    "subtitle": "Queen Mama needs a few permissions to work its magic.",
+    "microphone": "Microphone Access",
+    "microphoneDescription": "Required to capture and transcribe your voice during conversations",
+    "screen": "Screen Recording",
+    "screenDescription": "Needed to capture screen content for context-aware AI assistance",
+    "keyboard": "Keyboard Shortcuts",
+    "keyboardDescription": "For quick access to features with global shortcuts (Ctrl+Shift+S, etc.)",
+    "info": "Click \"Allow\" on any system prompt to grant access. You can also change these later in Windows Settings › Privacy.",
+    "openSettings": "Open Windows privacy settings",
+    "checking": "Checking",
+    "granted": "Granted",
+    "grant": "Grant",
+    "ready": "Ready",
+    "optional": "Optional"
+  },
+  "account": {
+    "title": "Sign in to Queen Mama",
+    "subtitle": "Create an account or sign in to sync your sessions, settings, and get access to AI features"
+  },
+  "tour": {
+    "widget": {
+      "title": "The Floating Widget",
+      "subtitle": "Your AI assistant, always within reach",
+      "collapsed": "Collapsed",
+      "expanded": "Expanded",
+      "readyToAssist": "Ready to assist",
+      "floats": "Floats on top of all windows for quick access",
+      "transcription": "Shows real-time transcription of your conversation",
+      "suggestions": "Displays AI suggestions and responses instantly"
+    },
+    "aiHelp": {
+      "title": "4 Types of AI Help",
+      "subtitle": "Different ways Queen Mama can assist you",
+      "assist": "Assist",
+      "assistDescription": "Get intelligent suggestions based on conversation context",
+      "assistExample": "Try asking: \"What should I mention about pricing?\"",
+      "say": "What to say",
+      "sayDescription": "Generate exact phrases to use in your conversation",
+      "sayExample": "Creates polished responses you can use directly",
+      "followUp": "Follow-up",
+      "followUpDescription": "Get smart follow-up questions to deepen the conversation",
+      "followUpExample": "Suggests relevant questions based on context",
+      "recap": "Recap",
+      "recapDescription": "Quick summary of key points from the conversation",
+      "recapExample": "Get a condensed overview anytime"
+    },
+    "dashboard": {
+      "title": "The Dashboard",
+      "subtitle": "Your command center for everything",
+      "recentSessions": "Recent Sessions",
+      "sessions": "Sessions",
+      "sessionsDescription": "Review past conversations",
+      "modes": "Modes",
+      "modesDescription": "Customize AI behavior",
+      "settings": "Settings",
+      "settingsDescription": "Configure preferences"
+    },
+    "modes": {
+      "title": "AI Modes",
+      "subtitle": "Customize AI behavior for different situations",
+      "intro": "Different modes customize how AI responds to your needs",
+      "default": "Default",
+      "defaultDescription": "Balanced assistance for general use",
+      "professional": "Professional",
+      "professionalDescription": "Formal tone for business meetings",
+      "interview": "Interview",
+      "interviewDescription": "Optimized for job interviews",
+      "sales": "Sales",
+      "salesDescription": "Persuasive assistance for sales calls",
+      "outro": "Create custom modes to match your specific needs"
+    },
+    "shortcuts": {
+      "title": "Keyboard Shortcuts",
+      "subtitle": "Quick access to all features",
+      "session": "Toggle Session",
+      "sessionDescription": "Start or stop recording (works everywhere)",
+      "widget": "Toggle Widget",
+      "widgetDescription": "Show or hide the overlay (works everywhere)",
+      "clear": "Clear Context",
+      "clearDescription": "Reset the conversation context (works everywhere)",
+      "run": "Run selected tab",
+      "runDescription": "In the widget: ask the selected tab, or send your typed question"
+    }
+  },
+  "ready": {
+    "title": "You're All Set!",
+    "subtitle": "Queen Mama is ready to assist you. Start your first session and experience AI-powered conversation coaching!",
+    "quickTip": "Quick tip",
+    "tipPrefix": "Press",
+    "tipSuffix": "anytime to start a new session",
+    "start": "Start First Session"
+  }
+}

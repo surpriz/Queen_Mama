@@ -37,7 +37,15 @@
     "pullSessions": "Récupérer les sessions du tableau de bord web",
     "uploadSessions": "Envoyer toutes les sessions vers le tableau de bord web",
     "selectSessions": "Sélectionner des sessions",
-    "cancelSelection": "Annuler la sélection"
+    "cancelSelection": "Annuler la sélection",
+    "stats": {
+      "total": "Total",
+      "sessions": "sessions",
+      "time": "Temps",
+      "min": "min",
+      "avg": "moy. {{minutes}} min",
+      "synced": "Synchronisées"
+    }
   },
   "sessionDetail": {
     "back": "Retour",
@@ -352,6 +360,44 @@
     "attachedFiles": "Fichiers joints",
     "addFile": "Ajouter un fichier",
     "noFilesAttached": "Aucun fichier joint. Ajoutez des fichiers PDF, TXT ou RTF pour enrichir le contexte IA.",
-    "copy": "(Copie)"
+    "copy": "(Copie)",
+    "name": "Nom"
+  },
+  "layout": {
+    "finalizing": "Finalisation… transcription et résumé en cours de génération",
+    "archived": "Session archivée — transcription et résumé disponibles"
+  },
+  "toolbar": {
+    "start": "Démarrer la session",
+    "stop": "Arrêter",
+    "toggleWidget": "Widget",
+    "generatingSummary": "Génération du résumé…"
+  },
+  "shortcutsModal": {
+    "title": "Raccourcis clavier",
+    "subtitle": "Aide-mémoire",
+    "categories": {
+      "session": "Session",
+      "widget": "Widget",
+      "ai": "IA"
+    },
+    "items": {
+      "start-stop": {
+        "title": "Démarrer / arrêter la session",
+        "description": "Lance ou arrête l'enregistrement et la transcription (partout)"
+      },
+      "toggle-widget": {
+        "title": "Afficher / masquer le widget",
+        "description": "Montre ou cache l'overlay (partout)"
+      },
+      "clear-context": {
+        "title": "Effacer le contexte",
+        "description": "Réinitialise le contexte et l'historique IA (partout)"
+      },
+      "run-tab": {
+        "title": "Lancer l'onglet sélectionné",
+        "description": "Dans le widget : interroge l'onglet sélectionné ou envoie votre question"
+      }
+    }
   }
 }

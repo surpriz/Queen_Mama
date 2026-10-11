@@ -37,7 +37,15 @@
     "pullSessions": "Pull sessions from web dashboard",
     "uploadSessions": "Upload all sessions to web dashboard",
     "selectSessions": "Select sessions",
-    "cancelSelection": "Cancel selection"
+    "cancelSelection": "Cancel selection",
+    "stats": {
+      "total": "Total",
+      "sessions": "sessions",
+      "time": "Time",
+      "min": "min",
+      "avg": "avg {{minutes}}m",
+      "synced": "Synced"
+    }
   },
   "sessionDetail": {
     "back": "Back",
@@ -352,6 +360,44 @@
     "attachedFiles": "Attached Files",
     "addFile": "Add File",
     "noFilesAttached": "No files attached. Add PDF, TXT, or RTF files to include in AI context.",
-    "copy": "(Copy)"
+    "copy": "(Copy)",
+    "name": "Name"
+  },
+  "layout": {
+    "finalizing": "Finalizing… transcript and summary are being generated",
+    "archived": "Session archived — transcript and summary available"
+  },
+  "toolbar": {
+    "start": "Start session",
+    "stop": "Stop",
+    "toggleWidget": "Widget",
+    "generatingSummary": "Generating summary…"
+  },
+  "shortcutsModal": {
+    "title": "Keyboard Shortcuts",
+    "subtitle": "Quick reference",
+    "categories": {
+      "session": "Session",
+      "widget": "Widget",
+      "ai": "AI"
+    },
+    "items": {
+      "start-stop": {
+        "title": "Start / stop session",
+        "description": "Begin or end recording and transcription (global)"
+      },
+      "toggle-widget": {
+        "title": "Show / hide widget",
+        "description": "Toggle the overlay (global)"
+      },
+      "clear-context": {
+        "title": "Clear context",
+        "description": "Reset the conversation context and AI history (global)"
+      },
+      "run-tab": {
+        "title": "Run selected tab",
+        "description": "In the widget input: ask the selected tab, or send your typed question"
+      }
+    }
   }
 }

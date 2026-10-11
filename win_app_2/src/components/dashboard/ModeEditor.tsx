@@ -86,7 +86,7 @@ export function ModeEditor({ mode, onSave, onCancel }: ModeEditorProps) {
 
       <div className="space-y-4">
         <div>
-          <label className="block text-label-md text-qm-text-secondary mb-1.5">{t('contacts.name')}</label>
+          <label className="block text-label-md text-qm-text-secondary mb-1.5">{t('modes.name')}</label>
           <input
             type="text"
             value={name}

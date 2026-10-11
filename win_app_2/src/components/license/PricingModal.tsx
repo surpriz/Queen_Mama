@@ -37,27 +37,20 @@ export function PricingModal({ isOpen, onClose, contextMessage }: PricingModalPr
     }, 1000)
   }
 
-  const freeFeatures: PlanFeature[] = [
-    { name: t('pricing.feature.aiRequests'), detail: t('pricing.feature.aiRequestsFree'), available: true },
-    { name: t('pricing.feature.customModes'), available: false },
-    { name: t('pricing.feature.cloudSync'), available: false },
-    { name: t('pricing.feature.smartMode'), available: false },
+  // Same 8 rows on every plan (mac PricingView parity) so the comparison reads at a glance
+  const rows = (flags: { pro: boolean; enterprise: boolean }, aiDetail: string): PlanFeature[] => [
+    { name: t('pricing.feature.aiRequests'), detail: aiDetail, available: true },
+    { name: t('pricing.feature.customModes'), available: flags.pro },
+    { name: t('pricing.feature.cloudSync'), available: flags.pro },
+    { name: t('pricing.feature.export'), available: flags.pro },
+    { name: t('pricing.feature.smartMode'), available: flags.enterprise },
+    { name: t('pricing.feature.autoAnswer'), available: flags.enterprise },
+    { name: t('pricing.feature.undetectable'), available: flags.enterprise },
+    { name: t('pricing.feature.contextIntel'), available: flags.enterprise },
   ]
-
-  const proFeatures: PlanFeature[] = [
-    { name: t('pricing.feature.aiRequests'), detail: t('pricing.feature.unlimited'), available: true },
-    { name: t('pricing.feature.customModes'), available: true },
-    { name: t('pricing.feature.cloudSync'), available: true },
-    { name: t('pricing.feature.export'), available: true },
-  ]
-
-  const enterpriseFeatures: PlanFeature[] = [
-    { name: t('pricing.feature.aiRequests'), detail: t('pricing.feature.unlimited'), available: true },
-    { name: t('pricing.feature.smartMode'), available: true },
-    { name: t('pricing.feature.autoAnswer'), available: true },
-    { name: t('pricing.feature.undetectable'), available: true },
-    { name: t('pricing.feature.contextIntel'), available: true },
-  ]
+  const freeFeatures = rows({ pro: false, enterprise: false }, t('pricing.feature.aiRequestsFree'))
+  const proFeatures = rows({ pro: true, enterprise: false }, t('pricing.feature.unlimited'))
+  const enterpriseFeatures = rows({ pro: true, enterprise: true }, t('pricing.feature.unlimited'))
 
   return (
     <div

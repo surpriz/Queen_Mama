@@ -1,2 +1,2 @@
-export { FeatureTourModal } from './FeatureTourModal'
+export { TourModal } from './TourModal'
 export { KeyboardShortcutsModal } from './KeyboardShortcutsModal'

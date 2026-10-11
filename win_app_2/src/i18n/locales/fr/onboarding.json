@@ -1,0 +1,121 @@
+{
+  "steps": {
+    "welcome": "Bienvenue",
+    "permissions": "Autorisations",
+    "account": "Compte",
+    "tour": "Visite",
+    "ready": "Prêt"
+  },
+  "nav": {
+    "back": "Retour",
+    "continue": "Continuer",
+    "previous": "Précédent",
+    "next": "Suivant",
+    "gotIt": "Compris !",
+    "getStarted": "Commencer"
+  },
+  "welcome": {
+    "title": "Bienvenue sur Queen Mama",
+    "subtitle": "Votre assistant IA pour un coaching en temps réel pendant vos conversations importantes",
+    "transcription": "Transcription en temps réel",
+    "transcriptionDescription": "Capture et transcrit automatiquement vos conversations",
+    "assistance": "Assistance IA",
+    "assistanceDescription": "Des suggestions et réponses intelligentes en temps réel",
+    "undetectable": "Indétectable",
+    "undetectableDescription": "Invisible pendant les partages d'écran et les enregistrements"
+  },
+  "permissions": {
+    "title": "Autorisations de l'application",
+    "subtitle": "Queen Mama a besoin de quelques autorisations pour fonctionner.",
+    "microphone": "Accès au micro",
+    "microphoneDescription": "Nécessaire pour capturer et transcrire votre voix pendant les conversations",
+    "screen": "Enregistrement d'écran",
+    "screenDescription": "Nécessaire pour capturer le contenu de l'écran et donner du contexte à l'IA",
+    "keyboard": "Raccourcis clavier",
+    "keyboardDescription": "Pour accéder rapidement aux fonctions avec des raccourcis globaux (Ctrl+Maj+S, etc.)",
+    "info": "Cliquez sur « Autoriser » dans les invites système. Vous pourrez aussi modifier ces réglages plus tard dans Paramètres Windows › Confidentialité.",
+    "openSettings": "Ouvrir les paramètres de confidentialité Windows",
+    "checking": "Vérification",
+    "granted": "Accordé",
+    "grant": "Autoriser",
+    "ready": "Prêt",
+    "optional": "Optionnel"
+  },
+  "account": {
+    "title": "Connectez-vous à Queen Mama",
+    "subtitle": "Créez un compte ou connectez-vous pour synchroniser vos sessions et vos réglages, et accéder aux fonctions IA"
+  },
+  "tour": {
+    "widget": {
+      "title": "Le widget flottant",
+      "subtitle": "Votre assistant IA, toujours à portée de main",
+      "collapsed": "Replié",
+      "expanded": "Déplié",
+      "readyToAssist": "Prêt à vous aider",
+      "floats": "Flotte au-dessus de toutes les fenêtres pour un accès rapide",
+      "transcription": "Affiche la transcription en direct de votre conversation",
+      "suggestions": "Montre instantanément les suggestions et réponses de l'IA"
+    },
+    "aiHelp": {
+      "title": "4 types d'aide IA",
+      "subtitle": "Différentes façons dont Queen Mama peut vous aider",
+      "assist": "Assist",
+      "assistDescription": "Des suggestions intelligentes basées sur le contexte de la conversation",
+      "assistExample": "Essayez : « Que dois-je mentionner sur le prix ? »",
+      "say": "Quoi dire",
+      "sayDescription": "Génère des phrases exactes à utiliser dans la conversation",
+      "sayExample": "Crée des réponses soignées, prêtes à l'emploi",
+      "followUp": "Relance",
+      "followUpDescription": "Des questions de relance pertinentes pour approfondir",
+      "followUpExample": "Propose des questions adaptées au contexte",
+      "recap": "Résumé",
+      "recapDescription": "Un résumé rapide des points clés de la conversation",
+      "recapExample": "Obtenez une vue d'ensemble à tout moment"
+    },
+    "dashboard": {
+      "title": "Le tableau de bord",
+      "subtitle": "Votre centre de contrôle",
+      "recentSessions": "Sessions récentes",
+      "sessions": "Sessions",
+      "sessionsDescription": "Revoir les conversations passées",
+      "modes": "Modes",
+      "modesDescription": "Personnaliser le comportement de l'IA",
+      "settings": "Réglages",
+      "settingsDescription": "Configurer vos préférences"
+    },
+    "modes": {
+      "title": "Modes IA",
+      "subtitle": "Adaptez le comportement de l'IA à chaque situation",
+      "intro": "Chaque mode personnalise la façon dont l'IA répond à vos besoins",
+      "default": "Par défaut",
+      "defaultDescription": "Assistance équilibrée pour un usage général",
+      "professional": "Professionnel",
+      "professionalDescription": "Ton formel pour les réunions d'affaires",
+      "interview": "Entretien",
+      "interviewDescription": "Optimisé pour les entretiens d'embauche",
+      "sales": "Vente",
+      "salesDescription": "Assistance persuasive pour les appels commerciaux",
+      "outro": "Créez des modes personnalisés selon vos besoins"
+    },
+    "shortcuts": {
+      "title": "Raccourcis clavier",
+      "subtitle": "Accès rapide à toutes les fonctions",
+      "session": "Démarrer / arrêter la session",
+      "sessionDescription": "Lance ou arrête l'enregistrement (partout)",
+      "widget": "Afficher / masquer le widget",
+      "widgetDescription": "Montre ou cache l'overlay (partout)",
+      "clear": "Effacer le contexte",
+      "clearDescription": "Réinitialise le contexte de la conversation (partout)",
+      "run": "Lancer l'onglet sélectionné",
+      "runDescription": "Dans le widget : interroge l'onglet sélectionné ou envoie votre question"
+    }
+  },
+  "ready": {
+    "title": "Tout est prêt !",
+    "subtitle": "Queen Mama est prête à vous assister. Lancez votre première session et découvrez le coaching de conversation par IA !",
+    "quickTip": "Astuce",
+    "tipPrefix": "Appuyez sur",
+    "tipSuffix": "à tout moment pour démarrer une session",
+    "start": "Démarrer ma première session"
+  }
+}
