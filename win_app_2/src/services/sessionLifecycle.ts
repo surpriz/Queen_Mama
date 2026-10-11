@@ -114,6 +114,10 @@ export async function startSession(mode?: Mode | null, contact?: Contact | null)
       currentSessionId,
       currentContactId,
     })
+    // The previous session left the relay at "disconnected"; mark the start-up
+    // window as "connecting" so the overlay banner does not flash until the
+    // first socket is open (or actually fails, which clears the flag).
+    relay.broadcast('relay:transcription', { connected: false, provider: null, recoveryCountdown: 0, connecting: true })
 
     // Link contact to session if provided
     if (contact && currentSessionId) {

@@ -10,5 +10,12 @@ export const useTranscriptionStateStore = create<TranscriptionStateStore>((set) 
   connected: false,
   provider: null,
   recoveryCountdown: 0,
-  apply: (data) => set({ connected: data.connected, provider: data.provider, recoveryCountdown: data.recoveryCountdown ?? 0 }),
+  connecting: false,
+  apply: (data) =>
+    set({
+      connected: data.connected,
+      provider: data.provider,
+      recoveryCountdown: data.recoveryCountdown ?? 0,
+      connecting: data.connecting ?? false,
+    }),
 }))

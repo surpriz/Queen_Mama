@@ -99,6 +99,12 @@ export interface TranscriptionStateRelay {
   provider: string | null
   /** Seconds until the next auto-recovery attempt; -1 = gave up; 0/undefined = none pending. */
   recoveryCountdown?: number
+  /**
+   * First connection of the session is still in flight. Distinguishes the
+   * normal start-up window from a real drop so the overlay does not flash
+   * "disconnected" while the socket is being opened.
+   */
+  connecting?: boolean
 }
 
 export type AiResponseRelay =

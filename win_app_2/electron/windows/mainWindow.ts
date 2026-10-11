@@ -64,7 +64,7 @@ export function createMainWindow(): BrowserWindow {
       sandbox: true,
       contextIsolation: true,
       nodeIntegration: false,
-      webSecurity: false,
+      webSecurity: process.env.QM_RELAX_WEB_SECURITY !== '1', // CORS enforced; backend middleware allows the desktop origin
     },
     show: false,
   })

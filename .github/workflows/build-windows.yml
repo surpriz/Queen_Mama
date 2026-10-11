@@ -111,6 +111,9 @@ jobs:
           VITE_APP_ENV: ${{ steps.release_type.outputs.is_prerelease == 'true' && 'staging' || 'production' }}
           VITE_SENTRY_DSN: ${{ secrets.SENTRY_DSN_WINDOWS }}
           SENTRY_DSN: ${{ secrets.SENTRY_DSN_WINDOWS }}
+          # VITE_LICENSE_SECRET is deliberately NOT set here: VITE_* values end up
+          # in the public renderer bundle. Like the mac app, the packaged build
+          # trusts the server over TLS and skips the HMAC check.
 
       - name: Package with electron-builder
         run: npx electron-builder --win --publish never

@@ -1,3 +1,6 @@
+// Must stay the first import: moves the legacy "Queen Mama Electron" data folder
+// before any module resolves app.getPath('userData').
+import './bootstrap/userDataMigration'
 import { app, BrowserWindow, ipcMain, globalShortcut } from 'electron'
 import { execSync } from 'child_process'
 import { init as initSentry, captureException } from '@sentry/electron/main'
