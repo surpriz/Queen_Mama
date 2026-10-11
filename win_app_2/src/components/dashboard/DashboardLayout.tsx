@@ -1,5 +1,8 @@
 import { useState, useEffect, useRef } from 'react'
 import { Loader2, CheckCircle2 } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
+import { DashboardToolbar } from './DashboardToolbar'
+import { TourModal, KeyboardShortcutsModal } from '@/components/tour'
 import { useAppStore } from '@/stores/appStore'
 import { useLicenseStore } from '@/stores/licenseStore'
 import { useAuthStore } from '@/stores/authStore'
@@ -21,6 +24,7 @@ const SESSIONS_KEY = 'freeSessionsCompleted'
 const SESSION_UPGRADE_KEY = 'freeSessionUpgradeShown'
 
 export function DashboardLayout() {
+  const { t } = useTranslation('dashboard')
   const [activeNav, setActiveNav] = useState<NavItem>('live')
   const isFinalizingSession = useAppStore((s) => s.isFinalizingSession)
   const sessionJustFinalized = useAppStore((s) => s.sessionJustFinalized)
@@ -72,6 +76,7 @@ export function DashboardLayout() {
 
       {/* Main content */}
       <div className="flex-1 overflow-y-auto overflow-x-hidden pt-9 relative">
+        <DashboardToolbar />
         {/* Auto-update banner — high priority */}
         <UpdateBanner />
 
@@ -88,9 +93,7 @@ export function DashboardLayout() {
         {isFinalizingSession && (
           <div className="fixed top-12 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 px-5 py-3 rounded-qm-lg bg-qm-accent/90 text-white shadow-lg animate-qm-fade-in">
             <Loader2 size={18} className="animate-spin" />
-            <span className="text-body-sm font-medium">
-              Finalisation en cours... Transcription et résumé en cours de génération
-            </span>
+            <span className="text-body-sm font-medium">{t('layout.finalizing')}</span>
           </div>
         )}
         {sessionJustFinalized && !isFinalizingSession && (
@@ -102,9 +105,7 @@ export function DashboardLayout() {
             }}
           >
             <CheckCircle2 size={18} />
-            <span className="text-body-sm font-medium">
-              Session archivée — Transcription et résumé disponibles
-            </span>
+            <span className="text-body-sm font-medium">{t('layout.archived')}</span>
           </div>
         )}
       </div>
@@ -116,6 +117,8 @@ export function DashboardLayout() {
         onClose={() => { setShowPricing(false); setPricingContext(undefined) }}
         contextMessage={pricingContext}
       />
+      <TourModal />
+      <KeyboardShortcutsModal />
     </div>
   )
 }

@@ -116,6 +116,7 @@ const config: Config = {
       },
       fontFamily: {
         display: [
+          '"Inter Variable"',
           '"Inter Display"',
           '"InterVariable"',
           'Inter',
@@ -124,6 +125,7 @@ const config: Config = {
           'sans-serif',
         ],
         sans: [
+          '"Inter Variable"',
           '"InterVariable"',
           'Inter',
           'ui-sans-serif',

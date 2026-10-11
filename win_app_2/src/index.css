@@ -1,9 +1,11 @@
+/* Bundled Inter (variable). The previous runtime @import from rsms.me was placed
+   after the @tailwind rules (invalid, ignored) and would be blocked offline or
+   behind a corporate proxy, so the app silently rendered in Segoe UI. */
+@import '@fontsource-variable/inter';
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
-
-/* Inter variable + Inter Display from rsms — single font fetch, two faces */
-@import url('https://rsms.me/inter/inter.css');
 
 @layer base {
   :root {

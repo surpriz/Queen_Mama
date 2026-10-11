@@ -120,5 +120,8 @@
   "loading": "Initialisation...",
   "audioLevel": "Niveau audio",
   "copy": "Copier",
-  "copied": "Copié"
+  "copied": "Copié",
+  "tour": "Visite guidée",
+  "shortcuts": "Raccourcis",
+  "close": "Fermer"
 }

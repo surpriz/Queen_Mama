@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Activity, List, Users, Settings, Mic, BookUser, ArrowUpRight, Crown, MessageSquareText } from 'lucide-react'
+import { Activity, List, Users, Settings, Mic, BookUser, ArrowUpRight, Crown, MessageSquareText, Compass, Keyboard } from 'lucide-react'
+import { useTourStore } from '@/stores/tourStore'
+import { useShortcutsStore } from '@/stores/shortcutsStore'
 import { cn } from '@/lib/utils'
 import { GradientText } from '@/components/common/GradientText'
 import { LanguageSwitcher } from '@/components/common/LanguageSwitcher'
@@ -252,13 +254,29 @@ export function Sidebar({ activeItem, onItemClick }: SidebarProps) {
             </div>
           </div>
         )}
-        <button
-          onClick={() => window.electronAPI?.openExternal(FEEDBACK_URL)}
-          className="flex items-center gap-1.5 text-caption-sm text-qm-text-tertiary hover:text-qm-text-secondary transition-colors"
-        >
-          <MessageSquareText size={10} />
-          {t('feedback')}
-        </button>
+        <div className="flex items-center gap-3 flex-wrap">
+          <button
+            onClick={() => useTourStore.getState().openTour()}
+            className="flex items-center gap-1.5 text-caption-sm text-qm-text-tertiary hover:text-qm-text-secondary transition-colors"
+          >
+            <Compass size={10} />
+            {t('tour')}
+          </button>
+          <button
+            onClick={() => useShortcutsStore.getState().openShortcutsModal()}
+            className="flex items-center gap-1.5 text-caption-sm text-qm-text-tertiary hover:text-qm-text-secondary transition-colors"
+          >
+            <Keyboard size={10} />
+            {t('shortcuts')}
+          </button>
+          <button
+            onClick={() => window.electronAPI?.openExternal(FEEDBACK_URL)}
+            className="flex items-center gap-1.5 text-caption-sm text-qm-text-tertiary hover:text-qm-text-secondary transition-colors"
+          >
+            <MessageSquareText size={10} />
+            {t('feedback')}
+          </button>
+        </div>
       </div>
     </div>
   )

@@ -5,10 +5,12 @@ import enCommon from './locales/en/common.json'
 import enDashboard from './locales/en/dashboard.json'
 import enOverlay from './locales/en/overlay.json'
 import enModes from './locales/en/modes.json'
+import enOnboarding from './locales/en/onboarding.json'
 import frCommon from './locales/fr/common.json'
 import frDashboard from './locales/fr/dashboard.json'
 import frOverlay from './locales/fr/overlay.json'
 import frModes from './locales/fr/modes.json'
+import frOnboarding from './locales/fr/onboarding.json'
 
 export const SUPPORTED_LANGUAGES = [
   { code: 'en', label: 'EN' },
@@ -38,10 +40,10 @@ i18n.use(initReactI18next).init({
   lng: 'en',
   fallbackLng: 'en',
   defaultNS: 'common',
-  ns: ['common', 'dashboard', 'overlay', 'modes'],
+  ns: ['common', 'dashboard', 'overlay', 'modes', 'onboarding'],
   resources: {
-    en: { common: enCommon, dashboard: enDashboard, overlay: enOverlay, modes: enModes },
-    fr: { common: frCommon, dashboard: frDashboard, overlay: frOverlay, modes: frModes },
+    en: { common: enCommon, dashboard: enDashboard, overlay: enOverlay, modes: enModes, onboarding: enOnboarding },
+    fr: { common: frCommon, dashboard: frDashboard, overlay: frOverlay, modes: frModes, onboarding: frOnboarding },
   },
   interpolation: { escapeValue: false },
 })

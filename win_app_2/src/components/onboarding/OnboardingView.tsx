@@ -1,4 +1,5 @@
 import { useCallback } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useOnboardingStore } from '@/stores/onboardingStore'
 import { OnboardingStepIndicator } from './OnboardingStepIndicator'
 import { WelcomeStep } from './WelcomeStep'
@@ -11,17 +12,17 @@ interface OnboardingViewProps {
   onComplete: () => void
 }
 
-const STEPS = [
-  { key: 'welcome', label: 'Welcome' },
-  { key: 'permissions', label: 'Permissions' },
-  { key: 'account', label: 'Account' },
-  { key: 'tour', label: 'Tour' },
-  { key: 'ready', label: 'Ready' },
-]
-
 export function OnboardingView({ onComplete }: OnboardingViewProps) {
-  const { currentStep, nextStep, previousStep, completeOnboarding } =
-    useOnboardingStore()
+  const { t } = useTranslation('onboarding')
+  const { currentStep, nextStep, previousStep, completeOnboarding } = useOnboardingStore()
+
+  const steps = [
+    { key: 'welcome', label: t('steps.welcome') },
+    { key: 'permissions', label: t('steps.permissions') },
+    { key: 'account', label: t('steps.account') },
+    { key: 'tour', label: t('steps.tour') },
+    { key: 'ready', label: t('steps.ready') },
+  ]
 
   const handleComplete = useCallback(async () => {
     await completeOnboarding()
@@ -50,16 +51,14 @@ export function OnboardingView({ onComplete }: OnboardingViewProps) {
 
   return (
     <div className="h-screen flex flex-col bg-qm-bg-primary">
-      {/* Header with step indicator */}
       {showStepIndicator && (
         <div className="flex items-center px-6 py-4 border-b border-qm-border-subtle">
           <div className="flex-1">
-            <OnboardingStepIndicator steps={STEPS} currentStep={currentStep} />
+            <OnboardingStepIndicator steps={steps} currentStep={currentStep} />
           </div>
         </div>
       )}
 
-      {/* Main Content Area */}
       <div className="flex-1 overflow-hidden">{renderStep()}</div>
     </div>
   )
