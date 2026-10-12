@@ -23,7 +23,6 @@ struct OverlayContentView: View {
     @State private var showSmartModeToast = false
     @State private var showDisplayToast = false
     @State private var currentDisplayName = String(localized: "overlay.display.primary")
-    @AppStorage("hasSeenSmartModeHint") private var hasSeenSmartModeHint = false
     @State private var showLimitPricingSheet = false
 
     // Memory Palace: Contact picker state

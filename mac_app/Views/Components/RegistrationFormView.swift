@@ -236,7 +236,7 @@ struct RegistrationFormView: View {
                     email: email.trimmingCharacters(in: .whitespaces).lowercased(),
                     password: password
                 )
-                // Success - authManager will update state and AuthGateView will show main content
+                // Success - authManager will update state and the app will show the dashboard
             } catch let error as AuthError {
                 registrationError = error.errorDescription
             } catch {

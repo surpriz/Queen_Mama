@@ -3426,40 +3426,6 @@
         }
       }
     },
-    "dashboard.button.help.webDashboard": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Open web dashboard in browser (auto sign-in)"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Ouvrir le tableau de bord web (connexion auto)"
-          }
-        }
-      }
-    },
-    "dashboard.button.webDashboard": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Web Dashboard"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Tableau de bord web"
-          }
-        }
-      }
-    },
     "dashboard.license.allFeaturesUnlocked": {
       "extractionState": "manual",
       "localizations": {
@@ -3596,23 +3562,6 @@
         }
       }
     },
-    "dashboard.section.contacts.desc": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Your contacts"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Vos contacts"
-          }
-        }
-      }
-    },
     "dashboard.section.home": {
       "extractionState": "manual",
       "localizations": {
@@ -3681,40 +3630,6 @@
         }
       }
     },
-    "dashboard.section.liveSession": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Live Session"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Session en direct"
-          }
-        }
-      }
-    },
-    "dashboard.section.liveSession.desc": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Current session monitoring"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Suivi de la session en cours"
-          }
-        }
-      }
-    },
     "dashboard.section.modes": {
       "extractionState": "manual",
       "localizations": {
@@ -3732,23 +3647,6 @@
         }
       }
     },
-    "dashboard.section.modes.desc": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "AI behavior presets"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Préréglages de comportement IA"
-          }
-        }
-      }
-    },
     "dashboard.section.sessions": {
       "extractionState": "manual",
       "localizations": {
@@ -3762,23 +3660,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Sessions"
-          }
-        }
-      }
-    },
-    "dashboard.section.sessions.desc": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Past recordings"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Enregistrements passés"
           }
         }
       }
@@ -3817,40 +3698,6 @@
         }
       }
     },
-    "dashboard.sidebar.feedback": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Feedback"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Feedback"
-          }
-        }
-      }
-    },
-    "dashboard.sidebar.help.tour": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Review the feature tour"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Revoir la visite des fonctionnalités"
-          }
-        }
-      }
-    },
     "dashboard.sidebar.status": {
       "extractionState": "manual",
       "localizations": {
@@ -3864,40 +3711,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "STATUT"
-          }
-        }
-      }
-    },
-    "dashboard.sidebar.switchLanguage": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Switch language"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Changer de langue"
-          }
-        }
-      }
-    },
-    "dashboard.sidebar.tour": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Tour"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Visite guidée"
           }
         }
       }
@@ -3983,23 +3796,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Génération du résumé..."
-          }
-        }
-      }
-    },
-    "dashboard.toolbar.help.hideDashboard": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Hide Dashboard (Cmd+W)"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Masquer le tableau de bord (Cmd+W)"
           }
         }
       }
@@ -4493,74 +4289,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Réessayer"
-          }
-        }
-      }
-    },
-    "free.banner.cta": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "See Plans"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Voir les offres"
-          }
-        }
-      }
-    },
-    "free.banner.dismiss": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Dismiss"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Ignorer"
-          }
-        }
-      }
-    },
-    "free.banner.subtitle": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "10 AI requests per day. Upgrade for unlimited access."
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "10 requêtes IA par jour. Passez à la version supérieure pour un accès illimité."
-          }
-        }
-      }
-    },
-    "free.banner.title": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "You're on the Free plan"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Vous êtes sur le plan Gratuit"
           }
         }
       }
@@ -5877,23 +5605,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Retour"
-          }
-        }
-      }
-    },
-    "onboarding.button.continue": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Continue"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Continuer"
           }
         }
       }
@@ -7292,23 +7003,6 @@
         }
       }
     },
-    "onboarding.permissions.subtitle": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Queen Mama needs a few permissions to work properly"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Queen Mama a besoin de quelques permissions pour fonctionner correctement"
-          }
-        }
-      }
-    },
     "onboarding.permissions.title": {
       "extractionState": "manual",
       "localizations": {
@@ -7343,23 +7037,6 @@
         }
       }
     },
-    "onboarding.step.permissions": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Permissions"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Permissions"
-          }
-        }
-      }
-    },
     "onboarding.step.ready": {
       "extractionState": "manual",
       "localizations": {
@@ -7373,23 +7050,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Prêt"
-          }
-        }
-      }
-    },
-    "onboarding.step.tour": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Tour"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Visite"
           }
         }
       }
@@ -7424,108 +7084,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Commencer"
-          }
-        }
-      }
-    },
-    "onboarding.welcome.feature.ai.description": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Smart suggestions and contextual help"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Suggestions intelligentes et aide contextuelle"
-          }
-        }
-      }
-    },
-    "onboarding.welcome.feature.ai.title": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "AI-Powered Assistance"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Assistance IA"
-          }
-        }
-      }
-    },
-    "onboarding.welcome.feature.transcription.description": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Live speech-to-text during your meetings"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Conversion parole-texte en direct pendant vos réunions"
-          }
-        }
-      }
-    },
-    "onboarding.welcome.feature.transcription.title": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Real-time Transcription"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Transcription en temps réel"
-          }
-        }
-      }
-    },
-    "onboarding.welcome.feature.undetectable.description": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Invisible to screen sharing and recordings"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Invisible lors des partages d'écran et enregistrements"
-          }
-        }
-      }
-    },
-    "onboarding.welcome.feature.undetectable.title": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Completely Undetectable"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Totalement indétectable"
           }
         }
       }
@@ -7577,57 +7135,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Bienvenue sur Queen Mama"
-          }
-        }
-      }
-    },
-    "overlay.action.clear": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Clear"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Effacer"
-          }
-        }
-      }
-    },
-    "overlay.action.copied": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Copied!"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Copié !"
-          }
-        }
-      }
-    },
-    "overlay.action.export": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Export"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Exporter"
           }
         }
       }
@@ -8104,23 +7611,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Ouvrir le tableau de bord"
-          }
-        }
-      }
-    },
-    "overlay.menu.position": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Position"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Position"
           }
         }
       }
@@ -8686,23 +8176,6 @@
         }
       }
     },
-    "overlay.status.ready": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Ready"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Prêt"
-          }
-        }
-      }
-    },
     "overlay.status.screenOnly": {
       "extractionState": "manual",
       "localizations": {
@@ -9060,40 +8533,6 @@
         }
       }
     },
-    "overlay.tooltip.autoAnswerOff": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Auto-answer: Off"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Réponse auto : Désactivé"
-          }
-        }
-      }
-    },
-    "overlay.tooltip.autoAnswerOn": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Auto-answer: On"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Réponse auto : Activé"
-          }
-        }
-      }
-    },
     "overlay.tooltip.autoAnswerRequiresEnterprise": {
       "extractionState": "manual",
       "localizations": {
@@ -9196,40 +8635,6 @@
         }
       }
     },
-    "overlay.tooltip.hiddenModeOff": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Hidden mode: Off"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Mode masqué : Désactivé"
-          }
-        }
-      }
-    },
-    "overlay.tooltip.hiddenModeOn": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Hidden mode: On"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Mode masqué : Activé"
-          }
-        }
-      }
-    },
     "overlay.tooltip.hiddenModeRequiresEnterprise": {
       "extractionState": "manual",
       "localizations": {
@@ -9243,23 +8648,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Le mode masqué nécessite Enterprise"
-          }
-        }
-      }
-    },
-    "overlay.tooltip.openDashboard": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Open Dashboard"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Ouvrir le tableau de bord"
           }
         }
       }
@@ -9298,40 +8686,6 @@
         }
       }
     },
-    "overlay.tooltip.screenCaptureOff": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Screen capture: Off"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Capture d'écran : Désactivé"
-          }
-        }
-      }
-    },
-    "overlay.tooltip.screenCaptureOn": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Screen capture: On"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Capture d'écran : Activé"
-          }
-        }
-      }
-    },
     "overlay.tooltip.settingsMenu": {
       "extractionState": "manual",
       "localizations": {
@@ -9345,57 +8699,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Menu paramètres"
-          }
-        }
-      }
-    },
-    "overlay.tooltip.smartModeActive": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Smart mode active"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Mode intelligent actif"
-          }
-        }
-      }
-    },
-    "overlay.tooltip.smartModeOff": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Smart mode: Off"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Mode intelligent : Désactivé"
-          }
-        }
-      }
-    },
-    "overlay.tooltip.smartModeOn": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Smart mode: On"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Mode intelligent : Activé"
           }
         }
       }
@@ -9498,23 +8801,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "L'audio de l'interlocuteur n'est pas capté — tout est attribué à vous. Vérifiez Réglages Système → Confidentialité → Enregistrement de l'écran, puis relancez l'app."
-          }
-        }
-      }
-    },
-    "overlay.tooltip.undetectableMode": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Undetectable mode"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Mode indétectable"
           }
         }
       }
@@ -9957,23 +9243,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Choisissez votre offre"
-          }
-        }
-      }
-    },
-    "pricing.trigger.afterSession": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "You're getting value from Queen Mama — unlock more"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Queen Mama vous aide — débloquez plus de fonctionnalités"
           }
         }
       }
@@ -11491,23 +10760,6 @@
         }
       }
     },
-    "settings.audio.audioSources": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Audio Sources"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Sources audio"
-          }
-        }
-      }
-    },
     "settings.audio.audioTest": {
       "extractionState": "manual",
       "localizations": {
@@ -12511,23 +11763,6 @@
         }
       }
     },
-    "settings.general.appearance": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Appearance"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Apparence"
-          }
-        }
-      }
-    },
     "settings.general.autoCaptureScreen": {
       "extractionState": "manual",
       "localizations": {
@@ -12970,23 +12205,6 @@
         }
       }
     },
-    "settings.general.meetingDetection": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Meeting Detection"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Détection de réunion"
-          }
-        }
-      }
-    },
     "settings.general.meetingReminders": {
       "extractionState": "manual",
       "localizations": {
@@ -13153,40 +12371,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "L'IA détecte proactivement les moments clés et fournit des suggestions"
-          }
-        }
-      }
-    },
-    "settings.general.subtitle": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Customize appearance and behavior"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Personnaliser l'apparence et le comportement"
-          }
-        }
-      }
-    },
-    "settings.general.title": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "General Settings"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Paramètres généraux"
           }
         }
       }
@@ -13459,40 +12643,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Réponses IA automatiques"
-          }
-        }
-      }
-    },
-    "settings.section.general": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "General"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Général"
-          }
-        }
-      }
-    },
-    "settings.section.general.description": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Appearance and display settings"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Paramètres d'apparence et d'affichage"
           }
         }
       }
@@ -13969,23 +13119,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Navigation du widget"
-          }
-        }
-      }
-    },
-    "settings.sidebar.title": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Settings"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Paramètres"
           }
         }
       }

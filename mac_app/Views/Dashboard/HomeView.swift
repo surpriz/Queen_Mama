@@ -29,7 +29,8 @@ struct HomeView: View {
     @State private var showPricingSheet = false
     @State private var isHoveringStart = false
 
-    private var canStart: Bool { authManager.isAuthenticated }
+    /// Signed in and not still writing up the previous session.
+    private var canStart: Bool { authManager.isAuthenticated && !appState.isFinalizingSession }
 
     private var recentSessions: [Session] {
         var seen = Set<UUID>()
