@@ -7836,6 +7836,23 @@
         }
       }
     },
+    "overlay.menu.attachContact": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Attach a contact…"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Associer un contact…"
+          }
+        }
+      }
+    },
     "overlay.menu.autoAnswer": {
       "extractionState": "manual",
       "localizations": {
@@ -7955,6 +7972,23 @@
         }
       }
     },
+    "overlay.menu.export": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Export conversation"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Exporter la conversation"
+          }
+        }
+      }
+    },
     "overlay.menu.hideWidget": {
       "extractionState": "manual",
       "localizations": {
@@ -8002,6 +8036,23 @@
           "stringUnit": {
             "state": "translated",
             "value": "Aucun écran trouvé"
+          }
+        }
+      }
+    },
+    "overlay.menu.openDashboard": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Open Dashboard"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ouvrir le tableau de bord"
           }
         }
       }
@@ -8091,6 +8142,40 @@
         }
       }
     },
+    "overlay.menu.stealth": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Stealth mode"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mode furtif"
+          }
+        }
+      }
+    },
+    "overlay.menu.stealthSubtitle": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hidden from screen sharing"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Invisible en partage d'écran"
+          }
+        }
+      }
+    },
     "overlay.noConversation": {
       "extractionState": "manual",
       "localizations": {
@@ -8104,6 +8189,23 @@
           "stringUnit": {
             "state": "translated",
             "value": "Pas de conversation en cours. Utilise Assist pour analyser l'écran."
+          }
+        }
+      }
+    },
+    "overlay.pill.tooltip": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Session status. Click for options."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "État de la session. Cliquez pour les options."
           }
         }
       }
@@ -8414,6 +8516,23 @@
         }
       }
     },
+    "overlay.status.answerReady": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Answer ready"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Réponse prête"
+          }
+        }
+      }
+    },
     "overlay.status.auto": {
       "extractionState": "manual",
       "localizations": {
@@ -8444,6 +8563,40 @@
           "stringUnit": {
             "state": "translated",
             "value": "Masqué"
+          }
+        }
+      }
+    },
+    "overlay.status.idle": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ready"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Prêt"
+          }
+        }
+      }
+    },
+    "overlay.status.listening": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Listening"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "À l'écoute"
           }
         }
       }
