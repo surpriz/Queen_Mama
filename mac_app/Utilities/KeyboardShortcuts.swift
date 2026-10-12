@@ -96,6 +96,8 @@ extension Notification.Name {
     static let triggerAssist = Notification.Name("com.queenmama.triggerAssist")
     static let clearContext = Notification.Name("com.queenmama.clearContext")
     static let openDashboardWithContactPicker = Notification.Name("com.queenmama.openDashboardWithContactPicker")
+    static let showFeatureTour = Notification.Name("com.queenmama.showFeatureTour")
+    static let openSettingsSection = Notification.Name("com.queenmama.openSettingsSection")
 }
 
 // MARK: - Key Code Helpers

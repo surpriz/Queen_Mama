@@ -13,28 +13,18 @@ struct DashboardView: View {
     @EnvironmentObject var sessionManager: SessionManager
     @Environment(\.modelContext) private var modelContext
     @ObservedObject private var authManager = AuthenticationManager.shared
-    @ObservedObject private var licenseManager = LicenseManager.shared
 
-    @State private var selectedSection: DashboardSection = .sessions
-    @State private var searchText = ""
+    @State private var selectedSection: DashboardSection = .home
+    @State private var libraryTab: LibraryTab = .sessions
+    @State private var requestedSession: Session?
     @State private var isHoveringStart = false
     @State private var columnVisibility: NavigationSplitViewVisibility = .all
-
-    // Memory Palace: Contact picker state
-    @State private var showingContactPicker = false
-    @State private var selectedContact: Contact?
+    @State private var showTourSheet = false
 
     // Memory Palace: Contact extraction state
     @State private var showingContactExtraction = false
     @State private var extractedContact: ContactExtractionService.ExtractedContact?
     @State private var extractionSession: Session?
-
-    // FREE plan upgrade triggers
-    @AppStorage("freeUpgradeLaunchShown") private var freeUpgradeLaunchShown = false
-    @AppStorage("freeSessionsCompleted") private var freeSessionsCompleted = 0
-    @AppStorage("freeSessionUpgradeShown") private var freeSessionUpgradeShown = false
-    @State private var showPricingSheet = false
-    @State private var pricingContextMessage: String?
 
     var body: some View {
         NavigationSplitView(columnVisibility: $columnVisibility) {
@@ -52,21 +42,22 @@ struct DashboardView: View {
                     AuthWarningBanner(onSignIn: { selectedSection = .settings })
                 }
 
-                // FREE plan upgrade banner (hidden during license validation to avoid flash)
-                if authManager.isAuthenticated && !licenseManager.isPro && !licenseManager.isValidating {
-                    FreeWelcomeBannerView()
-                }
-
                 Group {
                     switch selectedSection {
-                    case .sessions:
-                        SessionListView(searchText: $searchText)
-                    case .contacts:
-                        ContactsListView()
-                    case .liveSession:
-                        LiveSessionView()
-                    case .modes:
-                        ModesListView()
+                    case .home:
+                        HomeView(
+                            onOpenSession: { session in
+                                requestedSession = session
+                                libraryTab = .sessions
+                                selectedSection = .library
+                            },
+                            onOpenLibrary: {
+                                libraryTab = .sessions
+                                selectedSection = .library
+                            }
+                        )
+                    case .library:
+                        LibraryView(selectedTab: $libraryTab, requestedSession: $requestedSession)
                     case .settings:
                         SettingsView()
                     }
@@ -127,9 +118,7 @@ struct DashboardView: View {
                                 await appState.stopSession()
                             }
                         } else {
-                            // Show contact picker before starting session
-                            print("[Dashboard] Start button pressed - showing contact picker")
-                            showingContactPicker = true
+                            startSoloSession()
                         }
                     }) {
                         HStack(spacing: QMDesign.Spacing.xs) {
@@ -180,23 +169,6 @@ struct DashboardView: View {
                 .keyboardShortcut("\\", modifiers: .command)
                 .help(String(localized: "dashboard.toolbar.help.toggleWidget"))
 
-                // Hide Dashboard (keep only widget)
-                Button(action: {
-                    // Close the main window, keep widget and menu bar
-                    NSApp.keyWindow?.close()
-                }) {
-                    Image(systemName: "xmark.circle")
-                        .font(.system(size: 14))
-                        .foregroundColor(QMDesign.Colors.textTertiary)
-                        .frame(width: 28, height: 28)
-                        .background(
-                            Circle()
-                                .fill(QMDesign.Colors.surfaceLight)
-                        )
-                }
-                .buttonStyle(.plain)
-                .keyboardShortcut("w", modifiers: .command)
-                .help(String(localized: "dashboard.toolbar.help.hideDashboard"))
             }
         }
         .onAppear {
@@ -204,61 +176,15 @@ struct DashboardView: View {
             appState.aiService.loadHistory(from: modelContext)
 
             // Pre-fetch transcription token for faster session start
-            // Ensures token is ready when user clicks "Start Recording"
             if authManager.isAuthenticated {
                 ProxyAPIClient.shared.prefetchTranscriptionToken()
             }
-
-            // First-launch upgrade prompt for FREE users
-            // Delayed check: license revalidation may still be in progress at onAppear time
-            if authManager.isAuthenticated && !freeUpgradeLaunchShown {
-                DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
-                    // Re-check after revalidation has had time to complete
-                    if !licenseManager.isPro && !freeUpgradeLaunchShown {
-                        freeUpgradeLaunchShown = true
-                        showPricingSheet = true
-                    }
-                }
-            }
         }
-        .sheet(isPresented: $showPricingSheet) {
-            PricingView(contextMessage: pricingContextMessage)
+        .sheet(isPresented: $showTourSheet) {
+            FeatureTourSheet()
         }
-        .onChange(of: appState.isFinalizingSession) { _, isNowFinalizing in
-            // Track completed sessions for FREE users (triggers upgrade after 3 sessions)
-            if !isNowFinalizing && !licenseManager.isPro {
-                freeSessionsCompleted += 1
-                if freeSessionsCompleted >= 3 && !freeSessionUpgradeShown {
-                    freeSessionUpgradeShown = true
-                    pricingContextMessage = String(localized: "pricing.trigger.afterSession")
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
-                        showPricingSheet = true
-                    }
-                }
-            }
-        }
-        .onChange(of: appState.shouldShowContactPicker) { _, newValue in
-            if newValue {
-                print("[Dashboard] Contact picker triggered from menu bar")
-                showingContactPicker = true
-                appState.shouldShowContactPicker = false
-            }
-        }
-        .sheet(isPresented: $showingContactPicker) {
-            ContactPickerSheet(selectedContact: $selectedContact) { contact in
-                print("[Dashboard] Contact selected: \(contact?.fullName ?? "none") - starting session")
-                Task {
-                    await appState.startSession(contact: contact)
-                    OverlayWindowController.shared.showOverlay(
-                        appState: appState,
-                        sessionManager: sessionManager,
-                        modelContainer: QueenMamaApp.sharedModelContainer
-                    )
-                }
-            }
-            .onAppear {
-                print("[Dashboard] ContactPickerSheet appeared")
-            }
+        .onReceive(NotificationCenter.default.publisher(for: .showFeatureTour)) { _ in
+            showTourSheet = true
         }
         .sheet(isPresented: $showingContactExtraction) {
             if let extracted = extractedContact {
@@ -280,9 +206,16 @@ struct DashboardView: View {
                 showingContactExtraction = true
             }
         }
-        .onReceive(NotificationCenter.default.publisher(for: .openDashboardWithContactPicker)) { _ in
-            // Triggered from widget when dashboard window couldn't be found
-            showingContactPicker = true
+    }
+
+    private func startSoloSession() {
+        Task {
+            await appState.startSession(contact: nil)
+            OverlayWindowController.shared.showOverlay(
+                appState: appState,
+                sessionManager: sessionManager,
+                modelContainer: QueenMamaApp.sharedModelContainer
+            )
         }
     }
 }
@@ -290,48 +223,30 @@ struct DashboardView: View {
 // MARK: - Dashboard Section
 
 enum DashboardSection: String, CaseIterable {
-    case sessions = "Sessions"
-    case contacts = "Contacts"
-    case liveSession = "Live Session"
-    case modes = "Modes"
+    case home = "Home"
+    case library = "Library"
     case settings = "Settings"
 
     var icon: String {
         switch self {
-        case .sessions: return QMDesign.Icons.sessions
-        case .contacts: return QMDesign.Icons.contacts
-        case .liveSession: return QMDesign.Icons.liveSession
-        case .modes: return QMDesign.Icons.modes
+        case .home: return QMDesign.Icons.home
+        case .library: return QMDesign.Icons.library
         case .settings: return QMDesign.Icons.settings
-        }
-    }
-
-    var description: String {
-        switch self {
-        case .sessions: return "Past recordings"
-        case .contacts: return "Memory Palace"
-        case .liveSession: return "Active session"
-        case .modes: return "AI personalities"
-        case .settings: return "Configuration"
         }
     }
 
     var localizedName: String {
         switch self {
-        case .sessions: return String(localized: "dashboard.section.sessions")
-        case .liveSession: return String(localized: "dashboard.section.liveSession")
-        case .contacts: return String(localized: "dashboard.section.contacts")
-        case .modes: return String(localized: "dashboard.section.modes")
+        case .home: return String(localized: "dashboard.section.home")
+        case .library: return String(localized: "dashboard.section.library")
         case .settings: return String(localized: "dashboard.section.settings")
         }
     }
 
     var localizedDescription: String {
         switch self {
-        case .sessions: return String(localized: "dashboard.section.sessions.desc")
-        case .liveSession: return String(localized: "dashboard.section.liveSession.desc")
-        case .contacts: return String(localized: "dashboard.section.contacts.desc")
-        case .modes: return String(localized: "dashboard.section.modes.desc")
+        case .home: return String(localized: "dashboard.section.home.desc")
+        case .library: return String(localized: "dashboard.section.library.desc")
         case .settings: return String(localized: "dashboard.section.settings.desc")
         }
     }
@@ -346,7 +261,6 @@ struct ModernSidebarView: View {
     @ObservedObject var audioService: AudioCaptureService
     @ObservedObject private var licenseManager = LicenseManager.shared
     @ObservedObject private var authManager = AuthenticationManager.shared
-    @State private var showTourSheet = false
 
     var body: some View {
         VStack(spacing: 0) {
@@ -356,7 +270,7 @@ struct ModernSidebarView: View {
                     SidebarNavigationItem(
                         section: section,
                         isSelected: selectedSection == section,
-                        isLive: section == .liveSession && appState.isSessionActive
+                        isLive: section == .home && appState.isSessionActive
                     ) {
                         selectedSection = section
                     }
@@ -437,70 +351,17 @@ struct ModernSidebarView: View {
                 .padding(.horizontal, QMDesign.Spacing.sm)
                 .padding(.top, QMDesign.Spacing.xs)
 
-                // Web Dashboard Button
-                WebDashboardButton()
-
-                HStack {
-                    Button {
-                        if let url = URL(string: "https://queenmama.featurebase.app") {
-                            NSWorkspace.shared.open(url)
-                        }
-                    } label: {
-                        HStack(spacing: 4) {
-                            Image(systemName: "bubble.left.and.bubble.right")
-                                .font(.system(size: 10))
-                            Text(String(localized: "dashboard.sidebar.feedback"))
-                                .font(QMDesign.Typography.captionSmall)
-                        }
-                        .foregroundColor(QMDesign.Colors.textTertiary)
-                    }
-                    .buttonStyle(.plain)
-                    .onHover { isHovered in
-                        if isHovered {
-                            NSCursor.pointingHand.push()
-                        } else {
-                            NSCursor.pop()
-                        }
-                    }
-
-                    // Tour/Help button
-                    Button {
-                        showTourSheet = true
-                    } label: {
-                        HStack(spacing: 4) {
-                            Image(systemName: "lightbulb")
-                                .font(.system(size: 10))
-                            Text(String(localized: "dashboard.sidebar.tour"))
-                                .font(QMDesign.Typography.captionSmall)
-                        }
-                        .foregroundColor(QMDesign.Colors.textTertiary)
-                    }
-                    .buttonStyle(.plain)
-                    .onHover { isHovered in
-                        if isHovered {
-                            NSCursor.pointingHand.push()
-                        } else {
-                            NSCursor.pop()
-                        }
-                    }
-                    .help(String(localized: "dashboard.sidebar.help.tour"))
-
-                    Spacer()
-
-                    // Language toggle
-                    LanguageToggleButton()
-
-                    // Keyboard shortcut hint
-                    KeyboardShortcutBadge(shortcut: "Cmd+Shift+S", size: .small)
-                }
-                .padding(.horizontal, QMDesign.Spacing.sm)
-                .padding(.bottom, QMDesign.Spacing.sm)
+                Text(String(localized: "dashboard.sidebar.version \(appVersion)"))
+                    .font(QMDesign.Typography.captionSmall)
+                    .foregroundColor(QMDesign.Colors.textTertiary)
+                    .padding(.bottom, QMDesign.Spacing.sm)
             }
         }
         .background(QMDesign.Colors.backgroundSecondary)
-        .sheet(isPresented: $showTourSheet) {
-            FeatureTourSheet()
-        }
+    }
+
+    private var appVersion: String {
+        Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? ""
     }
 
     private func formatDuration(from date: Date) -> String {
@@ -814,119 +675,29 @@ struct AuthWarningBanner: View {
     }
 }
 
-// MARK: - Web Dashboard Button
+// MARK: - Web Dashboard
 
-struct WebDashboardButton: View {
-    @State private var isLoading = false
-    @State private var isHovered = false
-
-    var body: some View {
-        Button {
-            openWebDashboard()
-        } label: {
-            HStack(spacing: QMDesign.Spacing.xs) {
-                if isLoading {
-                    ProgressView()
-                        .scaleEffect(0.6)
-                        .frame(width: 11, height: 11)
-                } else {
-                    Image(systemName: "globe")
-                        .font(.system(size: 11, weight: .medium))
-                }
-                Text(String(localized: "dashboard.button.webDashboard"))
-                    .font(QMDesign.Typography.captionSmall)
+/// Opens the web dashboard through a magic link, falling back to the plain URL.
+enum WebDashboardLauncher {
+    @MainActor
+    static func open() async {
+        do {
+            let response = try await AuthAPIClient.shared.generateMagicLink(redirect: "/dashboard")
+            if let url = URL(string: response.url) {
+                NSWorkspace.shared.open(url)
+                return
             }
-            .foregroundColor(.white)
-            .padding(.horizontal, QMDesign.Spacing.sm)
-            .padding(.vertical, QMDesign.Spacing.xs)
-            .background(
-                Capsule()
-                    .fill(QMDesign.Colors.accent.opacity(isHovered ? 1.0 : 0.8))
-            )
-            .scaleEffect(isHovered ? 1.03 : 1.0)
+        } catch {
+            print("[WebDashboard] Magic link failed: \(error), using fallback")
         }
-        .buttonStyle(.plain)
-        .disabled(isLoading)
-        .onHover { hovering in
-            isHovered = hovering
-            if hovering {
-                NSCursor.pointingHand.push()
-            } else {
-                NSCursor.pop()
-            }
+        #if DEBUG
+        let fallbackUrl = "http://localhost:3000/dashboard"
+        #else
+        let fallbackUrl = "https://queenmama.co/dashboard"
+        #endif
+        if let url = URL(string: fallbackUrl) {
+            NSWorkspace.shared.open(url)
         }
-        .animation(QMDesign.Animation.quick, value: isHovered)
-        .help(String(localized: "dashboard.button.help.webDashboard"))
-    }
-
-    private func openWebDashboard() {
-        isLoading = true
-
-        Task {
-            do {
-                // Generate magic link for auto-login
-                let response = try await AuthAPIClient.shared.generateMagicLink(redirect: "/dashboard")
-                if let url = URL(string: response.url) {
-                    NSWorkspace.shared.open(url)
-                }
-            } catch {
-                // Fallback to direct URL if magic link fails
-                print("[WebDashboard] Magic link failed: \(error), using fallback")
-                #if DEBUG
-                let fallbackUrl = "http://localhost:3000/dashboard"
-                #else
-                let fallbackUrl = "https://queenmama.co/dashboard"
-                #endif
-                if let url = URL(string: fallbackUrl) {
-                    NSWorkspace.shared.open(url)
-                }
-            }
-
-            await MainActor.run {
-                isLoading = false
-            }
-        }
-    }
-}
-
-// MARK: - Language Toggle Button
-
-struct LanguageToggleButton: View {
-    @ObservedObject private var config = ConfigurationManager.shared
-    @State private var isHovered = false
-
-    private var targetFlag: String {
-        nextLanguage == "fr" ? "🇫🇷" : "🇬🇧"
-    }
-
-    private var nextLanguage: String {
-        switch config.appLanguage {
-        case "fr": return "en"
-        case "en": return "fr"
-        default:
-            // "system" — toggle to the opposite of current system locale
-            let systemLang = Locale.current.language.languageCode?.identifier ?? "en"
-            return systemLang == "fr" ? "en" : "fr"
-        }
-    }
-
-    var body: some View {
-        Button {
-            config.appLanguage = nextLanguage
-            ConfigurationManager.applyLanguageOverride(nextLanguage)
-            config.relaunchApp()
-        } label: {
-            Text(targetFlag)
-                .font(.system(size: 12))
-                .frame(width: 22, height: 18)
-                .background(
-                    RoundedRectangle(cornerRadius: QMDesign.Radius.xs)
-                        .fill(isHovered ? QMDesign.Colors.surfaceHover : Color.clear)
-                )
-        }
-        .buttonStyle(.plain)
-        .onHover { isHovered = $0 }
-        .help(String(localized: "dashboard.sidebar.switchLanguage"))
     }
 }
 

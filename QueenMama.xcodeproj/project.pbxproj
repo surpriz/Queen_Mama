@@ -131,6 +131,8 @@
 		1000000000000000000000A9 /* rich in Resources */ = {isa = PBXBuildFile; fileRef = 1000000000000000000000A8 /* rich */; };
 		1000000000000000000000AB /* EnergyVADTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1000000000000000000000AA /* EnergyVADTests.swift */; };
 		1000000000000000000000AD /* SyntaxHighlighterTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1000000000000000000000AC /* SyntaxHighlighterTests.swift */; };
+		1000000000000000000000AF /* HomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1000000000000000000000AE /* HomeView.swift */; };
+		1000000000000000000000B1 /* LibraryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1000000000000000000000B0 /* LibraryView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -268,6 +270,8 @@
 		1000000000000000000000A8 /* rich */ = {isa = PBXFileReference; lastKnownFileType = folder; name = rich; path = Resources/rich; sourceTree = "<group>"; };
 		1000000000000000000000AA /* EnergyVADTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EnergyVADTests.swift; sourceTree = "<group>"; };
 		1000000000000000000000AC /* SyntaxHighlighterTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SyntaxHighlighterTests.swift; sourceTree = "<group>"; };
+		1000000000000000000000AE /* HomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeView.swift; sourceTree = "<group>"; };
+		1000000000000000000000B0 /* LibraryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LibraryView.swift; sourceTree = "<group>"; };
 		200000000000000000000002 /* QueenMamaTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = QueenMamaTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
@@ -526,6 +530,8 @@
 			children = (
 				5C90DF322F1A51DE006B0DE0 /* Components */,
 				100000000000000000000010 /* DashboardView.swift */,
+				1000000000000000000000AE /* HomeView.swift */,
+				1000000000000000000000B0 /* LibraryView.swift */,
 				100000000000000000000011 /* SessionListView.swift */,
 				10000000000000000000003F /* ContactsListView.swift */,
 				100000000000000000000012 /* LiveSessionView.swift */,
@@ -767,6 +773,8 @@
 				000000000000000000000022 /* TokenUsageTracker.swift in Sources */,
 				00000000000000000000000C /* AIProvider.swift in Sources */,
 				000000000000000000000010 /* DashboardView.swift in Sources */,
+				1000000000000000000000AF /* HomeView.swift in Sources */,
+				1000000000000000000000B1 /* LibraryView.swift in Sources */,
 				5C90DF372F1A51F8006B0DE0 /* AccountStepView.swift in Sources */,
 				000000000000000000000011 /* SessionListView.swift in Sources */,
 				100000000000000000000040 /* ContactsListView.swift in Sources */,

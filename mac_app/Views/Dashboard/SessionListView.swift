@@ -10,7 +10,14 @@ import SwiftData
 
 struct SessionListView: View {
     @Binding var searchText: String
+    /// Session another screen asked us to open (Home → recent session row).
+    @Binding var requestedSession: Session?
     @EnvironmentObject var sessionManager: SessionManager
+
+    init(searchText: Binding<String>, requestedSession: Binding<Session?> = .constant(nil)) {
+        self._searchText = searchText
+        self._requestedSession = requestedSession
+    }
     @Environment(\.modelContext) private var modelContext
     @ObservedObject private var syncManager = SyncManager.shared
 
@@ -24,6 +31,13 @@ struct SessionListView: View {
     @State private var selectedSessionIds: Set<UUID> = []
     @State private var showingBulkDeleteConfirmation = false
     @State private var showingDeleteAllConfirmation = false
+
+    private func consumeRequestedSession() {
+        guard let session = requestedSession else { return }
+        isSelectionMode = false
+        selectedSession = session
+        DispatchQueue.main.async { requestedSession = nil }
+    }
 
     private var filteredSessions: [Session] {
         // Deduplicate by ID to prevent SwiftUI ForEach issues
@@ -46,6 +60,9 @@ struct SessionListView: View {
             VStack(spacing: 0) {
                 // Modern Search Bar
                 ModernSearchBar(searchText: $searchText)
+                    // Always present, so it is a stable anchor for the deep-link handlers.
+                    .onAppear(perform: consumeRequestedSession)
+                    .onChange(of: requestedSession) { _, _ in consumeRequestedSession() }
 
                 // Sync buttons (when sync is available)
                 if syncManager.canSync {

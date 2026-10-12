@@ -48,6 +48,11 @@ struct SettingsView: View {
             .frame(maxWidth: .infinity)
             .background(QMDesign.Colors.backgroundPrimary)
         }
+        .onReceive(NotificationCenter.default.publisher(for: .openSettingsSection)) { note in
+            if let section = note.object as? SettingsSection {
+                selectedSection = section
+            }
+        }
     }
 }
 
