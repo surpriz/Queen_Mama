@@ -153,10 +153,19 @@ struct SignInChoiceView: View {
                         }
                         Text(String(localized: "auth.choice.continueWithoutAccount"))
                             .font(QMDesign.Typography.bodySmall)
+                            .fontWeight(.medium)
                     }
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, QMDesign.Spacing.sm)
-                    .foregroundColor(QMDesign.Colors.textTertiary)
+                    .background(
+                        RoundedRectangle(cornerRadius: QMDesign.Radius.md)
+                            .fill(QMDesign.Colors.surfaceLight)
+                            .overlay(
+                                RoundedRectangle(cornerRadius: QMDesign.Radius.md)
+                                    .stroke(QMDesign.Colors.borderSubtle, lineWidth: 1)
+                            )
+                    )
+                    .foregroundColor(QMDesign.Colors.textPrimary)
                 }
                 .buttonStyle(.plain)
                 .disabled(isAnonymousLoading)

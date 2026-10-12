@@ -5949,6 +5949,23 @@
         }
       }
     },
+    "onboarding.completion.button.later": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Go to the dashboard"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aller au tableau de bord"
+          }
+        }
+      }
+    },
     "onboarding.completion.button.startFirstSession": {
       "extractionState": "manual",
       "localizations": {
@@ -7509,6 +7526,40 @@
           "stringUnit": {
             "state": "translated",
             "value": "Totalement indétectable"
+          }
+        }
+      }
+    },
+    "onboarding.welcome.micRequired": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Microphone access is needed to continue."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "L'accès au micro est nécessaire pour continuer."
+          }
+        }
+      }
+    },
+    "onboarding.welcome.pitch": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Real-time coaching for your meetings, interviews and calls. Press Start, the widget does the rest."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Du coaching en temps réel pour vos réunions, entretiens et appels. Appuyez sur Start, le widget fait le reste."
           }
         }
       }
