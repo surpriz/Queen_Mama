@@ -203,8 +203,18 @@ struct QueenMamaApp: App {
                         }
 
                 case .onboarding:
-                    OnboardingView {
+                    OnboardingView { startSession in
                         launchState = .dashboard
+                        if startSession {
+                            Task {
+                                await appState.startSession(contact: nil)
+                                OverlayWindowController.shared.showOverlay(
+                                    appState: appState,
+                                    sessionManager: sessionManager,
+                                    modelContainer: QueenMamaApp.sharedModelContainer
+                                )
+                            }
+                        }
                     }
                     .environmentObject(appState)
 
