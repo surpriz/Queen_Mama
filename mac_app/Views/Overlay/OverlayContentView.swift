@@ -23,7 +23,6 @@ struct OverlayContentView: View {
     @State private var showSmartModeToast = false
     @State private var showDisplayToast = false
     @State private var currentDisplayName = String(localized: "overlay.display.primary")
-    @AppStorage("enableScreenCapture") private var enableScreenCapture = true
     @AppStorage("hasSeenSmartModeHint") private var hasSeenSmartModeHint = false
     @State private var showLimitPricingSheet = false
 
@@ -62,7 +61,7 @@ struct OverlayContentView: View {
                 preGenerationService: appState.preGenerationService,
                 transcriptionService: appState.transcriptionService,
                 systemAudioService: appState.systemAudioService,
-                enableScreenCapture: $enableScreenCapture,
+                enableScreenCapture: $config.autoScreenCapture,
                 isAutoAnswerEnabled: isAutoAnswerEnabled,
                 isSmartModeEnabled: isSmartModeEnabled,
                 showPopupMenu: $showPopupMenu,
@@ -71,8 +70,7 @@ struct OverlayContentView: View {
                 detectedFaceCount: detectedFaceCount,
                 onToggleExpand: { overlayController.toggleExpanded() },
                 onStart: {
-                    // Show contact picker directly in widget
-                    showingContactPicker = true
+                    Task { await appState.startSession(contact: nil) }
                 },
                 onStop: {
                     // Persist meeting cost before stopping session (beta opt-in)
@@ -116,7 +114,7 @@ struct OverlayContentView: View {
                     isSmartModeEnabled: isSmartModeEnabled,
                     hasScreenshot: hasScreenshot,
                     lastScreenshotTime: lastScreenshotTime,
-                    enableScreenCapture: enableScreenCapture,
+                    enableScreenCapture: config.autoScreenCapture,
                     onSubmit: handleSubmit
                 )
                 .transition(.asymmetric(
@@ -195,8 +193,10 @@ struct OverlayContentView: View {
         }
         .sheet(isPresented: $showingContactPicker) {
             ContactPickerSheet(selectedContact: $selectedContact) { contact in
-                Task {
-                    await appState.startSession(contact: contact)
+                if appState.isSessionActive {
+                    if let contact { appState.attachContact(contact) }
+                } else {
+                    Task { await appState.startSession(contact: contact) }
                 }
             }
         }
@@ -290,7 +290,7 @@ struct OverlayContentView: View {
                 // WhatToSay, FollowUp, and Recap use text-only context — skip capture entirely
                 // Saves ~200-500ms (capture + base64 encoding + vision token processing)
                 let screenshotNeeded = selectedTab == .assist || hasCustomPrompt
-                let screenshot: Data? = if enableScreenCapture && screenshotNeeded {
+                let screenshot: Data? = if config.autoScreenCapture && screenshotNeeded {
                     try? await appState.screenService.getScreenshotForAI()
                 } else {
                     nil
@@ -303,7 +303,7 @@ struct OverlayContentView: View {
 
                 let screenshotSize = screenshot?.count ?? 0
                 let cacheStatus = screenshot != nil ? "(may be cached)" : ""
-                print("[Overlay] Screen capture \(enableScreenCapture ? "enabled" : "disabled") - Screenshot: \(hasScreenshot ? "captured (\(screenshotSize / 1024)KB) \(cacheStatus)" : "skipped (low value or disabled)")")
+                print("[Overlay] Screen capture \(config.autoScreenCapture ? "enabled" : "disabled") - Screenshot: \(hasScreenshot ? "captured (\(screenshotSize / 1024)KB) \(cacheStatus)" : "skipped (low value or disabled)")")
 
                 // Force-flush audio batches so the latest audio reaches Deepgram immediately
                 appState.audioBatchingService.forceFlush()
