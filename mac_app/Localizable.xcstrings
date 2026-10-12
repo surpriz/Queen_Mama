@@ -11508,6 +11508,23 @@
         }
       }
     },
+    "settings.audio.processing": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Audio processing"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Traitement audio"
+          }
+        }
+      }
+    },
     "settings.audio.stop": {
       "extractionState": "manual",
       "localizations": {
@@ -11963,6 +11980,142 @@
           "stringUnit": {
             "state": "translated",
             "value": "Paramètres de déclenchement"
+          }
+        }
+      }
+    },
+    "settings.essentials.advanced": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Advanced settings…"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Réglages avancés…"
+          }
+        }
+      }
+    },
+    "settings.essentials.back": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Essentials"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Essentiels"
+          }
+        }
+      }
+    },
+    "settings.essentials.behaviour": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "During meetings"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pendant les réunions"
+          }
+        }
+      }
+    },
+    "settings.essentials.capture": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Capture"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Capture"
+          }
+        }
+      }
+    },
+    "settings.essentials.guest": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Guest"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Invité"
+          }
+        }
+      }
+    },
+    "settings.essentials.manageAccount": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Manage"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gérer"
+          }
+        }
+      }
+    },
+    "settings.essentials.subtitle": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The few settings that matter. Everything else is under Advanced."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Les quelques réglages qui comptent. Le reste est dans Avancé."
+          }
+        }
+      }
+    },
+    "settings.essentials.title": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Essentials"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Essentiels"
           }
         }
       }
@@ -12868,6 +13021,142 @@
         }
       }
     },
+    "settings.intelligence.card": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "AI behaviour"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Comportement de l'IA"
+          }
+        }
+      }
+    },
+    "settings.intelligence.subtitle": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "How the AI thinks and what it sees"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Comment l'IA réfléchit et ce qu'elle voit"
+          }
+        }
+      }
+    },
+    "settings.intelligence.title": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Intelligence"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Intelligence"
+          }
+        }
+      }
+    },
+    "settings.meetingCost.subtitle": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Show a live estimate of what the meeting costs"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Affiche une estimation en direct du coût de la réunion"
+          }
+        }
+      }
+    },
+    "settings.meetingCost.title": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Meeting Cost"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Coût de réunion"
+          }
+        }
+      }
+    },
+    "settings.screenCapture.disabledHint": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Screen capture is turned off in Essentials."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La capture d'écran est désactivée dans les Essentiels."
+          }
+        }
+      }
+    },
+    "settings.screenCapture.subtitle": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "What the AI sees on your screen"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ce que l'IA voit sur votre écran"
+          }
+        }
+      }
+    },
+    "settings.screenCapture.title": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Screen Capture"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Capture d'écran"
+          }
+        }
+      }
+    },
     "settings.section.account": {
       "extractionState": "manual",
       "localizations": {
@@ -13000,6 +13289,108 @@
           "stringUnit": {
             "state": "translated",
             "value": "Paramètres d'apparence et d'affichage"
+          }
+        }
+      }
+    },
+    "settings.section.intelligence": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Intelligence"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Intelligence"
+          }
+        }
+      }
+    },
+    "settings.section.intelligence.description": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Smart mode, model, context"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mode Smart, modèle, contexte"
+          }
+        }
+      }
+    },
+    "settings.section.meetingCost": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Meeting Cost"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Coût de réunion"
+          }
+        }
+      }
+    },
+    "settings.section.meetingCost.description": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Live cost estimate"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Estimation du coût en direct"
+          }
+        }
+      }
+    },
+    "settings.section.screenCapture": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Screen Capture"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Capture d'écran"
+          }
+        }
+      }
+    },
+    "settings.section.screenCapture.description": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Interval and display"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Intervalle et écran"
           }
         }
       }

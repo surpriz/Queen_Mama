@@ -133,6 +133,17 @@
 		1000000000000000000000AD /* SyntaxHighlighterTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1000000000000000000000AC /* SyntaxHighlighterTests.swift */; };
 		1000000000000000000000AF /* HomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1000000000000000000000AE /* HomeView.swift */; };
 		1000000000000000000000B1 /* LibraryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1000000000000000000000B0 /* LibraryView.swift */; };
+		1000000000000000000000B3 /* EssentialSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1000000000000000000000B2 /* EssentialSettingsView.swift */; };
+		1000000000000000000000B5 /* AccountSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1000000000000000000000B4 /* AccountSettingsView.swift */; };
+		1000000000000000000000B7 /* IntelligenceSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1000000000000000000000B6 /* IntelligenceSettingsView.swift */; };
+		1000000000000000000000B9 /* ScreenCaptureSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1000000000000000000000B8 /* ScreenCaptureSettingsView.swift */; };
+		1000000000000000000000BB /* MeetingCostSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1000000000000000000000BA /* MeetingCostSettingsView.swift */; };
+		1000000000000000000000BD /* AutoAnswerSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1000000000000000000000BC /* AutoAnswerSettingsView.swift */; };
+		1000000000000000000000BF /* AudioSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1000000000000000000000BE /* AudioSettingsView.swift */; };
+		1000000000000000000000C1 /* ShortcutsSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1000000000000000000000C0 /* ShortcutsSettingsView.swift */; };
+		1000000000000000000000C3 /* SyncSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1000000000000000000000C2 /* SyncSettingsView.swift */; };
+		1000000000000000000000C5 /* UpdatesSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1000000000000000000000C4 /* UpdatesSettingsView.swift */; };
+		1000000000000000000000C7 /* LanguageSelectorRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1000000000000000000000C6 /* LanguageSelectorRow.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -272,6 +283,17 @@
 		1000000000000000000000AC /* SyntaxHighlighterTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SyntaxHighlighterTests.swift; sourceTree = "<group>"; };
 		1000000000000000000000AE /* HomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeView.swift; sourceTree = "<group>"; };
 		1000000000000000000000B0 /* LibraryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LibraryView.swift; sourceTree = "<group>"; };
+		1000000000000000000000B2 /* EssentialSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EssentialSettingsView.swift; sourceTree = "<group>"; };
+		1000000000000000000000B4 /* AccountSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AccountSettingsView.swift; sourceTree = "<group>"; };
+		1000000000000000000000B6 /* IntelligenceSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IntelligenceSettingsView.swift; sourceTree = "<group>"; };
+		1000000000000000000000B8 /* ScreenCaptureSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScreenCaptureSettingsView.swift; sourceTree = "<group>"; };
+		1000000000000000000000BA /* MeetingCostSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MeetingCostSettingsView.swift; sourceTree = "<group>"; };
+		1000000000000000000000BC /* AutoAnswerSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AutoAnswerSettingsView.swift; sourceTree = "<group>"; };
+		1000000000000000000000BE /* AudioSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioSettingsView.swift; sourceTree = "<group>"; };
+		1000000000000000000000C0 /* ShortcutsSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShortcutsSettingsView.swift; sourceTree = "<group>"; };
+		1000000000000000000000C2 /* SyncSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SyncSettingsView.swift; sourceTree = "<group>"; };
+		1000000000000000000000C4 /* UpdatesSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UpdatesSettingsView.swift; sourceTree = "<group>"; };
+		1000000000000000000000C6 /* LanguageSelectorRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LanguageSelectorRow.swift; sourceTree = "<group>"; };
 		200000000000000000000002 /* QueenMamaTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = QueenMamaTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
@@ -537,9 +559,28 @@
 				100000000000000000000012 /* LiveSessionView.swift */,
 				100000000000000000000013 /* SettingsView.swift */,
 				100000000000000000000014 /* ModesListView.swift */,
-				100000000000000000000090 /* ModernTranslationSettingsView.swift */,
+				400000000000000000000022 /* Settings */,
 			);
 			path = Dashboard;
+			sourceTree = "<group>";
+		};
+		400000000000000000000022 /* Settings */ = {
+			isa = PBXGroup;
+			children = (
+				1000000000000000000000B2 /* EssentialSettingsView.swift */,
+				1000000000000000000000B4 /* AccountSettingsView.swift */,
+				1000000000000000000000B6 /* IntelligenceSettingsView.swift */,
+				1000000000000000000000B8 /* ScreenCaptureSettingsView.swift */,
+				1000000000000000000000BA /* MeetingCostSettingsView.swift */,
+				1000000000000000000000BC /* AutoAnswerSettingsView.swift */,
+				1000000000000000000000BE /* AudioSettingsView.swift */,
+				1000000000000000000000C0 /* ShortcutsSettingsView.swift */,
+				1000000000000000000000C2 /* SyncSettingsView.swift */,
+				1000000000000000000000C4 /* UpdatesSettingsView.swift */,
+				1000000000000000000000C6 /* LanguageSelectorRow.swift */,
+				100000000000000000000090 /* ModernTranslationSettingsView.swift */,
+			);
+			path = Settings;
 			sourceTree = "<group>";
 		};
 		40000000000000000000000A /* Overlay */ = {
@@ -775,6 +816,17 @@
 				000000000000000000000010 /* DashboardView.swift in Sources */,
 				1000000000000000000000AF /* HomeView.swift in Sources */,
 				1000000000000000000000B1 /* LibraryView.swift in Sources */,
+				1000000000000000000000B3 /* EssentialSettingsView.swift in Sources */,
+				1000000000000000000000B5 /* AccountSettingsView.swift in Sources */,
+				1000000000000000000000B7 /* IntelligenceSettingsView.swift in Sources */,
+				1000000000000000000000B9 /* ScreenCaptureSettingsView.swift in Sources */,
+				1000000000000000000000BB /* MeetingCostSettingsView.swift in Sources */,
+				1000000000000000000000BD /* AutoAnswerSettingsView.swift in Sources */,
+				1000000000000000000000BF /* AudioSettingsView.swift in Sources */,
+				1000000000000000000000C1 /* ShortcutsSettingsView.swift in Sources */,
+				1000000000000000000000C3 /* SyncSettingsView.swift in Sources */,
+				1000000000000000000000C5 /* UpdatesSettingsView.swift in Sources */,
+				1000000000000000000000C7 /* LanguageSelectorRow.swift in Sources */,
 				5C90DF372F1A51F8006B0DE0 /* AccountStepView.swift in Sources */,
 				000000000000000000000011 /* SessionListView.swift in Sources */,
 				100000000000000000000040 /* ContactsListView.swift in Sources */,
