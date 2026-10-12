@@ -203,8 +203,18 @@ struct QueenMamaApp: App {
                         }
 
                 case .onboarding:
-                    OnboardingView {
+                    OnboardingView { startSession in
                         launchState = .dashboard
+                        if startSession {
+                            Task {
+                                await appState.startSession(contact: nil)
+                                OverlayWindowController.shared.showOverlay(
+                                    appState: appState,
+                                    sessionManager: sessionManager,
+                                    modelContainer: QueenMamaApp.sharedModelContainer
+                                )
+                            }
+                        }
                     }
                     .environmentObject(appState)
 
@@ -263,6 +273,9 @@ struct QueenMamaApp: App {
             width: launchState == .onboarding ? 800 : launchState == .login ? 500 : 900,
             height: launchState == .onboarding ? 750 : launchState == .login ? 600 : 700
         )
+        .commands {
+            HelpCommands()
+        }
 
         // Menu Bar Extra
         MenuBarExtra("Queen Mama", systemImage: appState.isSessionActive ? "waveform.circle.fill" : "waveform.circle") {
@@ -377,7 +390,6 @@ class AppState: ObservableObject {
     @Published var isFinalizingSession = false  // Indicates AI is generating title/summary
 
     /// Memory Palace: Triggers contact picker from menu bar or keyboard shortcut
-    @Published var shouldShowContactPicker = false
 
     // MARK: - Memory-Managed Transcript
 
@@ -435,6 +447,16 @@ class AppState: ObservableObject {
 
     /// Memory Palace: Contact to associate with current session
     var currentSessionContact: Contact?
+
+    /// Memory Palace: link a contact to the session that is already running.
+    func attachContact(_ contact: Contact) {
+        currentSessionContact = contact
+        contact.lastSeenAt = Date()
+        if let session = sessionManager?.currentSession {
+            session.contact = contact
+            session.contactId = contact.id
+        }
+    }
 
     func startSession(contact: Contact? = nil) async {
         // Check authentication before starting session
@@ -1001,6 +1023,46 @@ class AppState: ObservableObject {
     }
 }
 
+// MARK: - Help Menu
+
+/// Help menu: everything that used to crowd the dashboard sidebar footer.
+struct HelpCommands: Commands {
+    @Environment(\.openWindow) private var openWindow
+
+    var body: some Commands {
+        CommandGroup(replacing: .help) {
+            Button(String(localized: "help.menu.webDashboard")) {
+                Task { await WebDashboardLauncher.open() }
+            }
+            Button(String(localized: "help.menu.feedback")) {
+                if let url = URL(string: "https://queenmama.featurebase.app") {
+                    NSWorkspace.shared.open(url)
+                }
+            }
+
+            Divider()
+
+            Button(String(localized: "help.menu.tour")) {
+                focusDashboard()
+                NotificationCenter.default.post(name: .showFeatureTour, object: nil)
+            }
+            Button(String(localized: "help.menu.shortcuts")) {
+                NotificationCenter.default.post(name: .openSettingsSection, object: SettingsSection.shortcuts)
+                NSApp.sendAction(Selector(("showSettingsWindow:")), to: nil, from: nil)
+            }
+        }
+    }
+
+    private func focusDashboard() {
+        NSApp.activate(ignoringOtherApps: true)
+        if let window = NSApp.windows.first(where: { $0.title.contains("Queen Mama") && !$0.title.contains("Settings") }) {
+            window.makeKeyAndOrderFront(nil)
+        } else {
+            openWindow(id: "dashboard")
+        }
+    }
+}
+
 // MARK: - Menu Bar View
 struct MenuBarView: View {
     @EnvironmentObject var appState: AppState
@@ -1023,14 +1085,13 @@ struct MenuBarView: View {
                 .keyboardShortcut("\\", modifiers: .command)
             } else {
                 Button(String(localized: "app.menu.startSession")) {
-                    // Show contact picker instead of starting directly
-                    appState.shouldShowContactPicker = true
-                    // Ensure dashboard is visible so user can see the picker
-                    NSApp.activate(ignoringOtherApps: true)
-                    if let window = NSApp.windows.first(where: { $0.title.contains("Queen Mama") && !$0.title.contains("Settings") }) {
-                        window.makeKeyAndOrderFront(nil)
-                    } else {
-                        openWindow(id: "dashboard")
+                    Task {
+                        await appState.startSession(contact: nil)
+                        OverlayWindowController.shared.showOverlay(
+                            appState: appState,
+                            sessionManager: sessionManager,
+                            modelContainer: QueenMamaApp.sharedModelContainer
+                        )
                     }
                 }
                 .keyboardShortcut("s", modifiers: [.command, .shift])

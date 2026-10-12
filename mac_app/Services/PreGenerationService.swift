@@ -235,7 +235,7 @@ final class PreGenerationService: ObservableObject {
             maxLength: AIService.defaultMaxTranscriptLength
         )
         let mode = modeProvider?()
-        let enableScreenCapture = UserDefaults.standard.bool(forKey: "enableScreenCapture")
+        let enableScreenCapture = ConfigurationManager.shared.autoScreenCapture
 
         generationTask = Task { [weak self] in
             guard let self = self else { return }

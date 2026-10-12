@@ -248,6 +248,12 @@ final class ConfigurationManager: ObservableObject {
     // MARK: - Initialization
 
     private init() {
+        // Migrate the legacy overlay-only key into the single screen-capture setting.
+        if defaults.object(forKey: Keys.autoScreenCapture) == nil,
+           let legacy = defaults.object(forKey: "enableScreenCapture") as? Bool {
+            defaults.set(legacy, forKey: Keys.autoScreenCapture)
+        }
+
         // Load settings from UserDefaults with defaults
         self.isUndetectabilityEnabled = defaults.bool(forKey: Keys.undetectability)
         self.captureSystemAudio = defaults.object(forKey: Keys.captureSystemAudio) as? Bool ?? true

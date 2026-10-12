@@ -43,34 +43,36 @@ enum OverlayPosition: String, CaseIterable {
 // MARK: - Overlay Popup Menu
 
 struct OverlayPopupMenu: View {
+    let isSessionActive: Bool
     @Binding var isAutoAnswerEnabled: Bool
     @Binding var isSmartModeEnabled: Bool
     @Binding var enableScreenCapture: Bool
+    @Binding var isStealthEnabled: Bool
     @Binding var isVisible: Bool
     @Binding var selectedDisplayID: UInt32
 
     let onCopyResponse: () -> Void
     let onClearContext: () -> Void
-    let onMovePosition: (OverlayPosition) -> Void
+    let onExport: () -> Void
+    let onAttachContact: () -> Void
+    let onOpenDashboard: () -> Void
+    let onHideWidget: () -> Void
 
-    @State private var showPositionSubmenu = false
     @State private var showDisplaySubmenu = false
     @State private var hoveredItem: String?
 
+    private func locked(_ feature: Feature) -> Bool {
+        !LicenseManager.shared.isFeatureAvailable(feature)
+    }
+
+    private func run(_ action: () -> Void) {
+        action()
+        isVisible = false
+    }
+
     var body: some View {
         VStack(spacing: 0) {
-            // Toggle Items
-            MenuToggleItem(
-                title: String(localized: "overlay.menu.autoAnswer"),
-                icon: QMDesign.Icons.autoAnswer,
-                shortcut: "Cmd+Shift+A",
-                isEnabled: $isAutoAnswerEnabled,
-                accentColor: QMDesign.Colors.autoAnswer,
-                isHovered: hoveredItem == "auto",
-                subtitle: String(localized: "overlay.menu.autoAnswerSubtitle")
-            )
-            .onHover { if $0 { hoveredItem = "auto" } }
-
+            // Toggles: the only place these live
             MenuToggleItem(
                 title: String(localized: "overlay.menu.smartMode"),
                 icon: QMDesign.Icons.smart,
@@ -78,9 +80,22 @@ struct OverlayPopupMenu: View {
                 isEnabled: $isSmartModeEnabled,
                 accentColor: QMDesign.Colors.accent,
                 isHovered: hoveredItem == "smart",
-                subtitle: String(localized: "overlay.menu.smartModeSubtitle")
+                subtitle: String(localized: "overlay.menu.smartModeSubtitle"),
+                lockedHint: locked(.smartMode) ? String(localized: "overlay.tooltip.smartModeRequiresEnterprise") : nil
             )
             .onHover { if $0 { hoveredItem = "smart" } }
+
+            MenuToggleItem(
+                title: String(localized: "overlay.menu.autoAnswer"),
+                icon: QMDesign.Icons.autoAnswer,
+                shortcut: nil,
+                isEnabled: $isAutoAnswerEnabled,
+                accentColor: QMDesign.Colors.autoAnswer,
+                isHovered: hoveredItem == "auto",
+                subtitle: String(localized: "overlay.menu.autoAnswerSubtitle"),
+                lockedHint: locked(.autoAnswer) ? String(localized: "overlay.tooltip.autoAnswerRequiresEnterprise") : nil
+            )
+            .onHover { if $0 { hoveredItem = "auto" } }
 
             MenuToggleItem(
                 title: String(localized: "overlay.menu.screenCapture"),
@@ -92,9 +107,20 @@ struct OverlayPopupMenu: View {
             )
             .onHover { if $0 { hoveredItem = "capture" } }
 
+            MenuToggleItem(
+                title: String(localized: "overlay.menu.stealth"),
+                icon: QMDesign.Icons.undetectable,
+                shortcut: nil,
+                isEnabled: $isStealthEnabled,
+                accentColor: QMDesign.Colors.success,
+                isHovered: hoveredItem == "stealth",
+                subtitle: String(localized: "overlay.menu.stealthSubtitle"),
+                lockedHint: locked(.undetectable) ? String(localized: "overlay.tooltip.hiddenModeRequiresEnterprise") : nil
+            )
+            .onHover { if $0 { hoveredItem = "stealth" } }
+
             MenuDivider()
 
-            // Display Submenu
             DisplayMenuItem(
                 isExpanded: $showDisplaySubmenu,
                 isHovered: hoveredItem == "display",
@@ -104,45 +130,61 @@ struct OverlayPopupMenu: View {
 
             MenuDivider()
 
-            // Action Items
+            // Actions
             MenuActionItem(
                 title: String(localized: "overlay.menu.copyResponse"),
                 icon: "doc.on.doc",
                 shortcut: "Cmd+Shift+C",
-                isHovered: hoveredItem == "copy",
-                isDestructive: false
-            ) {
-                onCopyResponse()
-                isVisible = false
-            }
+                isHovered: hoveredItem == "copy"
+            ) { run(onCopyResponse) }
             .onHover { if $0 { hoveredItem = "copy" } }
+
+            MenuActionItem(
+                title: String(localized: "overlay.menu.export"),
+                icon: QMDesign.Icons.export,
+                shortcut: nil,
+                isHovered: hoveredItem == "export"
+            ) { run(onExport) }
+            .onHover { if $0 { hoveredItem = "export" } }
 
             MenuActionItem(
                 title: String(localized: "overlay.menu.clearContext"),
                 icon: QMDesign.Icons.clear,
                 shortcut: "Cmd+R",
-                isHovered: hoveredItem == "clear",
-                isDestructive: false
-            ) {
-                onClearContext()
-                isVisible = false
-            }
+                isHovered: hoveredItem == "clear"
+            ) { run(onClearContext) }
             .onHover { if $0 { hoveredItem = "clear" } }
+
+            MenuDivider()
+
+            MenuActionItem(
+                title: isSessionActive
+                    ? String(localized: "overlay.menu.attachContact")
+                    : String(localized: "home.button.startWithContact"),
+                icon: "person.crop.circle.badge.plus",
+                shortcut: nil,
+                isHovered: hoveredItem == "contact"
+            ) { run(onAttachContact) }
+            .onHover { if $0 { hoveredItem = "contact" } }
+
+            MenuActionItem(
+                title: String(localized: "overlay.menu.openDashboard"),
+                icon: "house",
+                shortcut: "Cmd+Shift+D",
+                isHovered: hoveredItem == "dashboard"
+            ) { run(onOpenDashboard) }
+            .onHover { if $0 { hoveredItem = "dashboard" } }
 
             MenuActionItem(
                 title: String(localized: "overlay.menu.hideWidget"),
                 icon: "eye.slash",
                 shortcut: "Cmd+\\",
-                isHovered: hoveredItem == "hide",
-                isDestructive: false
-            ) {
-                isVisible = false
-                // Widget will be hidden through the main view
-            }
+                isHovered: hoveredItem == "hide"
+            ) { run(onHideWidget) }
             .onHover { if $0 { hoveredItem = "hide" } }
         }
         .padding(QMDesign.Spacing.xs)
-        .frame(width: 220)
+        .frame(width: 240)
         .background(
             RoundedRectangle(cornerRadius: QMDesign.Radius.lg)
                 .fill(QMDesign.Colors.backgroundSecondary)
@@ -175,14 +217,18 @@ struct MenuToggleItem: View {
     let accentColor: Color
     let isHovered: Bool
     var subtitle: String? = nil
+    /// When set, the toggle is locked behind a higher tier and this text explains why.
+    var lockedHint: String? = nil
+
+    private var isLocked: Bool { lockedHint != nil }
 
     var body: some View {
-        Button(action: { isEnabled.toggle() }) {
+        Button(action: { if !isLocked { isEnabled.toggle() } }) {
             HStack(spacing: QMDesign.Spacing.sm) {
                 // Icon
                 Image(systemName: icon)
                     .font(.system(size: 13))
-                    .foregroundColor(isEnabled ? accentColor : QMDesign.Colors.textSecondary)
+                    .foregroundColor(isEnabled && !isLocked ? accentColor : QMDesign.Colors.textSecondary)
                     .frame(width: 20)
 
                 // Title and optional subtitle
@@ -202,17 +248,24 @@ struct MenuToggleItem: View {
 
                 Spacer(minLength: QMDesign.Spacing.xs)
 
-                // Toggle indicator
-                ToggleIndicator(isEnabled: isEnabled, accentColor: accentColor)
+                if isLocked {
+                    Image(systemName: "lock.fill")
+                        .font(.system(size: 10))
+                        .foregroundColor(QMDesign.Colors.textTertiary)
+                } else {
+                    ToggleIndicator(isEnabled: isEnabled, accentColor: accentColor)
+                }
             }
             .padding(.horizontal, QMDesign.Spacing.sm)
             .padding(.vertical, QMDesign.Spacing.xs)
+            .opacity(isLocked ? 0.6 : 1)
             .background(
                 RoundedRectangle(cornerRadius: QMDesign.Radius.sm)
                     .fill(isHovered ? QMDesign.Colors.surfaceHover : Color.clear)
             )
         }
         .buttonStyle(.plain)
+        .help(lockedHint ?? "")
     }
 }
 
@@ -277,99 +330,6 @@ struct MenuActionItem: View {
             )
         }
         .buttonStyle(.plain)
-    }
-}
-
-// MARK: - Position Menu Item
-
-struct PositionMenuItem: View {
-    @Binding var isExpanded: Bool
-    let isHovered: Bool
-    let onSelect: (OverlayPosition) -> Void
-
-    var body: some View {
-        VStack(spacing: 0) {
-            // Main row
-            Button(action: { withAnimation(QMDesign.Animation.quick) { isExpanded.toggle() } }) {
-                HStack(spacing: QMDesign.Spacing.sm) {
-                    // Icon
-                    Image(systemName: "arrow.up.and.down.and.arrow.left.and.right")
-                        .font(.system(size: 13))
-                        .foregroundColor(QMDesign.Colors.textSecondary)
-                        .frame(width: 20)
-
-                    // Title
-                    Text(String(localized: "overlay.menu.position"))
-                        .font(QMDesign.Typography.bodySmall)
-                        .foregroundColor(QMDesign.Colors.textPrimary)
-
-                    Spacer()
-
-                    // Expand chevron
-                    Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
-                        .font(.system(size: 10, weight: .semibold))
-                        .foregroundColor(QMDesign.Colors.textTertiary)
-                }
-                .padding(.horizontal, QMDesign.Spacing.sm)
-                .padding(.vertical, QMDesign.Spacing.xs)
-                .background(
-                    RoundedRectangle(cornerRadius: QMDesign.Radius.sm)
-                        .fill(isHovered || isExpanded ? QMDesign.Colors.surfaceHover : Color.clear)
-                )
-            }
-            .buttonStyle(.plain)
-
-            // Submenu
-            if isExpanded {
-                VStack(spacing: 2) {
-                    // Position grid
-                    LazyVGrid(columns: [
-                        GridItem(.flexible()),
-                        GridItem(.flexible()),
-                        GridItem(.flexible())
-                    ], spacing: 4) {
-                        ForEach(OverlayPosition.allCases, id: \.self) { position in
-                            PositionButton(position: position) {
-                                onSelect(position)
-                            }
-                        }
-                    }
-                }
-                .padding(QMDesign.Spacing.xs)
-                .background(
-                    RoundedRectangle(cornerRadius: QMDesign.Radius.sm)
-                        .fill(QMDesign.Colors.surfaceLight)
-                )
-                .padding(.horizontal, QMDesign.Spacing.xs)
-                .padding(.top, QMDesign.Spacing.xxs)
-            }
-        }
-    }
-}
-
-// MARK: - Position Button
-
-struct PositionButton: View {
-    let position: OverlayPosition
-    let action: () -> Void
-
-    @State private var isHovered = false
-
-    var body: some View {
-        Button(action: action) {
-            VStack(spacing: 2) {
-                Image(systemName: position.icon)
-                    .font(.system(size: 12))
-                    .foregroundColor(isHovered ? QMDesign.Colors.accent : QMDesign.Colors.textSecondary)
-            }
-            .frame(width: 50, height: 30)
-            .background(
-                RoundedRectangle(cornerRadius: QMDesign.Radius.xs)
-                    .fill(isHovered ? QMDesign.Colors.accent.opacity(0.15) : QMDesign.Colors.surfaceMedium)
-            )
-        }
-        .buttonStyle(.plain)
-        .onHover { isHovered = $0 }
     }
 }
 
@@ -575,14 +535,19 @@ struct MenuDivider: View {
         Color.black.opacity(0.8)
 
         OverlayPopupMenu(
+            isSessionActive: true,
             isAutoAnswerEnabled: .constant(true),
             isSmartModeEnabled: .constant(false),
             enableScreenCapture: .constant(true),
+            isStealthEnabled: .constant(false),
             isVisible: .constant(true),
             selectedDisplayID: .constant(0),
             onCopyResponse: {},
             onClearContext: {},
-            onMovePosition: { _ in }
+            onExport: {},
+            onAttachContact: {},
+            onOpenDashboard: {},
+            onHideWidget: {}
         )
     }
 }

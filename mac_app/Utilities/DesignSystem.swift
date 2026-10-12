@@ -214,6 +214,8 @@ struct QMDesign {
 
     struct Icons {
         // Navigation
+        static let home = "house.fill"
+        static let library = "books.vertical.fill"
         static let sessions = "list.bullet.rectangle.portrait"
         static let contacts = "person.crop.circle.fill"
         static let liveSession = "waveform"

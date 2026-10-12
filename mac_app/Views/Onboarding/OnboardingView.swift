@@ -12,7 +12,8 @@ struct OnboardingView: View {
     @State private var currentStep: OnboardingStep = .welcome
     @State private var isAnimating = false
 
-    let onComplete: () -> Void
+    /// Called once onboarding is done; `startSession` is true when the user pressed Start.
+    let onComplete: (_ startSession: Bool) -> Void
 
     var body: some View {
         ZStack {
@@ -42,16 +43,14 @@ struct OnboardingView: View {
                 Group {
                     switch currentStep {
                     case .welcome:
-                        WelcomeStepView(onContinue: { goToStep(.permissions) })
-                    case .permissions:
-                        PermissionsStepView(onContinue: { goToStep(.account) })
+                        WelcomeStepView(onContinue: { goToStep(.account) })
                     case .account:
-                        // Skip API Keys step - now managed by backend proxy
-                        AccountStepView(onContinue: { goToStep(.quickTour) })
-                    case .quickTour:
-                        QuickTourStepView(onContinue: { goToStep(.ready) })
+                        AccountStepView(onContinue: { goToStep(.ready) })
                     case .ready:
-                        ReadyStepView(onComplete: completeOnboarding)
+                        ReadyStepView(
+                            onStartFirstSession: { completeOnboarding(startSession: true) },
+                            onGoToDashboard: { completeOnboarding(startSession: false) }
+                        )
                     }
                 }
                 .animation(QMDesign.Animation.smooth, value: currentStep)
@@ -66,9 +65,9 @@ struct OnboardingView: View {
         }
     }
 
-    private func completeOnboarding() {
+    private func completeOnboarding(startSession: Bool) {
         config.hasCompletedOnboarding = true
-        onComplete()
+        onComplete(startSession)
     }
 }
 
@@ -76,17 +75,13 @@ struct OnboardingView: View {
 
 enum OnboardingStep: Int, CaseIterable {
     case welcome = 0
-    case permissions = 1
-    case account = 2
-    case quickTour = 3
-    case ready = 4
+    case account = 1
+    case ready = 2
 
     var title: String {
         switch self {
         case .welcome: return String(localized: "onboarding.step.welcome")
-        case .permissions: return String(localized: "onboarding.step.permissions")
         case .account: return String(localized: "onboarding.step.account")
-        case .quickTour: return String(localized: "onboarding.step.tour")
         case .ready: return String(localized: "onboarding.step.ready")
         }
     }
@@ -136,172 +131,65 @@ struct OnboardingStepIndicator: View {
     }
 }
 
-// MARK: - Welcome Step
+// MARK: - Welcome Step (pitch + permissions)
 
 struct WelcomeStepView: View {
     let onContinue: () -> Void
+
     @State private var isAnimating = false
     @State private var isButtonHovered = false
-
-    var body: some View {
-        VStack(spacing: QMDesign.Spacing.xl) {
-            Spacer()
-
-            // Hero Section
-            VStack(spacing: QMDesign.Spacing.lg) {
-                // Animated Logo
-                ZStack {
-                    Circle()
-                        .fill(QMDesign.Colors.primaryGradient.opacity(0.1))
-                        .frame(width: 140, height: 140)
-                        .scaleEffect(isAnimating ? 1.1 : 1.0)
-
-                    Circle()
-                        .fill(QMDesign.Colors.primaryGradient.opacity(0.2))
-                        .frame(width: 100, height: 100)
-                        .scaleEffect(isAnimating ? 1.05 : 1.0)
-
-                    Circle()
-                        .fill(QMDesign.Colors.primaryGradient)
-                        .frame(width: 64, height: 64)
-
-                    Image(systemName: "waveform")
-                        .font(.system(size: 28, weight: .bold))
-                        .foregroundColor(.white)
-                }
-                .animation(
-                    Animation.easeInOut(duration: 2)
-                        .repeatForever(autoreverses: true),
-                    value: isAnimating
-                )
-                .onAppear { isAnimating = true }
-
-                // Title
-                VStack(spacing: QMDesign.Spacing.sm) {
-                    Text(String(localized: "onboarding.welcome.title"))
-                        .font(QMDesign.Typography.titleSmall)
-                        .foregroundColor(QMDesign.Colors.textSecondary)
-
-                    Text("Queen Mama")
-                        .font(.system(size: 36, weight: .bold))
-                        .foregroundStyle(QMDesign.Colors.primaryGradient)
-                }
-            }
-
-            // Features List
-            VStack(spacing: QMDesign.Spacing.md) {
-                FeatureRow(icon: "waveform", title: String(localized: "onboarding.welcome.feature.transcription.title"), description: String(localized: "onboarding.welcome.feature.transcription.description"))
-                FeatureRow(icon: "sparkles", title: String(localized: "onboarding.welcome.feature.ai.title"), description: String(localized: "onboarding.welcome.feature.ai.description"))
-                FeatureRow(icon: "eye.slash", title: String(localized: "onboarding.welcome.feature.undetectable.title"), description: String(localized: "onboarding.welcome.feature.undetectable.description"))
-            }
-            .padding(.horizontal, QMDesign.Spacing.xl)
-
-            Spacer()
-
-            // Continue Button
-            Button(action: onContinue) {
-                HStack(spacing: QMDesign.Spacing.sm) {
-                    Text(String(localized: "onboarding.welcome.button.getStarted"))
-                        .font(QMDesign.Typography.labelMedium)
-                    Image(systemName: "arrow.right")
-                        .font(.system(size: 14, weight: .semibold))
-                }
-                .padding(.horizontal, QMDesign.Spacing.xl)
-                .padding(.vertical, QMDesign.Spacing.md)
-                .background(
-                    Capsule()
-                        .fill(QMDesign.Colors.primaryGradient)
-                )
-                .foregroundColor(.white)
-                .scaleEffect(isButtonHovered ? 1.05 : 1.0)
-                .shadow(
-                    color: QMDesign.Colors.accent.opacity(isButtonHovered ? 0.4 : 0.2),
-                    radius: isButtonHovered ? 16 : 8,
-                    y: isButtonHovered ? 8 : 4
-                )
-            }
-            .buttonStyle(.plain)
-            .onHover { isButtonHovered = $0 }
-            .animation(QMDesign.Animation.smooth, value: isButtonHovered)
-            .padding(.bottom, QMDesign.Spacing.xxl)
-        }
-        .padding(.horizontal, QMDesign.Spacing.lg)
-    }
-}
-
-struct FeatureRow: View {
-    let icon: String
-    let title: String
-    let description: String
-
-    var body: some View {
-        HStack(spacing: QMDesign.Spacing.md) {
-            ZStack {
-                Circle()
-                    .fill(QMDesign.Colors.accent.opacity(0.1))
-                    .frame(width: 44, height: 44)
-                Image(systemName: icon)
-                    .font(.system(size: 18))
-                    .foregroundStyle(QMDesign.Colors.primaryGradient)
-            }
-
-            VStack(alignment: .leading, spacing: 2) {
-                Text(title)
-                    .font(QMDesign.Typography.bodyMedium)
-                    .foregroundColor(QMDesign.Colors.textPrimary)
-                Text(description)
-                    .font(QMDesign.Typography.caption)
-                    .foregroundColor(QMDesign.Colors.textTertiary)
-            }
-
-            Spacer()
-        }
-        .padding(QMDesign.Spacing.md)
-        .background(
-            RoundedRectangle(cornerRadius: QMDesign.Radius.md)
-                .fill(QMDesign.Colors.surfaceLight)
-        )
-    }
-}
-
-// MARK: - Permissions Step
-
-struct PermissionsStepView: View {
-    let onContinue: () -> Void
-
     @State private var hasMicPermission = false
     @State private var hasScreenPermission = false
     @State private var hasAccessibilityPermission = false
-    @State private var isButtonHovered = false
 
     var body: some View {
         ScrollView {
-            VStack(spacing: QMDesign.Spacing.lg) {
-                // Header
+            VStack(spacing: QMDesign.Spacing.xl) {
+                // Hero
                 VStack(spacing: QMDesign.Spacing.md) {
                     ZStack {
                         Circle()
                             .fill(QMDesign.Colors.primaryGradient.opacity(0.1))
-                            .frame(width: 80, height: 80)
-                        Image(systemName: "shield.checkered")
-                            .font(.system(size: 32))
+                            .frame(width: 104, height: 104)
+                            .scaleEffect(isAnimating ? 1.1 : 1.0)
+                        Circle()
+                            .fill(QMDesign.Colors.primaryGradient.opacity(0.2))
+                            .frame(width: 76, height: 76)
+                            .scaleEffect(isAnimating ? 1.05 : 1.0)
+                        Circle()
+                            .fill(QMDesign.Colors.primaryGradient)
+                            .frame(width: 52, height: 52)
+                        Image(systemName: "waveform")
+                            .font(.system(size: 22, weight: .bold))
+                            .foregroundColor(.white)
+                    }
+                    .animation(
+                        Animation.easeInOut(duration: 2).repeatForever(autoreverses: true),
+                        value: isAnimating
+                    )
+
+                    VStack(spacing: QMDesign.Spacing.xs) {
+                        Text(String(localized: "onboarding.welcome.title"))
+                            .font(QMDesign.Typography.subheadline)
+                            .foregroundColor(QMDesign.Colors.textSecondary)
+                        Text("Queen Mama")
+                            .font(.system(size: 32, weight: .bold))
                             .foregroundStyle(QMDesign.Colors.primaryGradient)
                     }
 
-                    Text(String(localized: "onboarding.permissions.title"))
-                        .font(QMDesign.Typography.titleMedium)
-                        .foregroundColor(QMDesign.Colors.textPrimary)
-
-                    Text(String(localized: "onboarding.permissions.subtitle"))
-                        .font(QMDesign.Typography.bodySmall)
+                    Text(String(localized: "onboarding.welcome.pitch"))
+                        .font(QMDesign.Typography.bodyMedium)
                         .foregroundColor(QMDesign.Colors.textSecondary)
                         .multilineTextAlignment(.center)
-                        .padding(.horizontal, QMDesign.Spacing.xl)
+                        .frame(maxWidth: 460)
                 }
-                .padding(.top, QMDesign.Spacing.lg)
+                .padding(.top, QMDesign.Spacing.md)
 
-                // Permission Cards
-                VStack(spacing: QMDesign.Spacing.sm) {
+                // Permissions, inline: the only setup the app needs
+                VStack(alignment: .leading, spacing: QMDesign.Spacing.sm) {
+                    Text(String(localized: "onboarding.permissions.title"))
+                        .qmSectionHeader()
+
                     PermissionCard(
                         icon: "mic.fill",
                         title: String(localized: "onboarding.permissions.microphone.title"),
@@ -328,66 +216,74 @@ struct PermissionsStepView: View {
                         isOptional: true,
                         onRequest: requestAccessibilityPermission
                     )
-                }
-                .padding(.horizontal, QMDesign.Spacing.xl)
 
-                // Info
-                HStack(alignment: .top, spacing: QMDesign.Spacing.sm) {
-                    Image(systemName: "info.circle.fill")
-                        .foregroundStyle(QMDesign.Colors.primaryGradient)
-                    Text(String(localized: "onboarding.permissions.info"))
-                        .font(QMDesign.Typography.caption)
-                        .foregroundColor(QMDesign.Colors.textTertiary)
-                }
-                .padding(QMDesign.Spacing.md)
-                .background(
-                    RoundedRectangle(cornerRadius: QMDesign.Radius.md)
-                        .fill(QMDesign.Colors.accent.opacity(0.05))
-                )
-                .padding(.horizontal, QMDesign.Spacing.xl)
-
-                // Continue Button
-                Button(action: onContinue) {
-                    HStack(spacing: QMDesign.Spacing.sm) {
-                        Text(String(localized: "onboarding.button.continue"))
-                            .font(QMDesign.Typography.labelMedium)
-                        Image(systemName: "arrow.right")
-                            .font(.system(size: 14, weight: .semibold))
+                    HStack(alignment: .top, spacing: QMDesign.Spacing.xs) {
+                        Image(systemName: "info.circle.fill")
+                            .font(.system(size: 11))
+                            .foregroundStyle(QMDesign.Colors.primaryGradient)
+                        Text(String(localized: "onboarding.permissions.info"))
+                            .font(QMDesign.Typography.caption)
+                            .foregroundColor(QMDesign.Colors.textTertiary)
                     }
-                    .padding(.horizontal, QMDesign.Spacing.xl)
-                    .padding(.vertical, QMDesign.Spacing.md)
-                    .background(
-                        Capsule()
-                            .fill(QMDesign.Colors.primaryGradient)
-                    )
-                    .foregroundColor(.white)
-                    .scaleEffect(isButtonHovered ? 1.05 : 1.0)
+                    .padding(.top, QMDesign.Spacing.xxs)
                 }
-                .buttonStyle(.plain)
-                .onHover { isButtonHovered = $0 }
-                .animation(QMDesign.Animation.smooth, value: isButtonHovered)
-                .padding(.vertical, QMDesign.Spacing.xl)
+                .frame(maxWidth: 520)
+
+                // Continue (needs the microphone, everything else can wait)
+                VStack(spacing: QMDesign.Spacing.xs) {
+                    Button(action: onContinue) {
+                        HStack(spacing: QMDesign.Spacing.sm) {
+                            Text(String(localized: "onboarding.welcome.button.getStarted"))
+                                .font(QMDesign.Typography.labelMedium)
+                            Image(systemName: "arrow.right")
+                                .font(.system(size: 14, weight: .semibold))
+                        }
+                        .padding(.horizontal, QMDesign.Spacing.xl)
+                        .padding(.vertical, QMDesign.Spacing.md)
+                        .background(
+                            Capsule()
+                                .fill(hasMicPermission ? AnyShapeStyle(QMDesign.Colors.primaryGradient) : AnyShapeStyle(QMDesign.Colors.surfaceMedium))
+                        )
+                        .foregroundColor(hasMicPermission ? .white : QMDesign.Colors.textTertiary)
+                        .scaleEffect(isButtonHovered && hasMicPermission ? 1.05 : 1.0)
+                        .shadow(
+                            color: QMDesign.Colors.accent.opacity(hasMicPermission ? (isButtonHovered ? 0.4 : 0.2) : 0),
+                            radius: isButtonHovered ? 16 : 8,
+                            y: isButtonHovered ? 8 : 4
+                        )
+                    }
+                    .buttonStyle(.plain)
+                    .disabled(!hasMicPermission)
+                    .onHover { isButtonHovered = $0 }
+                    .animation(QMDesign.Animation.smooth, value: isButtonHovered)
+
+                    if !hasMicPermission {
+                        Text(String(localized: "onboarding.welcome.micRequired"))
+                            .font(QMDesign.Typography.caption)
+                            .foregroundColor(QMDesign.Colors.textTertiary)
+                    }
+                }
+                .padding(.bottom, QMDesign.Spacing.xl)
             }
             .padding(.horizontal, QMDesign.Spacing.lg)
         }
         .onAppear {
+            isAnimating = true
+            checkPermissions()
+        }
+        .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
             checkPermissions()
         }
     }
 
     private func checkPermissions() {
-        // Check microphone
         switch AVCaptureDevice.authorizationStatus(for: .audio) {
         case .authorized:
             hasMicPermission = true
         default:
             hasMicPermission = false
         }
-
-        // Screen recording
         hasScreenPermission = CGPreflightScreenCaptureAccess()
-
-        // Accessibility - check if trusted
         hasAccessibilityPermission = AXIsProcessTrusted()
     }
 
@@ -407,10 +303,8 @@ struct PermissionsStepView: View {
     }
 
     private func requestAccessibilityPermission() {
-        // Open System Settings to Accessibility
         let options: NSDictionary = [kAXTrustedCheckOptionPrompt.takeRetainedValue(): true]
         let _ = AXIsProcessTrustedWithOptions(options)
-        // Check again after a delay
         DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
             hasAccessibilityPermission = AXIsProcessTrusted()
         }
@@ -499,110 +393,6 @@ struct PermissionCard: View {
                 )
         )
         .onHover { isHovered = $0 }
-    }
-}
-
-// MARK: - Quick Tour Step (Interactive Carousel)
-
-struct QuickTourStepView: View {
-    let onContinue: () -> Void
-    @State private var currentPage = 0
-    @State private var isButtonHovered = false
-
-    private let totalPages = 5
-
-    var body: some View {
-        VStack(spacing: 0) {
-            // Tour Content - Takes available space
-            Group {
-                switch currentPage {
-                case 0: WidgetTourScreen()
-                case 1: AIFeaturesTourScreen()
-                case 2: DashboardTourScreen()
-                case 3: ModesTourScreen()
-                case 4: ShortcutsTourScreen()
-                default: WidgetTourScreen()
-                }
-            }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .animation(QMDesign.Animation.smooth, value: currentPage)
-
-            // Fixed Bottom Navigation Area
-            VStack(spacing: QMDesign.Spacing.md) {
-                // Page Indicator
-                TourPageIndicator(currentPage: currentPage, totalPages: totalPages)
-
-                // Navigation Buttons
-                HStack(spacing: QMDesign.Spacing.md) {
-                    // Back Button
-                    if currentPage > 0 {
-                        Button(action: { currentPage -= 1 }) {
-                            HStack(spacing: QMDesign.Spacing.xs) {
-                                Image(systemName: "arrow.left")
-                                    .font(.system(size: 12, weight: .semibold))
-                                Text(String(localized: "onboarding.button.back"))
-                                    .font(QMDesign.Typography.labelMedium)
-                            }
-                            .padding(.horizontal, QMDesign.Spacing.lg)
-                            .padding(.vertical, QMDesign.Spacing.sm)
-                            .background(
-                                Capsule()
-                                    .fill(QMDesign.Colors.surfaceMedium)
-                            )
-                            .foregroundColor(QMDesign.Colors.textSecondary)
-                        }
-                        .buttonStyle(.plain)
-                    } else {
-                        // Invisible placeholder to keep layout consistent
-                        Color.clear.frame(width: 80, height: 36)
-                    }
-
-                    Spacer()
-
-                    // Next/Continue Button
-                    Button(action: {
-                        if currentPage < totalPages - 1 {
-                            withAnimation(QMDesign.Animation.smooth) {
-                                currentPage += 1
-                            }
-                        } else {
-                            onContinue()
-                        }
-                    }) {
-                        HStack(spacing: QMDesign.Spacing.sm) {
-                            Text(currentPage < totalPages - 1 ? String(localized: "onboarding.button.next") : String(localized: "onboarding.button.gotIt"))
-                                .font(QMDesign.Typography.labelMedium)
-                            Image(systemName: "arrow.right")
-                                .font(.system(size: 14, weight: .semibold))
-                        }
-                        .padding(.horizontal, QMDesign.Spacing.xl)
-                        .padding(.vertical, QMDesign.Spacing.md)
-                        .background(
-                            Capsule()
-                                .fill(QMDesign.Colors.primaryGradient)
-                        )
-                        .foregroundColor(.white)
-                        .scaleEffect(isButtonHovered ? 1.05 : 1.0)
-                    }
-                    .buttonStyle(.plain)
-                    .onHover { isButtonHovered = $0 }
-                    .animation(QMDesign.Animation.smooth, value: isButtonHovered)
-                }
-                .padding(.horizontal, QMDesign.Spacing.xl)
-            }
-            .padding(.vertical, QMDesign.Spacing.lg)
-            .background(
-                // Subtle gradient fade from content
-                LinearGradient(
-                    colors: [Color.clear, QMDesign.Colors.backgroundPrimary.opacity(0.8)],
-                    startPoint: .top,
-                    endPoint: .bottom
-                )
-                .frame(height: 20)
-                .offset(y: -20),
-                alignment: .top
-            )
-        }
     }
 }
 
@@ -1265,7 +1055,8 @@ struct TourTipCard: View {
 // MARK: - Ready Step
 
 struct ReadyStepView: View {
-    let onComplete: () -> Void
+    let onStartFirstSession: () -> Void
+    let onGoToDashboard: () -> Void
 
     @State private var isAnimating = false
     @State private var isButtonHovered = false
@@ -1328,12 +1119,14 @@ struct ReadyStepView: View {
             Spacer()
 
             // Start Button
-            Button(action: onComplete) {
+            Button(action: onStartFirstSession) {
                 HStack(spacing: QMDesign.Spacing.sm) {
                     Image(systemName: "play.fill")
                         .font(.system(size: 14, weight: .semibold))
                     Text(String(localized: "onboarding.completion.button.startFirstSession"))
                         .font(QMDesign.Typography.labelMedium)
+                    KeyboardShortcutBadge(shortcut: "Cmd+Shift+S", size: .small)
+                        .opacity(0.9)
                 }
                 .padding(.horizontal, QMDesign.Spacing.xl)
                 .padding(.vertical, QMDesign.Spacing.md)
@@ -1352,7 +1145,11 @@ struct ReadyStepView: View {
             .buttonStyle(.plain)
             .onHover { isButtonHovered = $0 }
             .animation(QMDesign.Animation.smooth, value: isButtonHovered)
-            .padding(.bottom, QMDesign.Spacing.xxl)
+
+            Button(String(localized: "onboarding.completion.button.later"), action: onGoToDashboard)
+                .buttonStyle(.link)
+                .font(QMDesign.Typography.bodySmall)
+                .padding(.bottom, QMDesign.Spacing.xxl)
         }
         .padding(.horizontal, QMDesign.Spacing.lg)
     }

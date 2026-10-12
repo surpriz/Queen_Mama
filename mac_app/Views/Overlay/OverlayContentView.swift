@@ -23,8 +23,6 @@ struct OverlayContentView: View {
     @State private var showSmartModeToast = false
     @State private var showDisplayToast = false
     @State private var currentDisplayName = String(localized: "overlay.display.primary")
-    @AppStorage("enableScreenCapture") private var enableScreenCapture = true
-    @AppStorage("hasSeenSmartModeHint") private var hasSeenSmartModeHint = false
     @State private var showLimitPricingSheet = false
 
     // Memory Palace: Contact picker state
@@ -62,7 +60,7 @@ struct OverlayContentView: View {
                 preGenerationService: appState.preGenerationService,
                 transcriptionService: appState.transcriptionService,
                 systemAudioService: appState.systemAudioService,
-                enableScreenCapture: $enableScreenCapture,
+                enableScreenCapture: $config.autoScreenCapture,
                 isAutoAnswerEnabled: isAutoAnswerEnabled,
                 isSmartModeEnabled: isSmartModeEnabled,
                 showPopupMenu: $showPopupMenu,
@@ -71,8 +69,7 @@ struct OverlayContentView: View {
                 detectedFaceCount: detectedFaceCount,
                 onToggleExpand: { overlayController.toggleExpanded() },
                 onStart: {
-                    // Show contact picker directly in widget
-                    showingContactPicker = true
+                    Task { await appState.startSession(contact: nil) }
                 },
                 onStop: {
                     // Persist meeting cost before stopping session (beta opt-in)
@@ -102,7 +99,13 @@ struct OverlayContentView: View {
                     NSPasteboard.general.setString(codeContent ?? content, forType: .string)
                 },
                 onClearContext: { appState.clearContext() },
-                onMovePosition: { position in overlayController.moveToPosition(position) }
+                onExport: {
+                    let markdown = appState.aiService.exportToMarkdown()
+                    NSPasteboard.general.clearContents()
+                    NSPasteboard.general.setString(markdown, forType: .string)
+                },
+                onAttachContact: { showingContactPicker = true },
+                onHideWidget: { appState.toggleOverlay() }
             )
 
             // Expanded Content
@@ -113,10 +116,9 @@ struct OverlayContentView: View {
                     sessionManager: sessionManager,
                     selectedTab: $selectedTab,
                     inputText: $inputText,
-                    isSmartModeEnabled: isSmartModeEnabled,
                     hasScreenshot: hasScreenshot,
                     lastScreenshotTime: lastScreenshotTime,
-                    enableScreenCapture: enableScreenCapture,
+                    enableScreenCapture: config.autoScreenCapture,
                     onSubmit: handleSubmit
                 )
                 .transition(.asymmetric(
@@ -195,8 +197,10 @@ struct OverlayContentView: View {
         }
         .sheet(isPresented: $showingContactPicker) {
             ContactPickerSheet(selectedContact: $selectedContact) { contact in
-                Task {
-                    await appState.startSession(contact: contact)
+                if appState.isSessionActive {
+                    if let contact { appState.attachContact(contact) }
+                } else {
+                    Task { await appState.startSession(contact: contact) }
                 }
             }
         }
@@ -290,7 +294,7 @@ struct OverlayContentView: View {
                 // WhatToSay, FollowUp, and Recap use text-only context — skip capture entirely
                 // Saves ~200-500ms (capture + base64 encoding + vision token processing)
                 let screenshotNeeded = selectedTab == .assist || hasCustomPrompt
-                let screenshot: Data? = if enableScreenCapture && screenshotNeeded {
+                let screenshot: Data? = if config.autoScreenCapture && screenshotNeeded {
                     try? await appState.screenService.getScreenshotForAI()
                 } else {
                     nil
@@ -303,7 +307,7 @@ struct OverlayContentView: View {
 
                 let screenshotSize = screenshot?.count ?? 0
                 let cacheStatus = screenshot != nil ? "(may be cached)" : ""
-                print("[Overlay] Screen capture \(enableScreenCapture ? "enabled" : "disabled") - Screenshot: \(hasScreenshot ? "captured (\(screenshotSize / 1024)KB) \(cacheStatus)" : "skipped (low value or disabled)")")
+                print("[Overlay] Screen capture \(config.autoScreenCapture ? "enabled" : "disabled") - Screenshot: \(hasScreenshot ? "captured (\(screenshotSize / 1024)KB) \(cacheStatus)" : "skipped (low value or disabled)")")
 
                 // Force-flush audio batches so the latest audio reaches Deepgram immediately
                 appState.audioBatchingService.forceFlush()
@@ -530,88 +534,13 @@ enum TabItem: String, CaseIterable {
     }
 }
 
-// MARK: - Status Badge
-
-struct StatusBadge: View {
-    let icon: String
-    let label: String
-    let color: Color
-    let isActive: Bool
-
-    var body: some View {
-        HStack(spacing: 3) {
-            Image(systemName: icon)
-                .font(.system(size: 9, weight: .semibold))
-            Text(label)
-                .font(.system(size: 9, weight: .medium))
-        }
-        .padding(.horizontal, 6)
-        .padding(.vertical, 3)
-        .background(
-            Capsule()
-                .fill(color.opacity(0.2))
-        )
-        .foregroundColor(color)
-    }
-}
-
-// MARK: - System Audio Health Badge
-
-/// Leaf view observing the transcription/system-audio services so their
-/// frequent publishes don't re-render the whole pill header.
-private struct SystemAudioHealthBadge: View {
-    @ObservedObject var transcriptionService: TranscriptionService
-    @ObservedObject var systemAudioService: SystemAudioCaptureService
-
-    var body: some View {
-        // Shown when the interlocutor's audio isn't being captured, so
-        // everything would be tagged "Moi".
-        if !(transcriptionService.isSystemAudioConnected && systemAudioService.isReceivingAudio) {
-            StatusBadge(
-                icon: "exclamationmark.triangle.fill",
-                label: String(localized: "overlay.status.micOnly"),
-                color: QMDesign.Colors.warning,
-                isActive: true
-            )
-            .help(String(localized: "overlay.tooltip.systemAudioDown"))
-        }
-    }
-}
-
-// MARK: - Pre-Generation Status Indicator
-
-/// Leaf view for the pre-gen ready/generating indicator.
-private struct PreGenStatusIndicator: View {
-    @ObservedObject var preGenerationService: PreGenerationService
-    @State private var isPulsing = false
-
-    var body: some View {
-        if case .ready = preGenerationService.state {
-            StatusBadge(
-                icon: "bolt.fill",
-                label: String(localized: "overlay.status.ready"),
-                color: QMDesign.Colors.success,
-                isActive: true
-            )
-            .help(String(localized: "overlay.tooltip.preGenReady"))
-        } else if case .generating = preGenerationService.state {
-            // Subtle pulsing dot while generating
-            Circle()
-                .fill(QMDesign.Colors.accent)
-                .frame(width: 5, height: 5)
-                .opacity(isPulsing ? 0.3 : 0.9)
-                .animation(.easeInOut(duration: 0.8).repeatForever(autoreverses: true), value: isPulsing)
-                .onAppear { isPulsing = true }
-                .onDisappear { isPulsing = false }
-        }
-    }
-}
-
 // MARK: - Free Request Counter
 
 private struct FreeRequestCounter: View {
     @ObservedObject private var licenseManager = LicenseManager.shared
     @State private var showPricingSheet = false
+    /// Only render when this many requests or fewer remain (default: always).
+    var threshold: Int = .max
 
     private var remaining: Int {
         licenseManager.remainingUses(for: .aiRequest) ?? 0
@@ -624,6 +553,12 @@ private struct FreeRequestCounter: View {
     private var isExhausted: Bool { remaining == 0 }
 
     var body: some View {
+        if remaining <= threshold {
+            counter
+        }
+    }
+
+    private var counter: some View {
         Button(action: { showPricingSheet = true }) {
             Text("\(remaining)/\(limit)")
                 .font(.system(size: 10, weight: .bold, design: .monospaced))
@@ -672,18 +607,16 @@ struct ModernPillHeaderView: View {
     let onStop: () -> Void
     let onCopyResponse: () -> Void
     let onClearContext: () -> Void
-    let onMovePosition: (OverlayPosition) -> Void
+    let onExport: () -> Void
+    let onAttachContact: () -> Void
+    let onHideWidget: () -> Void
 
     @State private var isHoveringExpand = false
     @State private var isHoveringMore = false
-    @State private var isHoveringDashboard = false
     @State private var isHoveringPlay = false  // Hover state for play button
-    @State private var isHoveringHidden = false  // Hover state for hidden mode button
-    @State private var isAutoPulsing = false  // Pulsing animation for auto mode
     @State private var isChevronPulsing = false  // Pulsing animation for expand hint
     @State private var isPlayPulsing = false  // Pulsing animation for play button
     @State private var showExpandPreview = false  // Hover preview state
-    @State private var isMomentPulsing = false  // Pulsing animation for moment detection
     @Environment(\.openWindow) private var openWindow
 
     // Observe ConfigurationManager for undetectability
@@ -704,27 +637,82 @@ struct ModernPillHeaderView: View {
             .overlay(WindowDragHandle())
             .help(String(localized: "overlay.tooltip.dragToMove"))
 
-            // Dashboard Button (explicit action)
-            Button(action: toggleDashboard) {
-                Image(systemName: "house.fill")
-                    .font(.system(size: 12, weight: .medium))
-                    .foregroundColor(isHoveringDashboard ? QMDesign.Colors.accent : QMDesign.Colors.textSecondary)
-                    .frame(width: 26, height: 26)
-                    .background(
+            // Start (session inactive and not finalizing)
+            if !isSessionActive && !isFinalizingSession {
+                Button(action: onStart) {
+                    ZStack {
+                        // Pulsing glow ring
                         Circle()
-                            .fill(isHoveringDashboard ? QMDesign.Colors.accent.opacity(0.15) : QMDesign.Colors.surfaceLight)
-                    )
-                    .scaleEffect(isHoveringDashboard ? 1.1 : 1.0)
+                            .fill(QMDesign.Colors.primaryGradient.opacity(0.3))
+                            .frame(width: 38, height: 38)
+                            .scaleEffect(isPlayPulsing ? 1.2 : 1.0)
+                            .opacity(isPlayPulsing ? 0 : 0.6)
+
+                        Circle()
+                            .fill(QMDesign.Colors.primaryGradient)
+                            .frame(width: 32, height: 32)
+                            .shadow(color: QMDesign.Colors.accent.opacity(0.5), radius: 8, x: 0, y: 2)
+
+                        Image(systemName: "play.fill")
+                            .font(.system(size: 12, weight: .bold))
+                            .foregroundColor(.white)
+                    }
+                    .scaleEffect(isHoveringPlay ? 1.15 : 1.0)
+                }
+                .buttonStyle(.plain)
+                .onHover { isHoveringPlay = $0 }
+                .animation(QMDesign.Animation.quick, value: isHoveringPlay)
+                .onAppear { startPlayPulse() }
+                .help(String(localized: "overlay.tooltip.startSession"))
             }
-            .buttonStyle(.plain)
-            .onHover { isHoveringDashboard = $0 }
-            .animation(QMDesign.Animation.quick, value: isHoveringDashboard)
-            .help(String(localized: "overlay.tooltip.openDashboard"))
+
+            // Stop (session active)
+            if isSessionActive {
+                Button(action: onStop) {
+                    Image(systemName: QMDesign.Icons.stop)
+                        .font(.system(size: 10))
+                        .foregroundColor(QMDesign.Colors.error)
+                        .frame(width: 26, height: 26)
+                        .background(Circle().fill(QMDesign.Colors.errorLight))
+                }
+                .buttonStyle(.plain)
+                .help(String(localized: "overlay.tooltip.stopSession"))
+            }
+
+            // One pill for the whole session state
+            OverlayStatePill(
+                isSessionActive: isSessionActive,
+                isFinalizingSession: isFinalizingSession,
+                detectedMoment: detectedMoment,
+                isAutoAnswerEnabled: isAutoAnswerEnabled,
+                isSmartModeEnabled: isSmartModeEnabled,
+                sessionDuration: sessionDuration,
+                transcriptionService: transcriptionService,
+                systemAudioService: systemAudioService,
+                preGenerationService: preGenerationService,
+                onRetryConnection: {
+                    transcriptionService.resetReconnectionBudget()
+                    Task { try? await transcriptionService.connect() }
+                },
+                onTap: { showPopupMenu = true }
+            )
+
+            // Meeting cost (beta opt-in)
+            if isSessionActive && config.meetingCostEnabled {
+                MeetingCostIndicator(
+                    sessionDuration: sessionDuration,
+                    participantCount: $participantCount,
+                    hourlyRate: config.meetingHourlyRate,
+                    currency: config.meetingCurrency,
+                    detectedFaceCount: detectedFaceCount
+                )
+            }
+
+            Spacer()
 
             // Expand/Collapse Button with animated chevron
             Button(action: onToggleExpand) {
                 ZStack {
-                    // Pulsing ring when collapsed (indicates hidden content)
                     if !isExpanded {
                         Circle()
                             .stroke(QMDesign.Colors.accent.opacity(0.4), lineWidth: 2)
@@ -733,19 +721,15 @@ struct ModernPillHeaderView: View {
                             .opacity(isChevronPulsing ? 0 : 0.6)
                     }
 
-                    // Main button
                     Group {
                         if isExpanded {
-                            Circle()
-                                .fill(QMDesign.Colors.surfaceMedium)
+                            Circle().fill(QMDesign.Colors.surfaceMedium)
                         } else {
-                            Circle()
-                                .fill(QMDesign.Colors.primaryGradient)
+                            Circle().fill(QMDesign.Colors.primaryGradient)
                         }
                     }
                     .frame(width: 28, height: 28)
 
-                    // Animated chevron
                     Image(systemName: "chevron.down")
                         .font(.system(size: 12, weight: .bold))
                         .foregroundColor(isExpanded ? QMDesign.Colors.textPrimary : .white)
@@ -756,7 +740,6 @@ struct ModernPillHeaderView: View {
             .buttonStyle(.plain)
             .onHover { hovering in
                 isHoveringExpand = hovering
-                // Show preview only when collapsed and hovering
                 if !isExpanded {
                     showExpandPreview = hovering
                 }
@@ -781,205 +764,7 @@ struct ModernPillHeaderView: View {
                 ExpandPreviewView()
             }
 
-            // Connection Status Banner (shown during reconnection or failure)
-            if isSessionActive {
-                TranscriptionConnectionBanner(
-                    transcriptionService: transcriptionService,
-                    onRetry: {
-                        transcriptionService.resetReconnectionBudget()
-                        Task { try? await transcriptionService.connect() }
-                    }
-                )
-            }
-
-            // FREE plan request counter
-            if !LicenseManager.shared.isPro {
-                FreeRequestCounter()
-            }
-
-            // Meeting Cost Indicator (live during session, beta opt-in)
-            if isSessionActive && config.meetingCostEnabled {
-                MeetingCostIndicator(
-                    sessionDuration: sessionDuration,
-                    participantCount: $participantCount,
-                    hourlyRate: config.meetingHourlyRate,
-                    currency: config.meetingCurrency,
-                    detectedFaceCount: detectedFaceCount
-                )
-            }
-
-            Spacer()
-
-            // Status Indicators
-            HStack(spacing: 4) {
-                // System Audio Down warning — extracted leaf so only this badge
-                // re-renders when the services publish, not the whole header.
-                if isSessionActive && sessionDuration > 5 {
-                    SystemAudioHealthBadge(
-                        transcriptionService: transcriptionService,
-                        systemAudioService: systemAudioService
-                    )
-                }
-
-                // Proactive Moment Badge (Enterprise)
-                if let moment = detectedMoment {
-                    HStack(spacing: 3) {
-                        Circle()
-                            .fill(Color(
-                                red: moment.type.color.red,
-                                green: moment.type.color.green,
-                                blue: moment.type.color.blue
-                            ))
-                            .frame(width: 6, height: 6)
-                            .scaleEffect(isMomentPulsing ? 1.4 : 1.0)
-                            .opacity(isMomentPulsing ? 0.6 : 1.0)
-                            .animation(.easeInOut(duration: 0.8).repeatForever(autoreverses: true), value: isMomentPulsing)
-                            .onAppear { isMomentPulsing = true }
-
-                        Image(systemName: moment.type.icon)
-                            .font(.system(size: 9, weight: .semibold))
-                        Text(moment.type.label)
-                            .font(.system(size: 9, weight: .medium))
-                    }
-                    .padding(.horizontal, 6)
-                    .padding(.vertical, 3)
-                    .background(
-                        Capsule()
-                            .fill(Color(
-                                red: moment.type.color.red,
-                                green: moment.type.color.green,
-                                blue: moment.type.color.blue
-                            ).opacity(0.2))
-                    )
-                    .foregroundColor(Color(
-                        red: moment.type.color.red,
-                        green: moment.type.color.green,
-                        blue: moment.type.color.blue
-                    ))
-                    .help(String(localized: "overlay.tooltip.proactiveDetected \(moment.type.label)"))
-                }
-
-                // Undetectability Mode Indicator
-                if config.isUndetectabilityEnabled {
-                    StatusBadge(
-                        icon: "eye.slash.fill",
-                        label: String(localized: "overlay.status.hidden"),
-                        color: QMDesign.Colors.success,
-                        isActive: true
-                    )
-                    .help(String(localized: "overlay.tooltip.undetectableMode"))
-                }
-
-                // Smart Mode Indicator
-                if isSmartModeEnabled {
-                    StatusBadge(
-                        icon: "brain.head.profile",
-                        label: String(localized: "overlay.status.smart"),
-                        color: QMDesign.Colors.accent,
-                        isActive: true
-                    )
-                    .help(String(localized: "overlay.tooltip.smartModeActive"))
-                }
-
-                // Pre-Generation Ready Indicator (leaf view — observes the service itself)
-                PreGenStatusIndicator(preGenerationService: preGenerationService)
-            }
-
-            // Hidden Mode Toggle (Enterprise only) - Quick access to Undetectability
-            let hiddenModeAvailable = LicenseManager.shared.isFeatureAvailable(.undetectable)
-            Button(action: {
-                if hiddenModeAvailable {
-                    config.isUndetectabilityEnabled.toggle()
-                }
-            }) {
-                HStack(spacing: 4) {
-                    Image(systemName: config.isUndetectabilityEnabled ? "eye.slash.fill" : "eye.slash")
-                        .font(.system(size: 11))
-                    Text(String(localized: "overlay.status.hidden"))
-                        .font(QMDesign.Typography.caption)
-                    if !hiddenModeAvailable {
-                        Image(systemName: "lock.fill")
-                            .font(.system(size: 8))
-                    }
-                }
-                .padding(.horizontal, QMDesign.Spacing.xs)
-                .padding(.vertical, 4)
-                .background(
-                    Capsule()
-                        .fill(config.isUndetectabilityEnabled && hiddenModeAvailable ? QMDesign.Colors.success.opacity(0.2) : QMDesign.Colors.surfaceLight)
-                )
-                .foregroundColor(config.isUndetectabilityEnabled && hiddenModeAvailable ? QMDesign.Colors.success : QMDesign.Colors.textTertiary)
-                .opacity(hiddenModeAvailable ? 1 : 0.6)
-                .scaleEffect(isHoveringHidden ? 1.05 : 1.0)
-            }
-            .buttonStyle(.plain)
-            .onHover { isHoveringHidden = $0 }
-            .animation(QMDesign.Animation.quick, value: isHoveringHidden)
-            .help(hiddenModeAvailable
-                ? (config.isUndetectabilityEnabled ? String(localized: "overlay.tooltip.hiddenModeOn") : String(localized: "overlay.tooltip.hiddenModeOff"))
-                : String(localized: "overlay.tooltip.hiddenModeRequiresEnterprise"))
-
-            // Auto-Answer Toggle (Enterprise only) with pulsing indicator
-            let autoAnswerAvailable = LicenseManager.shared.isFeatureAvailable(.autoAnswer)
-            Button(action: {
-                if autoAnswerAvailable {
-                    isAutoAnswerEnabled.toggle()
-                }
-            }) {
-                HStack(spacing: 4) {
-                    // Pulsing indicator when Auto is active
-                    if isAutoAnswerEnabled && autoAnswerAvailable {
-                        Circle()
-                            .fill(QMDesign.Colors.autoAnswer)
-                            .frame(width: 6, height: 6)
-                            .scaleEffect(isAutoPulsing ? 1.4 : 1.0)
-                            .opacity(isAutoPulsing ? 0.6 : 1.0)
-                            .animation(.easeInOut(duration: 1.0).repeatForever(autoreverses: true), value: isAutoPulsing)
-                            .onAppear { isAutoPulsing = true }
-                            .onDisappear { isAutoPulsing = false }
-                    }
-
-                    Image(systemName: isAutoAnswerEnabled ? QMDesign.Icons.autoAnswer : QMDesign.Icons.autoAnswerOff)
-                        .font(.system(size: 11))
-                    Text(String(localized: "overlay.status.auto"))
-                        .font(QMDesign.Typography.caption)
-                    if !autoAnswerAvailable {
-                        Image(systemName: "lock.fill")
-                            .font(.system(size: 8))
-                    }
-                }
-                .padding(.horizontal, QMDesign.Spacing.xs)
-                .padding(.vertical, 4)
-                .background(
-                    Capsule()
-                        .fill(isAutoAnswerEnabled && autoAnswerAvailable ? QMDesign.Colors.autoAnswerLight : QMDesign.Colors.surfaceLight)
-                )
-                .foregroundColor(isAutoAnswerEnabled && autoAnswerAvailable ? QMDesign.Colors.autoAnswer : QMDesign.Colors.textTertiary)
-                .opacity(autoAnswerAvailable ? 1 : 0.6)
-            }
-            .buttonStyle(.plain)
-            .help(autoAnswerAvailable
-                ? (isAutoAnswerEnabled ? String(localized: "overlay.tooltip.autoAnswerOn") : String(localized: "overlay.tooltip.autoAnswerOff"))
-                : String(localized: "overlay.tooltip.autoAnswerRequiresEnterprise"))
-
-            // Screen Capture Toggle - Enhanced visibility when disabled
-            Button(action: { enableScreenCapture.toggle() }) {
-                ZStack {
-                    // Background circle
-                    Circle()
-                        .fill(enableScreenCapture ? QMDesign.Colors.successLight : QMDesign.Colors.errorLight)
-                        .frame(width: 26, height: 26)
-
-                    // Icon with clearer disabled state
-                    Image(systemName: enableScreenCapture ? QMDesign.Icons.camera : "video.slash")
-                        .font(.system(size: 12, weight: enableScreenCapture ? .regular : .semibold))
-                        .foregroundColor(enableScreenCapture ? QMDesign.Colors.success : QMDesign.Colors.error)
-                }
-            }
-            .buttonStyle(.plain)
-            .help(enableScreenCapture ? String(localized: "overlay.tooltip.screenCaptureOn") : String(localized: "overlay.tooltip.screenCaptureOff"))
-
-            // More Button (Popup Menu) - works in both collapsed and expanded states
+            // More: the single home for toggles and actions
             Button(action: { showPopupMenu.toggle() }) {
                 Image(systemName: QMDesign.Icons.more)
                     .font(.system(size: 14))
@@ -997,81 +782,20 @@ struct ModernPillHeaderView: View {
             .help(String(localized: "overlay.tooltip.settingsMenu"))
             .popover(isPresented: $showPopupMenu, arrowEdge: .bottom) {
                 OverlayPopupMenu(
+                    isSessionActive: isSessionActive,
                     isAutoAnswerEnabled: $isAutoAnswerEnabled,
                     isSmartModeEnabled: $isSmartModeEnabled,
                     enableScreenCapture: $enableScreenCapture,
+                    isStealthEnabled: $config.isUndetectabilityEnabled,
                     isVisible: $showPopupMenu,
                     selectedDisplayID: $config.selectedDisplayID,
                     onCopyResponse: onCopyResponse,
                     onClearContext: onClearContext,
-                    onMovePosition: onMovePosition
+                    onExport: onExport,
+                    onAttachContact: onAttachContact,
+                    onOpenDashboard: toggleDashboard,
+                    onHideWidget: onHideWidget
                 )
-            }
-
-            // Finalization indicator (when generating summary)
-            if isFinalizingSession {
-                HStack(spacing: 6) {
-                    ProgressView()
-                        .scaleEffect(0.7)
-                        .frame(width: 14, height: 14)
-                    Text(String(localized: "overlay.summarizing"))
-                        .font(QMDesign.Typography.captionSmall)
-                        .foregroundColor(QMDesign.Colors.accent)
-                }
-                .padding(.horizontal, QMDesign.Spacing.xs)
-                .padding(.vertical, 4)
-                .background(
-                    Capsule()
-                        .fill(QMDesign.Colors.accent.opacity(0.15))
-                )
-            }
-
-            // Start Button (when session inactive and not finalizing) - PROMINENT
-            if !isSessionActive && !isFinalizingSession {
-                Button(action: onStart) {
-                    ZStack {
-                        // Pulsing glow ring
-                        Circle()
-                            .fill(QMDesign.Colors.primaryGradient.opacity(0.3))
-                            .frame(width: 38, height: 38)
-                            .scaleEffect(isPlayPulsing ? 1.2 : 1.0)
-                            .opacity(isPlayPulsing ? 0 : 0.6)
-
-                        // Main button
-                        Circle()
-                            .fill(QMDesign.Colors.primaryGradient)
-                            .frame(width: 32, height: 32)
-                            .shadow(color: QMDesign.Colors.accent.opacity(0.5), radius: 8, x: 0, y: 2)
-
-                        Image(systemName: "play.fill")
-                            .font(.system(size: 12, weight: .bold))
-                            .foregroundColor(.white)
-                    }
-                    .scaleEffect(isHoveringPlay ? 1.15 : 1.0)
-                }
-                .buttonStyle(.plain)
-                .onHover { isHoveringPlay = $0 }
-                .animation(QMDesign.Animation.quick, value: isHoveringPlay)
-                .onAppear {
-                    startPlayPulse()
-                }
-                .help(String(localized: "overlay.tooltip.startSession"))
-            }
-
-            // Stop Button (when session active)
-            if isSessionActive {
-                Button(action: onStop) {
-                    Image(systemName: QMDesign.Icons.stop)
-                        .font(.system(size: 10))
-                        .foregroundColor(QMDesign.Colors.error)
-                        .frame(width: 26, height: 26)
-                        .background(
-                            Circle()
-                                .fill(QMDesign.Colors.errorLight)
-                        )
-                }
-                .buttonStyle(.plain)
-                .help(String(localized: "overlay.tooltip.stopSession"))
             }
         }
         .padding(.horizontal, QMDesign.Spacing.sm)
@@ -1139,7 +863,6 @@ struct ModernExpandedContentView: View {
     @ObservedObject var sessionManager: SessionManager
     @Binding var selectedTab: TabItem
     @Binding var inputText: String
-    @Binding var isSmartModeEnabled: Bool
     let hasScreenshot: Bool
     let lastScreenshotTime: Date?
     let enableScreenCapture: Bool
@@ -1287,21 +1010,12 @@ struct ModernExpandedContentView: View {
                 StatusSection(
                     isSessionActive: appState.isSessionActive,
                     enableScreenCapture: enableScreenCapture,
-                    responseCount: aiService.responses.count,
-                    onExport: {
-                        let markdown = aiService.exportToMarkdown()
-                        NSPasteboard.general.clearContents()
-                        NSPasteboard.general.setString(markdown, forType: .string)
-                    },
-                    onClear: {
-                        aiService.clearResponses()
-                    }
+                    responseCount: aiService.responses.count
                 )
 
                 // Modern Input Area
                 ModernInputAreaView(
                     inputText: $inputText,
-                    isSmartModeEnabled: $isSmartModeEnabled,
                     dictationService: appState.dictationService,
                     isSessionActive: appState.isSessionActive,
                     onSubmit: onSubmit,
@@ -1975,10 +1689,6 @@ struct StatusSection: View {
     let isSessionActive: Bool
     let enableScreenCapture: Bool
     let responseCount: Int
-    let onExport: () -> Void
-    let onClear: () -> Void
-
-    @State private var exportFeedback: Bool = false
 
     var body: some View {
         HStack(spacing: QMDesign.Spacing.xs) {
@@ -2001,35 +1711,12 @@ struct StatusSection: View {
 
             Spacer()
 
-            // History controls
+            // FREE plan: only when the daily budget is nearly spent
+            if !LicenseManager.shared.isPro {
+                FreeRequestCounter(threshold: 3)
+            }
+
             if responseCount > 0 {
-                Button(action: {
-                    onExport()
-                    exportFeedback = true
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
-                        exportFeedback = false
-                    }
-                }) {
-                    HStack(spacing: 3) {
-                        Image(systemName: exportFeedback ? "checkmark" : QMDesign.Icons.export)
-                            .font(.system(size: 9))
-                        Text(exportFeedback ? String(localized: "overlay.action.copied") : String(localized: "overlay.action.export"))
-                            .font(QMDesign.Typography.captionSmall)
-                    }
-                }
-                .buttonStyle(.qmGhost)
-                .foregroundColor(exportFeedback ? QMDesign.Colors.success : nil)
-
-                Button(action: onClear) {
-                    HStack(spacing: 3) {
-                        Image(systemName: QMDesign.Icons.delete)
-                            .font(.system(size: 9))
-                        Text(String(localized: "overlay.action.clear"))
-                            .font(QMDesign.Typography.captionSmall)
-                    }
-                }
-                .buttonStyle(.qmDanger)
-
                 Text("\(responseCount)")
                     .font(QMDesign.Typography.captionSmall)
                     .foregroundColor(QMDesign.Colors.textTertiary)
@@ -2043,7 +1730,6 @@ struct StatusSection: View {
 @MainActor
 struct ModernInputAreaView: View {
     @Binding var inputText: String
-    @Binding var isSmartModeEnabled: Bool
     @ObservedObject var dictationService: DictationService
     let isSessionActive: Bool
     let onSubmit: () -> Void
@@ -2053,43 +1739,8 @@ struct ModernInputAreaView: View {
     @State private var isHoveringMic = false
     @State private var dictationPulse = false
 
-    // Check if Smart Mode is available (Enterprise only)
-    private var smartModeAvailable: Bool {
-        LicenseManager.shared.isFeatureAvailable(.smartMode)
-    }
-
     var body: some View {
         HStack(spacing: QMDesign.Spacing.xs) {
-            // Smart Mode Toggle (Enterprise only)
-            Button(action: {
-                if smartModeAvailable {
-                    isSmartModeEnabled.toggle()
-                }
-            }) {
-                HStack(spacing: 4) {
-                    Image(systemName: QMDesign.Icons.smart)
-                        .font(.system(size: 10))
-                    Text(String(localized: "overlay.status.smart"))
-                        .font(QMDesign.Typography.caption)
-                    if !smartModeAvailable {
-                        Image(systemName: "lock.fill")
-                            .font(.system(size: 8))
-                    }
-                }
-                .padding(.horizontal, QMDesign.Spacing.xs)
-                .padding(.vertical, 5)
-                .background(
-                    Capsule()
-                        .fill(isSmartModeEnabled && smartModeAvailable ? QMDesign.Colors.accent.opacity(0.15) : QMDesign.Colors.surfaceLight)
-                )
-                .foregroundColor(isSmartModeEnabled && smartModeAvailable ? QMDesign.Colors.accent : QMDesign.Colors.textTertiary)
-                .opacity(smartModeAvailable ? 1 : 0.6)
-            }
-            .buttonStyle(.plain)
-            .help(smartModeAvailable
-                ? (isSmartModeEnabled ? String(localized: "overlay.tooltip.smartModeOn") : String(localized: "overlay.tooltip.smartModeOff"))
-                : String(localized: "overlay.tooltip.smartModeRequiresEnterprise"))
-
             // Dictation Button
             Button(action: {
                 Task {

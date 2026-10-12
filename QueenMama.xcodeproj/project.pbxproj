@@ -34,7 +34,6 @@
 		00000000000000000000001B /* AutoAnswerService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 10000000000000000000001D /* AutoAnswerService.swift */; };
 		10000000000000000000007C /* PreGenerationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 10000000000000000000007B /* PreGenerationService.swift */; };
 		10000000000000000000007E /* PricingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 10000000000000000000007D /* PricingView.swift */; };
-		100000000000000000000080 /* FreeWelcomeBannerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 10000000000000000000007F /* FreeWelcomeBannerView.swift */; };
 		00000000000000000000001C /* OverlayPopupMenu.swift in Sources */ = {isa = PBXBuildFile; fileRef = 10000000000000000000001E /* OverlayPopupMenu.swift */; };
 		00000000000000000000001D /* OnboardingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 10000000000000000000001F /* OnboardingView.swift */; };
 		000000000000000000000022 /* TokenUsageTracker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 100000000000000000000024 /* TokenUsageTracker.swift */; };
@@ -42,7 +41,6 @@
 		000000000000000000000026 /* Logger.swift in Sources */ = {isa = PBXBuildFile; fileRef = 100000000000000000000026 /* Logger.swift */; };
 		000000000000000000000027 /* SecureStorage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 100000000000000000000027 /* SecureStorage.swift */; };
 		000000000000000000000028 /* UpdaterManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 100000000000000000000028 /* UpdaterManager.swift */; };
-		000000000000000000000029 /* AuthGateView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 100000000000000000000029 /* AuthGateView.swift */; };
 		100000000000000000000070 /* ReauthenticationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 10000000000000000000006F /* ReauthenticationView.swift */; };
 		075FD1B28F548EA76E2128F9 /* ProxyAPIClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = F31BD8E8B721652533B20139 /* ProxyAPIClient.swift */; };
 		10000000000000000000002A /* URLConfigManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 10000000000000000000002B /* URLConfigManager.swift */; };
@@ -50,7 +48,6 @@
 		10000000000000000000002E /* TranscriptBuffer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 10000000000000000000002F /* TranscriptBuffer.swift */; };
 		100000000000000000000030 /* ScreenContentAnalyzer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 100000000000000000000031 /* ScreenContentAnalyzer.swift */; };
 		100000000000000000000032 /* SystemAudioCaptureService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 100000000000000000000033 /* SystemAudioCaptureService.swift */; };
-		100000000000000000000035 /* TalkTimeIndicator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 100000000000000000000034 /* TalkTimeIndicator.swift */; };
 		100000000000000000000085 /* MeetingCostIndicator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 100000000000000000000084 /* MeetingCostIndicator.swift */; };
 		100000000000000000000087 /* TranslationProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 100000000000000000000086 /* TranslationProvider.swift */; };
 		100000000000000000000089 /* DeepLLanguage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 100000000000000000000088 /* DeepLLanguage.swift */; };
@@ -131,6 +128,20 @@
 		1000000000000000000000A9 /* rich in Resources */ = {isa = PBXBuildFile; fileRef = 1000000000000000000000A8 /* rich */; };
 		1000000000000000000000AB /* EnergyVADTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1000000000000000000000AA /* EnergyVADTests.swift */; };
 		1000000000000000000000AD /* SyntaxHighlighterTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1000000000000000000000AC /* SyntaxHighlighterTests.swift */; };
+		1000000000000000000000AF /* HomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1000000000000000000000AE /* HomeView.swift */; };
+		1000000000000000000000B1 /* LibraryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1000000000000000000000B0 /* LibraryView.swift */; };
+		1000000000000000000000B3 /* EssentialSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1000000000000000000000B2 /* EssentialSettingsView.swift */; };
+		1000000000000000000000B5 /* AccountSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1000000000000000000000B4 /* AccountSettingsView.swift */; };
+		1000000000000000000000B7 /* IntelligenceSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1000000000000000000000B6 /* IntelligenceSettingsView.swift */; };
+		1000000000000000000000B9 /* ScreenCaptureSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1000000000000000000000B8 /* ScreenCaptureSettingsView.swift */; };
+		1000000000000000000000BB /* MeetingCostSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1000000000000000000000BA /* MeetingCostSettingsView.swift */; };
+		1000000000000000000000BD /* AutoAnswerSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1000000000000000000000BC /* AutoAnswerSettingsView.swift */; };
+		1000000000000000000000BF /* AudioSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1000000000000000000000BE /* AudioSettingsView.swift */; };
+		1000000000000000000000C1 /* ShortcutsSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1000000000000000000000C0 /* ShortcutsSettingsView.swift */; };
+		1000000000000000000000C3 /* SyncSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1000000000000000000000C2 /* SyncSettingsView.swift */; };
+		1000000000000000000000C5 /* UpdatesSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1000000000000000000000C4 /* UpdatesSettingsView.swift */; };
+		1000000000000000000000C7 /* LanguageSelectorRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1000000000000000000000C6 /* LanguageSelectorRow.swift */; };
+		1000000000000000000000C9 /* OverlayStatePill.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1000000000000000000000C8 /* OverlayStatePill.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -173,7 +184,6 @@
 		10000000000000000000001D /* AutoAnswerService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AutoAnswerService.swift; sourceTree = "<group>"; };
 		10000000000000000000007B /* PreGenerationService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PreGenerationService.swift; sourceTree = "<group>"; };
 		10000000000000000000007D /* PricingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PricingView.swift; sourceTree = "<group>"; };
-		10000000000000000000007F /* FreeWelcomeBannerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FreeWelcomeBannerView.swift; sourceTree = "<group>"; };
 		10000000000000000000001E /* OverlayPopupMenu.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OverlayPopupMenu.swift; sourceTree = "<group>"; };
 		10000000000000000000001F /* OnboardingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingView.swift; sourceTree = "<group>"; };
 		100000000000000000000024 /* TokenUsageTracker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TokenUsageTracker.swift; sourceTree = "<group>"; };
@@ -181,14 +191,12 @@
 		100000000000000000000026 /* Logger.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Logger.swift; sourceTree = "<group>"; };
 		100000000000000000000027 /* SecureStorage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SecureStorage.swift; sourceTree = "<group>"; };
 		100000000000000000000028 /* UpdaterManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UpdaterManager.swift; sourceTree = "<group>"; };
-		100000000000000000000029 /* AuthGateView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthGateView.swift; sourceTree = "<group>"; };
 		10000000000000000000006F /* ReauthenticationView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReauthenticationView.swift; sourceTree = "<group>"; };
 		10000000000000000000002B /* URLConfigManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = URLConfigManager.swift; sourceTree = "<group>"; };
 		10000000000000000000002D /* AudioBatchingService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioBatchingService.swift; sourceTree = "<group>"; };
 		10000000000000000000002F /* TranscriptBuffer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TranscriptBuffer.swift; sourceTree = "<group>"; };
 		100000000000000000000031 /* ScreenContentAnalyzer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScreenContentAnalyzer.swift; sourceTree = "<group>"; };
 		100000000000000000000033 /* SystemAudioCaptureService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SystemAudioCaptureService.swift; sourceTree = "<group>"; };
-		100000000000000000000034 /* TalkTimeIndicator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TalkTimeIndicator.swift; sourceTree = "<group>"; };
 		100000000000000000000084 /* MeetingCostIndicator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MeetingCostIndicator.swift; sourceTree = "<group>"; };
 		100000000000000000000086 /* TranslationProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TranslationProvider.swift; sourceTree = "<group>"; };
 		100000000000000000000088 /* DeepLLanguage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeepLLanguage.swift; sourceTree = "<group>"; };
@@ -268,6 +276,20 @@
 		1000000000000000000000A8 /* rich */ = {isa = PBXFileReference; lastKnownFileType = folder; name = rich; path = Resources/rich; sourceTree = "<group>"; };
 		1000000000000000000000AA /* EnergyVADTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EnergyVADTests.swift; sourceTree = "<group>"; };
 		1000000000000000000000AC /* SyntaxHighlighterTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SyntaxHighlighterTests.swift; sourceTree = "<group>"; };
+		1000000000000000000000AE /* HomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeView.swift; sourceTree = "<group>"; };
+		1000000000000000000000B0 /* LibraryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LibraryView.swift; sourceTree = "<group>"; };
+		1000000000000000000000B2 /* EssentialSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EssentialSettingsView.swift; sourceTree = "<group>"; };
+		1000000000000000000000B4 /* AccountSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AccountSettingsView.swift; sourceTree = "<group>"; };
+		1000000000000000000000B6 /* IntelligenceSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IntelligenceSettingsView.swift; sourceTree = "<group>"; };
+		1000000000000000000000B8 /* ScreenCaptureSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScreenCaptureSettingsView.swift; sourceTree = "<group>"; };
+		1000000000000000000000BA /* MeetingCostSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MeetingCostSettingsView.swift; sourceTree = "<group>"; };
+		1000000000000000000000BC /* AutoAnswerSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AutoAnswerSettingsView.swift; sourceTree = "<group>"; };
+		1000000000000000000000BE /* AudioSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioSettingsView.swift; sourceTree = "<group>"; };
+		1000000000000000000000C0 /* ShortcutsSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShortcutsSettingsView.swift; sourceTree = "<group>"; };
+		1000000000000000000000C2 /* SyncSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SyncSettingsView.swift; sourceTree = "<group>"; };
+		1000000000000000000000C4 /* UpdatesSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UpdatesSettingsView.swift; sourceTree = "<group>"; };
+		1000000000000000000000C6 /* LanguageSelectorRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LanguageSelectorRow.swift; sourceTree = "<group>"; };
+		1000000000000000000000C8 /* OverlayStatePill.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OverlayStatePill.swift; sourceTree = "<group>"; };
 		200000000000000000000002 /* QueenMamaTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = QueenMamaTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
@@ -526,14 +548,35 @@
 			children = (
 				5C90DF322F1A51DE006B0DE0 /* Components */,
 				100000000000000000000010 /* DashboardView.swift */,
+				1000000000000000000000AE /* HomeView.swift */,
+				1000000000000000000000B0 /* LibraryView.swift */,
 				100000000000000000000011 /* SessionListView.swift */,
 				10000000000000000000003F /* ContactsListView.swift */,
 				100000000000000000000012 /* LiveSessionView.swift */,
 				100000000000000000000013 /* SettingsView.swift */,
 				100000000000000000000014 /* ModesListView.swift */,
-				100000000000000000000090 /* ModernTranslationSettingsView.swift */,
+				400000000000000000000022 /* Settings */,
 			);
 			path = Dashboard;
+			sourceTree = "<group>";
+		};
+		400000000000000000000022 /* Settings */ = {
+			isa = PBXGroup;
+			children = (
+				1000000000000000000000B2 /* EssentialSettingsView.swift */,
+				1000000000000000000000B4 /* AccountSettingsView.swift */,
+				1000000000000000000000B6 /* IntelligenceSettingsView.swift */,
+				1000000000000000000000B8 /* ScreenCaptureSettingsView.swift */,
+				1000000000000000000000BA /* MeetingCostSettingsView.swift */,
+				1000000000000000000000BC /* AutoAnswerSettingsView.swift */,
+				1000000000000000000000BE /* AudioSettingsView.swift */,
+				1000000000000000000000C0 /* ShortcutsSettingsView.swift */,
+				1000000000000000000000C2 /* SyncSettingsView.swift */,
+				1000000000000000000000C4 /* UpdatesSettingsView.swift */,
+				1000000000000000000000C6 /* LanguageSelectorRow.swift */,
+				100000000000000000000090 /* ModernTranslationSettingsView.swift */,
+			);
+			path = Settings;
 			sourceTree = "<group>";
 		};
 		40000000000000000000000A /* Overlay */ = {
@@ -542,8 +585,8 @@
 				100000000000000000000015 /* OverlayWindow.swift */,
 				100000000000000000000016 /* OverlayContentView.swift */,
 				10000000000000000000001E /* OverlayPopupMenu.swift */,
+				1000000000000000000000C8 /* OverlayStatePill.swift */,
 				100000000000000000000049 /* MeetingReminderPanel.swift */,
-				100000000000000000000034 /* TalkTimeIndicator.swift */,
 				100000000000000000000084 /* MeetingCostIndicator.swift */,
 			);
 			path = Overlay;
@@ -572,7 +615,6 @@
 				5CF69A912F35179200B0E097 /* ContactBriefingView.swift */,
 				5CF69A8F2F35178600B0E097 /* ContactExtractionSheet.swift */,
 				5CF69A8D2F35177900B0E097 /* ContactPickerSheet.swift */,
-				100000000000000000000029 /* AuthGateView.swift */,
 				10000000000000000000006F /* ReauthenticationView.swift */,
 				5C90DF532F2B8A00006B0DE0 /* SignInChoiceView.swift */,
 				5C90DF552F2B8A00006B0DE0 /* EmailSignInView.swift */,
@@ -626,7 +668,6 @@
 			children = (
 				5C90DF302F1A51DE006B0DE0 /* ProFeatureBanner.swift */,
 				5C90DF312F1A51DE006B0DE0 /* UpgradePromptView.swift */,
-				10000000000000000000007F /* FreeWelcomeBannerView.swift */,
 			);
 			path = Components;
 			sourceTree = "<group>";
@@ -767,6 +808,19 @@
 				000000000000000000000022 /* TokenUsageTracker.swift in Sources */,
 				00000000000000000000000C /* AIProvider.swift in Sources */,
 				000000000000000000000010 /* DashboardView.swift in Sources */,
+				1000000000000000000000AF /* HomeView.swift in Sources */,
+				1000000000000000000000B1 /* LibraryView.swift in Sources */,
+				1000000000000000000000B3 /* EssentialSettingsView.swift in Sources */,
+				1000000000000000000000B5 /* AccountSettingsView.swift in Sources */,
+				1000000000000000000000B7 /* IntelligenceSettingsView.swift in Sources */,
+				1000000000000000000000B9 /* ScreenCaptureSettingsView.swift in Sources */,
+				1000000000000000000000BB /* MeetingCostSettingsView.swift in Sources */,
+				1000000000000000000000BD /* AutoAnswerSettingsView.swift in Sources */,
+				1000000000000000000000BF /* AudioSettingsView.swift in Sources */,
+				1000000000000000000000C1 /* ShortcutsSettingsView.swift in Sources */,
+				1000000000000000000000C3 /* SyncSettingsView.swift in Sources */,
+				1000000000000000000000C5 /* UpdatesSettingsView.swift in Sources */,
+				1000000000000000000000C7 /* LanguageSelectorRow.swift in Sources */,
 				5C90DF372F1A51F8006B0DE0 /* AccountStepView.swift in Sources */,
 				000000000000000000000011 /* SessionListView.swift in Sources */,
 				100000000000000000000040 /* ContactsListView.swift in Sources */,
@@ -794,6 +848,7 @@
 				00000000000000000000001B /* AutoAnswerService.swift in Sources */,
 				10000000000000000000007C /* PreGenerationService.swift in Sources */,
 				00000000000000000000001C /* OverlayPopupMenu.swift in Sources */,
+				1000000000000000000000C9 /* OverlayStatePill.swift in Sources */,
 				00000000000000000000001D /* OnboardingView.swift in Sources */,
 				72E5F74C2ED54F91ABC5DA43 /* MarkdownRenderer.swift in Sources */,
 				075FD1B28F548EA76E2128F9 /* ProxyAPIClient.swift in Sources */,
@@ -804,7 +859,6 @@
 				000000000000000000000026 /* Logger.swift in Sources */,
 				000000000000000000000027 /* SecureStorage.swift in Sources */,
 				000000000000000000000028 /* UpdaterManager.swift in Sources */,
-				000000000000000000000029 /* AuthGateView.swift in Sources */,
 				100000000000000000000070 /* ReauthenticationView.swift in Sources */,
 				5C90DF402F1A5300006B0DE0 /* RegistrationFormView.swift in Sources */,
 				10000000000000000000002A /* URLConfigManager.swift in Sources */,
@@ -816,7 +870,6 @@
 				100000000000000000000030 /* ScreenContentAnalyzer.swift in Sources */,
 				100000000000000000000032 /* SystemAudioCaptureService.swift in Sources */,
 				100000000000000000000042 /* DictationService.swift in Sources */,
-				100000000000000000000035 /* TalkTimeIndicator.swift in Sources */,
 				100000000000000000000085 /* MeetingCostIndicator.swift in Sources */,
 				100000000000000000000036 /* HealthCheckService.swift in Sources */,
 				100000000000000000000038 /* Contact.swift in Sources */,
@@ -835,7 +888,6 @@
 				1000000000000000000000A5 /* SyntaxHighlighter.swift in Sources */,
 				1000000000000000000000A7 /* RichBlockRenderer.swift in Sources */,
 				10000000000000000000007E /* PricingView.swift in Sources */,
-				100000000000000000000080 /* FreeWelcomeBannerView.swift in Sources */,
 				100000000000000000000087 /* TranslationProvider.swift in Sources */,
 				100000000000000000000089 /* DeepLLanguage.swift in Sources */,
 				10000000000000000000008B /* TranslationCache.swift in Sources */,
