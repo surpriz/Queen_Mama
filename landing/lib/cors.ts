@@ -74,7 +74,12 @@ export function addCorsHeaders(
       "Content-Type, Authorization, X-Requested-With"
     );
     response.headers.set("Access-Control-Max-Age", "86400");
-    response.headers.set("Access-Control-Allow-Credentials", "true");
+    // Never allow credentials for the opaque "null" origin: any sandboxed
+    // iframe or data: URL on the web sends it too. The desktop app
+    // authenticates with a bearer token, so it does not need cookies.
+    if (origin !== "null") {
+      response.headers.set("Access-Control-Allow-Credentials", "true");
+    }
   }
 
   return response;

@@ -132,3 +132,22 @@ describe("corsPreflightResponse", () => {
     expect(response.headers.get("Access-Control-Allow-Origin")).toBeNull();
   });
 });
+
+describe("credentials for the null origin", () => {
+  const originalNodeEnv = process.env.NODE_ENV;
+  afterEach(() => {
+    (process.env as Record<string, string | undefined>).NODE_ENV = originalNodeEnv;
+  });
+
+  it("does not allow credentials when the origin is null", () => {
+    (process.env as Record<string, string | undefined>).NODE_ENV = "production";
+    const response = corsPreflightResponse("null");
+    expect(response.headers.get("Access-Control-Allow-Origin")).toBe("null");
+    expect(response.headers.get("Access-Control-Allow-Credentials")).toBeNull();
+  });
+
+  it("still allows credentials for a real allowed origin", () => {
+    const response = corsPreflightResponse("https://queenmama.co");
+    expect(response.headers.get("Access-Control-Allow-Credentials")).toBe("true");
+  });
+});
