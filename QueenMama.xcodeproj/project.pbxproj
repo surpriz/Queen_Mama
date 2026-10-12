@@ -144,6 +144,7 @@
 		1000000000000000000000C3 /* SyncSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1000000000000000000000C2 /* SyncSettingsView.swift */; };
 		1000000000000000000000C5 /* UpdatesSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1000000000000000000000C4 /* UpdatesSettingsView.swift */; };
 		1000000000000000000000C7 /* LanguageSelectorRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1000000000000000000000C6 /* LanguageSelectorRow.swift */; };
+		1000000000000000000000C9 /* OverlayStatePill.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1000000000000000000000C8 /* OverlayStatePill.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -294,6 +295,7 @@
 		1000000000000000000000C2 /* SyncSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SyncSettingsView.swift; sourceTree = "<group>"; };
 		1000000000000000000000C4 /* UpdatesSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UpdatesSettingsView.swift; sourceTree = "<group>"; };
 		1000000000000000000000C6 /* LanguageSelectorRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LanguageSelectorRow.swift; sourceTree = "<group>"; };
+		1000000000000000000000C8 /* OverlayStatePill.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OverlayStatePill.swift; sourceTree = "<group>"; };
 		200000000000000000000002 /* QueenMamaTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = QueenMamaTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
@@ -589,6 +591,7 @@
 				100000000000000000000015 /* OverlayWindow.swift */,
 				100000000000000000000016 /* OverlayContentView.swift */,
 				10000000000000000000001E /* OverlayPopupMenu.swift */,
+				1000000000000000000000C8 /* OverlayStatePill.swift */,
 				100000000000000000000049 /* MeetingReminderPanel.swift */,
 				100000000000000000000034 /* TalkTimeIndicator.swift */,
 				100000000000000000000084 /* MeetingCostIndicator.swift */,
@@ -854,6 +857,7 @@
 				00000000000000000000001B /* AutoAnswerService.swift in Sources */,
 				10000000000000000000007C /* PreGenerationService.swift in Sources */,
 				00000000000000000000001C /* OverlayPopupMenu.swift in Sources */,
+				1000000000000000000000C9 /* OverlayStatePill.swift in Sources */,
 				00000000000000000000001D /* OnboardingView.swift in Sources */,
 				72E5F74C2ED54F91ABC5DA43 /* MarkdownRenderer.swift in Sources */,
 				075FD1B28F548EA76E2128F9 /* ProxyAPIClient.swift in Sources */,
