@@ -390,7 +390,6 @@ class AppState: ObservableObject {
     @Published var isFinalizingSession = false  // Indicates AI is generating title/summary
 
     /// Memory Palace: Triggers contact picker from menu bar or keyboard shortcut
-    @Published var shouldShowContactPicker = false
 
     // MARK: - Memory-Managed Transcript
 
