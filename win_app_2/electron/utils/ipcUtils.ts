@@ -1,4 +1,6 @@
 import { BrowserWindow } from 'electron'
+import { getMainWindow } from '../windows/mainWindow'
+import { getOverlayWindow } from '../windows/overlayWindow'
 
 /**
  * Safely send an IPC message to a specific window.
@@ -58,9 +60,7 @@ export function safeSendToAllWindows(channel: string, ...args: unknown[]): numbe
  * @returns true if the message was sent successfully
  */
 export function safeSendToMainWindow(channel: string, ...args: unknown[]): boolean {
-  const windows = BrowserWindow.getAllWindows()
-  const mainWindow = windows.find((w) => !w.isAlwaysOnTop() && !w.isDestroyed())
-  return safeSendToWindow(mainWindow, channel, ...args)
+  return safeSendToWindow(getMainWindow(), channel, ...args)
 }
 
 /**

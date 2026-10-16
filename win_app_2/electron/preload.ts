@@ -141,16 +141,42 @@ const electronAPI = {
     > => ipcRenderer.invoke(IPC_CHANNELS.AUTH_REFRESH_TOKEN, apiBaseUrl),
   },
 
-  // Cross-window relay
+  // Cross-window relay (fan-out + snapshot cache live in main/relayHub)
   relay: {
     toOverlay: (channel: string, data: unknown) =>
       ipcRenderer.send(IPC_CHANNELS.RELAY_TO_OVERLAY, channel, data),
     toMain: (channel: string, data: unknown) =>
       ipcRenderer.send(IPC_CHANNELS.RELAY_TO_MAIN, channel, data),
+    /** Send to every other window (never echoed back to the sender). */
     broadcast: (channel: string, data: unknown) => {
-      // Send to both overlay and main windows
-      ipcRenderer.send(IPC_CHANNELS.RELAY_TO_OVERLAY, channel, data)
-      ipcRenderer.send(IPC_CHANNELS.RELAY_TO_MAIN, channel, data)
+      ipcRenderer.send(IPC_CHANNELS.RELAY_BROADCAST, channel, data)
+    },
+    /** Last cached value of every snapshot channel, with its sequence number. */
+    getSnapshot: (): Promise<Record<string, { data: unknown; seq: number }>> =>
+      ipcRenderer.invoke(IPC_CHANNELS.RELAY_GET_SNAPSHOT),
+    /** Generic listener; `seq` is monotonic per broadcast. */
+    on: (channel: string, callback: (data: unknown, seq: number) => void) => {
+      const handler = (_event: Electron.IpcRendererEvent, data: unknown, seq: number) => callback(data, seq)
+      ipcRenderer.on(channel, handler)
+      return () => ipcRenderer.removeListener(channel, handler)
+    },
+  },
+
+  // UI → hidden session window RPC
+  session: {
+    invoke: (cmd: string, payload?: unknown): Promise<{ ok: true; result: unknown } | { ok: false; error: string }> =>
+      ipcRenderer.invoke(IPC_CHANNELS.SESSION_INVOKE, cmd, payload),
+    onInvokeRequest: (callback: (request: { id: string; cmd: string; payload: unknown }) => void) => {
+      const handler = (_event: Electron.IpcRendererEvent, request: { id: string; cmd: string; payload: unknown }) =>
+        callback(request)
+      ipcRenderer.on(IPC_CHANNELS.SESSION_INVOKE_REQUEST, handler)
+      return () => ipcRenderer.removeListener(IPC_CHANNELS.SESSION_INVOKE_REQUEST, handler)
+    },
+    respond: (response: { id: string; ok: boolean; result?: unknown; error?: string }) =>
+      ipcRenderer.send(IPC_CHANNELS.SESSION_INVOKE_RESPONSE, response),
+    onLicenseRevalidateRequest: (callback: () => void) => {
+      ipcRenderer.on(IPC_CHANNELS.LICENSE_REVALIDATE_REQUEST, callback)
+      return () => ipcRenderer.removeListener(IPC_CHANNELS.LICENSE_REVALIDATE_REQUEST, callback)
     },
   },
 

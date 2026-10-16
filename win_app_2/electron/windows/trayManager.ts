@@ -4,7 +4,7 @@ import { existsSync } from 'fs'
 import { IPC_CHANNELS } from '../ipc/channels'
 import { getMainWindow } from './mainWindow'
 import { toggleOverlay } from './overlayWindow'
-import { safeSendToWindow } from '../utils/ipcUtils'
+import { sendToSessionWindow } from '../services/relayHub'
 
 interface TrayStrings {
   startSession: string
@@ -81,8 +81,7 @@ export function updateTrayMenu(isSessionActive: boolean): void {
     {
       label: isSessionActive ? s.stopSession : s.startSession,
       click: () => {
-        const mainWindow = getMainWindow()
-        safeSendToWindow(mainWindow, IPC_CHANNELS.SESSION_TOGGLE)
+        sendToSessionWindow(IPC_CHANNELS.SESSION_TOGGLE)
       },
     },
     { type: 'separator' },

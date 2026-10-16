@@ -365,6 +365,10 @@ function cleanup(): void {
 }
 
 // Singleton instance (functional module pattern, consistent with transcription/audio services)
+export function isDictating(): boolean {
+  return isRecording
+}
+
 export const dictationService = {
   startRecording,
   stopRecording,
@@ -372,4 +376,5 @@ export const dictationService = {
   reset,
   subscribe,
   getState: getDictationState,
+  isRecording: isDictating,
 }

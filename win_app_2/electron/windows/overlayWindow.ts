@@ -40,7 +40,8 @@ export function createOverlayWindow(): BrowserWindow {
       nodeIntegration: false,
       webSecurity: false,
     },
-    show: true,
+    // Shown by the dashboard once the user is authenticated and onboarded.
+    show: false,
   })
 
   overlayWindow.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true })

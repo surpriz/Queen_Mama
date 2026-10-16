@@ -50,11 +50,10 @@ export const useAppStore = create<AppState>((set) => ({
   sessionJustFinalized: false,
   showUpgradePricing: false,
 
-  setSessionActive: (active) => {
-    set({ isSessionActive: active, sessionStartedAt: active ? Date.now() : null })
-    // Update tray icon
-    window.electronAPI?.updateTrayIcon(active)
-  },
+  // Tray icon / meeting detector are updated by the main process from the
+  // relayed session state (single owner), not from every window's store.
+  setSessionActive: (active) =>
+    set({ isSessionActive: active, sessionStartedAt: active ? Date.now() : null }),
   setOverlayVisible: (visible) => set({ isOverlayVisible: visible }),
   setCurrentTranscript: (transcript) => set({ currentTranscript: transcript }),
   appendTranscript: (text) =>

@@ -29,6 +29,8 @@ import * as dedup from '@/services/transcription/transcriptDeduplicator'
 import * as echoCanceller from '@/services/audio/echoCanceller'
 import { EnergyVAD } from '@/services/audio/energyVad'
 import * as translationService from '@/services/translation/translationService'
+import { dictationService } from '@/services/dictation/dictationService'
+import * as relay from '@/services/relay/relayClient'
 
 // Local VAD gates: one per stream, independent state. Reset on session end.
 const micVad = new EnergyVAD({}, 'mic')
@@ -68,16 +70,17 @@ export async function startSession(mode?: Mode | null, contact?: Contact | null)
     preGeneration.reset()
     preGeneration.configure(() => useAppStore.getState().selectedMode)
 
-    // Broadcast session started to all windows
-    window.electronAPI?.relay?.broadcast('relay:session-state', {
-      isSessionActive: true,
-      sessionStartedAt: store.sessionStartedAt,
-    })
-
     // Create session record
     const session = sessionMgr.startSession('New Session', mode?.id ?? null)
     currentSessionId = session.id
     setOverlaySessionId(session.id)
+
+    // Broadcast session started to all windows
+    window.electronAPI?.relay?.broadcast('relay:session-state', {
+      isSessionActive: true,
+      sessionStartedAt: useAppStore.getState().sessionStartedAt,
+      currentSessionId,
+    })
 
     // Link contact to session if provided
     if (contact && currentSessionId) {
@@ -99,6 +102,11 @@ export async function startSession(mode?: Mode | null, contact?: Contact | null)
     // mis-labelled "Moi".
     audioCapture.setOnMicAudioBuffer((buffer) => {
       const cleaned = echoCanceller.process(buffer)
+      // Dictation shares the echo-cancelled mic stream while a session runs
+      // (it never opened its own socket feed before — it heard nothing).
+      if (dictationService.isRecording()) {
+        dictationService.sendAudio(cleaned)
+      }
       // Gate silence before transcription so Deepgram only bills/transcribes speech.
       if (useConfigStore.getState().vadEnabled) {
         for (const frame of micVad.process(cleaned)) transcription.sendAudio(frame)
@@ -344,7 +352,7 @@ export async function startSession(mode?: Mode | null, contact?: Contact | null)
       }
       const overlayStore = useOverlayStore.getState()
       overlayStore.setAutoAnswer(true)
-      await aiService.assist(transcript, selectedMode)
+      await aiService.assist(transcript, selectedMode, undefined, { isAutomatic: true })
     })
 
     // Set up proactive moment detection callback
@@ -369,11 +377,13 @@ export async function startSession(mode?: Mode | null, contact?: Contact | null)
 
       overlayStore.setAutoAnswer(true)
       overlayStore.setSelectedTab(responseType)
-      if (!overlayStore.isExpanded) overlayStore.setExpanded(true)
+      // The overlay renderer owns its expanded state; ask it instead of
+      // resizing the window from here (which left its React state collapsed).
+      relay.broadcast('relay:overlay', { expand: true, selectTab: responseType })
 
       // Trigger appropriate AI response with moment context
       const momentContext = `[DETECTED: ${topMoment.type.toUpperCase()} - "${topMoment.triggerPhrase}"]\n`
-      await aiService.assist(momentContext + transcript, selectedMode, undefined, { skipPreGen: true })
+      await aiService.assist(momentContext + transcript, selectedMode, undefined, { skipPreGen: true, isAutomatic: true })
     })
 
     // Analytics
@@ -414,6 +424,7 @@ export async function stopSession(): Promise<void> {
       isSessionActive: false,
       sessionStartedAt: null,
       isFinalizingSession: true,
+      currentSessionId,
     })
 
     // Generate title and summary from transcript + AI responses
@@ -527,6 +538,7 @@ export async function stopSession(): Promise<void> {
       sessionStartedAt: null,
       isFinalizingSession: false,
       sessionFinalized: true,
+      currentSessionId: null,
     })
 
     // Also set success state on local store
@@ -578,4 +590,37 @@ function cleanup(): void {
 
 export function getCurrentSessionId(): string | null {
   return currentSessionId
+}
+
+/** Authoritative transcript for AI requests (UI windows only hold a display copy). */
+export function getFullTranscript(): string {
+  return fullTranscript
+}
+
+/**
+ * "Clear context" (mac parity): drop the conversation context, the AI history
+ * and any pre-generated answer, without ending the session. The persisted
+ * session transcript is kept; only what the AI sees from now on is reset.
+ */
+export function clearContext(): void {
+  fullTranscript = ''
+  const store = useAppStore.getState()
+  store.clearContext()
+  useOverlayStore.getState().clearHistory()
+  preGeneration.reset()
+  if (store.isSessionActive) {
+    preGeneration.configure(() => useAppStore.getState().selectedMode)
+  }
+  autoAnswer.reset()
+  clearMomentState()
+  aiService.clearHistory()
+
+  window.electronAPI?.relay?.broadcast('relay:transcript', {
+    transcript: '',
+    interim: '',
+    audioLevel: store.audioLevel,
+    isSessionActive: store.isSessionActive,
+    sessionStartedAt: store.sessionStartedAt,
+  })
+  addBreadcrumb('session', 'Context cleared', 'info')
 }

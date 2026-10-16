@@ -9,25 +9,20 @@ export function useOverlay() {
   const setPosition = useOverlayStore((s) => s.setPosition)
 
   const toggle = useCallback(() => {
-    const newExpanded = !isExpanded
-    setExpanded(newExpanded)
-    window.electronAPI?.overlay.setExpanded(newExpanded)
+    setExpanded(!isExpanded)
   }, [isExpanded, setExpanded])
 
   const expand = useCallback(() => {
     setExpanded(true)
-    window.electronAPI?.overlay.setExpanded(true)
   }, [setExpanded])
 
   const collapse = useCallback(() => {
     setExpanded(false)
-    window.electronAPI?.overlay.setExpanded(false)
   }, [setExpanded])
 
   const moveTo = useCallback(
     (pos: OverlayPosition) => {
       setPosition(pos)
-      window.electronAPI?.overlay.setPosition(pos)
     },
     [setPosition],
   )

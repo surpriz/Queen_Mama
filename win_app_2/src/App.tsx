@@ -7,15 +7,18 @@ import { DashboardPage } from './pages/DashboardPage'
 import { OverlayPage } from './pages/OverlayPage'
 import { OnboardingPage } from './pages/OnboardingPage'
 import { NotificationPage } from './pages/NotificationPage'
+import { SessionPage } from './pages/SessionPage'
 import { ReauthenticationView } from './components/auth/ReauthenticationView'
 import { ErrorBoundary } from './components/common/ErrorBoundary'
 import { LoadingSpinner } from './components/common/LoadingSpinner'
 import { ToastContainer } from './components/common/ToastContainer'
 import { initializeApp } from './services/appInitializer'
-import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts'
+import { installAuthRelay } from './services/relay/authRelay'
+import { useRelaySync } from './hooks/useRelaySync'
 import { useUpdater } from './hooks/useUpdater'
 import { useOnboardingStore } from './stores/onboardingStore'
 import { useAuthStore } from './stores/authStore'
+import { getWindowKind, isSessionHost } from './lib/runtime'
 
 type LaunchState = 'checking' | 'dashboard' | 'login' | 'onboarding'
 
@@ -40,24 +43,40 @@ const queryClient = new QueryClient({
   }),
 })
 
-function AppContent() {
+// Every window keeps authStore in sync through the relay (dashboard performs
+// logins, the session host restores/expires them).
+installAuthRelay()
+
+/**
+ * Hidden session window: boots the full pipeline (auth, license, sync, audio)
+ * and renders nothing meaningful. See SessionPage / sessionHost.
+ */
+function SessionHostApp() {
+  useEffect(() => {
+    initializeApp().catch((error) => console.error('[App] Session host initialization failed:', error))
+  }, [])
+
+  return <SessionPage />
+}
+
+/**
+ * Visible windows: light boot (config + local caches), then mirror the host's
+ * auth / license / session state.
+ */
+function UiApp() {
   const { t } = useTranslation()
+  const kind = getWindowKind()
   const [isInitialized, setIsInitialized] = useState(false)
   const { hasCompletedOnboarding, loadOnboardingState } = useOnboardingStore()
   const { authState, isAuthenticated, sessionExpired } = useAuthStore()
 
-  // Register global keyboard shortcut handlers
-  useKeyboardShortcuts()
-
-  // Subscribe to auto-updater events globally
+  useRelaySync()
   useUpdater()
 
   useEffect(() => {
     const initialize = async () => {
       try {
-        // Load onboarding state first
         await loadOnboardingState()
-        // Then initialize the app
         await initializeApp()
       } catch (error) {
         console.error('[App] Initialization failed:', error)
@@ -68,13 +87,14 @@ function AppContent() {
     initialize()
   }, [loadOnboardingState])
 
-  // Reactive launch state — mirrors macOS checkAuthAndSetLaunchState()
+  // Reactive launch state — mirrors macOS checkAuthAndSetLaunchState().
+  // `authState.type === 'unknown'` until the session host has relayed the
+  // result of its credential check.
   const launchState: LaunchState = useMemo(() => {
     const state = (() => {
       if (!isInitialized || authState.type === 'unknown') return 'checking'
       if (isAuthenticated && hasCompletedOnboarding) return 'dashboard'
       if (isAuthenticated && !hasCompletedOnboarding) return 'onboarding'
-      // Not authenticated
       if (hasCompletedOnboarding || sessionExpired) return 'login'
       return 'onboarding'
     })()
@@ -82,9 +102,20 @@ function AppContent() {
     return state
   }, [isInitialized, authState.type, isAuthenticated, hasCompletedOnboarding, sessionExpired])
 
+  // The overlay is only meaningful once the user is signed in and onboarded
+  // (mac shows it when the dashboard state is reached). The dashboard window
+  // owns this decision.
+  useEffect(() => {
+    if (kind !== 'dashboard') return
+    if (launchState === 'dashboard') {
+      window.electronAPI?.overlay.show()
+    } else if (launchState !== 'checking') {
+      window.electronAPI?.overlay.hide()
+    }
+  }, [kind, launchState])
+
   const handleReauthenticated = () => {
-    // State is reactive — setAuthenticated() in authStore will
-    // recalculate launchState to 'dashboard' automatically
+    // authStore transition (relayed) flips launchState back to 'dashboard'
   }
 
   return (
@@ -112,6 +143,18 @@ function AppContent() {
       <ToastContainer />
     </>
   )
+}
+
+function AppContent() {
+  if (isSessionHost()) {
+    return (
+      <Routes>
+        <Route path="/session" element={<SessionHostApp />} />
+        <Route path="*" element={<SessionHostApp />} />
+      </Routes>
+    )
+  }
+  return <UiApp />
 }
 
 export function App() {

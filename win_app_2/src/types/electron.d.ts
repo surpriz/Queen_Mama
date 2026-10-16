@@ -185,6 +185,16 @@ export interface ElectronAPI {
     toOverlay: (channel: string, data: unknown) => void
     toMain: (channel: string, data: unknown) => void
     broadcast: (channel: string, data: unknown) => void
+    getSnapshot: () => Promise<Record<string, { data: unknown; seq: number }>>
+    on: (channel: string, callback: (data: unknown, seq: number) => void) => () => void
+  }
+
+  // UI → hidden session window RPC
+  session: {
+    invoke: (cmd: string, payload?: unknown) => Promise<{ ok: true; result: unknown } | { ok: false; error: string }>
+    onInvokeRequest: (callback: (request: { id: string; cmd: string; payload: unknown }) => void) => () => void
+    respond: (response: { id: string; ok: boolean; result?: unknown; error?: string }) => void
+    onLicenseRevalidateRequest: (callback: () => void) => () => void
   }
 
   // Cross-window sync listeners

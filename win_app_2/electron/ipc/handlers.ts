@@ -21,6 +21,7 @@ import {
   getOverlayWindow,
 } from '../windows/overlayWindow'
 import { setTrayLanguage } from '../windows/trayManager'
+import { getMainWindow } from '../windows/mainWindow'
 import { flashDisplay } from '../windows/displayFlash'
 import { hideMeetingNotification } from '../windows/meetingNotificationWindow'
 
@@ -168,31 +169,27 @@ export function registerIPCHandlers(): void {
     return win.getBounds()
   })
 
-  // Show main window (from overlay)
+  // Show main window (from overlay). Always target the dashboard explicitly:
+  // "first non-always-on-top window" would now match the hidden session window.
   ipcMain.on('window:show', () => {
-    const windows = BrowserWindow.getAllWindows()
-    for (const win of windows) {
-      if (!win.isAlwaysOnTop() && !win.isDestroyed()) {
-        win.show()
-        win.focus()
-        break
-      }
+    const win = getMainWindow()
+    if (win && !win.isDestroyed()) {
+      if (win.isMinimized()) win.restore()
+      win.show()
+      win.focus()
     }
   })
 
   // Toggle main window visibility (from overlay home button)
   ipcMain.on(IPC_CHANNELS.WINDOW_TOGGLE, () => {
-    const windows = BrowserWindow.getAllWindows()
-    for (const win of windows) {
-      if (!win.isAlwaysOnTop() && !win.isDestroyed()) {
-        if (win.isVisible() && !win.isMinimized()) {
-          win.minimize()
-        } else {
-          win.show()
-          win.focus()
-        }
-        break
-      }
+    const win = getMainWindow()
+    if (!win || win.isDestroyed()) return
+    if (win.isVisible() && !win.isMinimized()) {
+      win.minimize()
+    } else {
+      if (win.isMinimized()) win.restore()
+      win.show()
+      win.focus()
     }
   })
 

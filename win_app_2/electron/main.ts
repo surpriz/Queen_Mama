@@ -47,21 +47,15 @@ import {
   getMainWindow,
 } from './windows/mainWindow'
 import { initAutoUpdater } from './services/updater'
-import {
-  createOverlayWindow,
-  toggleOverlay,
-  showOverlay,
-  hideOverlay,
-  setOverlayExpanded,
-  setOverlayPosition,
-  type OverlayPosition,
-} from './windows/overlayWindow'
+import { createOverlayWindow } from './windows/overlayWindow'
 import { createTray, updateTrayMenu, updateTrayIcon } from './windows/trayManager'
+import { createSessionWindow } from './windows/sessionWindow'
 import { registerIPCHandlers } from './ipc/handlers'
 import { registerGlobalShortcuts } from './services/globalShortcuts'
+import { registerRelayHub, onSessionStateRelayed, sendToSessionWindow } from './services/relayHub'
 import { IPC_CHANNELS } from './ipc/channels'
 import { initializeDatabase, closeDatabase } from './db/database'
-import { safeSendToAllWindows, safeSendToWindow } from './utils/ipcUtils'
+import { safeSendToAllWindows } from './utils/ipcUtils'
 import { startMonitoring, stopMonitoring, setSessionActive, setOnMeetingDetected } from './services/meetingDetectionService'
 import { createMeetingNotificationWindow, showMeetingNotification } from './windows/meetingNotificationWindow'
 
@@ -196,35 +190,42 @@ if (!gotTheLock) {
       })
     }
 
-    // Register all IPC handlers
+    // Register all IPC handlers (overlay handlers live in handlers.ts only —
+    // they used to be registered twice, here and there)
     registerIPCHandlers()
+    registerRelayHub()
 
-    // Overlay IPC handlers
-    ipcMain.on(IPC_CHANNELS.OVERLAY_TOGGLE, () => toggleOverlay())
-    ipcMain.on(IPC_CHANNELS.OVERLAY_SHOW, () => showOverlay())
-    ipcMain.on(IPC_CHANNELS.OVERLAY_HIDE, () => hideOverlay())
-    ipcMain.on(IPC_CHANNELS.OVERLAY_SET_EXPANDED, (_event, expanded: boolean) => {
-      setOverlayExpanded(expanded)
-    })
-    ipcMain.on(IPC_CHANNELS.OVERLAY_SET_POSITION, (_event, position: OverlayPosition) => {
-      setOverlayPosition(position)
+    // Session state is owned by the hidden session window; main mirrors it
+    // into the tray and the meeting detector.
+    onSessionStateRelayed(({ isSessionActive }) => {
+      updateTrayIcon(isSessionActive)
+      updateTrayMenu(isSessionActive)
+      setSessionActive(isSessionActive)
     })
 
-    // Tray icon updates from renderer
+    // Tray icon updates from renderer (legacy path, kept for compatibility)
     ipcMain.on(IPC_CHANNELS.TRAY_UPDATE_ICON, (_event, active: boolean) => {
       updateTrayIcon(active)
       updateTrayMenu(active)
       setSessionActive(active)
     })
 
-    // Create windows
+    // Create windows — the session window first so it owns auth/license
+    // before any UI asks for a snapshot.
+    const sessionWindow = createSessionWindow()
     const mainWindow = createMainWindow()
     const overlayWindow = createOverlayWindow()
     createMeetingNotificationWindow()
     createTray()
 
-    // Flush queued protocol URLs once both renderers can receive IPC
-    void Promise.all([waitForLoad(mainWindow), waitForLoad(overlayWindow)]).then(() => {
+    // Re-check the license whenever the user comes back to the app (mac does
+    // this on every activation); the session window throttles the actual call.
+    app.on('browser-window-focus', () => {
+      sendToSessionWindow(IPC_CHANNELS.LICENSE_REVALIDATE_REQUEST)
+    })
+
+    // Flush queued protocol URLs once the renderers can receive IPC
+    void Promise.all([waitForLoad(sessionWindow), waitForLoad(mainWindow), waitForLoad(overlayWindow)]).then(() => {
       renderersReady = true
       for (const url of pendingProtocolUrls.splice(0)) {
         handleProtocolUrl(url)

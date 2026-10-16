@@ -1,5 +1,4 @@
-import { useEffect, useState } from 'react'
-import { useAuth } from '@/hooks/useAuth'
+import { useAuthStore } from '@/stores/authStore'
 import { LoadingSpinner } from '@/components/common/LoadingSpinner'
 import { GradientText } from '@/components/common/GradientText'
 
@@ -7,19 +6,14 @@ interface AuthGateProps {
   children: React.ReactNode
 }
 
+/**
+ * Renders children once the relayed auth state says we are signed in.
+ * The credential check itself runs once, in the hidden session window.
+ */
 export function AuthGate({ children }: AuthGateProps) {
-  const { authState, checkExistingAuth } = useAuth()
-  const [isChecking, setIsChecking] = useState(true)
+  const authState = useAuthStore((s) => s.authState)
 
-  useEffect(() => {
-    async function check() {
-      await checkExistingAuth()
-      setIsChecking(false)
-    }
-    check()
-  }, [])
-
-  if (isChecking || authState.type === 'unknown') {
+  if (authState.type === 'unknown') {
     return (
       <div className="flex h-screen items-center justify-center bg-qm-bg-primary">
         <div className="flex flex-col items-center gap-4">
@@ -37,6 +31,5 @@ export function AuthGate({ children }: AuthGateProps) {
     return <>{children}</>
   }
 
-  // App.tsx routing handles unauthenticated state
   return null
 }
